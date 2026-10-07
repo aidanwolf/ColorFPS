@@ -106,9 +106,16 @@ export class World {
     }
     if (meshes && this.hitTargets.length) {
       _ray.set(origin, dir);
+      _ray.camera = this.game.camera;
+      // entities animate during update, so refresh their world matrices before testing against them
+      for (const o of this.hitTargets) o.updateMatrixWorld(true);
       _ray.far = bestT;
       const hits = _ray.intersectObjects(this.hitTargets, true);
       for (const h of hits) {
+        // three's raycaster ignores visibility, so skip anything hidden (e.g. a broken shield)
+        let hidden = false;
+        for (let a = h.object; a; a = a.parent) if (!a.visible) hidden = true;
+        if (hidden) continue;
         let o = h.object;
         while (o && !o.userData.hit) o = o.parent;
         if (!o) continue;
