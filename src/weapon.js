@@ -2,7 +2,7 @@
 // rendered in its own scene on top of the world (so it never clips into walls).
 import * as THREE from 'three';
 import { COLORS } from './colors.js';
-import { Drone } from './entities/drone.js';
+import { Drone, Orb } from './entities/drone.js';
 import { audio } from './audio.js';
 
 const FIRE_INTERVAL = 0.13;
@@ -121,6 +121,7 @@ export class Blaster {
     audio.shoot(this.color);
     this.recoil = 1;
     this.muzzleLight.intensity = 6;
+    game.world.fx.muzzle(_muzzle, _dir, COLORS[this.color].hex, game.player.vel);
     const outcome = this.trace(cam.position.clone(), _dir.clone(), _muzzle.clone(), 0);
     if (outcome.hit) {
       game.hud.hitmarker(false);
@@ -138,6 +139,7 @@ export class Blaster {
     const hit = world.raycast(origin, dir, 250, { projectiles: true });
     const end = hit ? hit.point : origin.clone().addScaledVector(dir, 250);
     world.fx.tracer(from, end, hex, depth ? 0.035 : 0.05);
+    world.fx.beam(from, end, hex);
     if (!hit) return outcome;
     const n = hit.normal || dir.clone().negate();
     let result = 'world';
@@ -146,26 +148,29 @@ export class Blaster {
     if (hit.entity instanceof Drone && (result === 'hit' || result === 'kill')) outcome.quiet = true;
     else if (hit.solid?.mirror) result = 'mirror';
     else if (hit.solid?.glass) result = 'glass';
+    const p = hit.point.clone().addScaledVector(n, 0.02);
     if (result === 'shield') {
       audio.glassHit();
-      world.fx.burst(hit.point.clone().addScaledVector(n, 0.05), 0x9bf6ff, { count: 14, speed: 3, life: 0.4, size: 0.2, gravity: 0, dir: n });
+      world.fx.impact(p, n, 0x9bf6ff, 'shield', dir);
       return outcome;
     }
     if (result === 'hit' || result === 'kill') outcome.hit = true;
 
     const reflects = result === 'mirror' || result === 'immune';
-    const p = hit.point.clone().addScaledVector(n, 0.02);
     if (reflects && depth < MAX_BOUNCES) {
       outcome.bounced = true;
-      world.fx.burst(p, 0xffffff, { count: 8, speed: 5, life: 0.25, size: 0.16, gravity: 4, dir: n });
-      world.fx.burst(p, hex, { count: 10, speed: 3, life: 0.35, size: 0.2, gravity: 2, dir: n });
+      const tint = typeof hit.entity?.color === 'number' ? COLORS[hit.entity.color]?.hex : null;
+      world.fx.impact(p, n, hex, result === 'immune' ? 'ricochet' : 'mirror', dir, tint);
       if (result === 'immune') audio.ricochet();
       else audio.mirrorHit();
       const r = dir.clone().addScaledVector(n, -2 * dir.dot(n)).normalize();
       return this.trace(p, r, hit.point.clone(), depth + 1, outcome);
     }
     if (result === 'glass') audio.glassHit();
-    world.fx.burst(p, result === 'glass' ? 0xbfe8ff : hex, { count: 10, speed: 4, life: 0.35, size: 0.18, gravity: 6, dir: n });
+    // drones play their own hit and death effects; obstacles their own shatter
+    if (outcome.quiet && hit.entity instanceof Drone) return outcome;
+    if (hit.entity instanceof Orb && result === 'kill') world.fx.orbPop(hit.entity.pos, hex, hit.entity.radius);
+    else world.fx.impact(p, n, hex, result === 'glass' ? 'glass' : result === 'world' ? 'wall' : result === 'immune' ? 'ricochet' : 'hit', dir);
     return outcome;
   }
 
