@@ -169,7 +169,6 @@ export class Blaster {
     if (result === 'glass') audio.glassHit();
     // drones play their own hit and death effects; obstacles their own shatter
     if (outcome.quiet && hit.entity instanceof Drone) return outcome;
-    if (hit.entity instanceof Orb && result === 'kill') world.fx.orbPop(hit.entity.pos, hex, hit.entity.radius);
     else world.fx.impact(p, n, hex, result === 'glass' ? 'glass' : result === 'world' ? 'wall' : result === 'immune' ? 'ricochet' : 'hit', dir);
     return outcome;
   }

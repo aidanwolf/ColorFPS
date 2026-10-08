@@ -92,6 +92,7 @@ class Game {
     this.cutscene = new UnlockCutscene(this);
     this.level = buildLevel(this.world, this);
     this.world.finalize();
+    if (COARSE) this.world.fx.quality = 0.6; // lighter particle effects on phones
     this.world.setupCulling([this.sky]);
     this.hud.buildColors(this.blaster);
     this.hud.setSecrets(0, this.level.secretsTotal);
@@ -761,7 +762,13 @@ class Game {
     this.touch.show(this.touchMode && this.state === 'playing');
     if (this.state === 'playing') {
       if (DEV) this.devKeys();
-      this.step(dt);
+      // one bad frame of game logic must not freeze the game: report it and keep running
+      try {
+        this.step(dt);
+      } catch (e) {
+        if (!this.stepErrors) console.error('[chroma] step failed', e);
+        this.stepErrors = (this.stepErrors || 0) + 1;
+      }
     } else if (this.state === 'cutscene') {
       if (this.input.hit('Space') || this.input.hit('Enter') || this.input.mousePressed) this.cutscene.skip();
       this.cutscene.update(dt);

@@ -194,12 +194,14 @@ export class Player {
         this.damage(1, 'impact');
         if (this.dead) return;
       } else if (fallSpeed > HARD_FALL) {
+        world.fx.landDust(this.pos, 2);
         this.landKick = 0.3;
         this.shake = Math.max(this.shake, 0.35 + (fallSpeed - HARD_FALL) * 0.04);
         audio.sample('land_hard', { gain: 0.9, vary: 0.08 }) || audio.land(2);
       } else if (fallSpeed > 6) {
         this.landKick = Math.min(0.25, fallSpeed * 0.012);
         audio.land(Math.min(2, fallSpeed / 10));
+        world.fx.landDust(this.pos, Math.min(2, fallSpeed / 10));
       }
       this.launched = false;
     }

@@ -94,7 +94,7 @@ export class Orb {
   pop() {
     if (!this.alive) return;
     this.alive = false;
-    this.world.fx.burst(this.pos, COLORS[this.color].hex, { count: 14, speed: 4, life: 0.4, size: 0.25, gravity: 2 });
+    this.world.fx.orbPop(this.pos, COLORS[this.color].hex, this.radius);
   }
 
   dispose() {
@@ -237,7 +237,14 @@ export class Drone {
   // Move by `d`, axis by axis, so a wall only stops the blocked component (the rest still slides).
   // Sub-stepped so a hard shove can't tunnel through a thin wall. Returns the blocked axes.
   moveSafe(d, pad = PAD) {
-    const steps = Math.max(1, Math.ceil(d.length() / 0.25));
+    const len = d.length();
+    if (!Number.isFinite(len)) {
+      // a bad knock/dodge vector must never move (or hang) the drone
+      d.set(0, 0, 0);
+      this.knock.set(0, 0, 0);
+      this.dodge.set(0, 0, 0);
+    }
+    const steps = Math.max(1, Math.min(64, Math.ceil(d.length() / 0.25)));
     const blocked = { x: false, y: false, z: false, any: false };
     for (let s = 0; s < steps; s++) {
       for (const k of AXES) {
