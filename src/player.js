@@ -2,7 +2,7 @@
 // crouching (for vents), step-up, moving-platform riding, hazards and fall recovery.
 import * as THREE from 'three';
 import { audio } from './audio.js';
-import { ARMOR_IGNORES, ARMOR_COLOR } from './entities/armor.js';
+import { ARMOR_IGNORES, ARMOR_COLOR, ShieldFx } from './entities/armor.js';
 
 const HALF_W = 0.35;
 const STAND_H = 1.75;
@@ -334,6 +334,7 @@ export class Player {
     }
 
     this.invuln = Math.max(0, this.invuln - dt);
+    this.shieldFx?.update(dt);
     this.speed2d = Math.hypot(this.vel.x, this.vel.z);
     if (this.grounded) this.bob += dt * this.speed2d * 1.25;
     // footsteps: one per stride, louder and longer-strided when sprinting, quiet when crouched
@@ -501,19 +502,24 @@ export class Player {
   setArmor(n) {
     this.armor = n;
     this.game.hud.setArmor?.(n);
+    if (n || this.shieldFx) (this.shieldFx ??= new ShieldFx(this.game.scene)).set(n > 0);
   }
 
   damage(amount, source) {
     if (this.dead || this.invuln > 0 || this.game.godMode || this.game.rulesPaused) return;
     if (this.armor > 0 && !ARMOR_IGNORES.has(source)) {
       this.setArmor(this.armor - 1);
+      this.shieldFx?.shatter(this.game.camera);
       this.invuln = 1.2; // a moment of grace to get out of the line of fire
       this.shake = Math.max(this.shake || 0, 0.45);
       this.game.hud.armorBreak?.();
-      audio.sample('shield_break', { gain: 1.1 });
-      const p = this.pos.clone();
-      p.y += 1.1;
-      this.game.world.fx.burst(p, ARMOR_COLOR, { count: 90, speed: 9, life: 0.8, size: 0.28, gravity: 2 });
+      audio.sample(audio.sfxOr('armor_break', 'shield_break'), { gain: 1.2 });
+      audio.sample('shatter', { gain: 0.8, rate: 0.9 });
+      // shards of the shield burst out round you, in view (just in front of the eyes) and all about
+      const cam = this.game.camera, fwd = cam.getWorldDirection(new THREE.Vector3());
+      const front = cam.position.clone().addScaledVector(fwd, 1.8);
+      this.game.world.fx.burst(front, ARMOR_COLOR, { count: 26, speed: 6, life: 0.5, size: 0.05, gravity: 3 });
+      this.game.world.fx.burst(this.pos.clone().setY(this.pos.y + 1.1), ARMOR_COLOR, { count: 90, speed: 10, life: 0.9, size: 0.3, gravity: 4 });
       return;
     }
     this.deathCause = source;

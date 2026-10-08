@@ -90,6 +90,23 @@ html, body {
 #armor-edge.break { opacity: 1 !important; animation: armor-break 0.7s ease-out forwards !important; }
 @keyframes armor-break { 0% { box-shadow: inset 0 0 220px 60px rgba(200, 255, 255, 0.85); } 100% { box-shadow: inset 0 0 40px 0 rgba(127, 246, 255, 0); } }
 #hud.cinematic #armor, #hud.cinematic #armor-edge { visibility: hidden; }
+#armor-hex { position: absolute; inset: -4%; pointer-events: none; opacity: 0; transition: opacity 0.35s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38.11' height='66.00'%3E%3Cpath d='M0.00 -22.00 L19.05 -11.00 L19.05 11.00 L0.00 22.00 L-19.05 11.00 L-19.05 -11.00 Z M38.11 -22.00 L57.16 -11.00 L57.16 11.00 L38.11 22.00 L19.05 11.00 L19.05 -11.00 Z M19.05 11.00 L38.11 22.00 L38.11 44.00 L19.05 55.00 L-0.00 44.00 L0.00 22.00 Z M0.00 44.00 L19.05 55.00 L19.05 77.00 L0.00 88.00 L-19.05 77.00 L-19.05 55.00 Z M38.11 44.00 L57.16 55.00 L57.16 77.00 L38.11 88.00 L19.05 77.00 L19.05 55.00 Z' fill='rgba(127,246,255,0.07)' stroke='%237ff6ff' stroke-width='1.6'/%3E%3C/svg%3E"); background-size: 38.11px 66.00px;
+  -webkit-mask-image: radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,0.55) 70%, #000 92%); mask-image: radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,0.55) 70%, #000 92%);
+  filter: drop-shadow(0 0 6px rgba(127, 246, 255, 0.9)); }
+@keyframes hex-pulse { 50% { opacity: 0.85; } }
+#armor-hex.break { opacity: 1 !important; animation: hex-break 0.65s cubic-bezier(.2,.7,.3,1) forwards !important; }
+@keyframes hex-break { 0% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 14px #fff) brightness(2.5); } 100% { opacity: 0; transform: scale(1.45); filter: drop-shadow(0 0 2px #7ff6ff) blur(5px); } }
+.hex-shard { position: absolute; width: 26px; height: 30px; margin: -15px 0 0 -13px; pointer-events: none;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: linear-gradient(160deg, #e8ffff, #7ff6ff 45%, rgba(127,246,255,0.25));
+  animation: shard-fly 0.75s cubic-bezier(.15,.75,.35,1) forwards; }
+@keyframes shard-fly { 0% { transform: translate(0,0) rotate(0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.3); opacity: 0; } }
+#shard-layer { position: absolute; inset: 0; pointer-events: none; filter: drop-shadow(0 0 6px #7ff6ff); overflow: hidden; }
+#armor.down { color: #ff5a6a; border-color: rgba(255, 90, 106, 0.7); text-shadow: 0 0 8px #ff3344; box-shadow: 0 0 18px rgba(255, 51, 68, 0.5); opacity: 1 !important; transform: translateX(-50%) scale(1) !important; animation: armor-down 1.3s ease-in forwards; }
+#armor.down svg { filter: drop-shadow(0 0 4px #ff3344); }
+@keyframes armor-down { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
+#hud.cinematic #armor-hex, #hud.cinematic #shard-layer { visibility: hidden; }
+
 #colors { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; gap: 10px; }
 .cslot {
   width: 54px; height: 54px; border: 2px solid rgba(255, 255, 255, 0.15); background: var(--panel);

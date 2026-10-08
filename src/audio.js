@@ -294,6 +294,11 @@ class Audio {
     return !this.available || this.available.has(name) ? name : fallback;
   }
 
+  // a sound effect by name if its file exists, else a stand-in (for sounds still waiting to be generated)
+  sfxOr(name, fallback) {
+    return this.available && this.available.has(name) ? name : fallback;
+  }
+
   // the sample-based track currently playing (or fading in)
   get track() {
     return this.musicLayer.cur;

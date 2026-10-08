@@ -145,7 +145,12 @@ export class Hud {
   setArmor(n) {
     this.armorEl ??= document.querySelector('#armor');
     this.armorEdge ??= document.querySelector('#armor-edge');
-    this.armorEl.classList.toggle('hidden', !n);
+    if (n) {
+      clearTimeout(this.armorDownT);
+      this.armorEl.classList.remove('down');
+      this.armorEl.querySelector('span').textContent = 'SHIELD';
+    }
+    if (n || !this.armorEl.classList.contains('down')) this.armorEl.classList.toggle('hidden', !n);
     this.root.classList.toggle('armored', !!n);
   }
 
@@ -156,12 +161,49 @@ export class Hud {
     this.message('<b style="color:#7ff6ff">SHIELD</b> up: it takes the next hit for you.', 2.2);
   }
 
+  // the shield blows apart: the honeycomb round the screen bursts outward into shards, a white-cyan
+  // flash, a red edge, and the badge flips to SHIELD DOWN before it fades: you're bare again
   armorBreak() {
     this.armorEdge ??= document.querySelector('#armor-edge');
-    this.armorEdge.classList.remove('break');
-    void this.armorEdge.offsetWidth;
-    this.armorEdge.classList.add('break');
-    setTimeout(() => this.armorEdge.classList.remove('break'), 750);
+    this.armorHex ??= document.querySelector('#armor-hex');
+    this.shardLayer ??= document.querySelector('#shard-layer');
+    for (const el of [this.armorEdge, this.armorHex]) {
+      el.classList.remove('break');
+      void el.offsetWidth;
+      el.classList.add('break');
+    }
+    setTimeout(() => { this.armorEdge.classList.remove('break'); this.armorHex.classList.remove('break'); }, 800);
+    const W = innerWidth, H = innerHeight;
+    for (let i = 0; i < 34; i++) {
+      const a = Math.random() * Math.PI * 2, r = 0.36 + Math.random() * 0.16;
+      const x = W / 2 + Math.cos(a) * W * r, y = H / 2 + Math.sin(a) * H * r;
+      const d = 140 + Math.random() * 260;
+      const el = document.createElement('div');
+      el.className = 'hex-shard';
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.style.setProperty('--dx', `${Math.cos(a) * d}px`);
+      el.style.setProperty('--dy', `${Math.sin(a) * d}px`);
+      el.style.setProperty('--rot', `${(Math.random() - 0.5) * 720}deg`);
+      el.style.animationDelay = `${Math.random() * 0.06}s`;
+      const k = 0.6 + Math.random() * 0.9;
+      el.style.width = `${26 * k}px`;
+      el.style.height = `${30 * k}px`;
+      this.shardLayer.appendChild(el);
+      setTimeout(() => el.remove(), 900);
+    }
+    this.flash('radial-gradient(ellipse at center, transparent 35%, rgba(255, 30, 50, 0.75) 100%)');
+    this.armorEl ??= document.querySelector('#armor');
+    this.armorEl.classList.remove('hidden', 'gain', 'down');
+    this.armorEl.querySelector('span').textContent = 'SHIELD DOWN';
+    void this.armorEl.offsetWidth;
+    this.armorEl.classList.add('down');
+    clearTimeout(this.armorDownT);
+    this.armorDownT = setTimeout(() => {
+      this.armorEl.classList.remove('down');
+      if (!this.root.classList.contains('armored')) this.armorEl.classList.add('hidden');
+      this.armorEl.querySelector('span').textContent = 'SHIELD';
+    }, 1350);
   }
 
   hurt(amount) {

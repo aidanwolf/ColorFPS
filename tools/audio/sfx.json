@@ -517,5 +517,20 @@
   "text": "Energy force field malfunctioning and failing: electrical sputtering, buzzing stutters, violent crackling sparks bursting, a rising power surge whine, then the field collapsing with a descending hum and a final electric pop, sci-fi prison cell",
   "dur": 4.5,
   "influence": 0.6
+ },
+ "armor_pickup": {
+  "text": "Sci-fi energy shield pickup: a bright rising hexagonal crystal chime with a quick glassy shimmer sweep and a soft electric snap, futuristic video game power-up",
+  "dur": 1.0,
+  "influence": 0.6
+ },
+ "armor_on": {
+  "text": "Personal energy shield powering on around the player: a deep resonant electric hum swelling up with layered glassy honeycomb chimes locking into place, a protective force field forming, sci-fi",
+  "dur": 1.6,
+  "influence": 0.6
+ },
+ "armor_break": {
+  "text": "Energy shield shattering violently: a sharp crystalline explosion of breaking hexagonal glass panels, an electric burst and crackle, then a descending power-down whine, sci-fi armor destroyed, dramatic",
+  "dur": 1.4,
+  "influence": 0.65
  }
 }
