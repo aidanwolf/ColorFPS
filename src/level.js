@@ -16,6 +16,7 @@ import { buildGuide } from './levels/guide.js';
 import { buildTestRange } from './levels/testRange.js';
 import { placeLogs } from './levels/logs.js';
 import { buildCombatRange } from './levels/combatRange.js';
+import { buildVerdantBossRange } from './levels/verdantBossRange.js';
 
 export function buildLevel(world, game) {
   const level = {
@@ -43,5 +44,6 @@ export function buildLevel(world, game) {
   placeLogs(B); // Iris Calder's audio logs, all over the worlds
   // dev-only test arena, far off the map (?dev&start=arena)
   if (new URLSearchParams(location.search).has('dev')) buildCombatRange(B);
+  buildVerdantBossRange(B); // dev-only (?dev&start=hydra)
   return level;
 }
