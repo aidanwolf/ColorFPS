@@ -11,6 +11,7 @@ import { buildVerdant } from './levels/verdant.js';
 import { buildAzure } from './levels/azure.js';
 import { buildPrism } from './levels/prism.js';
 import { buildGuide } from './levels/guide.js';
+import { buildForgeRange } from './levels/forgeRange.js';
 
 export function buildLevel(world, game) {
   const level = {
@@ -31,5 +32,6 @@ export function buildLevel(world, game) {
   buildAzure(B);
   buildPrism(B);
   buildGuide(world, game);
+  buildForgeRange(B); // dev-only Forge Titan test arena (?dev)
   return level;
 }
