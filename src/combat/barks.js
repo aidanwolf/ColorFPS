@@ -15,6 +15,7 @@
 // static if the speaker is destroyed mid-line. Every line also shows as a small radio-intercept subtitle
 // (a setting); until a line's mp3 exists it plays as a synthetic robot babble through the same chain.
 import SCRIPT from '../../tools/audio/barks.json';
+import PACK from './barkpack.json'; // where each voiced line sits in its persona's barkpack_<persona>.mp3
 import { audio } from '../audio.js';
 import { director } from './director.js';
 import { esfx } from '../entities/enemySfx.js';
@@ -227,17 +228,17 @@ class Barks {
 
   prefetch(persona) {
     this.prefetched.add(persona);
-    audio.manifest?.then(() => audio.prefetch(SCRIPT.lines.filter((l) => l.persona === persona).map((l) => 'bark_' + l.id)));
+    audio.manifest?.then(() => audio.prefetch(['barkpack_' + persona]));
   }
 
   // ---------------------------------------------------------------- voice
   play(speaker, line, prio) {
     const P = PERSONAS[line.persona];
-    const name = 'bark_' + line.id;
-    const buf = audio.ctx && audio.buffers.get(name);
-    if (audio.available?.has(name) && !buf) audio.prefetch([name]);
+    const name = 'barkpack_' + line.persona, slice = PACK[line.persona]?.[line.id];
+    const buf = slice && audio.ctx && audio.buffers.get(name);
+    if (slice && audio.available?.has(name) && !buf) audio.prefetch([name]);
     const words = line.text.split(/\s+/).length;
-    const dur = buf ? buf.duration : Math.min(2.6, Math.max(0.8, 0.3 + words * 0.3));
+    const dur = buf ? slice[1] : Math.min(2.6, Math.max(0.8, 0.3 + words * 0.3));
     const c = { line, speaker, prio, end: this.time + dur + 0.1, src: null, g: null, pan: null, babble: [] };
     this.cur = c;
     const ctx = audio.ctx;
@@ -253,7 +254,7 @@ class Barks {
         c.src = ctx.createBufferSource();
         c.src.buffer = buf;
         c.src.connect(c.g);
-        c.src.start(t0);
+        c.src.start(t0, slice[0], slice[1]);
       } else this.babble(c, P.fx, t0, dur, words);
       esfx('radio_squelch', speaker.pos, 0.8, 0.85, dur + 0.08);
     }

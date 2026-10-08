@@ -1,5 +1,5 @@
 // Voices the enemy barks (tools/audio/barks.json) with ElevenLabs text-to-speech into
-// public/audio/bark_<id>.mp3, one file per line, each persona with its own premade voice and settings.
+// tools/audio/barks/bark_<id>.mp3 (then packed per persona by packbarks.mjs into public/audio), one file per line, each persona with its own premade voice and settings.
 // The game (src/combat/barks.js) plays them through a per-persona robot chain (ring-mod, formant,
 // bit-crush, filters), so the reads here should stay clean and dry.
 //
@@ -12,7 +12,7 @@
 // NODE_EXTRA_CA_CERTS if the proxy needs a CA). The audio manifest is rebuilt from the folder at the end.
 import fs from 'node:fs';
 
-const OUT = new URL('../../public/audio', import.meta.url).pathname;
+const OUT = new URL('./barks', import.meta.url).pathname;
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
 const list = (name) => {
@@ -73,7 +73,4 @@ async function worker() {
   }
 }
 await Promise.all([worker(), worker(), worker()]);
-// the game only requests files listed in the manifest (avoids 404s for audio that doesn't exist yet)
-const have = fs.readdirSync(OUT).filter((f) => f.endsWith('.mp3')).map((f) => f.slice(0, -4)).sort();
-fs.writeFileSync(`${OUT}/manifest.json`, `[${have.map((n) => JSON.stringify(n)).join(', ')}]`);
-console.log(`done, ${failed} failed; manifest lists ${have.length} files`);
+console.log(`done, ${failed} failed. Now pack them for the game: node tools/audio/packbarks.mjs`);
