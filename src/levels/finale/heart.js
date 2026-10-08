@@ -238,7 +238,7 @@ export function buildHeart({ B, W, game, level, H, boss }) {
     ring: 0xff4060,
     shield: true,
     shieldDown: 5,
-    dmg: { core: 9, hole: 5, kneel: 12, limb: 4, head: 6, broken: 3, torso: 2 },
+    dmg: { core: 9, hole: 4, kneel: 15, limb: 3, head: 5, broken: 1, torso: 1 }, // (the open core carries it; armor is chip)
     attacks: { sweep: 2, slam: 2, volley: 2, charge: 1, geysers: 1, lances: 1, vines: 1, icespikes: 1, spores: 1 },
     specials,
     env: 0.25, // image-based light (main's default 0.35)

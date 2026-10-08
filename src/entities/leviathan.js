@@ -13,15 +13,18 @@ import { COLORS } from '../colors.js';
 import { audio } from '../audio.js';
 import { Orb } from './drone.js';
 import { director } from '../combat/director.js';
+import { critHit, PainVoice, Malfunction, WeakMarker, prefetchFeel } from '../bossFeel.js';
 
 const SEGS = 24;
 const SPACING = 1.3; // m between segment centers
 const HEAD_BACK = 3.0; // m from the head's center to the first segment
 const TRAIL = 300; // head path samples (0.2 m apart): enough for the whole body plus slack
 const TRAIL_STEP = 0.2;
-const MAX_HP = 1000;
-const GILL_HITS = 18, GILL_DMG = 5, GILL_BURST = 25; // 3 gills = 345: a phase
-const MAW_DMG = 8, HEART_DMG = 6;
+const MAX_HP = 1200;
+const GILL_HITS = 20, GILL_DMG = 5, GILL_BURST = 25; // 3 gills = 375 (bursting all three ends the phase)
+// the maw core: MAW_DMG while it's stunned after a missed lunge (the decisive window: a full unload is
+// most of a phase), MAW_WIND_DMG for a quick shot down its throat as it winds up; the phase-3 heart
+const MAW_DMG = 13, MAW_WIND_DMG = 4, HEART_DMG = 9;
 const RAD = Array.from({ length: SEGS }, (_, i) => {
   const t = i / (SEGS - 1);
   return 0.45 + 1.85 * Math.pow(1 - t, 0.8) * Math.min(1, 0.85 + t * 2.2);
@@ -33,7 +36,7 @@ const LOCK = 0.7;
 const LUNGE_SPEED = 26;
 const ATTACK_GAP = [0, 3.0, 2.5, 2.1];
 const GILL_OPEN = [0, 4.6, 4.0, 0];
-const SOUNDS = ['leviathan_roar', 'leviathan_lunge', 'leviathan_splash', 'leviathan_death', 'leviathan_groan', 'leviathan_spit', 'leviathan_hurt'];
+const SOUNDS = ['leviathan_pain', 'leviathan_roar', 'leviathan_lunge', 'leviathan_splash', 'leviathan_death', 'leviathan_groan', 'leviathan_spit', 'leviathan_hurt'];
 const NAME = 'CHARYBDIS — THE DROWNED LEVIATHAN';
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -236,11 +239,21 @@ export class Leviathan {
     this.piranhas = [];
     this.headRight = new THREE.Vector3(1, 0, 0);
     this.build();
+    // pain, its armor seams crackling with discharge while it's stunned, targets on what's open
+    this.pain = new PainVoice(world, { name: 'leviathan_pain', fallback: 'leviathan_hurt', rate: 1.1, gain: 0.75, big: 'leviathan_hurt', bigRate: 0.75, gap: 1.5 });
+    const seg = (i) => ({ getWorldPosition: (out) => out.copy(this.segPos[i]).addScaledVector(this.segUp[i], RAD[i] * 0.6) });
+    this.malfunction = new Malfunction(game, [this.jaw, this.lure, seg(1), seg(3), seg(5), seg(7), seg(9), seg(12), seg(15)], { scale: 1.8, spark: 0x9ff6ff, arc: 0x7fe8ff, rate: 13, bubbles: true });
+    this.mawMarker = new WeakMarker(world, game, { color: 0xffffff, size: 1.3 });
+    this.gillMarker = new WeakMarker(world, game, { color: 0xffffff, size: 1.4 });
+    this.heartMarkers = [0, 1].map(() => new WeakMarker(world, game, { color: 0xffffff, size: 1.2 }));
     this.defeated = false;
     this.reset();
     world.add(this);
     world.addHittable(this.root);
-    audio.manifest?.then(() => audio.prefetch(SOUNDS));
+    audio.manifest?.then(() => {
+      audio.prefetch(SOUNDS);
+      prefetchFeel();
+    });
   }
 
   // ------------------------------------------------------------------ construction
@@ -492,6 +505,10 @@ export class Leviathan {
 
   // ------------------------------------------------------------------ state
   reset() {
+    if (this.malfunction) {
+      this.malfunction.update(1, false);
+      for (const m of [this.mawMarker, this.gillMarker, ...this.heartMarkers]) m.update(1, null);
+    }
     director.release(this);
     for (const p of this.piranhas) p.dispose();
     this.piranhas = [];
@@ -699,7 +716,10 @@ export class Leviathan {
     const fx = this.world.fx, hex = COLORS[g.color].hex;
     fx.sparks(hit.point, hit.normal || UP, hex, { count: 6, speed: 7, spread: 0.9, life: 0.35, gravity: 0 });
     if (g.hp > 0) {
+      critHit(this.game, hit, { color: hex, spark: 0xe0ffff, scale: 0.85, gain: 0.8, shake: 0.22, pop: false });
       audio.bossCoreHit();
+      this.convulse = Math.max(this.convulse, 0.2);
+      this.pain.hurt(0.8);
       this.damage(GILL_DMG);
       return;
     }
@@ -713,7 +733,8 @@ export class Leviathan {
       fx.bubbles(q, 12);
     }
     audio.bossLimbBreak();
-    this.sfx('leviathan_hurt', null, { gain: 0.9 });
+    this.pain.roar();
+    this.game.hud.bossCrit(true);
     this.flash = 1;
     this.convulse = 0.8;
     if (p.distanceTo(this.game.player.pos) < 30) this.game.player.shake = Math.max(this.game.player.shake, 0.4);
@@ -736,16 +757,23 @@ export class Leviathan {
       const exposed = this.state === 'stun' || (this.state === 'lunge_wind' && this.jawOpen > 0.5);
       if (!exposed || color !== this.mawColor) return 'immune';
       this.mawFlash = 1;
+      const stun = this.state === 'stun';
+      critHit(this.game, hit, { color: COLORS[color].hex, spark: 0xe8ffff, scale: stun ? 1.5 : 1, shake: stun ? 0.34 : 0.25 });
       audio.bossCoreHit();
-      this.world.fx.sparks(hit.point, hit.normal || UP, COLORS[color].hex, { count: 8, speed: 8, spread: 0.9, life: 0.4, gravity: 0 });
-      this.damage(this.state === 'stun' ? MAW_DMG : MAW_DMG / 2);
+      this.world.fx.bubbles(hit.point, 5);
+      this.convulse = Math.max(this.convulse, stun ? 0.45 : 0.3);
+      this.pain.hurt(stun ? 1.3 : 1);
+      this.damage(stun ? MAW_DMG : MAW_WIND_DMG);
       return 'hit';
     }
     if (part === 'heart') {
       if (!this.heartVisible || this.heartOpen < 0.6 || color !== this.heartColor) return 'immune';
       this.heartFlash = 1;
+      critHit(this.game, hit, { color: COLORS[color].hex, spark: 0xffffff, scale: 1.35, shake: 0.32 });
       audio.bossCoreHit();
-      this.world.fx.sparks(hit.point, hit.normal || UP, COLORS[color].hex, { count: 8, speed: 8, spread: 0.9, life: 0.4, gravity: 0 });
+      this.world.fx.bubbles(hit.point, 4);
+      this.convulse = Math.max(this.convulse, 0.4);
+      this.pain.hurt(1.2);
       this.damage(HEART_DMG);
       return 'hit';
     }
@@ -773,6 +801,8 @@ export class Leviathan {
     this.whip = 0;
     audio.bossPhase();
     this.sfx('leviathan_roar', () => audio.bossRoar(), { gain: 1.1 });
+    this.pain.roar();
+    for (const j of this.malfunction.joints) this.malfunction.sputter(j, 1.3);
     this.game.player.shake = Math.max(this.game.player.shake, 0.8);
     this.convulse = 1.2;
     if (this.phase === 2) {
@@ -834,6 +864,7 @@ export class Leviathan {
     if (this.state !== 'dead' || !this.sinking) this.updateBody(dt);
     this.updateTendrils(dt);
     this.updateParts(dt);
+    this.updateFeel(dt);
     this.updatePiranhas(dt, player);
     if (this.active && this.state !== 'dying') this.contact(player);
     this.updateSound(player);
@@ -1566,6 +1597,25 @@ export class Leviathan {
   }
 
   // head, jaw, fins, fluke, weak points, glow, lights
+  // stunned: discharge crackles along its armor seams; whatever's open wears a target
+  updateFeel(dt) {
+    const live = this.active && this.state !== 'intro' && this.state !== 'roar' && this.state !== 'dying';
+    const stun = live && this.state === 'stun';
+    this.malfunction.update(dt, stun);
+    if (stun) this.mawMarker.tint(COLORS[this.mawColor].hex);
+    this.mawMarker.update(dt, stun ? this.maw.getWorldPosition(_v) : null, 1.6);
+    const g = live && this.gills.find((q) => q.alive && q.open > 0.8);
+    if (g) this.gillMarker.tint(COLORS[g.color].hex);
+    // (the sac on the side facing you)
+    const sac = g && g.sacs.reduce((a, b) => (a.position.distanceToSquared(this.game.camera.position) < b.position.distanceToSquared(this.game.camera.position) ? a : b));
+    this.gillMarker.update(dt, g && !stun ? sac.position : null, 1);
+    const heart = live && this.heartVisible && this.heartOpen > 0.6;
+    this.heartLobes.forEach((l, i) => {
+      if (heart) this.heartMarkers[i].tint(COLORS[this.heartColor].hex);
+      this.heartMarkers[i].update(dt, heart ? l.core.getWorldPosition(_v) : null, 1.3);
+    });
+  }
+
   updateParts(dt) {
     this.convulse = Math.max(0, this.convulse - dt * 0.9);
     this.placeHead();

@@ -63,6 +63,27 @@ html, body {
     linear-gradient(#fff, #fff) right center / 8px 2px no-repeat;
 }
 #hitmarker.show { animation: hit 0.18s ease-out; }
+/* a weak-point CRITICAL: bigger, molten orange, a punchy scale-in */
+#hitmarker.crit {
+  width: 40px; height: 40px; margin: -20px 0 0 -20px; filter: drop-shadow(0 0 6px rgba(255, 120, 30, 0.95));
+  background:
+    linear-gradient(#ffb040, #ffb040) center top / 4px 13px no-repeat,
+    linear-gradient(#ffb040, #ffb040) center bottom / 4px 13px no-repeat,
+    linear-gradient(#ffb040, #ffb040) left center / 13px 4px no-repeat,
+    linear-gradient(#ffb040, #ffb040) right center / 13px 4px no-repeat;
+}
+#hitmarker.crit.show { animation: crit-hit 0.26s ease-out; }
+@keyframes crit-hit { 0% { opacity: 1; transform: rotate(45deg) scale(1.5); } 35% { opacity: 1; transform: rotate(45deg) scale(1); } 100% { opacity: 0; transform: rotate(45deg) scale(1.05); } }
+.crit-pop {
+  position: absolute; pointer-events: none; font-weight: 900; font-size: 15px; letter-spacing: 2px; color: #ffcf6a;
+  -webkit-text-stroke: 1px #3a0e00; text-shadow: 0 0 6px #ff5a00, 0 2px 0 #5a1800, 0 0 3px #000; transform: translate(-50%, -50%) rotate(var(--tilt, 0deg));
+  animation: crit-pop 0.62s ease-out forwards;
+}
+@keyframes crit-pop {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--tilt, 0deg)) scale(1.8); }
+  18% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--tilt, 0deg)) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -150%) rotate(var(--tilt, 0deg)) scale(0.92); }
+}
 #hitmarker.immune {
   background:
     linear-gradient(#889, #889) center top / 2px 6px no-repeat,
@@ -159,6 +180,14 @@ html, body {
 .boss-fill, .boss-ghost { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; }
 .boss-fill { background: linear-gradient(90deg, var(--red), var(--yellow), var(--green), var(--blue)); z-index: 2; transition: width 0.1s; }
 .boss-ghost { background: #fff; opacity: 0.5; transition: width 0.8s 0.25s; }
+/* the bar flashes when the boss is hurt; a weak-point CRITICAL flares it molten orange */
+#boss-bar .boss-track::after { content: ""; position: absolute; inset: 0; z-index: 3; opacity: 0; pointer-events: none; background: #fff; }
+#boss-bar.hurt .boss-track::after { animation: bar-hurt 0.22s ease-out; }
+#boss-bar.crit .boss-track::after { background: linear-gradient(90deg, rgba(255, 150, 40, 0.9), rgba(255, 240, 200, 0.95)); animation: bar-crit 0.32s ease-out; }
+#boss-bar.crit .boss-track { animation: bar-shake 0.22s linear; box-shadow: 0 0 14px rgba(255, 120, 30, 0.9); }
+@keyframes bar-hurt { 0% { opacity: 0.45; } 100% { opacity: 0; } }
+@keyframes bar-crit { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+@keyframes bar-shake { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-3px, 1px); } 50% { transform: translate(3px, -1px); } 75% { transform: translate(-2px, 0); } }
 .boss-hint { margin-top: 6px; font-size: 12px; color: var(--dim); letter-spacing: 1px; min-height: 16px; }
 
 /* ---------- Menus ---------- */

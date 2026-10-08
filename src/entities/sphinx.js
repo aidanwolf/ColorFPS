@@ -16,16 +16,18 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COLORS, RED, YELLOW } from '../colors.js';
 import { audio } from '../audio.js';
 import { Drone } from './drone.js';
+import { critHit, PainVoice, Malfunction, WeakMarker, prefetchFeel } from '../bossFeel.js';
 
 // The combat director (attack tokens), when the game has one: its own attacks are signature moves and go
 // ahead regardless, but it takes a token while it attacks so its scarabs hold fire meanwhile, and it only
 // calls scarabs when a token is free. (Optional: an empty glob if src/combat/director.js isn't there.)
 const director = Object.values(import.meta.glob('../combat/director.js', { eager: true }))[0]?.director || null;
 
-export const SPHINX_MAX_HP = 2200;
-const GEM_DMG = 7;
+export const SPHINX_MAX_HP = 2000;
+const GEM_DMG = 8; // its paw gems while its claws are dug in after a pounce
+const GEM_STUN_DMG = 14; // ...and while it's stunned by an overload: the decisive window
 const DISC_DMG = 2;
-const CORE_DMG = 12;
+const CORE_DMG = 14; // the back core while you ride it
 const OVERLOAD_HITS = 9; // matching-color disc hits during a beam's charge that overload it
 const OVERLOAD_DMG = 140;
 const RING_H = 0.45; // shockwave wall height: any jump clears it
@@ -53,7 +55,7 @@ const RIDE_TIME = [0, 5.0, 4.3, 3.7];
 const MAX_SCARABS = [0, 0, 2, 3];
 
 // sounds the lead can drop into public/audio (each falls back to an existing one)
-const SFX = ['sphinx_roar', 'sphinx_pounce', 'sphinx_slam', 'sphinx_purr', 'sphinx_swipe', 'sphinx_beam', 'sphinx_death', 'incinerator_roar', 'incinerator_ignite'];
+const SFX = ['sphinx_pain', 'sphinx_roar', 'sphinx_pounce', 'sphinx_slam', 'sphinx_purr', 'sphinx_swipe', 'sphinx_beam', 'sphinx_death', 'incinerator_roar', 'incinerator_ignite'];
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
@@ -200,6 +202,13 @@ export class Sphinx {
     world.scene.add(this.root);
     this.build();
     this.buildFx();
+    // pain, malfunctioning joints while stunned, and targets on whatever weak point is open
+    this.pain = new PainVoice(world, { name: 'sphinx_pain', fallback: 'sphinx_roar', rate: 1.35, gain: 0.6, big: 'sphinx_roar', bigRate: 0.85, gap: 1.4 });
+    const legJoints = this.legs.flatMap((l) => [l.hip, l.knee]);
+    this.malfunction = new Malfunction(game, [...legJoints, this.neck, this.head, this.hips, this.discGroup], { scale: 1.3, spark: 0xffa030, arc: 0x6fc8ff, rate: 14 });
+    this.gemMarkers = this.gems.map(() => new WeakMarker(world, game, { color: COLORS[this.cGem].hex, size: 0.9 }));
+    this.coreMarker = new WeakMarker(world, game, { color: COLORS[this.cCore].hex, size: 1.0 });
+    this.discMarker = new WeakMarker(world, game, { color: 0xffffff, size: 1.3 });
     this.backSolid = world.addSolid(new THREE.Vector3(), new THREE.Vector3(), { delta: new THREE.Vector3(), moving: true, noShot: true, kind: 'metal' });
     this.glow = world.addLight(0xffc650, 0, 12, 1.5); // the sun disc's glow (a pooled world light)
     this.scarabs = [];
@@ -445,6 +454,7 @@ export class Sphinx {
   }
 
   resetState() {
+    this.hideFeel();
     this.state = 'statue';
     this.stateT = 0;
     this.hp = SPHINX_MAX_HP;
@@ -465,6 +475,7 @@ export class Sphinx {
     this.overload = 0;
     this.gemFlash = 0;
     this.coreFlash = 0;
+    this.flinch = 0;
     this.rideT = 0;
     this.riding = false;
     this.coreOpen = 0;
@@ -504,6 +515,7 @@ export class Sphinx {
     this.game.hud.bossShow(true);
     this.game.hud.bossBar(1);
     this.setBossName('THE SPHINX');
+    prefetchFeel(['sphinx_pain']);
     this.purr ??= audio.createLoop(audio.available?.has('sphinx_purr') ? 'sphinx_purr' : 'drone_hum', { rate: audio.available?.has('sphinx_purr') ? 1 : 0.42 });
     this.beamLoop ??= audio.createLoop(audio.available?.has('sphinx_beam') ? 'sphinx_beam' : 'incinerator_roar');
   }
@@ -553,9 +565,12 @@ export class Sphinx {
     if (part === 'gemL' || part === 'gemR') {
       if (!this.gemsOpen || color !== this.cGem) return 'immune';
       this.gemFlash = 1;
-      this.world.fx.sparks(hit.point, hit.normal || UP, COLORS[this.cGem].hex, { count: 6, speed: 7, spread: 0.8 });
+      const stunned = this.act?.type === 'stun';
+      this.flinch = 1;
+      critHit(this.game, hit, { color: COLORS[this.cGem].hex, spark: 0xffe0a0, scale: stunned ? 1.25 : 1 });
       audio.bossCoreHit();
-      this.damage(GEM_DMG);
+      this.pain.hurt(stunned ? 1.2 : 1);
+      this.damage(stunned ? GEM_STUN_DMG : GEM_DMG);
       return 'hit';
     }
     if (part === 'disc') {
@@ -574,8 +589,10 @@ export class Sphinx {
     if (part === 'core') {
       if (this.coreOpen < 0.5 || color !== this.cCore) return 'immune';
       this.coreFlash = 1;
-      this.world.fx.sparks(hit.point, hit.normal || UP, COLORS[this.cCore].hex, { count: 8, speed: 8, spread: 0.9 });
+      this.flinch = 1;
+      critHit(this.game, hit, { color: COLORS[this.cCore].hex, spark: 0xfff0b0, scale: 1.2, shake: 0.36 });
       audio.bossCoreHit();
+      this.pain.hurt(1.2);
       this.damage(CORE_DMG);
       return 'hit';
     }
@@ -594,6 +611,8 @@ export class Sphinx {
       this.discTimer = Math.min(this.discTimer, DISC_CYCLE[phase]);
       this.onPhase?.(phase);
       audio.bossPhase();
+      this.pain.roar();
+      for (const j of this.malfunction.joints) this.malfunction.sputter(j, 1.2);
       this.game.player.shake = Math.max(this.game.player.shake, 0.7);
       if (!this.riding && !this.airborne) this.startAct('roar', { dur: 1.6 });
       this.summonCool = Math.min(this.summonCool, 2.5);
@@ -609,12 +628,16 @@ export class Sphinx {
     this.game.player.shake = Math.max(this.game.player.shake, 0.4);
     this.hp = Math.max(1, this.hp - OVERLOAD_DMG);
     this.damage(0);
+    this.game.hud.bossCrit(false);
+    this.pain.roar();
+    for (const j of this.malfunction.joints) this.malfunction.sputter(j, 1.5);
     this.startAct('stun', { dur: 3.4 });
-    this.hint(null, `OVERLOADED! It's stunned — the ${this.name(this.cGem)} gems on its paws are open!`);
+    this.hint(null, `OVERLOADED — SHOOT ITS ${this.name(this.cGem)} PAW GEMS!`);
   }
 
   die() {
     director?.release(this);
+    this.hideFeel();
     this.state = 'dying';
     this.deathT = 0;
     this.act = null;
@@ -768,9 +791,32 @@ export class Sphinx {
     this.pos.z = clamp(this.pos.z, this.bounds.minZ, this.bounds.maxZ);
     this.updateScarabs(dt, player);
     this.animate(dt);
+    this.updateFeel(dt);
     this.updateBack(player);
     this.pushPlayer(player);
     this.updatePurr(dist);
+  }
+
+  hideFeel() {
+    if (!this.malfunction) return;
+    this.malfunction.update(1, false);
+    for (const m of [...this.gemMarkers, this.coreMarker, this.discMarker]) m.update(1, null);
+  }
+
+  // stunned: sparks and arcs from its joints; open weak points wear a target
+  updateFeel(dt) {
+    const fight = this.state === 'fight';
+    const a = this.act;
+    this.malfunction.update(dt, fight && a?.type === 'stun');
+    const stunned = a?.type === 'stun';
+    this.gems.forEach((g, i) => this.gemMarkers[i].tint(COLORS[this.cGem].hex));
+    this.coreMarker.tint(COLORS[this.cCore].hex);
+    this.gems.forEach((g, i) => this.gemMarkers[i].update(dt, fight && this.gemsOpen ? g.getWorldPosition(_v) : null, stunned ? 1.6 : 1));
+    this.coreMarker.update(dt, fight && this.coreOpen > 0.5 ? this.core.getWorldPosition(_v) : null, 1.3);
+    // the disc while a beam charges: pour it on to overload it
+    const charging = fight && a?.type === 'beam' && a.step === 0;
+    if (charging) this.discMarker.tint(COLORS[this.discColor].hex);
+    this.discMarker.update(dt, charging ? this.disc.getWorldPosition(_v) : null, 1 + this.overload / OVERLOAD_HITS);
   }
 
   prowl(dt, player, dist, bearing) {
@@ -1501,8 +1547,11 @@ export class Sphinx {
     this.body.rotation.set(p.pitch, 0, p.roll);
     this.hips.rotation.set(p.hipsPitch, p.hipsYaw, 0);
     this.hips.position.x = p.hipsYaw * 0.8;
-    this.neck.rotation.set(p.neckPitch, p.neckYaw, 0);
-    this.head.rotation.set(p.headPitch, p.neckYaw * 0.5, 0);
+    // a weak-point hit snaps its head back
+    this.flinch = Math.max(0, (this.flinch || 0) - dt * 6);
+    this.neck.rotation.set(p.neckPitch - this.flinch * 0.22, p.neckYaw, 0);
+    this.head.rotation.set(p.headPitch - this.flinch * 0.3, p.neckYaw * 0.5, 0);
+    this.body.rotation.x -= this.flinch * 0.04;
     this.jaw.rotation.x = p.jaw * 0.6;
     for (const h of this.hatches) h.rotation.z = -h.userData.side * 2.1 * ease(clamp(p.hatch, 0, 1));
     for (const l of this.legs) if (l.halves) for (const h of l.halves) h.position.x = h.userData.h * (0.2 + 0.42 * p.shutter);

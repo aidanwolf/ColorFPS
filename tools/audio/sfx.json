@@ -1201,5 +1201,55 @@
   "text": "Energy shield absorbing a laser shot, soft resonant ripple thump",
   "dur": 0.5,
   "influence": 0.55
+ },
+ "titan_groan": {
+  "text": "Pained colossal furnace golem groan: a deep, strained, agonized metallic moan of grinding iron and bending steel girders with a wheezing bellows exhale and a hiss of steam, a huge creature badly hurt, video game boss taking heavy damage",
+  "dur": 1.6,
+  "influence": 0.6
+ },
+ "titan_groan_big": {
+  "text": "Colossal furnace golem's anguished roar of pain: an enormous, long, deep howl of tearing metal and collapsing iron beams, shrieking steam and a dying bellows, earth-shaking and loud, video game boss crippled",
+  "dur": 2.6,
+  "influence": 0.6
+ },
+ "boss_crit_hit": {
+  "text": "Heavy meaty critical hit on a giant armored machine: a deep punchy thud with a crunchy metallic crack and a splatter of sparks, short bass tail, extremely satisfying weak point impact, video game",
+  "dur": 0.6,
+  "influence": 0.7
+ },
+ "joint_sparks": {
+  "text": "Electrical malfunction in a damaged robot joint: sputtering high-voltage arcs, sharp crackles and pops, a buzzing short circuit and a spray of sparks",
+  "dur": 1.0,
+  "influence": 0.6
+ },
+ "servo_stutter": {
+  "text": "Damaged giant robot servo motor stuttering and failing: a strained whine that catches and grinds, jerky ratcheting clicks, the motor choking and sputtering",
+  "dur": 1.0,
+  "influence": 0.6
+ },
+ "sphinx_pain": {
+  "text": "Giant mechanical lion sphinx yowling in pain: a sharp, pained feline snarl and shriek layered with grinding metal and sputtering servos, ancient robot cat badly hurt, echoing in a stone temple",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "hydra_pain": {
+  "text": "Colossal carnivorous plant monster shrieking in pain: a wet, gurgling, high screech with creaking, splintering wood and squelching sap, a hurt beast thrashing",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "leviathan_pain": {
+  "text": "Huge sea serpent bellowing in pain underwater: a deep, pained, whale-like moan cracking into a shriek, bubbling and muffled, a colossal creature badly hurt",
+  "dur": 1.4,
+  "influence": 0.6
+ },
+ "warden_pain": {
+  "text": "Giant crystalline war machine howling in pain: a distorted metallic electronic shriek with glassy resonance and failing servos, sci-fi boss badly hurt",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "warden_pain_big": {
+  "text": "Giant crystalline war machine's anguished roar: a long, layered, distorted electronic howl with cracking crystal and power surging then failing, huge sci-fi boss in agony",
+  "dur": 2.4,
+  "influence": 0.6
  }
 }

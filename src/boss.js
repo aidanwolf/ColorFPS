@@ -10,6 +10,7 @@ import { COLORS } from './colors.js';
 import { audio } from './audio.js';
 import { Orb } from './entities/drone.js';
 import { director } from './combat/director.js';
+import { critHit, PainVoice, Malfunction, WeakMarker, prefetchFeel, play } from './bossFeel.js';
 
 const ALL = [0, 1, 2, 3];
 const RING_H = 0.45; // shockwave wall height (m)
@@ -71,6 +72,14 @@ export class Boss {
     world.scene.add(this.root);
     this.rings = [];
     this.build();
+    // pain (a crystalline mechanical howl), joints shorting out while it kneels or reels, a target on the
+    // open core
+    this.pain = new PainVoice(world, { name: 'warden_pain', fallback: 'boss_roar', rate: 1.35, gain: 0.55, big: 'warden_pain_big', bigFallback: 'boss_roar', bigRate: 0.9, gap: 1.5 });
+    const L = this.limbs;
+    this.joints = [L.armL.shoulder, L.armR.shoulder, L.armL.elbow, L.armR.elbow, L.legL.knee, L.legR.knee, L.legL.thigh, L.legR.thigh, this.head];
+    this.malfunction = new Malfunction(game, this.joints, { scale: 1.2, spark: 0xffe0a0, arc: 0xd0b8ff, rate: 12 });
+    this.coreMarker = new WeakMarker(world, game, { color: 0xffffff, size: 1.0 });
+    prefetchFeel(['warden_pain', 'warden_pain_big']);
     this.setStages([]);
     // the Prism Core arena (stage I) comes from the level; later stages bring their own
     Object.assign(this.stages[0], { spawn: new THREE.Vector3(...pos), bounds, floorY });
@@ -412,6 +421,7 @@ export class Boss {
 
   resetState() {
     director.release(this);
+    this.hideFeel();
     this.onReset?.();
     this.state = 'dormant';
     this.stateT = 0;
@@ -658,9 +668,19 @@ export class Boss {
       this.coreFlash = 1;
       audio.bossCoreHit();
       // shots through holes in the shield still count, for less
-      if (this.shield.up) this.damage(D.hole);
-      else if (this.kneel > 0) this.damage(D.kneel);
-      else this.damage(this.stage.cover ? D.vent : D.core);
+      const hex = COLORS[this.coreColor].hex;
+      if (this.shield.up) {
+        critHit(this.game, hit, { color: hex, scale: 0.8, gain: 0.7, shake: 0.2, pop: false });
+        this.damage(D.hole);
+      } else {
+        const big = this.kneel > 0;
+        critHit(this.game, hit, { color: hex, spark: 0xffffff, scale: big ? 1.5 : 1.2, shake: big ? 0.34 : 0.28 });
+        this.pain.hurt(big ? 1.3 : 1);
+        // it flinches: the torso jerks back, the head snaps up
+        this.torso.rotation.x -= 0.1;
+        this.head.rotation.x -= 0.25;
+        this.damage(big ? D.kneel : this.stage.cover ? D.vent : D.core);
+      }
       return 'hit';
     }
     if (part === 'torso') {
@@ -699,6 +719,7 @@ export class Boss {
   stageClear() {
     this.cancelAttack();
     this.state = 'warp';
+    this.hideFeel();
     this.stateT = 0;
     this.pendingStage = this.stageIdx + 1;
     this.kneel = 0;
@@ -706,7 +727,8 @@ export class Boss {
     this.clearRings();
     for (const pr of this.world.projectiles) pr.alive = false;
     audio.bossPhase();
-    audio.bossRoar();
+    this.pain.roar();
+    for (const j of this.joints) this.malfunction.sputter(j, 1.4);
     this.game.player.shake = 0.9;
     this.game.player.invuln = 99;
     audio.setIntensity(2);
@@ -724,6 +746,7 @@ export class Boss {
     this.world.fx.burst(p, COLORS[s.color].hex, { count: 120, speed: 10, life: 1.1, size: 0.45, gravity: 8 });
     this.world.fx.burst(p, 0xffffff, { count: 40, speed: 6, life: 0.5, size: 0.5, gravity: 0 });
     audio.shieldBreak();
+    this.pain.hurt(1.3);
     this.game.player.shake = 0.5;
     this.stagger = 1.0;
     this.game.hud.bossHint('SHIELD SHATTERED — hit the core with its color!', true);
@@ -736,6 +759,8 @@ export class Boss {
     const p = (l.thigh || l.shoulder || this.head).getWorldPosition(new THREE.Vector3());
     this.world.fx.burst(p, COLORS[Math.max(0, l.color)].hex, { count: 70, speed: 8, life: 0.9, size: 0.4, gravity: 10 });
     audio.bossLimbBreak();
+    for (const j of [l.thigh, l.knee, l.shoulder, l.elbow, l.name === 'head' ? this.head : null]) if (j) this.malfunction.sputter(j, 1.5);
+    this.pain.hurt(1.4);
     const exposed = this.stage.shield ? 'its core is exposed!' : 'no more shield arm!';
     const msgs = {
       head: 'Visor cracked — the Warden is stunned!',
@@ -758,6 +783,8 @@ export class Boss {
       this.cancelAttack();
       this.game.player.shake = 0.7;
       audio.slam();
+      this.pain.roar();
+      play('joint_sparks', 'energy_crackle', { gain: 0.9, rate: 0.8, vary: 0 });
       if (this.stage.cover) this.game.hud.bossHint('It kneels — its chest opens: hit the core!', true);
     }
   }
@@ -789,6 +816,7 @@ export class Boss {
       this.shield.up = false;
     }
     this.state = 'dying';
+    this.hideFeel();
     this.deathT = 0;
     this.clearRings();
     for (const pr of this.world.projectiles) pr.alive = false;
@@ -809,6 +837,7 @@ export class Boss {
     if (this.state === 'dormant' || this.state === 'dead') return;
     this.stateT += dt;
     const t = this.world.time;
+    if (this.state !== 'walk' && this.state !== 'attack') this.malfunction.update(dt, false); // (let any arcs die out)
 
     if (this.state === 'intro') return this.updateIntro(dt, player);
     if (this.state === 'dying') return this.updateDeath(dt);
@@ -945,7 +974,26 @@ export class Boss {
     this.updateRings(dt, player);
     this.pushPlayer(player);
     this.animate(dt, moving);
+    this.updateFeel(dt);
     this.updateBar();
+  }
+
+  // kneeling or reeling: its joints short out in sparks and arcs (broken limbs keep sputtering);
+  // the open core wears a target
+  updateFeel(dt) {
+    const fight = this.state === 'walk' || this.state === 'attack';
+    const down = fight && this.kneel > 0 ? 1 : fight && this.stagger > 0 ? 0.7 : 0;
+    this.malfunction.update(dt, down > 0, down);
+    if (fight) for (const l of Object.values(this.limbs)) if (l.broken && Math.random() < dt * 2.5) this.malfunction.sputter(l.knee || l.elbow || this.head, 0.6);
+    // (every stage guards it with a shield or chest plates: open = the plates apart, the shield down)
+    const open = fight && this.coreExposed() && !(this.stage.shield && this.shield.up);
+    if (open) this.coreMarker.tint(COLORS[Math.max(0, this.coreColor)].hex);
+    this.coreMarker.update(dt, open ? this.core.getWorldPosition(_v) : null, this.kneel > 0 ? 1.6 : 1);
+  }
+
+  hideFeel() {
+    this.malfunction?.update(1, false);
+    this.coreMarker?.update(1, null);
   }
 
   // the stage form's own motion: the halo turns, the heart's veins cycle through every color

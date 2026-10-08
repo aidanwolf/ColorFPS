@@ -35,7 +35,7 @@ export function buildFinale(B, boss, { prismReturn }) {
   boss.setStages(stages);
   Object.assign(boss.stages[0], {
     title: 'I · THE PRISM CORE', sub: 'STAGE I', main: 'THE PRISM CORE', color: '#d9a8ff', hp: 1600,
-    dmg: { core: 12, hole: 6, kneel: 16, vent: 12, limb: 5, head: 8, broken: 4, torso: 3 },
+    dmg: { core: 12, hole: 5, kneel: 18, vent: 12, limb: 4, head: 7, broken: 2, torso: 1 },
     tips: {
       slam: '<b>JUMP</b> the red shockwave when it reaches you!',
       volley: 'Orbs! <b>Shoot each in its color</b>, or put a pillar between you.',

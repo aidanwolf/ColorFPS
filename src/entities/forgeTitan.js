@@ -2,8 +2,10 @@
 // seams, a furnace in its chest, a forge hammer for a right hand and a crucible ladle in its left.
 // You only have red here, so the fight is about timing and position, not colors: its iron hide turns
 // every shot aside (and its furnace doors glow Solar yellow, so red shots ricochet off them), but after
-// each attack the joints it strained vent red-hot — shoot them. Enough vent hits and it OVERHEATS: it drops
-// to a knee and the furnace doors swing open on the core.
+// each attack the joints it strained vent red-hot — shoot them (each opened vent takes a couple of hits,
+// then blows its steam and shuts). Enough vent hits and it OVERHEATS: it drops to a knee, its joints
+// spark and stutter, and the furnace doors swing open on the core — THE weak point: a clean full unload
+// into it ends a phase (3-4 windows win the fight), with crits, groans and a target to say so.
 // Attacks (all telegraphed): hammer slams that send molten shockwaves rolling across the floor (jump them),
 // ladle flings that flood a patch of floor (or catwalk) with lava, mortar volleys of slag from its stacks
 // (shoot them down), and a charge that ends in the wall (dodge it: it's stunned and every vent opens).
@@ -17,13 +19,19 @@ import { mat } from '../materials.js';
 import { liquidMaterial } from '../liquid.js';
 import { Orb, Drone } from './drone.js';
 import { director } from '../combat/director.js';
+import { critHit, PainVoice, Malfunction, WeakMarker, prefetchFeel, play } from '../bossFeel.js';
 
 const MAX_HP = 900;
 const PHASE_HP = [0, 900, 600, 300]; // hp at which each phase begins (damage never skips a phase)
 const VENT_DMG = 3; // a shoulder vent
 const STACK_DMG = 4; // a smokestack vent (harder to reach)
-const CORE_DMG = 3; // the furnace core while overheated
+// The furnace core while overheated, per phase: one full unload into the open core (~6 s at the
+// blaster's 7.5 shots/s, 39-47 shots) is ~330-350 damage, more than a phase's 300 chunk, so a steady
+// player ends each phase in one window (3-4 windows for the fight); the phase floor still stops it
+// at each threshold so every phase plays. Vent hits are chip damage: they're how you overheat it.
+const CORE_DMG = [0, 8, 9, 10];
 const HEAT_MAX = [0, 8, 9, 10]; // vent hits to overheat it
+const VENT_HEAT = 2; // heat one opened vent takes before it vents itself shut (so overheating takes a few attacks)
 const OVERHEAT_T = [0, 6.5, 6, 5.5]; // seconds the core stays open
 const VENT_T = 3.4; // seconds a vent stays open after the attack that strained it
 const RING_H = 0.5; // shockwave wall height (m): any jump clears it
@@ -33,7 +41,7 @@ const HIP_Y = 2.5;
 const RISE_DEPTH = 11; // the titan sleeps this far under the lava
 const BACK_R = 1.7; // half-size of the walkable plate on its back
 const BODY_R = 2.6; // you can't walk through it
-export const FORGE_TITAN_SOUNDS = ['titan_roar', 'titan_steam', 'titan_slam', 'titan_pour', 'titan_death', 'titan_step', 'titan_charge', 'floor_collapse'];
+export const FORGE_TITAN_SOUNDS = ['titan_roar', 'titan_steam', 'titan_slam', 'titan_pour', 'titan_death', 'titan_step', 'titan_charge', 'floor_collapse', 'titan_groan', 'titan_groan_big'];
 const NAME = 'THE FORGE TITAN';
 
 const _v = new THREE.Vector3();
@@ -104,6 +112,12 @@ export class ForgeTitan {
     this.drones = [];
     this.pools = [0, 1].map(() => this.makePool());
     this.marker = this.makeMarker();
+    // the "this is IT" kit: pained groans, sparking joints while it's down, a target on the open core
+    this.pain = new PainVoice(world, { name: 'titan_groan', fallback: 'titan_roar', rate: 1.25, gain: 0.8, big: 'titan_groan_big', bigFallback: 'titan_roar', bigRate: 0.78, gap: 1.8 });
+    const L = this.legs, A = this.arms;
+    this.joints = [A.R.pivot, A.L.pivot, A.R.elbow, A.L.elbow, L[0].knee, L[1].knee, this.head, A.R.hand, A.L.hand];
+    this.malfunction = new Malfunction(game, this.joints, { scale: 1.5, spark: 0xfff0b0, arc: 0x8fd8ff, rate: 14 });
+    this.coreMarker = new WeakMarker(world, game, { color: 0xff8a2a, size: 1.5 });
     // a molten tether it draws power through from the arena's geothermal core (o.powerFrom)
     this.beamMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff6a1a).multiplyScalar(2.2), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
     this.beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 1, 10, 1, true).translate(0, 0.5, 0), this.beamMat);
@@ -190,7 +204,8 @@ export class ForgeTitan {
     box(2.5, 2.1, 0.1, dark, 0, 1.8, 1.32, this.torso);
     this.core = cyl(0.78, 0.78, 0.5, this.coreMat, 0, 1.8, 1.5, this.torso, 'core', 20);
     this.core.rotation.x = Math.PI / 2;
-    this.coreGlow = new THREE.Mesh(new THREE.TorusGeometry(0.98, 0.1, 6, 24), molten);
+    this.coreGlowMat = molten.clone();
+    this.coreGlow = new THREE.Mesh(new THREE.TorusGeometry(0.98, 0.1, 6, 24), this.coreGlowMat);
     this.coreGlow.position.set(0, 1.8, 1.62);
     this.torso.add(this.coreGlow);
     this.doors = [];
@@ -292,6 +307,21 @@ export class ForgeTitan {
     this.debrisParts.push(...this.doors.map((d) => d.pivot));
     // chest light position
     this.coreAnchor = anchor(0, 1.8, 2.6, this.torso);
+    // a shaft of furnace light pouring out of the open chest (only while the core is open)
+    this.shaftMat = new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: new THREE.Color(0xff8a2a) }, uA: { value: 0 }, uT: { value: 0 } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `uniform vec3 uColor; uniform float uA, uT; varying vec2 vUv;
+        void main(){ float f = pow(vUv.y, 1.6); float rip = 0.8 + 0.2 * sin(vUv.x * 37.7 + uT * 9.0) * sin(vUv.y * 9.0 - uT * 6.0);
+          gl_FragColor = vec4(uColor * f * rip * uA, 1.0); }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false,
+    });
+    // (uv.y is 1 at the top: the narrow end sits in the cavity and it widens and fades outward)
+    this.shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 2.0, 4.5, 20, 1, true).rotateX(-Math.PI / 2).translate(0, 0, 2.25 + 1.5), this.shaftMat);
+    this.shaft.position.set(0, 1.8, 0);
+    this.shaft.raycast = () => {};
+    this.shaft.visible = false;
+    this.torso.add(this.shaft);
     this.root.traverse((o) => {
       if (o.isMesh) o.castShadow = false;
     });
@@ -371,6 +401,7 @@ export class ForgeTitan {
     this.stepSide = 0;
     this.flash = 0;
     this.coreFlash = 0;
+    this.flinch = 0;
     this.shudder = 0;
     this.rideT = 0;
     this.droneT = 0;
@@ -380,6 +411,7 @@ export class ForgeTitan {
       v.timer = 0;
       v.open = 0;
       v.flash = 0;
+      v.heatLeft = 0;
     }
     this.doorOpen = 0;
     this.pose = this.idlePose();
@@ -395,6 +427,11 @@ export class ForgeTitan {
     this.light.intensity = 0;
     this.beamA = 0;
     this.beam.visible = false;
+    if (this.shaft) {
+      this.shaft.visible = false;
+      this.coreMarker.update(1, null);
+      this.malfunction.update(1, false);
+    }
     this.root.visible = true;
     this.root.scale.set(1, 1, 1);
     this.root.rotation.set(0, this.yaw, 0);
@@ -427,6 +464,7 @@ export class ForgeTitan {
     this.t = 0;
     this.tries++;
     audio.prefetch(FORGE_TITAN_SOUNDS);
+    prefetchFeel();
     this.pos.set(this.o.rise[0], this.floorY - RISE_DEPTH, this.o.rise[1]);
     this.hud(true);
     this.game.hud.bossBar(1);
@@ -459,34 +497,52 @@ export class ForgeTitan {
     if (part === 'grill') {
       this.color = YELLOW; // the shot rings off in Solar yellow
       if (this.doorOpen < 0.5) {
-        this.hint('grill', 'The furnace doors glow SOLAR yellow — red bounces off. Overheat it to open them!');
+        // (not while they're swinging open: "blast the core" is the line that matters then)
+        if (this.mode !== 'overheat') this.hint('grill', 'The furnace doors glow SOLAR yellow — red bounces off. Overheat it to open them!');
         return 'immune';
       }
     }
     if (!this.colors.includes(color)) return 'immune';
     if (part === 'core') {
       if (this.mode !== 'overheat' || this.doorOpen < 0.6) return 'immune';
-      this.coreFlash = 1;
-      audio.bossCoreHit();
-      this.burstAt(hit.point, 0xffd080, 16);
-      this.damage(CORE_DMG);
+      this.coreHit(hit);
+      this.damage(CORE_DMG[this.phase]);
       return 'hit';
     }
     const v = this.vents[part];
     if (v) {
-      if (v.open < 0.6) return 'immune';
+      if (v.open < 0.6 || v.heatLeft <= 0) return 'immune';
       v.flash = 1;
       this.burstAt(hit.point, 0xff6a2a, 10);
       audio.bossCoreHit();
       this.damage(v.dmg);
       if (this.state === 'fight' && this.mode !== 'overheat' && this.mode !== 'stagger' && this.mode !== 'collapse') {
         this.heat++;
+        // each opened vent takes so much heat, then blows its steam and shuts: wait for the next attack
+        if (--v.heatLeft <= 0) this.ventSpent(v);
         if (this.heat >= HEAT_MAX[this.phase]) this.overheat();
       }
       return 'hit';
     }
     this.hint('armor', 'Its iron hide turns your shots aside. Wait for the vents to glow RED-HOT after it attacks!');
     return 'immune';
+  }
+
+  // THE hit: the core flares white, molten sparks and embers spray out of the cavity, it groans and flinches
+  coreHit(hit) {
+    this.coreFlash = 1;
+    this.flinch = 1;
+    this.shudder = Math.max(this.shudder, 0.32);
+    critHit(this.game, hit, { color: 0xff7a1a, spark: 0xffd080, scale: 1.5, gain: 1.1 });
+    audio.bossCoreHit();
+    const fx = this.world.fx;
+    this.root.updateMatrixWorld(true);
+    const c = this.core.getWorldPosition(_v);
+    const fwd = _u.set(0, 0, 1).transformDirection(this.torso.matrixWorld);
+    fx.sparks(c, fwd, 0xffb040, { count: 14, speed: 12, spread: 0.7, life: 0.6, size: 0.03, k: 2.4, gravity: 12 });
+    for (let i = 0; i < 6; i++) fx.ember(c, fwd.x * rnd(3, 8) + rnd(-2.5, 2.5), fwd.y * 4 + rnd(1, 5), fwd.z * rnd(3, 8) + rnd(-2.5, 2.5), 0xff7a1a, rnd(0.7, 1.3), rnd(0.1, 0.2));
+    if (Math.random() < 0.35) fx.puff(c, fwd.x * 2, 2.5, fwd.z * 2, STEAM, 0.35, 1, 0.9, 3);
+    this.pain.hurt();
   }
 
   burstAt(p, color, n) {
@@ -514,7 +570,10 @@ export class ForgeTitan {
     this.game.player.shake = Math.max(this.game.player.shake, 0.4);
     sfx('titan_steam', { gain: 1 }, () => audio.sample('lava_sizzle', { gain: 1 }));
     audio.bossPhase();
-    this.hint(null, 'OVERHEATED! Its furnace doors are open — blast the core!', true);
+    // its joints blow out as it drops
+    for (const j of this.joints) this.malfunction.sputter(j, 1.6);
+    play('joint_sparks', 'energy_crackle', { gain: 0.9, rate: 0.8, vary: 0 });
+    this.hint(null, 'OVERHEATED — BLAST THE CORE!', true);
   }
 
   nextPhase() {
@@ -523,7 +582,9 @@ export class ForgeTitan {
     this.heat = 0;
     for (const v of Object.values(this.vents)) v.timer = 0;
     this.game.player.shake = 0.8;
-    sfx('titan_roar', { gain: 1, vary: 0 }, () => audio.bossRoar());
+    // a deep, pained groan as the chunk breaks
+    this.pain.roar();
+    for (const j of this.joints) this.malfunction.sputter(j, 1.3);
     if (this.phase === 2) {
       this.mode = 'stagger';
       this.modeT = 2.4;
@@ -602,6 +663,7 @@ export class ForgeTitan {
     this.updateBack(player);
     this.updateLooks(dt);
     this.updateBeam(dt);
+    this.updateFeel(dt);
     this.ambient(dt);
     // a Bonus Round hides the bar; bring it back
     if ((this.state === 'fight' || this.state === 'intro') && this.game.hud.bossEl?.classList.contains('hidden') && !this.game.rulesPaused) this.hud(true);
@@ -714,6 +776,7 @@ export class ForgeTitan {
       this.action = { type: 'buck', t: 0, step: 0 };
       this.mode = 'attack';
       this.vents.stackL.timer = this.vents.stackR.timer = 2.6;
+      this.vents.stackL.heatLeft = this.vents.stackR.heatLeft = VENT_HEAT;
       sfx('titan_steam', { gain: 1 }, () => audio.sample('lava_sizzle', { gain: 1 }));
       this.hint('ride', 'You\'re riding it! Shoot the stack vents before it blasts you off!', true);
     }
@@ -1277,8 +1340,17 @@ export class ForgeTitan {
     this.hint('slag', 'Slag mortar! Dodge it — or shoot the red-hot balls out of the air.');
   }
 
+  ventSpent(v) {
+    v.timer = Math.min(v.timer, 0.15);
+    v.glow.getWorldPosition(_v);
+    this.world.fx.puff(_v, 0, 4, 0, STEAM, 0.55, 1.0, 1.4, 3);
+    this.world.fx.sparks(_v, UP, 0xffa040, { count: 10, speed: 8, spread: 0.9 });
+    sfx('titan_steam', { gain: 0.5, rate: 1.3, vary: 0.1 }, () => audio.sample('lava_sizzle', { gain: 0.5 }));
+  }
+
   openVent(k) {
     const v = this.vents[k];
+    v.heatLeft = VENT_HEAT;
     if (v.timer <= 0) {
       v.glow.getWorldPosition(_v);
       this.world.fx.puff(_v, 0, 3, 0, STEAM, 0.45, 1.2, 1.2, 3);
@@ -1635,7 +1707,10 @@ export class ForgeTitan {
     this.hips.position.y = HIP_Y + P.dip + Math.abs(Math.cos(this.walkPhase)) * 0.12 * Math.min(1, Math.abs(sw) * 3);
     this.torso.rotation.x = P.lean;
     this.torso.rotation.y = P.twist + sw * 0.05;
-    this.head.rotation.x = P.headX;
+    // a core hit makes it flinch: the torso jerks back, the head snaps up
+    this.flinch = Math.max(0, (this.flinch || 0) - dt * 6);
+    this.torso.rotation.x -= this.flinch * 0.1;
+    this.head.rotation.x = P.headX - this.flinch * 0.35;
     A.R.pivot.rotation.x = P.armRX - sw * 0.18;
     A.R.pivot.rotation.z = P.armRZ;
     A.R.elbow.rotation.x = P.elbowR;
@@ -1667,8 +1742,11 @@ export class ForgeTitan {
     this.ventMat.color.copy(vc).multiplyScalar(pulse * live + 0.05);
     for (const v of Object.values(this.vents)) if (v.flash > 0) v.glow.scale.setScalar(1 + v.flash * 0.12);
     else v.glow.scale.setScalar(1);
-    const coreHot = this.mode === 'overheat' ? 1.8 + Math.sin(t * 16) * 0.5 : 1.0;
-    this.coreMat.color.setRGB(1, 0.62, 0.25).multiplyScalar((coreHot + this.coreFlash * 3) * live + 0.03);
+    // the core ramps up white-hot as the doors swing open (and flares on every hit)
+    const coreHot = this.mode === 'overheat' ? 1.1 + this.doorOpen * (0.9 + Math.sin(t * 16) * 0.4) : 1.0;
+    this.coreMat.color.setRGB(1, 0.62 + this.coreFlash * 0.25, 0.25 + this.coreFlash * 0.35).multiplyScalar((coreHot + this.coreFlash * 1.6) * live + 0.03);
+    this.coreGlowMat.color.setRGB(1, 0.5, 0.15).multiplyScalar((1.4 + (this.mode === 'overheat' ? this.doorOpen * (0.9 + Math.sin(t * 10) * 0.6) : 0) + this.coreFlash * 1.5) * live + 0.03);
+    this.coreGlow.scale.setScalar(1 + this.coreFlash * 0.18);
     this.moltenMat.color.setRGB(1, 0.5, 0.15).multiplyScalar((1.4 + this.eyeFlare * 1.5 + (this.stackHeat || 0)) * live + 0.03);
     const hh = this.hammerHeat || 0;
     this.hammerFaceMat.color.setRGB(0.25 + hh * 2.4, 0.06 + hh * 1.3, 0.03 + hh * 0.6).multiplyScalar(live + 0.1);
@@ -1678,7 +1756,31 @@ export class ForgeTitan {
     else {
       this.root.updateMatrixWorld(true);
       this.coreAnchor.getWorldPosition(this.light.position);
-      this.light.intensity = (this.mode === 'overheat' ? 16 : 5 + heat * 6 + this.flash * 6) * live;
+      this.light.intensity = (this.mode === 'overheat' ? 14 + this.coreFlash * 10 : 5 + heat * 6 + this.flash * 6) * live;
+    }
+  }
+
+  // Stuck (kneeling overheated, howling in a stagger, dazed against the wall): its joints spark and arc,
+  // servos stutter. While the core is open: the target marker and the furnace light shaft.
+  updateFeel(dt) {
+    const a = this.action;
+    const fight = this.state === 'fight';
+    const stuck = fight && (this.mode === 'overheat' ? 1 : this.mode === 'stagger' ? 0.6 : a?.type === 'charge' && a.crashed && a.step === 2 ? 0.55 : 0);
+    this.malfunction.update(dt, stuck > 0, stuck);
+    const open = fight && this.mode === 'overheat' && this.doorOpen > 0.6;
+    // (only while the open chest faces you: it's no use pointing at it through its back)
+    let facing = false;
+    if (open) {
+      this.core.getWorldPosition(_w);
+      _v.set(0, 0, 1).transformDirection(this.torso.matrixWorld);
+      facing = _v.dot(_u.subVectors(this.game.camera.position, _w).normalize()) > 0.25;
+    }
+    this.coreMarker.update(dt, facing ? _w : null, 1 + this.coreFlash);
+    const sa = this.state === 'fight' || this.state === 'dying' ? this.doorOpen * (1 - (this.cool || 0)) : 0;
+    this.shaft.visible = sa > 0.02;
+    if (this.shaft.visible) {
+      this.shaftMat.uniforms.uA.value = sa * (0.11 + 0.04 * Math.sin(this.world.time * 13) + this.coreFlash * 0.12);
+      this.shaftMat.uniforms.uT.value = this.world.time;
     }
   }
 
@@ -1728,7 +1830,7 @@ export class ForgeTitan {
   weakPoints() {
     const out = [];
     if (this.state !== 'fight') return out;
-    for (const v of Object.values(this.vents)) if (v.open > 0.7) out.push({ part: v.part, pos: v.glow.getWorldPosition(new THREE.Vector3()) });
+    for (const v of Object.values(this.vents)) if (v.open > 0.7 && v.heatLeft > 0) out.push({ part: v.part, pos: v.glow.getWorldPosition(new THREE.Vector3()) });
     if (this.mode === 'overheat' && this.doorOpen > 0.7) out.push({ part: 'core', pos: this.core.getWorldPosition(new THREE.Vector3()) });
     return out;
   }
