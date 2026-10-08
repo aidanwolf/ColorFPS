@@ -10,6 +10,7 @@ import { buildVerdant } from './levels/verdant.js';
 import { buildAzure } from './levels/azure.js';
 import { buildPrism } from './levels/prism.js';
 import { buildGuide } from './levels/guide.js';
+import { buildCombatRange } from './levels/combatRange.js';
 
 export function buildLevel(world, game) {
   const level = {
@@ -29,5 +30,7 @@ export function buildLevel(world, game) {
   buildAzure(B);
   buildPrism(B);
   buildGuide(world, game);
+  // dev-only test arena, far off the map (?dev&start=arena)
+  if (new URLSearchParams(location.search).has('dev')) buildCombatRange(B);
   return level;
 }

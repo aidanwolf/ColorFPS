@@ -5,6 +5,7 @@ import { Barrier } from '../entities/barrier.js';
 import { Pickup } from '../entities/misc.js';
 import { Mirror, Glass, TargetPanel, ShotShield, Updraft } from '../entities/puzzle.js';
 import { waterSurface } from '../liquid.js';
+import { Encounter, Seal, spawnEnemy } from '../entities/combat.js';
 
 export const T = 0.5; // wall thickness
 export const CH = 3.2; // corridor height
@@ -206,9 +207,35 @@ export function makeBuilders(W, game, level) {
   // Called whenever the player respawns at a checkpoint (reset elevators, encounters, ...).
   const onRespawn = (fn) => level.respawnHooks.push(fn);
 
+  // ---- combat (src/entities/combat.js) ----
+  // An arena fight: enter `trigger` ([min, max]) and `seals` slam shut, then `waves` of enemies spawn out
+  // of portals; clear them all to open the seals, set `checkpoint` ({ pos, yaw }) and run `onClear`.
+  // Resets itself whenever the player respawns (until it's been cleared). Positions are [x, y, z].
+  //   B.encounter({ trigger: [[x1, y1, z1], [x2, y2, z2]],
+  //     seals: [{ min, max, color?, closed? }],            // closed: shut from the start, opens on clear
+  //     waves: [[{ type: 'drone', pos, color }, ...], { enemies: [...], timeout: 12 }],
+  //     title: 'AMBUSH', sub: 'HOSTILES INBOUND', music: 'music_combat', checkpoint, onClear,
+  //     resume: false })                                    // resume: a death rewinds only to the current wave
+  const encounter = (opts) => {
+    const e = new Encounter(W, game, opts);
+    onRespawn(() => e.reset());
+    return e;
+  };
+  // A single enemy placed in the level (not part of an encounter); see spawnEnemy in combat.js for options.
+  // type: 'drone' | 'swarm' | 'turret' | 'warden' | 'brute' | 'mortar'
+  const enemy = (type, pos, opts = {}) => spawnEnemy(W, { type, pos, ...opts });
+  const turret = (pos, color, opts = {}) => enemy('turret', pos, { color, ...opts }); // opts.mount: 'floor' | 'ceiling' | wall normal
+  const swarm = (pos, colors, count = 6, opts = {}) => enemy('swarm', pos, { color: colors, count, ...opts });
+  const warden = (pos, shield, core, opts = {}) => enemy('warden', pos, { shield, core, ...opts });
+  const brute = (pos, color, opts = {}) => enemy('brute', pos, { color, ...opts });
+  const mortar = (pos, color, opts = {}) => enemy('mortar', pos, { color, ...opts });
+  // A slab that slams shut / slides open on command (seal.close(), seal.open()); color null = metal shutter.
+  const seal = (min, max, opts = {}) => new Seal(W, { min, max, ...opts });
+
   return {
     W, game, level, T, CH, GLOW,
     wallX, wallZ, abs, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy,
     sideAlcove, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, tree, devStart, onRespawn, water,
+    encounter, enemy, turret, swarm, warden, brute, mortar, seal,
   };
 }
