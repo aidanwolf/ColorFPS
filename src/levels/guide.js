@@ -25,6 +25,48 @@ export const DOORS = {
 // (it knows its own puzzles' state), so the Solar branches below just ask it.
 const solarObjective = (game) => game.level.solar?.objective?.(game.player.pos) || '';
 
+// ---- the Crimson Foundry (red.js): the next step for the stretch you're in, while red is all you have
+function foundryObjective(game) {
+  const p = game.player.pos, f = game.level.foundry || {};
+  const inBox = (q, x1, x2, z1, z2, y1 = -99, y2 = 99) => q.x >= x1 && q.x <= x2 && q.z >= z1 && q.z <= z2 && q.y >= y1 && q.y <= y2;
+  const R = (t) => tag(RED, t);
+  if (game.isWorldDown?.('red')) return p.z < -55 ? 'The Foundry is cold. <b>North</b>, up the stairs, to the Atrium.' : 'The Foundry is dead. Head <b>north</b> to the Atrium.';
+  if (p.z > 0.5) return 'This annex wing needs colors you don\'t have yet. Head back <b>north</b>.';
+  if (inBox(p, -6, 6, -12.2, 0)) return `Shoot the ${R('red barrier')} in the north door.`;
+  if (inBox(p, -7, 7, -30.5, -12.2)) {
+    if (f.innerGate && f.innerGate.state !== 'open' && p.z > -20.5) return `Shoot the ${R('red switch')} above the gate.`;
+    if (f.westGate && f.westGate.state !== 'open') return `The lock is behind the glass: bank a ${R('red')} shot off the <b>yellow</b> panels onto it.`;
+    return 'Through the <b>west</b> door to the Crucible.';
+  }
+  if (inBox(p, -44, -9.5, -37, -13)) {
+    if (p.x > -16 && p.y < 2) return `Shoot the ${R('spikes')} off the first slab, then hop across the lava.`;
+    if (inBox(p, -40, -16, -24, -19)) return `Jump on the raft and <b>keep shooting it</b> to push it west.`;
+    if (p.x < -40 && p.z > -24.5) return `Shoot the ${R('orb')} to raise the stepping stones, then run north.`;
+    if (p.x < -36) return 'Step on the <b>jump pad</b>: it throws you east.';
+    if (p.x < -16) return `Clear the far slab's ${R('spikes')} first, then sprint over the trapdoor.`;
+    return 'East, through the door into the <b>Slag Run</b>.';
+  }
+  if (inBox(p, -10, 9.6, -37.3, -34.2, 2)) return p.x < 4 ? `Spam shots into the ${R('riser')} to raise it, and ride it over the lava.` : `Shoot the ${R('sinker door')} down and walk over it.`;
+  if (inBox(p, 9.5, 44, -37.5, -13)) {
+    if (p.y > 8.5 && p.z < -33) return 'Through the gate and <b>down the spike shaft</b>.';
+    if (p.y > 8.5) return `Shoot the ${R('switch')} on the wall, then race along the catwalk to the exit gate.`;
+    if (p.x > 31) return `Shoot the rack's ${R('arrows')} to stair the ledges up to the west landing.`;
+    return `Shoot the two ${R('bridge slabs')} until they line up, then cross east.`;
+  }
+  if (inBox(p, 12.5, 17.5, -43, -38)) return `Shoot each spike layer through its shield's <b>glowing open end</b> as you fall.`;
+  if (inBox(p, -20, 20, -55.5, -38)) {
+    const st = f.smelting?.state;
+    if (st === 'armed') return 'Down onto the <b>Smelting Floor</b>. The Forge is through the north door.';
+    return st && st !== 'cleared' ? 'Survive the <b>Smelting Floor</b>: keep moving, shoot everything.' : '<b>North</b>, into the Forge.';
+  }
+  if (inBox(p, -17.5, 17.5, -90.5, -55.5)) {
+    const core = f.forge?.core, titan = f.forge?.titan;
+    if (core?.state === 'exposed' || core?.state === 'overload') return `Shoot the ${R('Geothermal Core')} until it overloads.`;
+    if (titan && titan.state !== 'dead') return `Defeat the ${R('Forge Titan')}: shoot its glowing weak points.`;
+  }
+  return '';
+}
+
 export function currentObjective(game) {
   const b = game.blaster, has = (c) => b.has && b.unlocked[c];
   const where = regionOf(game.player.pos);
@@ -34,7 +76,7 @@ export function currentObjective(game) {
     return { html: 'Grab the <b>Chroma Blaster</b> from the pedestal.', color: COLORS[RED].css };
   }
   if (!has(YELLOW)) {
-    if (where === 'red') return { html: `Fight north through the ${tag(RED, 'Crimson Foundry')} to the Nexus.`, color: COLORS[RED].css };
+    if (where === 'red') return { html: foundryObjective(game) || `Fight north through the ${tag(RED, 'Crimson Foundry')} to the Nexus.`, color: COLORS[RED].css };
     if (where === 'solar') return { html: solarObjective(game) || `Find the ${tag(YELLOW, 'SOLAR core')} somewhere below the mesas.`, door: null };
     return { html: `Enter the ${tag(YELLOW, 'SOLAR wing')}: the open yellow door on the <b>west</b> side of the Nexus.`, door: 'solar' };
   }
