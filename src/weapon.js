@@ -143,6 +143,11 @@ export class Blaster {
     if (hit.entity && hit.entity.onHit) result = hit.entity.onHit(this.color, hit) || 'hit';
     else if (hit.solid?.mirror) result = 'mirror';
     else if (hit.solid?.glass) result = 'glass';
+    if (result === 'shield') {
+      audio.glassHit();
+      world.fx.burst(hit.point.clone().addScaledVector(n, 0.05), 0x9bf6ff, { count: 14, speed: 3, life: 0.4, size: 0.2, gravity: 0, dir: n });
+      return outcome;
+    }
     if (result === 'hit' || result === 'kill') outcome.hit = true;
 
     const reflects = result === 'mirror' || result === 'immune';

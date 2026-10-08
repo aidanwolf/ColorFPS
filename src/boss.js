@@ -1,4 +1,4 @@
-// THE PRISM WARDEN — a ~7 m armored humanoid with a color-combo shield, a color-shifting core,
+// THE PRISM WARDEN — a ~7 m armored humanoid with a breakable color-shifting shield, a color-shifting core,
 // color-armored limbs (each with a crippling effect when broken), a laser sword and three phases.
 import * as THREE from 'three';
 import { COLORS } from './colors.js';
@@ -6,6 +6,10 @@ import { audio } from './audio.js';
 import { Orb } from './entities/drone.js';
 
 const MAX_HP = 4200;
+const RING_H = 0.45; // shockwave wall height (m)
+const RING_SPEED = 11; // m/s
+const BLADE_LEN = 5.6; // laser sword blade (m)
+const BLADE_GROW = 2.8; // the blade extends to ~16 m for the sweep
 const LIMB_DEFS = {
   head: { armor: 6, dmg: 10, broken: 'head' },
   armL: { armor: 8, dmg: 6 },
@@ -160,7 +164,10 @@ export class Boss {
     this.sword.rotation.x = Math.PI / 2;
     box(0.25, 0.25, 0.9, dark, 0, 0, 0, this.sword);
     this.bladeMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff4060).multiplyScalar(2.2) });
-    this.blade = box(0.16, 0.22, 5.6, this.bladeMat, 0, 0, 3.2, this.sword);
+    // the blade grows from the hilt (geometry starts at its origin) so it can extend into the giant sweep
+    this.blade = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, BLADE_LEN).translate(0, 0, BLADE_LEN / 2), this.bladeMat);
+    this.blade.position.z = 0.4;
+    this.sword.add(this.blade);
     this.blade.userData.hit = this;
     this.blade.userData.part = 'sword';
 
@@ -169,18 +176,25 @@ export class Boss {
     this.shieldGroup.position.set(0.35, 1.05, 1.75);
     this.torso.add(this.shieldGroup);
     tag(this.shieldGroup, 'shield');
-    this.shieldMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.35, metalness: 0.3, roughness: 0.2, transparent: true, opacity: 0.92 });
-    const face = new THREE.Mesh(new THREE.BoxGeometry(3.1, 3.4, 0.3), this.shieldMat);
-    this.shieldGroup.add(face);
-    const rim = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.7, 0.2), dark);
-    rim.position.z = -0.12;
-    this.shieldGroup.add(rim);
-    this.pips = [];
-    for (let i = 0; i < 5; i++) {
-      const p = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.14), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      p.position.set(0, 0, 0.2);
-      this.shieldGroup.add(p);
-      this.pips.push(p);
+    // the shield is a grid of armor tiles: every hit in its color knocks out the tiles around the impact
+    this.shieldMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.35, metalness: 0.3, roughness: 0.2 });
+    const COLS = 6, ROWS = 7, W = 3.1, H = 3.4, tw = W / COLS, th = H / ROWS;
+    const tileGeo = new THREE.BoxGeometry(tw - 0.04, th - 0.04, 0.3);
+    this.tiles = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const tile = new THREE.Mesh(tileGeo, this.shieldMat);
+        tile.position.set(-W / 2 + tw * (c + 0.5), -H / 2 + th * (r + 0.5), 0);
+        tile.userData.tile = this.tiles.length;
+        this.shieldGroup.add(tile);
+        this.tiles.push(tile);
+      }
+    }
+    // a frame only (no backing plate), so knocked-out tiles open real holes onto the core
+    for (const [w, h, x, y] of [[3.4, 0.16, 0, 1.78], [3.4, 0.16, 0, -1.78], [0.16, 3.7, 1.63, 0], [0.16, 3.7, -1.63, 0]]) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.36), dark);
+      bar.position.set(x, y, -0.02);
+      this.shieldGroup.add(bar);
     }
 
     // floating health bar above the head
@@ -201,12 +215,6 @@ export class Boss {
 
   buildFx() {
     const scene = this.world.scene;
-    // the low sweeping laser you must jump over
-    this.beamMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff4060).multiplyScalar(2.5), transparent: true, opacity: 1, depthWrite: false });
-    const bg = new THREE.BoxGeometry(0.25, 0.45, 13).translate(0, 0, 8);
-    this.beam = new THREE.Mesh(bg, this.beamMat);
-    this.beam.visible = false;
-    scene.add(this.beam);
     this.rings = [];
   }
 
@@ -230,8 +238,8 @@ export class Boss {
       l.timer = 0;
       this.setLimbColor(l, rand(4));
     }
-    this.shield = { up: true, combo: [], idx: 0, timer: 0, down: 0, reform: 1 };
-    this.newCombo();
+    this.shield = { up: true, color: 0, colorTimer: 0, idle: 0, regen: 0, down: 0, reform: 1 };
+    this.resetShield();
     this.coreColor = 0;
     this.coreTimer = 0;
     this.torsoColor = rand(4);
@@ -242,7 +250,7 @@ export class Boss {
     this.root.visible = false;
     this.coreLight.intensity = 0;
     this.root.rotation.set(0, 0, 0);
-    this.beam.visible = false;
+    this.blade.scale.z = 1;
     for (const r of this.rings) this.world.scene.remove(r.mesh);
     this.rings = [];
     this.shieldGroup.visible = true;
@@ -274,41 +282,49 @@ export class Boss {
     l.mat.emissive.copy(col);
   }
 
-  newCombo() {
-    const len = 2 + this.phase; // 3, 4, 5
-    const combo = [];
-    for (let i = 0; i < len; i++) {
-      let c;
-      do c = rand(4);
-      while (i > 0 && c === combo[i - 1]);
-      combo.push(c);
+  // all tiles back, fresh color
+  resetShield() {
+    for (const t of this.tiles) {
+      t.visible = true;
+      t.scale.setScalar(1);
     }
-    this.shield.combo = combo;
-    this.shield.idx = 0;
-    this.shield.timer = 0;
-    const w = 0.6;
-    const x0 = (-(len - 1) * w) / 2;
-    this.pips.forEach((p, i) => {
-      p.visible = i < len;
-      p.position.set(x0 + i * w, 1.25, 0.24);
-    });
-    this.refreshShield();
+    this.shield.idle = 0;
+    this.setShieldColor(rand(4));
   }
 
-  refreshShield() {
+  setShieldColor(c) {
     const s = this.shield;
-    const need = s.combo[Math.min(s.idx, s.combo.length - 1)];
-    const c = new THREE.Color(COLORS[need].hex);
-    this.shieldMat.color.copy(c);
-    this.shieldMat.emissive.copy(c);
-    this.pips.forEach((p, i) => {
-      if (i >= s.combo.length) return;
-      const pc = new THREE.Color(COLORS[s.combo[i]].hex);
-      if (i < s.idx) p.material.color.setRGB(3, 3, 3);
-      else if (i === s.idx) p.material.color.copy(pc).multiplyScalar(2.6);
-      else p.material.color.copy(pc).multiplyScalar(0.7);
-      p.scale.setScalar(i === s.idx ? 1.25 : 1);
-    });
+    s.color = c;
+    s.colorTimer = [0, 4, 3, 2.2][this.phase];
+    const col = new THREE.Color(COLORS[c].hex);
+    this.shieldMat.color.copy(col);
+    this.shieldMat.emissive.copy(col);
+    this.flash = 0.6;
+  }
+
+  tilesLeft() {
+    return this.tiles.reduce((n, t) => n + (t.visible ? 1 : 0), 0);
+  }
+
+  // knock out every tile within reach of the impact
+  chipShield(hit) {
+    const center = hit.object?.userData.tile !== undefined ? this.tiles[hit.object.userData.tile].position : null;
+    if (!center) return;
+    const hex = COLORS[this.shield.color].hex;
+    let broken = 0;
+    for (const t of this.tiles) {
+      if (!t.visible || t.position.distanceTo(center) > 0.62) continue;
+      t.visible = false;
+      broken++;
+      this.world.fx.burst(t.getWorldPosition(new THREE.Vector3()), hex, { count: 14, speed: 7, life: 0.8, size: 0.28, gravity: 12 });
+    }
+    if (!broken) return;
+    this.world.fx.burst(hit.point, 0xffffff, { count: 8, speed: 5, life: 0.3, size: 0.3, gravity: 4 });
+    const left = this.tilesLeft() / this.tiles.length;
+    audio.comboTick(Math.round((1 - left) * 6));
+    audio.shatter();
+    this.shield.idle = 0;
+    if (left <= 0.35) this.breakShield();
   }
 
   shieldBlocked() {
@@ -322,30 +338,19 @@ export class Boss {
     const part = hit.part;
     if (part === 'shield') {
       if (!this.shield.up) return 'immune';
-      const s = this.shield;
-      if (color === s.combo[s.idx]) {
-        s.idx++;
-        s.timer = 3.4;
-        audio.comboTick(s.idx);
-        if (s.idx >= s.combo.length) this.breakShield();
-        else this.refreshShield();
+      if (color === this.shield.color) {
+        this.chipShield(hit);
         return 'hit';
       }
-      if (s.idx > 0) {
-        this.game.hud.bossHint('Combo broken — start again!', true);
-        audio.comboFail();
-      }
-      s.idx = 0;
       this.flash = 1;
-      this.refreshShield();
       return 'immune';
     }
     if (part === 'core') {
-      if (this.shield.up) return 'immune';
       if (color !== this.coreColor) return 'immune';
       this.coreFlash = 1;
       audio.bossCoreHit();
-      this.damage(this.kneel > 0 ? 38 : 26);
+      // shots through holes in the shield still count, for less
+      this.damage(this.shield.up ? 14 : this.kneel > 0 ? 38 : 26);
       return 'hit';
     }
     if (part === 'torso') {
@@ -382,8 +387,8 @@ export class Boss {
       audio.setIntensity(2);
       this.game.player.shake = 0.8;
       this.stagger = 1.4;
-      this.game.hud.bossHint(phase === 2 ? 'The Warden grows faster — shield combos lengthen!' : 'FINAL PHASE — five-color combos!', true);
-      if (this.shield.up) this.newCombo();
+      this.game.hud.bossHint(phase === 2 ? 'The Warden grows faster — its shield shifts colors quicker!' : 'FINAL PHASE — the shield shifts colors fast!', true);
+      if (this.shield.up) this.resetShield();
     }
     if (this.hp <= 0) this.die();
   }
@@ -394,7 +399,7 @@ export class Boss {
     s.down = this.phase === 3 ? 6 : 7.5;
     this.shieldGroup.visible = false;
     const p = this.shieldGroup.getWorldPosition(new THREE.Vector3());
-    this.world.fx.burst(p, COLORS[s.combo[s.combo.length - 1]].hex, { count: 120, speed: 10, life: 1.1, size: 0.45, gravity: 8 });
+    this.world.fx.burst(p, COLORS[s.color].hex, { count: 120, speed: 10, life: 1.1, size: 0.45, gravity: 8 });
     this.world.fx.burst(p, 0xffffff, { count: 40, speed: 6, life: 0.5, size: 0.5, gravity: 0 });
     audio.shieldBreak();
     this.game.player.shake = 0.5;
@@ -446,7 +451,6 @@ export class Boss {
 
   cancelAttack() {
     this.attack = null;
-    this.beam.visible = false;
     this.attackTimer = 1.5;
     if (this.state === 'attack') this.state = 'walk';
   }
@@ -492,16 +496,32 @@ export class Boss {
         s.up = true;
         s.reform = 0;
         this.shieldGroup.visible = true;
-        this.newCombo();
-        this.game.hud.bossHint('Shield restored — match the color sequence!', false);
+        this.resetShield();
+        this.game.hud.bossHint('Shield restored — chip it away with its color!', false);
       }
-    } else if (s.idx > 0) {
-      s.timer -= dt;
-      if (s.timer <= 0) {
-        s.idx = 0;
-        this.refreshShield();
-        this.game.hud.bossHint('Too slow — the combo reset!', true);
+    } else {
+      // the shield shifts color on a timer, and regrows tiles if you stop chipping at it
+      s.colorTimer -= dt;
+      if (s.colorTimer <= 0) {
+        let c;
+        do c = rand(4);
+        while (c === s.color);
+        this.setShieldColor(c);
       }
+      s.idle += dt;
+      if (s.idle > 2.5) {
+        s.regen -= dt;
+        if (s.regen <= 0) {
+          s.regen = 0.35;
+          const gone = this.tiles.filter((t) => !t.visible);
+          if (gone.length) {
+            const t = gone[rand(gone.length)];
+            t.visible = true;
+            t.scale.setScalar(0.2);
+          }
+        }
+      }
+      for (const t of this.tiles) if (t.visible && t.scale.x < 1) t.scale.setScalar(Math.min(1, t.scale.x + dt * 5));
     }
     if (s.reform < 1) {
       s.reform = Math.min(1, s.reform + dt * 4);
@@ -597,7 +617,7 @@ export class Boss {
     if (this.landT !== undefined && T - this.landT > 2.4) {
       this.state = 'walk';
       this.attackTimer = 1.5;
-      this.game.hud.bossHint('Break the shield with its color combo, then hit the core!', false);
+      this.game.hud.bossHint('Shoot its shield in the shield\'s color to break it apart, then hit the core!', false);
     }
   }
 
@@ -626,48 +646,41 @@ export class Boss {
     const p = this.phase;
     if (a.type === 'sweep') {
       const wind = p === 3 ? 0.65 : 0.9;
-      const dur = p === 3 ? 0.5 : 0.65;
+      const dur = p === 3 ? 0.55 : 0.7;
       const passes = p === 3 ? 2 : 1;
       if (a.step === 0) {
-        // telegraph: rotate to face, show a faint beam at the starting edge
+        // telegraph: face the player and grow the blade, flickering
         this.yaw += wrap(targetYaw - this.yaw) * Math.min(1, dt * 4);
-        this.beam.visible = true;
-        this.beamMat.opacity = 0.18 + 0.2 * Math.sin(a.t * 30);
-        a.from = 1.9;
-        a.to = -1.9;
-        this.setBeam(a.from);
-        this.torsoTwist = 1.1;
+        a.from = 1.5;
+        a.to = -1.5;
+        this.torsoTwist = a.from;
+        this.blade.scale.z = 1 + (BLADE_GROW - 1) * Math.min(1, a.t / wind);
+        this.bladeMat.color.set(0xff4060).multiplyScalar(2.2 + Math.sin(a.t * 40) * 0.8);
         if (a.t > wind) {
           a.step = 1;
           a.t = 0;
-          a.prev = a.from;
+          a.prevRel = undefined;
           audio.sweep();
         }
       } else if (a.step <= passes) {
-        this.beamMat.opacity = 1;
         const k = Math.min(1, a.t / dur);
-        const ang = a.from + (a.to - a.from) * k;
-        this.setBeam(ang);
-        this.torsoTwist = -ang * 0.6;
-        // did the beam pass the player this frame?
-        const pa = wrap(Math.atan2(player.pos.x - this.pos.x, player.pos.z - this.pos.z) - this.yaw);
-        const lo = Math.min(a.prev, ang), hi = Math.max(a.prev, ang);
-        if (!a.hit && pa >= lo && pa <= hi && dist < 14.8 && player.pos.y < this.floorY + 1.15) {
+        const e = k * k * (3 - 2 * k);
+        this.torsoTwist = a.from + (a.to - a.from) * e;
+        if (!a.hit && this.bladeHits(player, a)) {
           a.hit = true;
           player.damage(28, 'sweep');
-          player.launch(6, _v.set(Math.sin(this.yaw + ang - Math.sign(a.to - a.from) * 1.2) * 8, 0, Math.cos(this.yaw + ang - Math.sign(a.to - a.from) * 1.2) * 8));
         }
-        a.prev = ang;
         if (k >= 1) {
           a.step++;
           a.t = 0;
           a.hit = false;
+          a.prevRel = undefined;
           [a.from, a.to] = [a.to, a.from];
-          a.prev = a.from;
           if (a.step <= passes) audio.sweep();
         }
       } else {
-        this.beam.visible = false;
+        this.blade.scale.z = Math.max(1, this.blade.scale.z - dt * 6);
+        this.bladeMat.color.set(0xff4060).multiplyScalar(2.2);
         this.torsoTwist *= 0.9;
         if (a.t > 0.6) this.endAttack();
       }
@@ -687,12 +700,13 @@ export class Boss {
           this.world.fx.burst(at.clone().setY(this.floorY + 0.2), 0xff4060, { count: 60, speed: 10, life: 0.6, size: 0.4, gravity: 6 });
         }
       } else {
-        if (p >= 2 && a.step === 1 && a.t > 0.45) {
+        // the second wave comes late enough to land and jump again
+        if (p >= 2 && a.step === 1 && a.t > 0.9) {
           a.step = 2;
           this.spawnRing(this.pos.clone(), true);
           audio.slam();
         }
-        if (a.t > 0.9) this.endAttack();
+        if (a.t > 1.4) this.endAttack();
       }
     } else if (a.type === 'volley') {
       const count = [0, 3, 5, 7][p];
@@ -704,12 +718,12 @@ export class Boss {
         _w.copy(player.pos);
         _w.y += 1.2;
         const dir = _v.subVectors(_w, origin).normalize();
-        dir.x += (Math.random() - 0.5) * 0.6;
-        dir.y += 0.25 + Math.random() * 0.3;
-        dir.z += (Math.random() - 0.5) * 0.6;
-        dir.normalize();
-        const speed = [0, 8, 9.5, 11][p];
-        new Orb(this.world, origin, dir.multiplyScalar(speed), rand(4), { damage: 12, homing: 1.3, life: 7, radius: 0.42 });
+        // straight shots fanned slightly around where you are now: strafe out of them or shoot them down
+        const fan = (a.fired - (count + 1) / 2) * 0.09;
+        const side = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+        dir.addScaledVector(side, fan).normalize();
+        const speed = [0, 10, 11.5, 13][p];
+        new Orb(this.world, origin, dir.multiplyScalar(speed), rand(4), { damage: 12, homing: 0, life: 5, radius: 0.42 });
         audio.enemyShoot();
       }
       if (a.t > 0.5 + count * 0.16 + 0.6) this.endAttack();
@@ -745,45 +759,64 @@ export class Boss {
 
   endAttack() {
     this.attack = null;
-    this.beam.visible = false;
     this.attackTimer = [0, 2.6, 2.0, 1.4][this.phase] + Math.random() * 0.8;
   }
 
-  setBeam(rel) {
-    this.beam.position.set(this.pos.x, this.floorY + 0.75, this.pos.z);
-    this.beam.rotation.y = this.yaw + rel;
+  // Is the sweeping blade passing through the player this frame? Uses the blade's real position:
+  // high near the Warden (duck or stand under it), low toward the tip (jump it), underground past that.
+  bladeHits(player, a) {
+    this.root.updateMatrixWorld(true);
+    const p0 = this.blade.localToWorld(_w.set(0, 0, 0)).clone();
+    const p1 = this.blade.localToWorld(_v.set(0, 0, BLADE_LEN)).clone();
+    const dx = p1.x - p0.x, dz = p1.z - p0.z, lenXZ = Math.hypot(dx, dz);
+    const qx = player.pos.x - p0.x, qz = player.pos.z - p0.z, r = Math.hypot(qx, qz);
+    const rel = wrap(Math.atan2(qx, qz) - Math.atan2(dx, dz));
+    const crossed = a.prevRel !== undefined && Math.sign(rel) !== Math.sign(a.prevRel) && Math.abs(rel) < 1;
+    a.prevRel = rel;
+    // sparks where the blade meets the floor
+    if (p1.y < this.floorY) {
+      const k = (p0.y - this.floorY) / (p0.y - p1.y);
+      this.world.fx.burst(new THREE.Vector3(p0.x + dx * k, this.floorY + 0.05, p0.z + dz * k), 0xff8090, { count: 3, speed: 4, life: 0.4, size: 0.22, gravity: 8 });
+    }
+    const near = Math.abs(Math.sin(rel)) * r < 0.7 && Math.cos(rel) > 0;
+    if (!(crossed || near) || r > lenXZ) return false;
+    const y = p0.y + (p1.y - p0.y) * (r / lenXZ);
+    return y > this.floorY - 0.05 && y > player.pos.y - 0.1 && y < player.pos.y + player.height + 0.1;
   }
 
+  // Shockwave: a glowing wall of constant height (what you see is exactly what hurts) plus a ground ring.
   spawnRing(pos, harmful) {
-    const mesh = new THREE.Mesh(
-      new THREE.TorusGeometry(1, 0.22, 6, 64),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color(harmful ? 0xff4060 : 0xd9c8ff).multiplyScalar(2.2), transparent: true, depthWrite: false }),
-    );
-    mesh.rotation.x = Math.PI / 2;
-    mesh.position.set(pos.x, this.floorY + 0.3, pos.z);
+    const color = new THREE.Color(harmful ? 0xff4060 : 0xd9c8ff).multiplyScalar(2.2);
+    const wallMat = new THREE.MeshBasicMaterial({ color, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+    const wall = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, RING_H, 96, 1, true).translate(0, RING_H / 2, 0), wallMat);
+    const ground = new THREE.Mesh(new THREE.RingGeometry(0.97, 1, 96).rotateX(-Math.PI / 2), wallMat);
+    const mesh = new THREE.Group();
+    mesh.add(wall, ground);
+    mesh.position.set(pos.x, this.floorY + 0.02, pos.z);
     this.world.scene.add(mesh);
-    this.rings.push({ mesh, r: 1, harmful, hit: false, center: pos.clone() });
+    this.rings.push({ mesh, mat: wallMat, r: 1, harmful, hit: false, center: pos.clone() });
     if (harmful) audio.ringWave();
   }
 
   updateRings(dt, player) {
     for (let i = this.rings.length - 1; i >= 0; i--) {
       const ring = this.rings[i];
-      ring.r += dt * 13;
-      ring.mesh.scale.set(ring.r, ring.r, 1 + ring.r * 0.04);
-      ring.mesh.material.opacity = Math.max(0, 1 - ring.r / 34);
+      ring.r += dt * RING_SPEED;
+      ring.mesh.scale.set(ring.r, 1, ring.r);
+      ring.mat.opacity = Math.max(0, 1 - ring.r / 34);
       if (ring.harmful && !ring.hit) {
         const d = Math.hypot(player.pos.x - ring.center.x, player.pos.z - ring.center.z);
-        if (Math.abs(d - ring.r) < 0.8 && player.pos.y < this.floorY + 0.55) {
+        // feet below the top of the wall as it passes = hit; any jump clears it
+        if (Math.abs(d - ring.r) < 0.6 && player.pos.y < this.floorY + RING_H) {
           ring.hit = true;
           player.damage(20, 'ring');
-          player.launch(7, null);
         }
       }
       if (ring.r > 34) {
         this.world.scene.remove(ring.mesh);
-        ring.mesh.geometry.dispose();
-        ring.mesh.material.dispose();
+        ring.mesh.children[0].geometry.dispose();
+        ring.mesh.children[1].geometry.dispose();
+        ring.mat.dispose();
         this.rings.splice(i, 1);
       }
     }
@@ -824,10 +857,12 @@ export class Boss {
     // arms: left holds the shield forward, right carries the sword
     let rArmX = -0.5, rElbow = -0.5, rArmZ = 0, lArmX = -1.2, lElbow = -0.7, lean = 0, headX = 0;
     if (a?.type === 'sweep') {
-      rArmX = -1.45;
-      rElbow = -0.1;
-      rArmZ = -0.3;
-      dip = -0.7;
+      // arm out and angled down so the long blade rakes the ground in front
+      rArmX = -1.3;
+      rElbow = 0;
+      rArmZ = 0;
+      dip = -0.9;
+      lean = 0.2;
     } else if (a?.type === 'slam') {
       rArmX = a.step === 0 ? -3.0 : -1.0;
       rElbow = a.step === 0 ? -0.3 : 0;
@@ -850,8 +885,11 @@ export class Boss {
     lerp(L.armL.shoulder, 'x', L.armL.broken ? 0.1 : lArmX - sw * 0.1);
     lerp(L.armL.elbow, 'x', L.armL.broken ? -0.1 : lElbow);
     lerp(this.torso, 'x', lean);
-    this.torsoTwist *= a?.type === 'sweep' ? 1 : 0.92;
-    lerp(this.torso, 'y', this.torsoTwist);
+    if (a?.type === 'sweep' && a.step > 0) this.torso.rotation.y = this.torsoTwist; // the swing itself is exact
+    else {
+      this.torsoTwist *= a?.type === 'sweep' ? 1 : 0.92;
+      lerp(this.torso, 'y', this.torsoTwist);
+    }
     lerp(this.head, 'x', headX);
     this.dipY += (dip - this.dipY) * k;
     this.hips.position.y = 3.2 + this.dipY + (moving ? Math.abs(Math.cos(this.walkPhase)) * 0.12 : 0);

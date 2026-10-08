@@ -13,8 +13,6 @@ const RUN_SPEED = 7.6;
 const SPRINT_SPEED = 10.5;
 // Quake/Half-Life mouse feel: m_yaw = m_pitch = 0.022 degrees per mouse count, times sensitivity.
 const DEG_PER_COUNT = 0.022 * (Math.PI / 180);
-// Enemy fire and boss attacks kill outright; spikes and falls only chip health.
-const LETHAL = new Set(['orb', 'sweep', 'ring', 'charge']);
 const CROUCH_SPEED = 3.6;
 const GROUND_ACCEL = 70;
 const AIR_ACCEL = 22;
@@ -161,6 +159,8 @@ export class Player {
     // variable jump height: releasing space early cuts the rise
     if (!input.down('Space') && this.vel.y > 3 && !this.launched) this.vel.y -= GRAVITY * 1.2 * dt;
     this.vel.y -= GRAVITY * dt;
+    // updraft columns slow the fall through shielded spike drops
+    for (const u of world.updrafts || []) if (u.contains(this.pos) && this.vel.y < -u.cap) this.vel.y = -u.cap;
     if (this.vel.y < -40) this.vel.y = -40;
 
     // ---- integrate with collision ----
@@ -191,27 +191,19 @@ export class Player {
     for (const s of world.solids) {
       if (!s.enabled || !s.hazard) continue;
       if (b.min.x < s.max.x + 0.04 && b.max.x > s.min.x - 0.04 && b.min.y < s.max.y + 0.06 && b.max.y > s.min.y - 0.04 && b.min.z < s.max.z + 0.04 && b.max.z > s.min.z - 0.04) {
-        if (s.hazard === 'acid') {
+        if (s.hazard === 'acid' && this.invuln <= 0) {
           audio.acid();
-          this.fallRecover();
+          this.damage(1, 'acid');
           return;
         }
-        if (s.hazard === 'spike') {
-          if (this.invuln <= 0) audio.spike();
-          this.damage(s.damage ?? 30, 'spike');
-          this.vel.y = 9;
-          this.launched = true;
-          this.grounded = false;
-          this.ground = null;
-          // knock sideways off the spikes if standing on them
-          if (s.entity?.knockDir) {
-            this.vel.x += s.entity.knockDir.x * 4;
-            this.vel.z += s.entity.knockDir.z * 4;
-          }
+        if (s.hazard === 'spike' && this.invuln <= 0) {
+          audio.spike();
+          this.damage(1, 'spike');
+          return;
         }
       }
     }
-    if (this.pos.y < -60) this.fallRecover();
+    if (this.pos.y < -60) this.damage(1, 'fall');
 
     this.finishUpdate(dt);
   }
@@ -382,33 +374,20 @@ export class Player {
     this.coyote = 0;
   }
 
+  // Every hit is fatal: shots, boss attacks, spikes, acid and falls all send you back to the last checkpoint.
   damage(amount, source) {
     if (this.dead || this.invuln > 0 || this.game.godMode || this.game.rulesPaused) return;
-    if (LETHAL.has(source)) amount = this.health;
     this.deathCause = source;
-    this.health -= amount;
-    this.invuln = source === 'spike' ? 0.6 : 0.25;
-    this.shake = Math.min(1, this.shake + amount / 40);
+    this.health = 0;
+    this.dead = true;
+    this.vel.set(0, 0, 0);
     audio.hurt();
-    this.game.hud.hurt(amount);
-    if (this.health <= 0) {
-      this.health = 0;
-      this.dead = true;
-      this.game.onPlayerDeath();
-    }
+    this.game.hud.hurt(40);
+    this.game.onPlayerDeath();
   }
 
   heal(amount) {
     this.health = Math.min(this.maxHealth, this.health + amount);
   }
 
-  fallRecover() {
-    this.pos.copy(this.safePos);
-    this.vel.set(0, 0, 0);
-    this.ground = null;
-    this.game.hud.flash('#000');
-    this.invuln = 0;
-    this.damage(15, 'fall');
-    this.invuln = 1;
-  }
 }

@@ -29,7 +29,7 @@ npm run build    # production build in dist/
 4. **Azure Gauntlet**: unlock blue, then sprint a four-color barrier run with a crawlspace in the middle.
 5. **Prism Core**: the Prism Warden. Its shield shows a color combo; hit the colors in order, fast, to shatter it, then hit the core with whatever color it's cycling through. Every limb is armored in its own color, and breaking one has an effect: shield arm → core exposed, sword arm → no sword attacks, visor → stun, both legs → it kneels. Dodge the low laser sweep and the shockwave rings by jumping, shoot the homing orbs with their own color, and watch for the shield charge. It has three phases with longer combos in each.
 
-**Secrets (5):** a crouch vent in the spawn room, a crawl-in hut in the yard, and three color-locked doors (yellow, green, blue) you can't open until you come back with that color. Each one gives +20 max integrity.
+**Secrets (5):** a crouch vent in the spawn room, a crawl-in hut in the yard, and three color-locked doors (yellow, green, blue) you can't open until you come back with that color. Each one holds a collectible prism.
 
 ## Monetization: Bonus Round
 

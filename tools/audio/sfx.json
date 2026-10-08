@@ -133,8 +133,9 @@
   "dur": 0.6
  },
  "shoot_yellow": {
-  "text": "Bright electric laser zap, crackling high-voltage snap, sci-fi video game weapon shot",
-  "dur": 0.6
+  "text": "Bright punchy sci-fi laser blaster shot, warm golden energy zap with a clean sharp transient and a short shimmering tail, satisfying video game weapon",
+  "dur": 0.6,
+  "influence": 0.6
  },
  "shoot_green": {
   "text": "Bio-energy blaster pulse, bubbly wet whoosh zap, sci-fi video game weapon shot",

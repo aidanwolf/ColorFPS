@@ -429,8 +429,7 @@ class Game {
     $('#victory-stats').innerHTML = `
       <span>Time</span><span>${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}</span>
       <span>Deaths</span><span>${this.stats.deaths}</span>
-      <span>Secrets</span><span>${this.secretsFound}/${this.level.secretsTotal}</span>
-      <span>Max integrity</span><span>${this.player.maxHealth}</span>`;
+      <span>Secrets</span><span>${this.secretsFound}/${this.level.secretsTotal}</span>`;
     this.showScreen('victory');
     ads.safe(true);
   }
@@ -455,8 +454,8 @@ class Game {
     this.world.fx.burst(eye.clone().setY(eye.y - 0.4), hex, { count: 140, speed: 7, life: 1.4, size: 0.3, gravity: 6 });
     this.world.fx.burst(eye.clone().setY(eye.y - 0.6), 0xffffff, { count: 50, speed: 4, life: 0.7, size: 0.4, gravity: 2 });
     p.shake = 1;
-    const shot = ['orb', 'sweep', 'ring', 'charge'].includes(p.deathCause);
-    this.hud.deathBanner(shot ? 'SHOT DOWN' : 'SIGNAL LOST', ads.available);
+    const banner = { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST' }[p.deathCause] || 'SHOT DOWN';
+    this.hud.deathBanner(banner, ads.available);
     this.deathPass.enabled = true;
   }
 
@@ -469,13 +468,13 @@ class Game {
     c.position.y -= (this.player.eye - 0.3) * k;
     c.rotation.set(this.deathPitch * (1 - k) + 0.35 * k, this.deathYaw, this.deathRoll * 1.25 * k, 'YXZ');
     this.deathPass.uniforms.uAmount.value = Math.min(1, t / 0.7);
-    this.hud.fade(Math.max(0, Math.min(1, (t - 1.9) / 0.45)));
+    this.hud.fade(Math.max(0, Math.min(1, (t - 1.65) / 0.4)));
     this.world.fx.update(dt);
     if (ads.available && (this.input.hit('KeyR') || this.reviveTapped)) {
       this.reviveTapped = false;
       return this.revive();
     }
-    if (t > 2.4) this.respawn();
+    if (t > 2.1) this.respawn();
   }
 
   clearDeathFx() {

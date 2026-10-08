@@ -10,7 +10,7 @@ import { Barrier } from './entities/barrier.js';
 import { Drone } from './entities/drone.js';
 import { Pickup, MovingPlatform, JumpPad, Checkpoint } from './entities/misc.js';
 import { Boss } from './boss.js';
-import { Mirror, Glass, TargetPanel, SlidingDoor } from './entities/puzzle.js';
+import { Mirror, Glass, TargetPanel, SlidingDoor, ShotShield, Updraft } from './entities/puzzle.js';
 
 const T = 0.5; // wall thickness
 const CH = 3.2; // corridor height
@@ -130,6 +130,26 @@ export function buildLevel(world, game) {
       new TargetPanel(W, { min: [11.3, y + 0.12, z1 + 0.1], max: [11.5, top - 0.15, z2 - 0.1], color, face: '-x', onActivate: once }),
     ];
     panels.forEach((p) => (p.group = panels));
+  }
+
+  // A spike-drop shaft: shield walls on every side and a shield above each spike layer stop shots but not
+  // bodies, so each layer can only be shot after you've fallen past its shield. An updraft slows the fall.
+  // Shots come from the eyes (1.6 m above the feet), so each layer sits ~2.7 m under its shield: at the
+  // 1.8 m/s updraft that leaves ~0.6 s to fire once your eyes are through.
+  function shieldedShaft({ x1, x2, z1, z2, floor, capY, cap, layers, zone }) {
+    const t = 0.06, pad = 0.2;
+    // cap: extends toward the drop-off side (cap = { x1, x2, z1, z2 }) so you can't shoot in at an angle
+    new ShotShield(W, { min: [cap.x1, capY, cap.z1], max: [cap.x2, capY + t, cap.z2] });
+    const X1 = x1 - pad, X2 = x2 + pad, Z1 = z1 - pad, Z2 = z2 + pad, yb = floor + 0.2;
+    new ShotShield(W, { min: [X1, yb, Z1], max: [X2, capY, Z1 + t] });
+    new ShotShield(W, { min: [X1, yb, Z2 - t], max: [X2, capY, Z2] });
+    new ShotShield(W, { min: [X1, yb, Z1 + t], max: [X1 + t, capY, Z2 - t] });
+    new ShotShield(W, { min: [X2 - t, yb, Z1 + t], max: [X2, capY, Z2 - t] });
+    for (const L of layers) {
+      new Barrier(W, { min: [x1, L.y, z1], max: [x2, L.y + 0.6, z2], color: L.color, kind: 'spike', regen: 2.2, zone });
+      if (L.shieldY) new ShotShield(W, { min: [x1, L.shieldY, z1], max: [x2, L.shieldY + t, z2] });
+    }
+    new Updraft(W, { min: [x1, floor + 0.1, z1], max: [x2, capY + 2.5, z2], cap: 1.8 });
   }
 
   const hint = (min, max, html, time = 5) => W.trigger(min, max, () => game.hud.message(html, time));
@@ -273,11 +293,14 @@ export function buildLevel(world, game) {
     plat(4.5, z(15), 7.5, z(18), 7.4, zone);
     plat(-0.5, z(16.5), 2.5, z(19.5), 8.6, zone);
     plat(-6, z(16), -2, z(20), 9.8, zone); // perch
-    hint([-6, 9.8, z(20)], [-2, 12, z(16)], 'Drop onto the safe platform — <b>clear each spike layer as you fall</b>!', 6);
+    hint([-6, 9.8, z(20)], [-2, 12, z(16)], '<b>Shields stop your shots, not you.</b> Drop through each one, then blast the spikes below it!', 7);
     // safe platform below a red/yellow spike stack
     plat(-6, z(22), -2, z(26), 1.0, zone);
-    new Barrier(W, { min: [-6, 6.4, z(26)], max: [-2, 7.0, z(22)], color: RED, kind: 'spike', regen: 2.2, zone });
-    new Barrier(W, { min: [-6, 3.8, z(26)], max: [-2, 4.4, z(22)], color: YELLOW, kind: 'spike', regen: 2.2, zone });
+    shieldedShaft({
+      x1: -6, x2: -2, z1: z(26), z2: z(22), floor: 1.0, capY: 9.3, zone,
+      cap: { x1: -7, x2: -1, z1: z(27), z2: z(20) },
+      layers: [{ y: 6.0, color: RED }, { y: 2.5, color: YELLOW, shieldY: 5.8 }],
+    });
     new Checkpoint(W, game, { pos: [-4, 1, z(24)], yaw: 0, size: [4, 2, 4] });
     // a return lift for backtracking, switched on once you've made the drop
     const lift = new MovingPlatform(W, { min: [-10.5, 0.4, z(25)], max: [-7.5, 1.0, z(22)], offset: [0, 8.8, 0], speed: 2.5, active: false, zone, pause: 1.2 });
@@ -371,20 +394,21 @@ export function buildLevel(world, game) {
     W.box(10, -2, z(24), 18, 2.9, z(12), 'rock', zone);
     W.box(10, 2.9, z(24), 18, 3.0, z(12), 'grass', zone);
     tree(16.5, 3, z(13.5));
-    new Pickup(W, { pos: [11.5, 4, z(14)], type: 'health', amount: 35, respawn: 30 });
     new Checkpoint(W, game, { pos: [14, 3, z(17)], yaw: 0, size: [8, 3, 6] });
     new JumpPad(W, { pos: [14, 3.0, z(22.5)], power: 26, push: [0, 0, -3.6] });
     hint([10, 3, z(21)], [18, 6, z(19)], 'Jump pad — ride it up, then <b>shoot your way down</b>.');
     new Drone(W, { pos: [14, 8, z(18)], color: RED, range: 24 });
     new Drone(W, { pos: [5, 7, z(27)], color: [GREEN, YELLOW], range: 24 });
     plat(10, z(26), 18, z(30), 14, zone); // perch
-    hint([10, 14, z(30)], [18, 16, z(26)], '<b style="color:#ff3344">RED</b> · <b style="color:#ffd23a">YELLOW</b> · <b style="color:#3dff7a">GREEN</b> — clear the stack as you fall!', 6);
+    hint([10, 14, z(30)], [18, 16, z(26)], 'Drop through each shield, then fire: <b style="color:#ff3344">RED</b> · <b style="color:#ffd23a">YELLOW</b> · <b style="color:#3dff7a">GREEN</b>', 7);
 
     // the signature drop: red, yellow and green spikes stacked above a safe platform
     plat(11, z(33), 17, z(37), 0, zone);
-    new Barrier(W, { min: [11, 7.4, z(37)], max: [17, 8.0, z(33)], color: RED, kind: 'spike', regen: 2.2, zone });
-    new Barrier(W, { min: [11, 5.0, z(37)], max: [17, 5.6, z(33)], color: YELLOW, kind: 'spike', regen: 2.2, zone });
-    new Barrier(W, { min: [11, 2.6, z(37)], max: [17, 3.2, z(33)], color: GREEN, kind: 'spike', regen: 2.2, zone });
+    shieldedShaft({
+      x1: 11, x2: 17, z1: z(37), z2: z(33), floor: 0, capY: 11.5, zone,
+      cap: { x1: 10, x2: 18, z1: z(38), z2: z(30) },
+      layers: [{ y: 8.2, color: RED }, { y: 4.7, color: YELLOW, shieldY: 8.0 }, { y: 1.2, color: GREEN, shieldY: 4.5 }],
+    });
     new Checkpoint(W, game, { pos: [14, 0, z(35)], yaw: 0, size: [6, 2, 4] });
     const lift = new MovingPlatform(W, { min: [17.4, -0.6, z(36)], max: [19.9, 0, z(33)], offset: [0, 14, 0], speed: 3, active: false, zone, pause: 1.2 });
     W.trigger([11, 0, z(37)], [17, 2, z(33)], () => (lift.active = true));
@@ -436,8 +460,6 @@ export function buildLevel(world, game) {
   {
     const zone = 'boss';
     room({ x1: -6, x2: 6, zS: -339, zN: -351, y: 4.4, h: 6, zone, s: [{ c: 0, w: 3, h: CH }], n: [{ c: 0, w: 3, h: CH }] });
-    new Pickup(W, { pos: [-4, 5.4, -345], type: 'health', amount: 50 });
-    new Pickup(W, { pos: [4, 5.4, -345], type: 'health', amount: 50 });
     new Checkpoint(W, game, { pos: [0, 4.4, -341], yaw: 0, size: [12, 3, 3] });
     zoneTitle([-6, 4.4, -341], [6, 7.4, -339], 'FINAL SECTOR', 'PRISM CORE', '#d9a8ff');
     hint([-6, 4.4, -348], [6, 7.4, -346], 'Something enormous waits ahead. <b>You will need every color.</b>', 5);
@@ -452,7 +474,7 @@ export function buildLevel(world, game) {
       W.box(x - 1, y, z(lz + 1), x + 1, y + 8, z(lz - 1), 'metal', zone);
       W.deco(x - 1.05, y + 7.6, z(lz + 1.05), x + 1.05, y + 7.7, z(lz - 1.05), 'trimWhite', zone);
     }
-    // corner ledges reached by jump pads, each with a respawning health pack
+    // corner ledges reached by jump pads, for high angles on the Warden
     const ledges = [
       { x1: -28, x2: -22, l1: 4, l2: 10, pad: [-19.5, 7], push: [-4.5, 0, 0] },
       { x1: 22, x2: 28, l1: 4, l2: 10, pad: [19.5, 7], push: [4.5, 0, 0] },
@@ -463,7 +485,6 @@ export function buildLevel(world, game) {
       W.box(L.x1, y, z(L.l2), L.x2, y + 5, z(L.l1), 'metal', zone);
       W.deco(L.x1, y + 5, z(L.l2), L.x2, y + 5.06, z(L.l1), 'plat', zone);
       new JumpPad(W, { pos: [L.pad[0], y, z(L.pad[1])], power: 17, push: L.push });
-      new Pickup(W, { pos: [(L.x1 + L.x2) / 2, y + 6, z((L.l1 + L.l2) / 2)], type: 'health', amount: 30, respawn: 25 });
     }
     // floor ring
     const g = 'trimWhite';

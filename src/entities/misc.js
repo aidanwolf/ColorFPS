@@ -5,7 +5,7 @@ import { boxGeo, mat } from '../materials.js';
 import { audio } from '../audio.js';
 
 export class Pickup {
-  // type: 'color' (unlocks a blaster color), 'health', 'maxhp' (secret upgrade)
+  // type: 'color' (unlocks a blaster color), 'health', 'maxhp' (a secret's prize: a collectible prism)
   constructor(world, { pos, type, color = 0, amount = 30, respawn = 0, onCollect = null }) {
     this.world = world;
     this.type = type;
@@ -38,13 +38,27 @@ export class Pickup {
       this.spin.add(cage);
       this.group.add(this.spin);
     } else {
-      const gold = new THREE.MeshStandardMaterial({ color: 0xffcc55, metalness: 1, roughness: 0.25, emissive: 0x664400 });
-      this.spin = new THREE.Mesh(new THREE.IcosahedronGeometry(0.38, 0), gold);
-      const halo = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.03, 6, 32), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffdd77).multiplyScalar(2) }));
-      halo.rotation.x = Math.PI / 2;
-      this.rings = halo;
-      this.group.add(this.spin, halo);
-      this.light = new THREE.PointLight(0xffcc55, 4, 6, 1.6);
+      // secret prize: a prism trophy (a tall crystal cycling through the spectrum on a small pedestal,
+      // with a shard of each blaster color orbiting it) so it can't be mistaken for an enemy
+      this.prismMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6, metalness: 0.2, roughness: 0.05, flatShading: true });
+      this.spin = new THREE.Mesh(new THREE.OctahedronGeometry(0.3, 0), this.prismMat);
+      this.spin.scale.set(0.8, 1.6, 0.8);
+      const base = new THREE.Group();
+      const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.4, 0.22, 6), new THREE.MeshStandardMaterial({ color: 0x2a2c36, metalness: 0.8, roughness: 0.3 }));
+      plinth.position.y = -0.75;
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.025, 6, 6), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffffff).multiplyScalar(1.6) }));
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = -0.63;
+      base.add(plinth, rim);
+      this.rings = new THREE.Group();
+      COLORS.forEach((col, i) => {
+        const shard = new THREE.Mesh(new THREE.TetrahedronGeometry(0.09, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(col.hex).multiplyScalar(2.2) }));
+        const a = (i / 4) * Math.PI * 2;
+        shard.position.set(Math.cos(a) * 0.55, Math.sin(a * 2) * 0.12, Math.sin(a) * 0.55);
+        this.rings.add(shard);
+      });
+      this.group.add(this.spin, base, this.rings);
+      this.light = new THREE.PointLight(0xffffff, 3, 6, 1.6);
     }
     world.scene.add(this.group);
     // Lights live in the scene, not the pickup group, and are dimmed instead of hidden:
@@ -72,6 +86,10 @@ export class Pickup {
     }
     this.group.position.y = this.pos.y + Math.sin(this.t * 2) * 0.12;
     this.spin.rotation.y += dt * 2;
+    if (this.prismMat) {
+      this.prismMat.emissive.setHSL((this.t * 0.15) % 1, 1, 0.55);
+      if (this.light) this.light.color.copy(this.prismMat.emissive);
+    }
     if (this.rings) {
       this.rings.rotation.y += dt * 0.7;
       this.rings.rotation.z += dt * 0.4;
@@ -88,8 +106,6 @@ export class Pickup {
       player.heal(this.amount);
       audio.pickup();
     } else if (this.type === 'maxhp') {
-      player.maxHealth += this.amount;
-      player.health = player.maxHealth;
       audio.maxhp();
     }
     this.active = false;

@@ -72,7 +72,7 @@ html, body {
 }
 @keyframes hit { from { opacity: 1; transform: rotate(45deg) scale(1.3); } to { opacity: 0; transform: rotate(45deg) scale(1); } }
 
-#health { position: absolute; left: 28px; bottom: 26px; width: 280px; }
+#health { display: none; } /* one hit kills: no health bar */
 #health .label { font-size: 11px; letter-spacing: 3px; color: var(--dim); margin-bottom: 6px; }
 #health .track { height: 12px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.18); transform: skewX(-18deg); overflow: hidden; }
 #health .fill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff5a6a, #ffe08a); transition: width 0.15s; }
