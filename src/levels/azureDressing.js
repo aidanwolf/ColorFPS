@@ -495,8 +495,23 @@ export function makeDressing(B, { zone }) {
       grp.userData.noCull = true;
       grp.traverse((o) => (o.raycast = () => {}));
       W.scene.add(grp);
-      jellies.push({ grp, bell, tent, mat, base: V(48 + rng() * 52, -62 + rng() * 18, -80 - rng() * 100), r: 6 + rng() * 10, w: 0.02 + rng() * 0.03, ph: rng() * 10, s });
+      const jelly = { grp, bell, tent, mat, base: V(48 + rng() * 52, -62 + rng() * 18, -80 - rng() * 100), r: 6 + rng() * 10, w: 0.02 + rng() * 0.03, ph: rng() * 10, s };
+      grp.position.copy(jelly.base); // (never leave them at the origin: that's the Foundry's spawn room)
+      jellies.push(jelly);
     }
+    // they drift in slow circles far below, bells pulsing (only while you're out in Azure)
+    let jt = 0;
+    W.add({
+      update(dt, player) {
+        if (player.pos.x < 26) return;
+        jt += dt;
+        for (const j of jellies) {
+          const a = jt * j.w + j.ph;
+          j.grp.position.set(j.base.x + Math.cos(a) * j.r, j.base.y + Math.sin(jt * 0.3 + j.ph) * 2, j.base.z + Math.sin(a) * j.r);
+          j.bell.scale.set(1 - 0.08 * Math.sin(jt * 1.6 + j.ph), 1 + 0.12 * Math.sin(jt * 1.6 + j.ph), 1 - 0.08 * Math.sin(jt * 1.6 + j.ph));
+        }
+      },
+    });
     return { pts, jellies };
   }
 
