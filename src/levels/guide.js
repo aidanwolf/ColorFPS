@@ -92,6 +92,7 @@ export function currentObjective(game) {
   }
   const boss = game.level.boss;
   if (game.state === 'victory' || boss?.dead || boss?.state === 'dead') return { html: '' };
+  if (boss?.active) return { html: '' }; // (the final battle crosses every world: its bar and hints lead)
   if (where === 'azure') {
     const p = game.player.pos, lift = game.level.azure?.lift;
     if (p.y > 10) return { html: 'Walk out onto the Nexus balcony.' };

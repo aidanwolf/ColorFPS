@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { JumpPad, Checkpoint } from '../entities/misc.js';
 import { Boss } from '../boss.js';
 import { SHAFT, rectMinus } from './hub.js';
+import { buildFinale } from './finale/index.js';
 
 const Y = SHAFT.bottom; // every floor down here: -48
 
@@ -117,8 +118,23 @@ export function buildPrism(B) {
   };
 
   level.boss = new Boss(W, game, { pos: [0, y, z(40)], floorY: y, bounds: { minX: -24, maxX: 24, minZ: z(52), maxZ: z(6) } });
-  level.bossTrigger = W.trigger([-28, y, z(9)], [28, y + 6, z(5)], () => game.startBoss(), { once: true });
+  // The Warden is the machine's fail-safe: it only wakes once every world's engine has gone dark.
+  // (A missing power API counts as "all dark"; dev starts skip the check.)
+  const WORLDS = ['red', 'solar', 'verdant', 'azure'];
+  const devFight = /^(boss|finale\d)$/.test(new URLSearchParams(location.search).get('start') || '') && location.search.includes('dev');
+  const worldsDark = () => devFight || !game.isWorldDown || WORLDS.every((w) => game.isWorldDown(w));
+  let toldDormant = -1e9;
+  level.bossTrigger = W.trigger([-28, y, z(9)], [28, y + 6, z(5)], () => {
+    if (level.boss.state !== 'dormant') return;
+    if (worldsDark()) return game.startBoss();
+    if (W.time - toldDormant < 12) return;
+    toldDormant = W.time;
+    const lit = WORLDS.filter((w) => !game.isWorldDown(w)).length;
+    game.hud.message(`The Warden sleeps while the machine still draws power: <b>${lit} world${lit > 1 ? 's' : ''}</b> still feed${lit > 1 ? '' : 's'} it. Shut every engine down.`, 5);
+  }, { once: false });
   level.bossArenaZ = zS;
+  // the final battle's other stages (levels/finale); you wake back here when it's over
+  buildFinale(B, level.boss, { prismReturn: [0, y, z(16), 0] });
 
   // ---------------------------------------------------------------- crystal field (one draw call)
   const cg = new THREE.OctahedronGeometry(1, 0);
@@ -150,21 +166,5 @@ export function buildPrism(B) {
   // The Warden is built at the origin (inside the Foundry's area), so area culling filed it under the
   // Foundry and hid it in its own arena: never cull it (it's only drawn while the fight is on).
   level.boss.root.userData.noCull = true;
-  // Every hit is lethal and resets the fight, so say what each attack wants the first time it comes
-  // (the boss hint line keeps the shield/core rule); the antechamber hint warns on the way in.
-  const tips = {
-    slam: '<b>JUMP</b> the red shockwave when it reaches you!',
-    volley: 'Orbs! <b>Shoot each in its color</b>, or put a pillar between you.',
-    sweep: 'The blade sweeps wide: <b>back off</b> out of its reach!',
-    charge: 'It\'s charging: <b>sidestep</b>!',
-  };
-  const told = new Set();
-  W.add({
-    update() {
-      const b = level.boss, k = b.active && b.attack?.type;
-      if (!k || told.has(k) || !tips[k]) return;
-      told.add(k);
-      game.hud.message(tips[k], 3);
-    },
-  });
+  // (the first-time attack tips for every stage live in finale/index.js)
 }

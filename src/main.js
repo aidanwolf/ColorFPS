@@ -32,6 +32,14 @@ const AREA_MOOD = {
   verdant: { music: 'music_green', ambient: 'amb_jungle', atmosphere: 'verdant' },
   azure: { music: 'music_blue', ambient: 'amb_abyss', atmosphere: 'azure' },
   prism: { music: 'music_antechamber', ambient: 'amb_core', atmosphere: 'prism' },
+  // ---- final battle (levels/finale): the Warden's echoes of each world, far off the map. Each stage
+  // pushes its own track (an area track here plays when a stage asks for one), the ambience follows it
+  fin_red: { music: 'music_red', ambient: 'amb_foundry', atmosphere: 'finForge' },
+  fin_solar: { music: 'music_solar', ambient: 'amb_solar', atmosphere: 'finSolar' },
+  fin_verdant: { music: 'music_green', ambient: 'amb_jungle', atmosphere: 'finVerdant' },
+  fin_azure: { music: 'music_blue', ambient: 'amb_abyss', atmosphere: 'finDeep' },
+  fin_heart: { music: 'music_antechamber', ambient: 'amb_core', atmosphere: 'finHeart' },
+  // ---- end final battle
 };
 // how each hazard liquid takes you (death sequence): depth sunk, over how long, tint, sound, banner
 const SINK = {
@@ -712,10 +720,10 @@ class Game {
     p.shake = 1;
     // falling into a liquid: you sink into it instead of crumpling (see updateDying)
     const where = regionOf(this.deathPos);
-    const liquid = p.deathCause === 'quicksand' ? 'sand' : p.deathCause === 'acid' ? { verdant: 'toxic', azure: 'brine', solar: 'sand' }[where] || 'lava' : null;
+    const liquid = p.deathCause === 'quicksand' ? 'sand' : p.deathCause === 'acid' ? { verdant: 'toxic', fin_verdant: 'toxic', azure: 'brine', solar: 'sand' }[where] || 'lava' : null;
     this.sink = liquid && { ...SINK[liquid], surface: this.deathPos.y };
     if (this.sink) audio.sample(this.sink.sound, { gain: 1, vary: 0.05 });
-    const banner = this.sink?.banner || { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED', impact: 'CRATERED', drown: 'DROWNED' }[p.deathCause] || 'SHOT DOWN';
+    const banner = this.sink?.banner || { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED', impact: 'CRATERED', drown: 'DROWNED', spores: 'POISONED' }[p.deathCause] || 'SHOT DOWN';
     // The rewarded revive is a helping hand for a section you're stuck on, not a way to skip every
     // challenge: it's offered from the 3rd death since your last checkpoint, once per checkpoint.
     this.deathsHere = (this.deathsHere || 0) + 1;
@@ -789,7 +797,8 @@ class Game {
     p.health = p.maxHealth;
     p.invuln = 1.5;
     const boss = this.level.boss;
-    if (boss.active) {
+    // (final battle: past the first stage, dying restarts only the current stage; see Boss.restartStage)
+    if (boss.active && !boss.restartStage?.()) {
       boss.resetState();
       this.level.setSeal(false);
       this.level.bossTrigger.fired = false;

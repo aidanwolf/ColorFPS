@@ -36,6 +36,7 @@ From the Hub you can **see into every world through big windows before you can e
 | Solar | `solar.js` | -32 → -200 | -30 → 80 | -40 → -230 |
 | Azure | `azure.js` | 32 → 200 | -80 → 40 | -40 → -230 |
 | Verdant | `verdant.js` | -31 → 31 (wider, -110 → 110, once z < -235) | -5 → 60 (may go down to -40 once z < -178) | -148.5 → -380 |
+| Final battle stages (off-map; regions `fin_*` in regions.js, each sees only itself) | `finale/*.js` | 700 → 1000 | -10 → 40 | -40 → -450 |
 
 Corridors that join a world to the Hub cross the gap between the Hub wall and the region (x ±25 → ±32);
 the world module owns its connecting corridor in that gap. Near the Hub (within 10 m of its walls) keep
