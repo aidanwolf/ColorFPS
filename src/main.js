@@ -22,6 +22,7 @@ import { loadSave, writeSave, clearSave } from './save.js';
 import { ads } from './monetization/bonusround.js';
 import { TouchControls } from './touch.js';
 import { UnlockCutscene } from './cutscene.js';
+import { MapView } from './map.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -123,6 +124,7 @@ class Game {
     this.world.setupCulling([this.sky]);
     this.restock = new Restock(this.world);
     director.attach(this);
+    this.map = new MapView(this); // holographic map (M): its own scene, built on first open
     this.hud.buildColors(this.blaster);
     this.hud.setSecrets(0, this.level.secretsTotal);
     this.player.spawn(this.level.spawn, this.level.spawnYaw);
@@ -186,7 +188,7 @@ class Game {
     this.resize();
     this.bindUi();
     this.input.onLockChange = (locked) => this.onLockChange(locked);
-    this.touch = new TouchControls(this.input, { onPause: () => this.pause() });
+    this.touch = new TouchControls(this.input, { onPause: () => this.pause(), onMap: () => this.map.toggle() });
     this.hud.onColor = (i) => this.blaster.has && this.blaster.setColor(i);
     if (COARSE) this.enableTouch();
     // a touch anywhere (e.g. tapping Play on a touchscreen laptop) switches to touch controls
@@ -492,6 +494,7 @@ class Game {
   onLockChange(locked) {
     if (locked) return;
     if (this.adRound || this.reviving || this.state === 'ad') return;
+    if (this.state === 'map') return this.map.close(true); // Esc in the map: on to the pause menu
     if (this.state === 'playing') this.pause();
   }
 
@@ -936,6 +939,7 @@ class Game {
     this.hud.setHealth(this.player.health, this.player.maxHealth);
     this.restock.update(this.player);
     director.update(dt);
+    this.map.track(this.player.pos); // chart where you've been
     const air = this.player.air / AIR_MAX;
     this.hud.setAir(air, this.player.headUnder || air < 0.999);
     const goal = currentObjective(this);
@@ -974,6 +978,9 @@ class Game {
         if (!this.stepErrors) console.error('[chroma] step failed', e);
         this.stepErrors = (this.stepErrors || 0) + 1;
       }
+      if (this.input.hit('KeyM')) this.map.open();
+    } else if (this.state === 'map') {
+      this.map.update(dt); // the game stays frozen underneath
     } else if (this.state === 'cutscene') {
       if (this.input.hit('Space') || this.input.hit('Enter') || this.input.mousePressed) this.cutscene.skip();
       this.cutscene.update(dt);
@@ -1004,7 +1011,8 @@ class Game {
     }
     for (const cb of this.frameCallbacks) cb(dt);
     this.hud.update(dt);
-    this.composer.render();
+    if (this.state === 'map') this.map.render();
+    else this.composer.render();
     this.input.endFrame();
   }
 }

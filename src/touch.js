@@ -1,5 +1,5 @@
 // On-screen touch controls: a floating move stick on the left, drag-to-look on the right,
-// and FIRE / JUMP / CROUCH / pause buttons. They feed the same Input object the keyboard
+// and FIRE / JUMP / CROUCH / map / pause buttons. They feed the same Input object the keyboard
 // and mouse use, so the player and blaster code don't need to know which device is active.
 
 const STICK_RADIUS = 56;
@@ -9,9 +9,10 @@ const DEADZONE = 0.12;
 const LOOK_SCALE = 0.85;
 
 export class TouchControls {
-  constructor(input, { onPause }) {
+  constructor(input, { onPause, onMap }) {
     this.input = input;
     this.onPause = onPause;
+    this.onMap = onMap;
     this.stickId = null;
     this.stickOrigin = { x: 0, y: 0 };
     this.looks = new Map(); // touch id → last position (look drags, including drags that start on FIRE)
@@ -26,6 +27,7 @@ export class TouchControls {
       <div class="stick-hint">MOVE</div>
       <div class="stick"><div class="knob"></div></div>
       <button type="button" class="tbtn pause" data-btn="pause" aria-label="Pause">❚❚</button>
+      <button type="button" class="tbtn map" data-btn="map" aria-label="Map">MAP</button>
       <button type="button" class="tbtn crouch" data-btn="crouch">CROUCH</button>
       <button type="button" class="tbtn jump" data-btn="jump">JUMP</button>
       <button type="button" class="tbtn fire" data-btn="fire">FIRE</button>`;
@@ -55,6 +57,8 @@ export class TouchControls {
       const btn = t.target.closest?.('[data-btn]')?.dataset.btn;
       if (btn === 'pause') {
         this.onPause();
+      } else if (btn === 'map') {
+        this.onMap?.();
       } else if (btn === 'fire') {
         this.fireId = t.identifier;
         this.input.mouseDown = true;

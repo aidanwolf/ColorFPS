@@ -14,7 +14,7 @@ const FLOOR = 4;
 const TARGETS = { solar: [-23, -112], verdant: [-10, -146.5], azure: [23, -112], dais: [0, -104.6] };
 const DAIS = { x1: -6.4, x2: 6.4, z1: -116.4, z2: -103.6 };
 const GALLERY_Y = 12;
-const DOORS = {
+export const DOORS = {
   solar: { pos: [-24.6, -112], color: YELLOW },
   verdant: { pos: [-10, -148.2], color: GREEN },
   azure: { pos: [24.6, -112], color: BLUE },
