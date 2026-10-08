@@ -72,7 +72,7 @@ function azureAfter(p, game) {
   const st = game.level.azure || {};
   if (p.y > 10 && p.x < 47) return 'Walk out onto the Nexus balcony.';
   if (game.isWorldDown?.('azure')) {
-    if (p.x < 113 && p.y > -9) return 'Ride the pads up across the chasm: <b>clear each landing\'s spikes</b> before you launch.';
+    if (p.x < 113 && p.y > -9) return 'Ride the pads up across the chasm: <b>shoot the orb over each pad</b> to charge it, then step on.';
     if (inBox(p, 112, 181, -158, -153, -9, -3)) return 'The pressure lock is open: follow the gallery <b>west</b>, out onto the Spillway.';
     if (inBox(p, 133, 187, -222, -157, -32, 12)) return 'The engine is dead. Swim back out to the shore ledge and take the gallery <b>west</b>.';
     return 'Climb back up through the station: the Undercroft, the Sluice, then the Spillway home.';

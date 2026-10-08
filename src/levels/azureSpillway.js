@@ -15,7 +15,6 @@
 // The way home never depends on the engine: jump pads, valves and gravity-fed pipes all keep working.
 import * as THREE from 'three';
 import { COLORS, RED, YELLOW, GREEN, BLUE } from '../colors.js';
-import { Barrier } from '../entities/barrier.js';
 import { Drone } from '../entities/drone.js';
 import { Checkpoint, JumpPad } from '../entities/misc.js';
 import { VortexTunnel } from '../entities/vortex.js';
@@ -263,40 +262,55 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     onDefeated: () => game.hud.message('The engine is dead. Somewhere a <b>pressure lock</b> lets go — back out into the gallery and head <b>west</b>.', 6),
   }));
 
+  // (its shore ledge stands 0.3 m over the alcove pool with no way to wade out: a flight of submerged steps
+  // up the pool's east side, so the way back out after the fight is a swim and a walk)
+  for (let k = 0; k < 5; k++) plat(162.6, -165.6 - 0.6 * k, 164, -165 - 0.6 * k, -8.1 - 0.4 * k, zone, 0.25);
+
   // ================================================================== THE SPILLWAY (the way home)
   // Out of the cliff onto a deck (L0), then four jump pads up across the chasm to the terminal at the
-  // Hub's east balcony port. Every landing is crusted with spikes of one color: clear them before you
-  // launch (they regrow in 4 s). Pads throw you at 8 m/s across, so holding W (or nothing) lands you on
-  // the spot; each landing runs on past it, in case you sprint.
+  // Hub's east balcony port. With the engine dead the pads run on their own capacitors: shoot the orb over
+  // a pad (each in its own color) and it holds a charge for 6 s; step on and it throws you to the next
+  // landing. Pads throw you at 8 m/s across, so holding W (or nothing) lands you near the middle; each
+  // landing is long enough for a sprint, too.
   plat(97, -158.5, 112, -152.5, GY, zone, 1);
   glowEdge(97, -158.5, 112, -152.5, GY, 'trimWhite', zone);
   new Checkpoint(W, game, { pos: [108.5, GY, GZ], yaw: Math.PI / 2, size: [3, 3, 5] });
   area([105, GY, -158.5], [112, GY + 3, -152.5], MOOD);
   const L = [
-    { x1: 83, x2: 93, z: -151.5, top: -2.8, color: BLUE },
-    { x1: 67.5, x2: 77.5, z: -147, top: 2.1, color: RED },
-    { x1: 52, x2: 62, z: -142.5, top: 7, color: YELLOW },
-    { x1: 34.5, x2: 46, z: -136, top: 12, color: GREEN },
+    { x1: 83, x2: 93, z: -151.5, top: -2.8 },
+    { x1: 67.5, x2: 77.5, z: -147, top: 2.1 },
+    { x1: 52, x2: 62, z: -142.5, top: 7 },
+    { x1: 34.5, x2: 46, z: -136, top: 12 },
   ];
+  const CHARGE = [BLUE, RED, YELLOW, GREEN];
   const pads = [[100, GY, GZ]];
   for (const [i, p] of L.entries()) {
     const last = i === L.length - 1;
-    const land = [last ? 42.5 : p.x2 - 3.5, p.top, p.z];
-    // the throw: 8 m/s across, and the lift that lands it on `land`
+    const land = [last ? 41.5 : (p.x1 + p.x2) / 2, p.top, p.z];
+    // the throw: 8 m/s across, and the lift that lands it on `land` (from a launch ~1 m short of the
+    // pad's center, where you step onto it coming from the landing before)
     const [px, py, pz] = pads[i];
-    const dx = land[0] - px, dz = land[2] - pz, d = Math.hypot(dx, dz), s = 8, t = d / s;
+    const dx = land[0] - px, dz = land[2] - pz, d = Math.hypot(dx, dz), s = 8, t = (d - 1) / s;
     const vy = (land[1] - (py + 0.2) + 12 * t * t) / t;
-    new JumpPad(W, { pos: [px, py, pz], power: vy, push: [(dx / d) * s, 0, (dz / d) * s], color: 0xdfe6ff });
+    const pad = new JumpPad(W, { pos: [px, py, pz], power: vy, push: [(dx / d) * s, 0, (dz / d) * s], color: 0xdfe6ff });
+    // its capacitor: a timed orb switch hanging beside it
+    const charge = { on: false, activate() { this.on = true; }, deactivate() { this.on = false; } };
+    B.colorSwitch({ pos: [px, py + 2.7, pz + 1.9], style: 'orb', color: CHARGE[i], mode: 'timed', time: 6, links: [charge], zone, light: false });
+    W.add({
+      update() {
+        if (!charge.on) pad.cool = Math.max(pad.cool, 0.2); // dead until charged
+        for (const r of pad.rings) r.visible = charge.on;
+      },
+    });
     // the landing
     if (!last) {
       plat(p.x1, p.z - 3, p.x2, p.z + 3, p.top, zone, 0.8);
       glowEdge(p.x1, p.z - 3, p.x2, p.z + 3, p.top, 'trimWhite', zone);
-      pads.push([p.x1 + 2.5, p.top, p.z]);
+      pads.push([p.x1 + 2.2, p.top, p.z]);
       // its pier, down into the abyss, ringed with light
       deco((p.x1 + p.x2) / 2 - 1.6, -80, p.z - 1.6, (p.x1 + p.x2) / 2 + 1.6, p.top - 0.8, p.z + 1.6, 'rock');
       for (let y = p.top - 6; y > -70; y -= 14) deco((p.x1 + p.x2) / 2 - 1.7, y, p.z - 1.7, (p.x1 + p.x2) / 2 + 1.7, y + 0.25, p.z + 1.7);
     }
-    new Barrier(W, { min: [land[0] - 1.5, p.top, land[2] - 1.5], max: [land[0] + 1.5, p.top + 0.6, land[2] + 1.5], color: p.color, kind: 'spike', regen: 4, zone });
   }
   new Checkpoint(W, game, { pos: [72.5, L[1].top, L[1].z], yaw: Math.PI / 2, size: [3, 3, 5] });
   // the terminal at the port: a dock with rails, and the port corridor (a shutter closes it until the engine is down)
@@ -316,10 +330,11 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     if (level.atmospheres.hub) game.setAtmosphere('hub');
   }, { once: false });
   area([28, 12, -137.5], [34, 15, -134.5], MOOD);
-  hint([97, GY, -158.5], [106, GY + 3, -152.5], 'The <b>Spillway</b>: emergency pads, up across the chasm to the Nexus. <b>Clear each landing\'s spikes</b> before you launch.', 6);
+  hint([97, GY, -158.5], [106, GY + 3, -152.5], 'The <b>Spillway</b>: emergency pads up across the chasm to the Nexus. <b>Shoot the orb over each pad</b> to charge it, then step on.', 6);
   // drones work the chasm (they come back whenever you return)
-  new Drone(W, { pos: [80, 4, -146], color: BLUE, range: 24 });
-  new Drone(W, { pos: [58, 12, -138], color: [RED, BLUE], range: 24, cycle: 2.4 });
+  // (they hang off to the sides of the chain, never in a pad's flight path)
+  new Drone(W, { pos: [80, 3, -160], color: BLUE, range: 22, orbit: 2 });
+  new Drone(W, { pos: [55, 13, -130.5], color: [RED, BLUE], range: 22, cycle: 2.4, orbit: 2 });
   keepOut.push([[33, -9, -160], [113, 30, -131]]);
 
   // ================================================================== THE CONDUIT to the Atrium's reactor
