@@ -2,7 +2,8 @@
 // from each one. Used to cull whole worlds: from inside a color world only it and the Hub are drawn;
 // from the Hub (whose windows look into every world) everything is.
 export function regionOf(p) {
-  // (the side worlds come first: Solar and Azure reach as far south as the Foundry, z -40)
+  if (p.z > -40) return 'red'; // the Foundry and its southern annex (the backtracking challenge rooms)
+  // (then the side worlds: Solar and Azure reach as far south as z -40, beside the Foundry)
   if (p.x < -25) return 'solar';
   if (p.x > 25) return 'azure';
   if (p.z > -99.5) return 'red';

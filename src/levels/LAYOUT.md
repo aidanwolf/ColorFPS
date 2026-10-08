@@ -30,6 +30,7 @@ From the Hub you can **see into every world through big windows before you can e
 | module | file | x | y | z |
 |---|---|---|---|---|
 | Crimson Foundry | `red.js` | -20 → 20 | -7 → 15 | 2 → -99.5 |
+| Foundry annex (color-locked challenge rooms off the spawn room) | `redAnnex.js` | -45 → 45 | -25 → 30 | 100 → -38 (keep clear of red.js's rooms) |
 | The Hub | `hub.js` | -25 → 25 | 2 → 45 | -99.5 → -148.5 |
 | Prism Core (boss) | `prism.js` | -31 → 31 | -60 → -6 | -88 → -175 |
 | Solar | `solar.js` | -32 → -200 | -30 → 80 | -40 → -230 |
