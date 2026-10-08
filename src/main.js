@@ -25,6 +25,7 @@ import { ads } from './monetization/bonusround.js';
 import { TouchControls } from './touch.js';
 import { UnlockCutscene } from './cutscene.js';
 import { MapView } from './map.js';
+import { spawnEnemy } from './entities/combat.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -192,11 +193,20 @@ class Game {
     this.composer.addPass(new OutputPass());
 
     // compile every material now so the first sight of anything (the boss included) doesn't hitch
-    const boss = this.level.boss;
-    boss.root.visible = true;
+    // (compile only walks visible objects, so everything culled or hidden is shown for the pass)
+    // Arena enemies only exist once their portal opens, so one of each kind is made for the pass and
+    // then taken straight back out.
+    const undo = this.stageArenaEnemies();
+    const hidden = [];
+    scene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
+    // against the composer's buffer, not the canvas: the programs differ (output color space / tone
+    // mapping), and compiling for the canvas would leave every real one to compile on first sight
+    renderer.setRenderTarget(this.composer.readBuffer);
     renderer.compile(scene, this.camera);
     renderer.compile(this.blaster.vmScene, this.blaster.vmCamera);
-    boss.root.visible = false;
+    renderer.setRenderTarget(null);
+    for (const o of hidden) o.visible = false;
+    undo();
 
     addEventListener('resize', () => this.resize());
     this.resize();
@@ -630,6 +640,34 @@ class Game {
     }
     if (!this.musicOverride) audio.musicBlend(AREA_MOOD[a].music, AREA_MOOD[b].music, w);
     if (!this.ambOverride) audio.ambientBlend(AREA_MOOD[a].ambient, AREA_MOOD[b].ambient, w);
+  }
+
+  // One enemy of every kind (and color) the arenas will summon, for the startup shader pass. Returns
+  // the undo: the world's lists go back to their old lengths and the new scene objects come out.
+  stageArenaEnemies() {
+    const w = this.world;
+    const lens = Object.entries(w).filter(([, v]) => Array.isArray(v)).map(([k, v]) => [k, v.length]);
+    const before = new Set(w.scene.children);
+    const kinds = new Map();
+    for (const e of w.entities) {
+      for (const wave of e.waves || []) {
+        for (const { pos, delay, ...rest } of wave.enemies || []) {
+          const k = JSON.stringify(rest);
+          if (!kinds.has(k)) kinds.set(k, { ...rest, pos });
+        }
+      }
+    }
+    for (const spec of kinds.values()) {
+      try {
+        spawnEnemy(w, { aggro: false, ...spec });
+      } catch (err) {
+        console.warn('[chroma] prewarm', spec.type, err);
+      }
+    }
+    return () => {
+      for (const [k, n] of lens) w[k].length = Math.min(w[k].length, n);
+      for (const o of [...w.scene.children]) if (!before.has(o)) w.scene.remove(o);
+    };
   }
 
   setCheckpoint(pos, yaw, ref) {
