@@ -71,11 +71,12 @@ export class World {
     // (only our merged meshes: the Bonus Round SDK adds its own objects under this group too)
     for (const m of this.staticGroup.children) if (m.userData.region) m.visible = seen.has(m.userData.region);
     for (const rec of this.cullList || []) {
+      const d = _v.copy(rec.o.position).add(rec.off).distanceTo(camPos) - rec.r;
+      rec.region = regionOf(_v); // things move between areas (bosses, lifts, elevators): keep it current
       if (!seen.has(rec.region)) {
         rec.culled = true;
         continue;
       }
-      const d = _v.copy(rec.o.position).add(rec.off).distanceTo(camPos) - rec.r;
       rec.culled = d > far || (d > 0 && rec.r / (d + rec.r) < CULL_SIZE);
     }
   }

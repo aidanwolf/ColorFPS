@@ -221,8 +221,11 @@ export class Boss {
   resetState() {
     this.state = 'dormant';
     this.stateT = 0;
-    this.hp = MAX_HP;
-    this.phase = 1;
+    // every hit is lethal, so dying doesn't throw away the whole fight: you resume at the start of the
+    // furthest phase you reached (its health threshold), not from full health
+    this.bestPhase = this.bestPhase || 1;
+    this.phase = this.bestPhase;
+    this.hp = MAX_HP * [1, 0.66, 0.33][this.phase - 1];
     this.pos = this.spawn.clone();
     this.yaw = Math.PI;
     this.walkPhase = 0;
@@ -382,6 +385,7 @@ export class Boss {
     const phase = frac > 0.66 ? 1 : frac > 0.33 ? 2 : 3;
     if (phase !== this.phase) {
       this.phase = phase;
+      this.bestPhase = Math.max(this.bestPhase || 1, phase);
       audio.bossPhase();
       this.game.onBossPhase(phase);
       audio.setIntensity(2);
