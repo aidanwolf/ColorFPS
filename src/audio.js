@@ -363,6 +363,10 @@ class Audio {
       this.master.connect(comp).connect(this.ctx.destination);
       this.sfxBus = this.ctx.createGain();
       this.sfxBus.connect(this.master);
+      // world loops (drone hums, motors) go through their own fader so they hush while the game is paused
+      this.loopBus = this.ctx.createGain();
+      this.loopBus.gain.value = this.loopsMuted ? 0 : 1;
+      this.loopBus.connect(this.sfxBus);
       // music: tracks → duck (stingers) → bus (mute) → master; the synth fallback has its own fader
       this.musicBus = this.ctx.createGain();
       this.musicBus.gain.value = MUSIC_BUS;
@@ -671,7 +675,7 @@ class Audio {
       h.g = this.ctx.createGain();
       h.g.gain.value = 0;
       h.setG = 0;
-      h.src.connect(h.g).connect(this.sfxBus);
+      h.src.connect(h.g).connect(this.loopBus);
       // a random point in the loop, so several drones humming together don't phase
       h.src.start(this.t, Math.random() * buf.duration);
     }
@@ -682,6 +686,12 @@ class Audio {
     if (Math.abs(h.gain - h.setG) < 0.002) return;
     h.setG = h.gain;
     h.g.gain.setTargetAtTime(h.gain, this.t, 0.08);
+  }
+  // Hush every createLoop sound (paused, cutscene, death screen), and bring them back.
+  setLoopsMuted(m) {
+    if (m === this.loopsMuted) return;
+    this.loopsMuted = m;
+    if (this.loopBus) this.loopBus.gain.setTargetAtTime(m ? 0 : 1, this.t, 0.12);
   }
   _loopRelease(h, tc) {
     if (!h.src) return;

@@ -2,6 +2,7 @@
 // rendered in its own scene on top of the world (so it never clips into walls).
 import * as THREE from 'three';
 import { COLORS } from './colors.js';
+import { Drone } from './entities/drone.js';
 import { audio } from './audio.js';
 
 const FIRE_INTERVAL = 0.13;
@@ -123,7 +124,7 @@ export class Blaster {
     const outcome = this.trace(cam.position.clone(), _dir.clone(), _muzzle.clone(), 0);
     if (outcome.hit) {
       game.hud.hitmarker(false);
-      audio.hit();
+      if (!outcome.quiet) audio.hit(); // drones play their own, heavier impact
     } else if (outcome.bounced) {
       game.hud.hitmarker(true);
     }
@@ -140,7 +141,9 @@ export class Blaster {
     if (!hit) return outcome;
     const n = hit.normal || dir.clone().negate();
     let result = 'world';
+    hit.dir = dir; // the shot's direction (after any bounces), e.g. for drone knockback
     if (hit.entity && hit.entity.onHit) result = hit.entity.onHit(this.color, hit) || 'hit';
+    if (hit.entity instanceof Drone && (result === 'hit' || result === 'kill')) outcome.quiet = true;
     else if (hit.solid?.mirror) result = 'mirror';
     else if (hit.solid?.glass) result = 'glass';
     if (result === 'shield') {

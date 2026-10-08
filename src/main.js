@@ -696,6 +696,7 @@ class Game {
     this.updateAtmosphere(dt);
 
     this.input.active = this.state === 'playing';
+    audio.setLoopsMuted(this.state !== 'playing');
     this.touch.show(this.touchMode && this.state === 'playing');
     if (this.state === 'playing') {
       if (DEV) this.devKeys();
