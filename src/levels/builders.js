@@ -288,11 +288,11 @@ export function makeBuilders(W, game, level) {
   const devStart = (name, pos, yaw = 0, colors = [0]) => (level.devStarts[name] = { pos: new THREE.Vector3(...pos), yaw, colors });
   // Called whenever the player respawns at a checkpoint (reset elevators, encounters, ...).
   const onRespawn = (fn) => level.respawnHooks.push(fn);
-  // One of Iris Calder's audio logs ('01'..'16', see tools/audio/logs.json), floating over the floor point
+  // One of Wren Ashby's audio logs ('01'..'15', see tools/audio/logs.json), floating over the floor point
   // pos. Once picked up it never comes back (story/recorder.js keeps the list).
-  const audioLog = (id, pos) => {
+  const audioLog = (id, pos, yaw = 0) => {
     const rec = (game.recorder ??= new Recorder(game));
-    return rec.has(id) ? null : new AudioLog(W, game, { id, pos });
+    return rec.has(id) ? null : new AudioLog(W, game, { id, pos, yaw });
   };
 
   // ---------- mechanics toolkit: one line per piece (options: see the top of entities/mechanics.js) ----------

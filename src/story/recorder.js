@@ -1,21 +1,24 @@
-// Iris Calder's audio logs: which ones you've found (kept in localStorage, see save.js), playback with
+// Wren Ashby's audio logs: which ones you've found (kept in localStorage, see save.js), playback with
 // subtitles and a "LOG 03 · Title" card, music ducking while she talks, and the pause menu's log list.
 // The world devices that hand them out are entities/audiolog.js; the scripts are tools/audio/logs.json
-// (voiced by tools/audio/tts.mjs, which also writes logdata.json with the subtitle timing).
+// (voiced by tools/audio/tts.mjs, which also writes logdata.json with the subtitle timing). A log whose
+// mp3 isn't in the audio manifest (or fails to load) still plays: its captions run on the clock.
 import LOGS from './logdata.json';
 import { audio } from '../audio.js';
 import { loadLogs, writeLogs } from '../save.js';
 
 const AUDIO_URL = `${import.meta.env.BASE_URL}audio/`;
 const $ = (s) => document.querySelector(s);
+// captions never show the script's acting cues ("[laughs]"), even if a stale logdata.json still has them
+const clean = (s) => s.replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').replace(/\s+([,.!?])/g, '$1').trim();
 const HOLD_TO_STOP = 0.5; // seconds holding T
 const DUCK = 0.2; // music level while a log plays
 
 export class Recorder {
   constructor(game) {
     this.game = game;
-    this.logs = LOGS;
-    this.found = new Set(loadLogs().filter((id) => LOGS.some((l) => l.id === id)));
+    this.logs = LOGS.map((l) => ({ ...l, lines: l.lines.map((x) => ({ ...x, text: clean(x.text) })) }));
+    this.found = new Set(loadLogs().filter((id) => this.logs.some((l) => l.id === id)));
     this.cur = null; // the log playing
     this.el = null; // <audio>, routed through the game's mixer once audio is unlocked
     this.card = $('#logcard');
@@ -116,10 +119,19 @@ export class Recorder {
     const el = this.el;
     el.src = AUDIO_URL + log.file + '.mp3';
     el.currentTime = 0;
+    // blocked or missing: the subtitles keep running on the clock, picking up where they are
+    el.onerror = () => this.cur === log && this.toClock();
     el.play().then(
-      () => this.cur === log && (this.useClock = false),
-      () => {}, // blocked or missing: the subtitles still run on the clock
+      () => this.cur === log && !el.error && (this.useClock = false),
+      () => this.cur === log && this.toClock(),
     );
+  }
+
+  // fall back to wall-clock captions from wherever the audio got to
+  toClock() {
+    if (this.useClock) return;
+    this.t0 = performance.now() - (this.el?.currentTime || 0) * 1000;
+    this.useClock = true;
   }
 
   // Music sits under her voice (the same duck the upgrade stinger uses), then comes back.
@@ -180,7 +192,7 @@ export class Recorder {
   }
 
   renderList() {
-    $('#logs-count').textContent = `${this.found.size} of ${this.total} recovered · recorded by Dr. Iris Calder`;
+    $('#logs-count').textContent = `${this.found.size} of ${this.total} recovered · recorded by Dr. Wren Ashby`;
     const list = $('#logs-list');
     list.innerHTML = '';
     for (const log of this.logs) {

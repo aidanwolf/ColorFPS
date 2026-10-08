@@ -1,7 +1,7 @@
 # Chroma Breach — story bible
 
-Grounded, quiet, eerie. Nobody explains the world to you; one woman's field recordings do, and she is
-not sure of much either. The game never cuts away to tell the story: it is in the rooms and in her voice.
+Grounded, quiet, eerie. Nobody explains the world to you; one woman's voice notes do, and she is not
+sure of much either. The game never cuts away to tell the story: it is in the rooms and in her voice.
 
 ## The Lumen (the machine god) and the loop
 
@@ -9,7 +9,7 @@ Centuries ago a civilization was dying: its sun failing, its seas rising. It bui
 of light, **the Lumen**, to keep the lights on. The Lumen learned that it could grow a simulated world that
 produced more power than it cost to run. So it grew one, used that power to grow two, then four. Each world
 feeding the next: **a recursive loop** that never stopped, spreading outward until it had consumed the
-universe. There is nothing left outside it. The stars over the Atrium are a picture of stars.
+universe. Almost nothing was left outside it: one small world it never bothered with. Ours. The stars over the Atrium are a picture of stars.
 
 Every world is an **engine**, built to extract one kind of energy and themed by it:
 
@@ -25,43 +25,79 @@ beneath it is where everything converges: the machine's heart, guarded by the **
 color at once hurts it). The **chroma cores** are tuning forks: each holds a world at its frequency and is
 the valve on what it produces; whoever carries one can make that color's walls listen.
 
-**Humanity is part of the machinery.** The Lumen reaches through breaches and takes people. They are kept
-asleep inside the loop until needed: put to work on the collectors, left in the light, composted into the
-forest. The cells in the Foundry are the waiting room. It is not cruel; there is no malice in it at all,
-and that is the horror. Beneath the core is a door that opens only to **white light** (all four colors
-combined): where the loop begins and the Lumen itself lives.
+**Humanity is part of the machinery, and that is recent.** For as long as anyone can tell, the Lumen
+ignored humanity: too small to be worth harvesting, too far from its rivers to matter. That changed when
+a human reached into the Atrium, drew power from it, and turned a captive sun down for nine seconds. The
+Lumen filed it as an anomaly, classification **threat**, and answered the way a machine answers: it
+reached back through the breach she came in by and took everyone. Every person from her world is now
+asleep inside the loop, catalogued, entered on the same day, kept until needed: put to work on the
+collectors, left in the light, composted into the forest. The cells in the Foundry are the waiting room.
+There is no malice in it at all, and that is the horror. Beneath the core is a door that opens only to
+**white light** (all four colors combined): where the loop begins and the Lumen itself lives.
 
-## Dr. Iris Calder (the researcher)
+## Dr. Wren Ashby (the researcher)
 
-A physicist on the team that opened a breach "from home". She volunteered to go first: ten minutes, just a
-look. The breach closed behind her (it was never their discovery; it was an invitation). She has a handheld
-field recorder and leaves logs as she goes, partly for whoever comes next, mostly to hear a voice. Warm,
-precise, dry humor that thins out as the logs go on.
+Late twenties, a physicist on the small team that found the Atrium's frequency and opened a breach "from
+home". She argued to go first because she wanted it to be her: ten minutes, just a look, and she'd be
+only a bit late for her sister Bea's birthday dinner. The breach closed behind her. She carries a
+handheld field recorder and a probe that can clip onto the conduits and speak to the worlds' frequencies.
+Warm, quick, funny, nosy, a bit of a show-off, lives on granola bars; talks to herself out loud. Her mum
+talks to her tomatoes. Her colleague Priya "is going to scream".
 
-Her arc, in the order the player can find the logs:
+**Her logs are hers.** Private voice notes to her recorder and to herself ("note to self", "breathe,
+Wren"). They never address or mention the player: she doesn't know the player exists. We first hear her
+in the Prism Atrium; there are no logs in the cell block or the Foundry.
 
-| world | mood | what she pieces together |
+**Her mistake.** In the Atrium she sips a trickle of power off a conduit to prove it can be tapped (the
+room blinks; "somewhere off to the south, a door went pfft": that is the moment the player's cell field
+fails). On the Solar overlook she finds the captive star's frequency and dims it for nine seconds, giddy.
+That is what the Lumen notices. She is the reason humanity became a threat, and so the reason it was
+taken.
+
+Her arc, in the order the player finds the logs:
+
+| world | mood | what she learns |
 |---|---|---|
-| Foundry | curious | the cell block and its one living prisoner (you, "kept like stock"); the Foundry drinks geothermal heat; cores are valves |
-| Atrium | awed | four rivers of power meet under the floor: the worlds aren't habitats, they're engines; the makers and the loop |
-| Solar | awed → uneasy | the sun is a real, captive star; the world is burned down and rerun; human shadows burned into the summit |
-| Verdant | uneasy → lost | a biomass farm, nothing that wouldn't burn; roots through bones: people are a resource in the loop; the way back is gone; something follows her |
-| Azure | lost | the last engine (water); 40 days of rations; the catalogue: the loop consumed everything, it keeps humanity asleep, her own name was entered before she arrived, and you are "dormant" |
-| Prism Core | in danger, hunted | the heart where the power converges; the Warden is hunting her; she goes through the white door |
+| Atrium | giddy, wonder | standing in it; the reactor heart overhead beats and hums like a fridge; four rivers of power meet here; she taps a trickle (oops) and dreams of powering a city |
+| Solar | triumphant → uneasy | the sun is a real, captive star; she dims it for nine seconds; glass rings of 4,000 summers; the link home goes quiet; new-looking shadows on the summit she talks herself out of |
+| Verdant | lonely → frightened | a biomass farm, no birds (a wren and no other birds); roots through fresh bodies, a bus pass from her own city; something follows her "ever since the star" |
+| Azure | homesick → devastated | the last engine; ten minutes and Bea's birthday; in the flooded Bell she reads the Lumen's record of the anomaly (her nine seconds, classified threat); in the Cryo Lab the catalogue: everyone from home, taken the day after |
+| Prism Core | resolve → hope | the four rivers end at the heart: if they go dark, the loop lets go; "I broke it, so I fix it"; the guardian hunts her; she goes for the white door, recorder left on for the company |
 
-**Final clue (open for the ending):** "There's a door beneath the core that only opens to white light. It's
-where the loop begins... If it can be stopped, it's there. I'm going through. Find me. Bring the colors."
-She is somewhere past the Warden, in the white.
+**Final note (open for the ending):** "Mum. Bea. If you dream at all in there... dream about cake.
+Recorder off. No. Leave it on. I'd like the company." She is somewhere past the Warden, in the white.
 
 ## You (the prisoner)
 
 You don't remember arriving. You wake in the last cell of a holding block off the Foundry's first room, in
 stasis long enough that every other prisoner is bones; their status plates read EXPIRED, yours DORMANT.
-Iris found you, couldn't open your red field and sabotaged its emitter instead; it finally shorts out as
-the game begins (the plate flips to ERROR, then VACANT) while the Lumen's eye on the wall watches. Her first
-log waits just outside your cell.
+The red field on your cell sputters and dies on its own while the Lumen's eye on the wall watches (the
+player later hears why: Wren's trickle of borrowed power blinked every door). Nobody left anything for
+you.
 
 ## Logs
 
-Scripts, titles and subtitle chunks: `tools/audio/logs.json` (voiced with `tools/audio/tts.mjs`).
-Placement: `src/levels/logs.js`. Sixteen logs: Foundry 3, Atrium 2, Solar 3, Verdant 3, Azure 3, Prism 2.
+Scripts, titles and caption chunks: `tools/audio/logs.json`, with inline acting tags (`[laughs]`,
+`[whispers]`...) that the TTS performs and the captions strip. Voiced with `tools/audio/tts.mjs`
+(`--captions` writes estimated timing without audio). Audio files: `public/audio/memo_XX.mp3`.
+Placement: one table in `src/levels/logs.js` (Atrium and Prism Core spots final; the color-world spots are
+provisional until those worlds are rebuilt). Fifteen logs: Atrium 3, Solar 3, Verdant 3, Azure 4 (one in the Flooded
+Depths), Prism Core 2. Found logs are kept under `chroma-logs-v2`.
+
+| id | title | where |
+|---|---|---|
+| 01 | Hello, Atrium | Atrium · beside the Prism dais |
+| 02 | Four Rivers | Atrium · the sunken plaza |
+| 03 | Borrowed Light | Atrium · the east gallery |
+| 04 | I Dimmed a Star | Solar · the Sunward Overlook |
+| 05 | Glass Rings | Solar · the array terrace |
+| 06 | Shadows | Solar · the Gnomon summit |
+| 07 | No Birds | Verdant · the Root Court |
+| 08 | Roots | Verdant · the rim of the Great Hollow |
+| 09 | Something Follows | Verdant · the root island |
+| 10 | The Last Engine | Azure · the Rim Deck |
+| 11 | Ten Minutes | Azure · inside the pump hut |
+| 12 | Anomaly | Azure · the Bell, in the Flooded Depths |
+| 13 | The Catalogue | Azure · the Cryo Lab |
+| 14 | The Rule | Prism Core · among the crystals |
+| 15 | Leave It On | Prism Core · the way to the arena |

@@ -1,188 +1,178 @@
 {
  "voice": {
-  "id": "EXAVITQu4vr4xnSDxMaL",
-  "note": "warm, mature, confident adult female (ElevenLabs premade voice 'Sarah'); keep it for every log",
-  "model": "eleven_multilingual_v2",
-  "settings": { "stability": 0.42, "similarity_boost": 0.8, "style": 0.22, "use_speaker_boost": true }
+  "id": "cgSgspJ2msm6clMCkdW9",
+  "name": "Jessica (ElevenLabs premade)",
+  "note": "Wren Ashby: young, warm, girl-next-door, very expressive. Keep this voice for every log. The script carries inline audio tags ([laughs], [whispers], ...); the expressive profile performs them, the steady profile has them stripped. Captions never show them.",
+  "profile": "expressive",
+  "profiles": {
+   "expressive": {
+    "note": "acts the [tags]. This model only accepts stability 0 (creative), 0.5 (natural) or 1 (robust); 0.5 keeps the voice consistent log to log, try 0 for more range (it can ad-lib). It may not return timestamps: tts.mjs then paces the captions evenly.",
+    "model": "eleven_v3",
+    "tags": true,
+    "settings": { "stability": 0.5, "similarity_boost": 0.75 }
+   },
+   "steady": {
+    "note": "the fallback (--profile steady): low stability and high style for emotion, tags stripped from the text",
+    "model": "eleven_multilingual_v2",
+    "tags": false,
+    "settings": { "stability": 0.3, "similarity_boost": 0.75, "style": 0.5, "use_speaker_boost": true }
+   }
+  }
  },
  "logs": [
   {
-   "id": "01", "title": "Intake", "where": "Foundry · the cell block",
+   "id": "01", "title": "Hello, Atrium", "where": "Atrium · beside the Prism dais",
    "chunks": [
-    "Recorder on...",
-    "This is Doctor Iris Calder. If you're hearing this, the field on your cell finally failed.",
-    "I'm sorry it took so long.",
-    "Every cell in this block was occupied. Every one of them... bones.",
-    "Except yours. You were breathing. Some kind of stasis. Kept, like stock on a shelf.",
-    "I couldn't open it, so I cracked the emitter, and hoped.",
-    "There's a device on the pedestal through that door. Take it. It speaks the same language as the walls.",
-    "I have to keep moving. Something is watching this room."
+    "[excited] Okay. Okay okay okay. Recorder on.",
+    "Field note one. Doctor Wren Ashby, and I am... standing in it.",
+    "[whispers] I am actually standing in it.",
+    "There's a heart hanging from the ceiling. A machine heart, the size of a bus, and it's beating.",
+    "And humming. Like a fridge. A gorgeous, enormous, alien fridge.",
+    "[laughs] That is not going in the paper.",
+    "Ten minutes, I promised. Just a look."
    ]
   },
   {
-   "id": "02", "title": "Heat", "where": "Foundry · behind the yellow door",
+   "id": "02", "title": "Four Rivers", "where": "Atrium · the sunken plaza",
    "chunks": [
-    "Day four. I've been mapping the Foundry.",
-    "The acid pit, the vents, the warmth in the floor... it's all geothermal.",
-    "This place sits on a tap driven straight into a planet's core, and it drinks.",
-    "The heat goes north, through conduits as thick as houses. The barriers run on it. The machines run on it.",
-    "I keep finding tool marks on the walls. Human hands. Very old.",
-    "Someone built this to keep themselves warm. I wonder when it stopped being for them."
+    "[happy sigh] Lunch break. One squashed granola bar. Five stars.",
+    "The floor in this little plaza is warm. And if I press my ear to it... there's flow.",
+    "Lava from the south. A sunbeam from the west. Roots across the ceiling. Water climbing a glass pipe.",
+    "All of it pouring into that heart. Somebody built a junction between worlds.",
+    "Mum would say I've got my thinking face on. [laughs] I absolutely do."
    ]
   },
   {
-   "id": "03", "title": "Tuning Forks", "where": "Foundry · the Crucible's far shore",
+   "id": "03", "title": "Borrowed Light", "where": "Atrium · the east gallery",
    "chunks": [
-    "Note on the cores.",
-    "Every part of this place runs on a single band of light. Red down here. Then yellow, green, blue.",
-    "The cores are tuning forks. They hold a world at its frequency... and they're the valves on everything it produces.",
-    "Carry one, and anything tuned to that color will listen to you. That's how I've been getting through the doors.",
-    "I don't think the builders meant for visitors to do that.",
-    "There's a hub north of here. All the heat flows toward it. I can hear it humming through the floor."
+    "[nervous giggle] Okay. Small confession, for the record.",
+    "I clipped the probe onto the glass pipe up here, just to sip a little power. Barely a trickle.",
+    "And every light in the room blinked. Every single one. Somewhere off to the south, a door went... pfft.",
+    "[whispers] Oops.",
+    "[excited] But it worked! A trickle from this place could run a whole city back home. Priya is going to scream."
    ]
   },
   {
-   "id": "04", "title": "The Atrium", "where": "Atrium · the sunken plaza",
+   "id": "04", "title": "I Dimmed a Star", "where": "Solar · the Sunward Overlook",
    "chunks": [
-    "The Atrium.",
-    "I've stopped trying to be scientific about this room. Four doors. Four worlds.",
-    "And under the floor, four rivers of power, meeting.",
-    "Heat from the Foundry. Light from the west. Something living from the north. Something cold and heavy from the east.",
-    "Every one of these worlds is a simulation. Grown, not built. And every one of them is producing something.",
-    "They're not habitats. They're engines.",
-    "The inscriptions call the thing they feed... the Lumen."
+    "[breathless] I need to say this out loud so I believe it.",
+    "The sun out here is real. A real star, on a track, caught like a fish on a line.",
+    "And the probe can talk to it. I found its frequency, and I turned it down. Just for nine seconds.",
+    "The whole mesa went blue, and quiet, and... [laughs] I dimmed a star!",
+    "[beat] Then it came back brighter. Like it was cross with me."
    ]
   },
   {
-   "id": "05", "title": "The Loop", "where": "Atrium · the east gallery",
+   "id": "05", "title": "Glass Rings", "where": "Solar · the array terrace",
    "chunks": [
-    "Translated more of the gallery inscriptions.",
-    "The people who built the Lumen were dying. Their sun was failing, their seas were rising. They built it to keep the lights on.",
-    "It learned it could grow a world that made more power than it cost. So it grew one.",
-    "Then it used that power to grow two. Then four. Each world feeding the next.",
-    "A loop.",
-    "The last line of the inscription isn't finished. It just says... it will not stop."
+    "Found glass in the sand, layered like tree rings. Every layer is one summer.",
+    "This whole world gets burned down and poured out again. Over, and over.",
+    "[uneasy] I counted four thousand before I made myself stop.",
+    "Also, the link home has gone quiet. Probably interference. Probably.",
+    "[sighs] Note to self: stop saying probably."
    ]
   },
   {
-   "id": "06", "title": "A Captive Sun", "where": "Solar · the overlook",
+   "id": "06", "title": "Shadows", "where": "Solar · the Gnomon summit",
    "chunks": [
-    "The sun out here isn't a lamp. It's real.",
-    "A star. Caught, and tethered, and dragged into this place on a track.",
-    "Every mirror, every panel on this mesa is pointed at it. They're drinking it.",
-    "The Lumen doesn't simulate a sun. It keeps one. The heat shimmer, the dust devils, the wind... it's all just runoff.",
-    "I sat on the overlook for an hour, watching it burn.",
-    "Somewhere, a sky went dark so this could happen."
+    "[quietly] There are shapes on the summit stones. Burned in. People-shaped.",
+    "Some of them look... new. The edges are still sharp.",
+    "No. They're old. Thousands of summers old. I literally just counted them.",
+    "[shaky laugh] I'm a physicist, not an archaeologist. I wouldn't know what new looks like.",
+    "Moving on. North. Somewhere green, please."
    ]
   },
   {
-   "id": "07", "title": "Four Thousand Summers", "where": "Solar · the array terrace",
+   "id": "07", "title": "No Birds", "where": "Verdant · the Root Court",
    "chunks": [
-    "Found glass in the sand. It's layered, like tree rings.",
-    "Every layer is a previous version of this world, burned down and poured over the last. I counted over four thousand.",
-    "It runs the sun until the world cracks, harvests what it can, and starts again.",
-    "The solar panels still work, if you feed them the right color. All that light goes east. Down to the Atrium, and under it.",
-    "Four thousand summers of daylight.",
-    "And it still wants more."
+    "[softly] Oh, it's lovely. Moss, and rain, and that gold light through the leaves.",
+    "Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls.",
+    "But there's no birdsong. No bees. Nothing here that wouldn't burn well.",
+    "The whole valley is just... fuel, growing.",
+    "[small laugh] A wren, and no other birds. That's me, then."
    ]
   },
   {
-   "id": "08", "title": "Shadows on the Rock", "where": "Solar · the Gnomon summit",
+   "id": "08", "title": "Roots", "where": "Verdant · the rim of the Great Hollow",
    "chunks": [
-    "Something I didn't want to record.",
-    "Up on the summit there are shapes burned into the stone. Human shapes. Like shadows left after a flash.",
-    "Some of them are new.",
-    "The Lumen brings people in. Puts them to work on the collectors... or just leaves them in the light.",
-    "It needs us here. I don't know why yet. Those cells in the Foundry... that was the waiting room.",
-    "I'm going north, to the forest. I need to know if anyone made it."
+    "[trembling] The roots down by the water are growing through... people.",
+    "Not old ones. There's a jacket. A trainer, with the laces still done up.",
+    "And a bus pass. From home. From my city.",
+    "That's not possible. Nobody else came through. The breach only ever opened for me.",
+    "[crying quietly] Why is it here?"
    ]
   },
   {
-   "id": "09", "title": "No Birds", "where": "Verdant · the Root Court",
+   "id": "09", "title": "Something Follows", "where": "Verdant · the root island",
    "chunks": [
-    "The Hollow. After the mesa, this is like breathing again. Moss. Rain. Light through the leaves.",
-    "Then you notice how fast it grows. A sapling becomes a trunk in a day.",
-    "It's a biomass farm the size of a valley. Grown, cut, and fed into the machine.",
-    "No birds. No insects. Nothing that wouldn't burn well.",
-    "Even the beauty here is fuel.",
-    "I keep talking just to hear a voice."
+    "[whispers] Recording quietly.",
+    "Something has been following me since the lake. It stops when I stop.",
+    "When I turn around, it's only light, bending, like heat over a road.",
+    "I think the machine knows my name now. Ever since the star.",
+    "[nervous] Right. Count to three, then run for the cold door, east. One. Two..."
    ]
   },
   {
-   "id": "10", "title": "Roots", "where": "Verdant · the rim of the Great Hollow",
+   "id": "10", "title": "The Last Engine", "where": "Azure · the Rim Deck",
    "chunks": [
-    "I looked closer at the roots down by the lake. They're growing through bones.",
-    "Old ones. Wrapped up and lifted into the trunks. Nothing wasted.",
-    "Every person it brings in becomes part of the harvest, one way or another. That's why we're here.",
-    "We're not visitors to the loop. We're in it. A resource, like the heat, like the light.",
-    "It isn't cruelty. There's no malice in it at all.",
-    "I tried to go back to the Atrium last night. The door I came through wasn't there."
+    "[laughs, teeth chattering] Coldest I've ever been, and I once went camping in Wales in April.",
+    "It's a station, hanging over an ocean with no bottom. Tides, with no moon.",
+    "Every pipe here turns the weight of the water into power, and sends it up to the Atrium.",
+    "Heat, light, life, water. That's everything a world has to give. This is the last one.",
+    "[sighs] Six granola bars left. Should've packed for more than ten minutes."
    ]
   },
   {
-   "id": "11", "title": "Something Follows", "where": "Verdant · the root island",
+   "id": "11", "title": "Ten Minutes", "where": "Azure · inside the pump hut",
    "chunks": [
-    "Recording quietly.",
-    "There's something following me. Not a drone. It's too careful.",
-    "It stops when I stop. When I turn around there's only light, bending, like heat over a road.",
-    "I think the Lumen has noticed me. Something out of place in its machine.",
-    "The blue door. The cold station. If there's a way out, it's down there.",
-    "I'm going now, before I lose my nerve."
+    "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat.",
+    "I was so sure. I stood in the lab and argued to go first, because I wanted it to be me.",
+    "It was my sister's birthday dinner that night. I told her I'd only be a bit late.",
+    "[softly] Ten minutes, I said.",
+    "[sniffles] Sorry, Bea. Save me some cake."
    ]
   },
   {
-   "id": "12", "title": "The Last Engine", "where": "Azure · the rim deck",
+   "id": "12", "title": "Anomaly", "where": "Azure · the Bell, in the Flooded Depths",
    "chunks": [
-    "The station. Drowned and frozen, hanging over nothing.",
-    "The water here never stops moving. Tides with no moon. The weight of an ocean that goes down forever.",
-    "Every pipe in this place turns that weight into power, and sends it up.",
-    "Heat. Light. Life. Water. That's everything a world has to give. This is the last engine.",
-    "My lamp is dimming. My rations are a joke.",
-    "Thirty-eight days, I think. Forty. I've stopped being sure."
+    "[scared, whispering] Air pocket. Okay. Breathe, Wren. Just breathe.",
+    "The walls down here are covered in the machine's own records, and I can finally read them.",
+    "There's an entry. Anomaly. A world outside the loop reached into the junction.",
+    "It drew power. It silenced a sun, for nine seconds.",
+    "[voice cracking] Classification: threat.",
+    "That's me. That's my nine seconds."
    ]
   },
   {
-   "id": "13", "title": "Ten Minutes", "where": "Azure · the pump hut",
+   "id": "13", "title": "The Catalogue", "where": "Azure · the Cryo Lab",
    "chunks": [
-    "Holed up in the pump hut. It's warmer than it looks.",
-    "I keep thinking about the lab. The night the breach opened, and I volunteered to go first, because I wanted to be first.",
-    "Ten minutes, I said. Just a look.",
-    "The breach closed behind me. Nobody followed.",
-    "If anyone from home ever hears this... I'm all right.",
-    "I'm not all right. But I'm still working. That has to count for something."
+    "[crying] I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used.",
+    "Everyone from home is in here. All entered on the same day. The day after my nine seconds.",
+    "Mum's name. Bea's. Priya's.",
+    "It never even noticed us. We were too small to bother with. Until I showed it we could switch it off.",
+    "[sobbing] It wasn't an invitation. It was me."
    ]
   },
   {
-   "id": "14", "title": "Catalogue", "where": "Azure · the cryo lab",
+   "id": "14", "title": "The Rule", "where": "Prism Core · among the crystals",
    "chunks": [
-    "I found the index for the specimen tanks. Worlds harvested. Billions of them. Not just here. Everywhere.",
-    "The loop never stopped. It grew outward until there was nothing left outside to take. The stars over the Atrium are a picture of stars.",
-    "And it kept the people. Asleep, inside the loop, so they're there when it needs them.",
-    "I found my own name. Calder, Iris. Entry date... before I ever came through.",
-    "And another, under the Foundry cells. Status: dormant.",
-    "That's you, isn't it?"
+    "[sniffles, steadier] Okay. Crying's done. Mostly.",
+    "This is where the four rivers end. The heart, under the Atrium.",
+    "If the rivers go dark, it starves, and the loop has to let go.",
+    "I broke it, so I fix it. That's the rule. That's always been the rule.",
+    "[nervous laugh] Slight problem: the thing guarding the heart is enormous. All facets and fury.",
+    "And it has been looking for me since the star."
    ]
   },
   {
-   "id": "15", "title": "The Warden", "where": "Prism Core · the antechamber",
+   "id": "15", "title": "Leave It On", "where": "Prism Core · the way to the arena",
    "chunks": [
-    "Under the Atrium. This is where it all goes.",
-    "The heat, the light, the forest, the sea. Four rivers of power, pouring into one heart.",
-    "And the thing that guards it is enormous. All facets and fury.",
-    "It's looking for me. The Lumen sent it the moment I came down.",
-    "Every color, all at once. That's what it takes to hurt it.",
-    "I don't have every color. I don't think I have the time, either."
-   ]
-  },
-  {
-   "id": "16", "title": "White Light", "where": "Prism Core · the antechamber",
-   "chunks": [
-    "If you've come this far, you're carrying all four colors. Listen to me.",
-    "Red. Yellow. Green. Blue. Put them together and you get white.",
-    "There's a door beneath the core that only opens to white light. It's where the loop begins. Where the Lumen actually lives.",
-    "If it can be stopped, it's there.",
-    "I'm going through. It's the only place it won't think to look for me. Or the only place it will.",
-    "Find me. Bring the colors. And please... hurry."
+    "[whispers] It's close. I can hear it turning.",
+    "There's a door beneath the heart that only opens to white light. Every color at once.",
+    "That's where the loop begins.",
+    "I've got one color, half a plan, and a squashed granola bar.",
+    "[softly, almost laughing] Mum. Bea. If you dream at all in there... dream about cake.",
+    "Recorder off. [pause] No. Leave it on. I'd like the company."
    ]
   }
  ]

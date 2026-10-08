@@ -107,9 +107,10 @@ sprinting), rises ≤ 1.2 m per jump. Falling below y -60 is death; touching spi
 
 ## Audio logs
 
-Iris Calder's 16 audio logs (story: `src/story/STORY.md`) are placed in one table in `logs.js`:
-`B.audioLog(id, [x, y, z])` floats a recorder 1.15 m over the floor point. If you rebuild an area, move
-its logs there (keep them off the main path but reachable).
+Wren Ashby's 15 audio logs (story: `src/story/STORY.md`) are placed in one table in `logs.js`:
+`B.audioLog(id, [x, y, z])` floats a recorder 1.15 m over the floor point. Her first log is in the Hub:
+none go in the cell block or the Foundry. If you rebuild an area, move its logs there (keep them off the
+main path but reachable).
 
 ## Dev starts
 

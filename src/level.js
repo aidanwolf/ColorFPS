@@ -41,7 +41,7 @@ export function buildLevel(world, game) {
   buildPrism(B);
   buildGuide(world, game);
   buildTestRange(B); // ?dev only: the mechanics toolkit showcase, far off the map
-  placeLogs(B); // Iris Calder's audio logs, all over the worlds
+  placeLogs(B); // Wren Ashby's audio logs, from the Atrium on
   // dev-only test arena, far off the map (?dev&start=arena)
   if (new URLSearchParams(location.search).has('dev')) buildCombatRange(B);
   buildVerdantBossRange(B); // dev-only (?dev&start=hydra)

@@ -1,31 +1,34 @@
-// Where Iris Calder's sixteen audio logs wait (scripts: tools/audio/logs.json, story: src/story/STORY.md).
-// Each position is the floor point the recorder hovers over. They reward a look around: corners off the
-// main path, high perches, secret rooms, the Hub's gallery. If you rebuild an area, move its logs here.
+// Where Wren Ashby's fifteen audio logs wait (scripts: tools/audio/logs.json, story: src/story/STORY.md).
+// One table, in story order: the Atrium first, then Solar, Verdant, Azure and the Prism Core. Her voice
+// is first heard in the Prism Atrium: no log goes in the cell block or the Crimson Foundry (or its annex).
+//   world: which area it belongs to · pos: the floor point the recorder hovers over (1.15 m up)
+//   yaw: which way the recorder faces at first (it slowly turns) · provisional: a placeholder spot
+// The Hub and the Prism Core aren't being rebuilt, so their spots are final. Every color world is being rebuilt from scratch:
+// the spots marked provisional point into the OLD layouts (where they were reachable) and must be moved
+// to a natural spot in the new level, off the main path but reachable, then the flag dropped.
 const LOGS = [
-  // CRIMSON FOUNDRY
-  ['01', [8.4, 0, -3.8]], // the cell block hall, by the door out (the first one you'll find)
-  ['02', [-11.5, 0, -4.2]], // the Solar Cache, behind the spawn room's yellow door
-  ['03', [-5, 4, -80]], // the Crucible's far shore, in the corner beside the exit
-  // THE PRISM ATRIUM
-  ['04', [0, 2.8, -134]], // the sunken plaza's compass
-  ['05', [22.5, 12, -146.5]], // the far corner of the east gallery (ride a lift up)
-  // SOLAR — Sunscorch Mesa
-  ['06', [-54.5, 4, -122.5]], // the back corner of the Sunward Overlook
-  ['07', [-125, -3, -129.8]], // the dead end of the array terrace ledge, south of where you land
-  ['08', [-116, 20.8, -134.5]], // the Gnomon summit, the corner past the dial
-  // VERDANT — Emerald Hollow
-  ['09', [26, 4, -161.5]], // the Root Court's south terrace, far east under the great tree
-  ['10', [27.5, 4.5, -205.5]], // the east end of the north bank, over the Great Hollow
-  ['11', [12, -25, -250]], // the root island, behind the Great Tree
-  // AZURE — The Cold Deep
-  ['12', [55.5, 4, -117]], // the Rim Deck, by the antenna mast
-  ['13', [107.5, -4.5, -81.5]], // inside the pump hut
-  ['14', [107.4, -25, -166.2]], // the cryo lab, behind the specimen tanks
-  // PRISM CORE — the antechamber
-  ['15', [-7.5, -48, -97.5]], // among the crystals, the south-west corner
-  ['16', [7, -48, -112]], // the north-east corner, by the way to the arena
+  // THE PRISM ATRIUM (final): wonder, on the first visit
+  { id: '01', world: 'hub', pos: [-4.3, 4.4, -105.6], yaw: Math.PI / 4 }, // the dais's lower step, south-west corner, under the reactor heart: in view as you walk in from the red door
+  { id: '02', world: 'hub', pos: [0, 2.8, -134], yaw: 0 }, // the sunken plaza's compass, where all four conduits can be seen
+  { id: '03', world: 'hub', pos: [23.2, 12, -128], yaw: -Math.PI / 2 }, // the east gallery, just off the lift, by Azure's glass conduit
+  // SOLAR (provisional): her nine seconds; she dims the captive star
+  { id: '04', world: 'solar', pos: [-54.5, 4, -122.5], yaw: 0, provisional: true }, // old: the back corner of the Sunward Overlook (wants: a lookout facing the sun)
+  { id: '05', world: 'solar', pos: [-125, -3, -129.8], yaw: 0, provisional: true }, // old: the array terrace ledge's dead end (wants: sand / glass layers)
+  { id: '06', world: 'solar', pos: [-116, 20.8, -134.5], yaw: 0, provisional: true }, // old: the Gnomon summit (wants: a high point with burned shadows)
+  // VERDANT (provisional): lonely, then frightened
+  { id: '07', world: 'verdant', pos: [26, 4, -161.5], yaw: 0, provisional: true }, // old: the Root Court's south terrace (wants: early, lush and quiet)
+  { id: '08', world: 'verdant', pos: [27.5, 4.5, -205.5], yaw: 0, provisional: true }, // old: the north bank over the Great Hollow (wants: roots by water)
+  { id: '09', world: 'verdant', pos: [12, -25, -250], yaw: 0, provisional: true }, // old: the root island behind the Great Tree (wants: late, hidden, before the way east)
+  // AZURE (provisional): homesick, then the truth
+  { id: '10', world: 'azure', pos: [55.5, 4, -117], yaw: 0, provisional: true }, // old: the Rim Deck by the antenna mast (wants: first view of the ocean)
+  { id: '11', world: 'azure', pos: [107.5, -4.5, -81.5], yaw: 0, provisional: true }, // old: inside the pump hut (wants: a small warm shelter)
+  { id: '12', world: 'azure', pos: [136, -52.3, -120.5], yaw: Math.PI / 2, provisional: true }, // old: the Flooded Depths, the Bell's dry ledge (wants: an air pocket underwater)
+  { id: '13', world: 'azure', pos: [107.4, -25, -166.2], yaw: 0, provisional: true }, // old: the Cryo Lab behind the specimen tanks (wants: a records room / sleeper tanks)
+  // PRISM CORE (final; prism.js isn't being rebuilt): resolve, and the last note
+  { id: '14', world: 'prism', pos: [-7.5, -48, -97.5], yaw: Math.PI / 4 }, // the antechamber, among the crystals, south-west corner
+  { id: '15', world: 'prism', pos: [7, -48, -112], yaw: -Math.PI / 4 }, // the antechamber's north-east corner, by the way to the arena
 ];
 
 export function placeLogs(B) {
-  for (const [id, pos] of LOGS) B.audioLog(id, pos);
+  for (const { id, pos, yaw } of LOGS) B.audioLog(id, pos, yaw);
 }

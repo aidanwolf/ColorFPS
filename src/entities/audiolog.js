@@ -40,8 +40,8 @@ function assets() {
 }
 
 export class AudioLog {
-  // pos: the floor point it hovers over
-  constructor(world, game, { id, pos }) {
+  // pos: the floor point it hovers over; yaw: which way it faces at first (it slowly turns)
+  constructor(world, game, { id, pos, yaw = 0 }) {
     this.world = world;
     this.game = game;
     this.id = id;
@@ -51,6 +51,7 @@ export class AudioLog {
     this.group = new THREE.Group();
     this.group.position.copy(this.pos);
     this.bob = new THREE.Group();
+    this.bob.rotation.y = yaw;
     this.group.add(this.bob);
 
     // the recorder: a chunky handheld, tipped back, with a screen, speaker slots, a REC light and an aerial
