@@ -81,6 +81,7 @@ export function buildRed(B) {
   room({
     x1: -6, x2: 6, zS: 0, zN: -12, y: 0, h: 6, zone,
     n: [{ c: 0, w: 3, h: CH }],
+    s: [{ c: -3.5, w: 2.4, h: 3 }, { c: 0, w: 2.2, h: 1.5, y0: 1.0 }, { c: 3.5, w: 2.4, h: 3 }], // Foundry annex doors + grate (redAnnex.js)
     e: [{ c: -9, w: 1.2, h: 1.0 }],
     w: [{ c: -6, w: 2.4, h: 3 }],
   });
