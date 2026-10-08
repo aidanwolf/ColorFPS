@@ -43,6 +43,10 @@ export class CrumblePlatform {
         this.chunks.push(c);
         this.group.add(c);
       }
+    // while it's whole the chunks are drawn as one merged mesh (one draw call, not one per chunk); the
+    // separate chunks only show once it collapses
+    this.whole = new THREE.Mesh(mergeGeometries(this.chunks.map((c) => c.geometry.clone().translate(c.position.x, c.position.y, c.position.z)), false), m);
+    this.group.add(this.whole);
     this.edgeMat = glowMat(this.hex, disguise ? 2.2 : 1.6);
     // a top-edge trim like B.plat()'s (amber for an honest crumbler, the zone's own trim when disguised)
     const trim = new THREE.Mesh(edgeGeo(size.x, 0.06, size.z, 0.05), this.edgeMat);
@@ -77,6 +81,8 @@ export class CrumblePlatform {
     this.solid.enabled = false;
     this.trim.visible = false;
     this.cracks.visible = false;
+    this.whole.visible = false;
+    for (const c of this.chunks) c.visible = true;
     const g = nearGain(this.world, this.center);
     sfx.crumble(g);
     for (const c of this.chunks) {
@@ -115,8 +121,9 @@ export class CrumblePlatform {
     for (const c of this.chunks) {
       c.position.copy(c.userData.home);
       c.rotation.set(0, 0, 0);
-      c.visible = true;
+      c.visible = false;
     }
+    this.whole.visible = true;
     if (!silent) {
       this.reform = 0;
       this.world.fx.reformFlash(this.min, this.max, this.hex, 'spike');
