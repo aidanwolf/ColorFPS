@@ -101,7 +101,7 @@ function azureAfter(p, game) {
   if (inBox(p, 52, 80.5, -150, -122, -57, -41)) return `Break the ${tag(BLUE, 'blue door')} in the sanctum's <b>east</b> wall.`;
   if (inBox(p, 80, 113, -152, -140, -60, -48)) return `Cross the Blue Span: stay set to ${tag(BLUE, 'blue')} on the light stones, and shoot the blue switch for the bridge.`;
   if (inBox(p, 112, 158, -195, -144, -70, -43)) return 'Clear the Undercroft, then dive for the <b>gold-lit duct</b> in its east wall.';
-  if (inBox(p, 157, 181, -169, -157, -65, -3)) {
+  if (inBox(p, 165.5, 181, -169, -157, -65, -3)) { // (the Sluice is x 166..180; the cistern's shore ledge sits just west of it)
     const s = st.sluice;
     if (!s || s.stage === 1) return `Keep firing ${tag(BLUE, 'blue')} into the pump valve on the south wall to flood the Sluice.`;
     if (s.stage === 2) return 'Shoot the <b>arrows</b> on the north wall\'s ledges to set them into a staircase up to the east ledge.';
@@ -266,9 +266,10 @@ export function buildGuide(W, game) {
     const tgt = TARGETS[goal];
     let pts, y0;
     if (onGallery) {
-      // up on the gallery: lead to its inner edge nearest the goal, then hop down
+      // up on the gallery: lead to the gap in the railing on this side (in front of its return port; the
+      // railing runs along the rest of the inner edge), then hop down
       const gx = player.pos.x, gz = player.pos.z;
-      let e = gx < -19 ? [-19.4, Math.min(-125, Math.max(-147, tgt[1]))] : gx > 19 ? [19.4, Math.min(-125, Math.max(-147, tgt[1]))] : [Math.min(19, Math.max(-19, tgt[0])), -143.4];
+      const e = gx < -19 ? [-19.4, -136] : gx > 19 ? [19.4, -136] : [10, -143.4];
       pts = [[gx, gz], e];
       y0 = player.pos.y;
     } else {
