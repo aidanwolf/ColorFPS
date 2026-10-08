@@ -1,14 +1,15 @@
 // Which area a point belongs to (matches the region boxes in LAYOUT.md), and which areas can be seen
 // from each one. Used to cull whole worlds: from inside a color world only it and the Hub are drawn;
 // from the Hub (whose windows look into every world) everything is.
+// (Solar and Azure reach north past the Hub's south wall, so the side worlds are tested before the
+// Foundry; the Prism Core's antechamber does too, and Verdant widens past the side worlds north of z -232.)
 export function regionOf(p) {
-  if (p.z > -40) return 'red'; // the Foundry and its southern annex (the backtracking challenge rooms)
-  // (then the side worlds: Solar and Azure reach as far south as z -40, beside the Foundry)
+  if (p.z > -38) return 'red'; // the Foundry and its southern annex (nothing else reaches this far south)
+  if (p.y < -6 && p.z < -88 && p.z > -176 && Math.abs(p.x) < 31.5) return 'prism';
+  if (p.z < -232 || (p.z < -148.5 && Math.abs(p.x) < 31.5)) return 'verdant';
   if (p.x < -25) return 'solar';
   if (p.x > 25) return 'azure';
   if (p.z > -99.5) return 'red';
-  if (p.y < -6 && p.z > -176) return 'prism';
-  if (p.z < -148.5) return 'verdant';
   return 'hub';
 }
 
