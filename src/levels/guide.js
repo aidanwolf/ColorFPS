@@ -68,6 +68,7 @@ function foundryObjective(game) {
 }
 
 // ---- Azure (azure.js / azureFlooded.js / azureSpillway.js): name the next step for the stretch you're in
+const inBox = (p, x1, x2, z1, z2, y1 = -99, y2 = 99) => p.x >= x1 && p.x <= x2 && p.z >= z1 && p.z <= z2 && p.y >= y1 && p.y <= y2;
 function azureBefore(p, game) {
   const st = game.level.azure || {};
   if (inBox(p, 108, 162, -153, -100, -63, 8)) {
