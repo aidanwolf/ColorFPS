@@ -85,8 +85,11 @@ html, body {
 }
 .cslot .sw { position: absolute; inset: 9px; background: var(--c); box-shadow: 0 0 14px var(--c); }
 .cslot .k { position: absolute; left: 4px; top: 1px; font-size: 11px; color: var(--dim); }
-.cslot.locked .sw { background: #1b1e2c; box-shadow: none; }
-.cslot.locked::after { content: "LOCKED"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 8px; letter-spacing: 1px; color: #555b74; }
+.cslot .lock { display: none; }
+/* locked: the color is still shown, dimmed and hatched, with a padlock over it */
+.cslot.locked { border-color: color-mix(in srgb, var(--c) 35%, transparent); }
+.cslot.locked .sw { opacity: 0.38; box-shadow: none; background: repeating-linear-gradient(-45deg, var(--c) 0 4px, color-mix(in srgb, var(--c) 45%, #0b0d16) 4px 8px); }
+.cslot.locked .lock { display: block; position: absolute; left: 50%; top: 50%; width: 15px; height: 15px; transform: translate(-50%, -50%) skewX(12deg); color: #e9ecf6; filter: drop-shadow(0 0 3px #000); opacity: 0.9; }
 .cslot.active { border-color: var(--c); transform: skewX(-12deg) translateY(-8px) scale(1.12); box-shadow: 0 0 18px var(--c); }
 
 #stats { position: absolute; right: 28px; bottom: 26px; font-size: 12px; letter-spacing: 2px; color: var(--dim); }

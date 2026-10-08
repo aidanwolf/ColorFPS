@@ -258,7 +258,7 @@ export class Blaster {
       this.base.y - Math.abs(Math.cos(t * 0.5)) * 0.012 * s - out * 0.42 - p.landKick * 0.2 + (p.crouching ? -0.02 : 0),
       this.base.z + r * k.z + out * 0.04,
     );
-    this.gun.rotation.set(0.02 + r * k.pitch - out * 0.55, 0.32 + r * k.yaw + out * 0.15, r * k.roll - out * 0.45);
+    this.gun.rotation.set(0.035 + r * k.pitch - out * 0.55, 0.07 + r * k.yaw + out * 0.15, r * k.roll - out * 0.45);
   }
 }
 

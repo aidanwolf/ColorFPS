@@ -83,7 +83,8 @@ export class Hud {
       const el = document.createElement('div');
       el.className = 'cslot';
       el.style.setProperty('--c', c.css);
-      el.innerHTML = `<div class="sw"></div><div class="k">${i + 1}</div>`;
+      el.innerHTML = `<div class="sw"></div><div class="k">${i + 1}</div>` +
+        '<svg class="lock" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="7" width="10" height="7.5" rx="1.5" fill="currentColor"/></svg>';
       el.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         this.onColor?.(i);
