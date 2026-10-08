@@ -17,6 +17,7 @@ export class Swarmer extends Enemy {
   constructor(world, swarm, { pos, color = 0, aggro = true }) {
     super(world, { pos, color, hp: 1, range: 40, aggro });
     this.swarm = swarm;
+    this.barkPersona = null; // too small (and too many) to talk: the Swarm reports through the network
     this.vel = new THREE.Vector3((Math.random() - 0.5) * 6, 2 + Math.random() * 2, (Math.random() - 0.5) * 6);
     this.state = 'circle';
     this.phase = Math.random() * Math.PI * 2;

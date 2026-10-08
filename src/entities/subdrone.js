@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { audio } from '../audio.js';
 import { Drone, Orb } from './drone.js';
 import { director } from '../combat/director.js';
+import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
 const _eye = new THREE.Vector3();
@@ -59,6 +60,7 @@ export class SubDrone extends Drone {
     this.fireTimer = 2 + Math.random() * fireInterval;
     // a deeper, throatier motor than the air drones
     this.humPitch = 0.5 + Math.random() * 0.1;
+    this.barkPersona = 'azure'; // a depth unit of the drowned station (combat/barks.js)
     this.buildHull();
     this.applyColor();
   }
@@ -187,7 +189,12 @@ export class SubDrone extends Drone {
     if (this.sightTimer <= 0) {
       this.sightTimer = 0.25;
       this.sees = this.dist < this.range && this.world.lineOfSight(this.pos, _eye);
-      if (this.sees && !this.aggro) audio.droneAlert();
+      if (this.sees && !this.aggro) {
+        audio.droneAlert();
+        barks.say(this, 'spot'); // "Contact. Depth twelve."
+      }
+      this.unseenT = this.sees || !this.aggro ? 0 : (this.unseenT || 0) + 0.25;
+      if (this.unseenT === 1.5) barks.say(this, 'lost');
       if (this.sees) this.aggro = true;
     }
     this.stagger = Math.max(0, this.stagger - dt);

@@ -2,6 +2,7 @@
 // crouching (for vents), step-up, moving-platform riding, hazards and fall recovery.
 import * as THREE from 'three';
 import { audio } from './audio.js';
+import { barks } from './combat/barks.js';
 import { ARMOR_IGNORES, ARMOR_COLOR, ShieldFx } from './entities/armor.js';
 
 const HALF_W = 0.35;
@@ -521,6 +522,7 @@ export class Player {
       this.invuln = 1.2; // a moment of grace to get out of the line of fire
       this.shake = Math.max(this.shake || 0, 0.45);
       this.game.hud.armorBreak?.();
+      barks.player('shield_break'); // "Shield's down! Pour it on!"
       // loud and stunning: the world drops away for a beat under a layered crash, so you know you're bare
       audio.slam(0.15, 0.4, 1.6);
       audio.sample(audio.sfxOr('armor_break', 'shield_break'), { gain: 2.2, vary: 0, dry: true });

@@ -19,6 +19,7 @@ import { regionOf, PORTALS, PORTAL_BLEND } from './levels/regions.js';
 import { updateLiquids } from './liquid.js';
 import { Restock } from './restock.js';
 import { director } from './combat/director.js';
+import { barks } from './combat/barks.js';
 import { loadSave, writeSave, clearSave } from './save.js';
 import { ads } from './monetization/bonusround.js';
 import { TouchControls } from './touch.js';
@@ -71,7 +72,7 @@ const COARSE = matchMedia('(pointer: coarse)').matches;
 // sens is in Quake/Half-Life units (0.022° per mouse count × sens) on top of the OS pointer speed;
 // fov is Quake-style: horizontal degrees on a 4:3 screen (default 90), widened for wider screens.
 function loadSettings() {
-  const d = { sens: 20, fov: 90, volume: 0.7, invertY: false };
+  const d = { sens: 20, fov: 90, volume: 0.7, invertY: false, barkSubs: true };
   try {
     return { ...d, ...JSON.parse(localStorage.getItem('chroma-settings-v3') || '{}') };
   } catch {
@@ -88,6 +89,7 @@ class Game {
   constructor() {
     this.settings = loadSettings();
     this.audio = audio; // handy for debugging from the console
+    this.barks = barks; // (enemy voice lines: barks.log lists what played)
     this.state = 'title';
     this.stats = { time: 0, deaths: 0 };
     this.secretsFound = 0;
@@ -134,6 +136,7 @@ class Game {
     this.world.setupCulling([this.sky]);
     this.restock = new Restock(this.world);
     director.attach(this);
+    barks.attach(this);
     this.map = new MapView(this); // holographic map (M): its own scene, built on first open
     this.hud.buildColors(this.blaster);
     this.hud.setSecrets(0, this.level.secretsTotal);
@@ -349,6 +352,7 @@ class Game {
     $('#fov-val').textContent = this.settings.fov;
     bind('#set-vol', 'volume', (el) => +el.value, () => audio.setVolume(this.settings.volume));
     bind('#set-invert', 'invertY', (el) => el.checked);
+    bind('#set-barksubs', 'barkSubs', (el) => el.checked, () => barks.setSubtitles(this.settings.barkSubs));
     audio.setVolume(this.settings.volume);
     // a "Continue" button for after Bonus Rounds (re-locking the pointer needs a click)
     const ad = $('#screen-ad');
@@ -728,6 +732,7 @@ class Game {
     this.input.mouseDown = false;
     audio.setHeartbeat(false);
     audio.death();
+    barks.player('taunt', true);
     const eye = this.deathEye.clone();
     const hex = COLORS[this.blaster.color].hex;
     this.world.fx.burst(eye.clone().setY(eye.y - 0.4), hex, { count: 140, speed: 7, life: 1.4, size: 0.3, gravity: 6 });
@@ -825,6 +830,7 @@ class Game {
     for (const pr of this.world.projectiles) pr.alive = false;
     for (const fn of this.level.respawnHooks) fn();
     director.holders.clear();
+    barks.reset();
     this.clearDeathFx();
     audio.respawn();
     p.updateCamera();
@@ -957,6 +963,8 @@ class Game {
     this.hud.setHealth(this.player.health, this.player.maxHealth);
     this.restock.update(this.player);
     director.update(dt);
+    audio.setListener(this.camera.position, this.camera.quaternion); // positional enemy sounds (audio.at)
+    barks.update(dt, this); // enemy voice lines (combat/barks.js)
     this.map.track(this.player.pos); // chart where you've been
     const air = this.player.air / AIR_MAX;
     this.hud.setAir(air, this.player.headUnder || air < 0.999);
@@ -1005,6 +1013,7 @@ class Game {
       this.world.fx.update(dt);
     } else if (this.state === 'dying') {
       this.updateDying(dt);
+      barks.update(dt, this); // (the taunt over your death)
     } else if (this.state === 'title') {
       // a slow look around behind the menu: the level's own view (the cell block), else the spawn room
       if (this.level.titleView) this.level.titleView(this.camera, t, dt);

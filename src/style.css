@@ -336,3 +336,23 @@ body.touch #logcard .log-line { font-size: 14px; }
 .log-row.playing { border-color: #8fe6ff; background: rgba(143, 230, 255, 0.12); }
 .log-row.locked { opacity: 0.4; cursor: default; }
 .log-row.locked:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.2); }
+
+/* ---------- Enemy radio barks (src/combat/barks.js) ---------- */
+#bark {
+  position: fixed; left: 50%; bottom: 150px; transform: translate(-50%, 4px); z-index: 10; pointer-events: none;
+  display: flex; align-items: baseline; gap: 10px; max-width: min(620px, 80vw); padding: 5px 12px 5px 10px;
+  background: linear-gradient(90deg, rgba(8, 10, 14, 0.82), rgba(8, 10, 14, 0.6)); border-left: 2px solid var(--bk, #fff);
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; opacity: 0; transition: opacity 0.18s, transform 0.18s;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--bk, #fff) 18%, transparent);
+}
+#bark.on { opacity: 1; transform: translate(-50%, 0); animation: bark-flicker 0.24s steps(3) 1; }
+#bark .bk-tag { flex: none; display: flex; align-items: center; gap: 6px; font-size: 10px; letter-spacing: 2px; color: var(--bk, #fff); opacity: 0.85; }
+#bark .bk-tag i { width: 6px; height: 6px; border-radius: 50%; background: var(--bk, #fff); box-shadow: 0 0 6px var(--bk, #fff); animation: log-rec 0.6s steps(1) infinite; }
+#bark .bk-text { font-size: 14px; line-height: 1.3; color: color-mix(in srgb, var(--bk, #fff) 35%, #f2f4f8); text-shadow: 0 1px 2px #000; }
+#bark .bk-text::before { content: '\201C'; opacity: 0.6; }
+#bark .bk-text::after { content: '\201D'; opacity: 0.6; }
+@keyframes bark-flicker { 0% { opacity: 0.2; } 50% { opacity: 0.9; } 70% { opacity: 0.5; } }
+body.log-on #bark { display: none; }
+body.touch #bark { bottom: 132px; max-width: 64vw; }
+body.touch #bark .bk-text { font-size: 12px; }
+@media (max-height: 480px) { #bark { bottom: 96px; } #bark .bk-text { font-size: 12px; } }

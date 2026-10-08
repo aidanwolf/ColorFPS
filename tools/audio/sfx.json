@@ -533,6 +533,96 @@
   "dur": 1.8,
   "influence": 0.7
  },
+ "servo_heavy": {
+  "text": "Heavy industrial robot limb servo, a short deep motor whir rising then stopping with a soft hydraulic thunk, big mech knee joint moving, single movement, dry, no music",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "servo_light": {
+  "text": "Light quick robot arm servo, short high electric motor whirr up and down, small precise actuator movement, single movement, dry",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "mummy_creak": {
+  "text": "Ancient dry mechanical joint creak, old brass gear grinding with a puff of sand, wrapped robot limb bending slowly, single creak, dry",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "hydraulic_hiss": {
+  "text": "Fast pneumatic hydraulic hiss burst of a robot launching into a dodge roll, sharp air release with a servo whine, short, dry",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "hydraulic_land": {
+  "text": "Heavy robot landing on its feet, metal thud with hydraulic shock absorbers compressing and a short pressure hiss, single impact, dry",
+  "dur": 0.7,
+  "influence": 0.6
+ },
+ "robot_pain_heavy": {
+  "text": "Big industrial robot taking a hit, distorted low mechanical groan, a grinding strained motor stutter and a vocoder-like electronic grunt, short pain reaction, sci-fi game",
+  "dur": 0.7,
+  "influence": 0.55
+ },
+ "robot_pain_light": {
+  "text": "Small robot hurt, quick glitchy electronic yelp, a short digital squeal with a crackle of static, sci-fi game hit reaction",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "robot_effort": {
+  "text": "Robot effort grunt, a short strained servo surge and a clipped vocoder huff as a heavy machine leaps or rolls, quick, dry",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "welder_vent": {
+  "text": "Overheated industrial flamethrower robot venting: a loud steam hiss blasting from pressure valves with metallic pinging as hot metal cools, clank at the end",
+  "dur": 1.4,
+  "influence": 0.6
+ },
+ "robot_idle_click": {
+  "text": "Idle robot relay clicks and a tiny servo twitch, soft electronic chirp-click, a machine standing by, subtle, dry",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "robot_idle_hum": {
+  "text": "Idle robot power hum swelling softly and fading, low electrical drone with a faint transformer buzz and a quiet diagnostic beep, subtle",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "servo_tick": {
+  "text": "Tiny robot leg servo tick, a very short precise mechanical click with a micro motor whirr, insect-like robot step, single tick, dry",
+  "dur": 0.5,
+  "influence": 0.7
+ },
+ "crab_arm_whine": {
+  "text": "Small robot bomb arming, a fast rising high-pitched electric whine spinning up to a shrill peak, tense, short, sci-fi",
+  "dur": 0.8,
+  "influence": 0.6
+ },
+ "turret_servo": {
+  "text": "Security turret traversing, a smooth mechanical motor whirr as the gun head slews around, gear servo, single movement, dry",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "drone_servo": {
+  "text": "Hover drone fins snapping over in a quick evasive jink, sharp small servo zip and a whoosh, short, dry",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "squid_servo": {
+  "text": "Underwater robot tentacles stroking, muffled submerged servo motor whirr with soft bubbles, mechanical arms flexing in deep water",
+  "dur": 0.8,
+  "influence": 0.6
+ },
+ "core_squeal": {
+  "text": "Tiny exposed robot core panicking, a shrill glitchy electronic squeal with a wet slime squelch, short, sci-fi creature",
+  "dur": 0.6,
+  "influence": 0.55
+ },
+ "radio_squelch": {
+  "text": "Short military radio squelch, a crisp push-to-talk click with a burst of static, single transmission click, dry",
+  "dur": 0.5,
+  "influence": 0.7
+ },
  "arena_seal": {
   "text": "Massive blast door slamming shut, deep metal boom with an alarm tone, sci-fi arena lockdown",
   "dur": 2.0,

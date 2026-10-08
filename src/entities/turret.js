@@ -6,6 +6,8 @@ import * as THREE from 'three';
 import { Orb } from './drone.js';
 import { audio } from '../audio.js';
 import { Enemy, Parts, Beam, Blast, MAT, GEO, glowMat, additive, converge, falloff, hexOf, sfx } from './enemyKit.js';
+import { esfx } from './enemySfx.js';
+import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
 const _a = new THREE.Vector3();
@@ -156,6 +158,11 @@ export class Turret extends Enemy {
       }
     } else if (this.state === 'track') {
       const off = this.track(dt, 1);
+      // the traverse motors whine while it slews round onto you
+      if (off > 0.4 && (this.servoT = (this.servoT ?? 0) - dt) <= 0) {
+        this.servoT = 0.45;
+        esfx('turret_servo', this.pos, Math.min(1, off), 0.9 + Math.min(0.4, off * 0.3));
+      }
       // colors only change while it's not winding up a burst
       if (this.cycleColor(dt)) this.sight.mat.color.set(hexOf(this.color)).multiplyScalar(2);
       if (!this.sees) {
@@ -163,6 +170,7 @@ export class Turret extends Enemy {
       } else if (this.timer <= 0 && off < 0.35) {
         this.state = 'charge';
         this.timer = this.chargeTime;
+        barks.say(this, 'suppress'); // (turrets fire on their own clock, not the director's tokens)
         sfx('turret_charge', { gain: 0.55 * Math.max(0.35, falloff(this.dist, 6, 40)), rate: 1.15 / this.chargeTime }, 'charge_up', { gain: 0.45 * Math.max(0.35, falloff(this.dist, 6, 40)), rate: 1.3 });
       }
     } else if (this.state === 'charge') {
@@ -194,6 +202,7 @@ export class Turret extends Enemy {
         if (this.shots <= 0) {
           this.state = 'track';
           this.timer = this.cooldown * (0.85 + Math.random() * 0.3);
+          barks.say(this, 'reload'); // "Capacitor recharging."
           this.sight.hide();
           this.chargeMat.opacity = 0;
           this.orb.scale.setScalar(0.01);
