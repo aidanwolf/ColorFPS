@@ -26,7 +26,7 @@ export class Restock {
     for (const rec of this.drones) {
       if (rec.region !== region || !rec.d.dead || !rec.opts) continue;
       if (this.world.entities.includes(rec.d)) continue; // still crashing / scattering debris
-      rec.d = new Drone(this.world, rec.opts);
+      rec.d = new rec.d.constructor(this.world, rec.opts); // (its own class: a sub-drone comes back as one)
       this.world.cull(rec.d.group);
     }
     for (const { b, region: br } of this.barriers) {

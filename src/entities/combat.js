@@ -8,6 +8,7 @@ import { audio } from '../audio.js';
 import { boxGeo, mat } from '../materials.js';
 import { boxOverlap } from '../world.js';
 import { Drone } from './drone.js';
+import { SubDrone } from './subdrone.js';
 import { Turret } from './turret.js';
 import { Swarm } from './swarmer.js';
 import { Warden } from './warden.js';
@@ -25,6 +26,7 @@ const firstColor = (c) => (Array.isArray(c) ? c[0] : c);
 // ---------- enemies from data ----------
 // spec: { type, pos: [x, y, z], color, ...options of that enemy's constructor }
 //  'drone'  { color | [colors], hp, range, orbit, fireInterval }
+//  'subdrone' { color, hp, range, orbit, leash, standoff } (in water only)
 //  'swarm'  { color | colors: [..], count (4-8), divers }
 //  'turret' { color | colors: [..], mount: 'floor' | 'ceiling' | [nx, ny, nz] (wall normal), burst, charge, cooldown }
 //  'warden' { shield, core (or color: [shield, core]), shieldHp, coreHp, regen }
@@ -36,6 +38,12 @@ export function spawnEnemy(world, spec) {
   switch (type) {
     case 'drone': {
       const d = new Drone(world, { range: 40, ...o });
+      if (o.aggro) d.aggro = true;
+      return d;
+    }
+    case 'subdrone': {
+      // (Azure) a submersible drone: pos must be inside a B.water volume
+      const d = new SubDrone(world, o);
       if (o.aggro) d.aggro = true;
       return d;
     }

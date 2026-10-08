@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { audio } from '../audio.js';
 import { Drone, Orb } from './drone.js';
+import { director } from '../combat/director.js';
 
 const _v = new THREE.Vector3();
 const _eye = new THREE.Vector3();
@@ -44,6 +45,8 @@ export class SubDrone extends Drone {
   // post; leash: how far it will chase from it; standoff: the distance it strafes around you at.
   constructor(world, { pos, color, water = null, hp = 2, range = 20, fireInterval = 3.2, orbit = 3.5, leash = 9, standoff = 6.5, torpedoSpeed = 5.5, onDeath = null }) {
     super(world, { pos, color, hp, range, fireInterval, orbit, onDeath });
+    // restock.js rebuilds a destroyed drone from spawnOpts with its own class: keep every sub option
+    this.spawnOpts = { pos, color, water, hp, range, fireInterval, orbit, leash, standoff, torpedoSpeed, onDeath };
     this.water = water || (world.waters || []).find((w) => pos[0] > w.min.x && pos[0] < w.max.x && pos[1] > w.min.y && pos[1] < w.max.y && pos[2] > w.min.z && pos[2] < w.max.z) || null;
     this.leash = leash;
     this.standoff = standoff;
@@ -272,10 +275,13 @@ export class SubDrone extends Drone {
 
     if (this.sees && this.stagger <= 0) {
       this.fireTimer -= dt;
+      // (fires only while it holds one of the director's attack tokens; its first torpedo from off screen
+      // is aimed wide, as a warning)
+      if (this.fireTimer <= 0 && !director.request(this, 0.7)) this.fireTimer = 0.25 + Math.random() * 0.3;
       if (this.fireTimer <= 0) {
         this.fireTimer = this.fireInterval * (0.8 + Math.random() * 0.4);
         this.eye.getWorldPosition(_v);
-        const dir = _a.subVectors(_eye, _v).normalize();
+        const dir = _a.subVectors(director.aim(this, _v, _eye), _v).normalize();
         new Torpedo(this.world, _v.addScaledVector(dir, 0.5), dir.multiplyScalar(this.torpedoSpeed), this.color);
         this.world.fx.bubbles(_v, 5);
         audio.enemyShoot();
