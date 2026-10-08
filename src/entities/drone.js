@@ -110,7 +110,9 @@ export class Drone {
   // An armored hunter drone: blade fins and eye glow in its color. It weaves in a figure-8 and jinks aside
   // when you aim at it. Correct-color hits slam it back along the shot and stagger it (no firing or dodging),
   // so you can charge it down while firing. Killed, it spins out, crashes and explodes into debris.
-  constructor(world, { pos, color, hp = 2, range = 26, fireInterval = 1.9, cycle = 2.4, orbit = 2, knock = KNOCK, onDeath = null }) {
+  constructor(world, opts) {
+    const { pos, color, hp = 2, range = 26, fireInterval = 1.9, cycle = 2.4, orbit = 2, knock = KNOCK, onDeath = null } = opts;
+    this.spawnOpts = opts; // so the area can restock it when you come back (see restock.js)
     this.world = world;
     this.palette = Array.isArray(color) ? color : [color];
     this.colorIdx = 0;

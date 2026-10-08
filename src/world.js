@@ -50,15 +50,20 @@ export class World {
     const box = new THREE.Box3(), sphere = new THREE.Sphere();
     for (const o of this.scene.children) {
       if (o === this.staticGroup || o.isCamera || o.isLight || o.userData.noCull || skip.includes(o)) continue;
-      box.setFromObject(o);
-      if (box.isEmpty()) continue;
-      box.getBoundingSphere(sphere);
-      // bounds relative to the object's position, so moving things (drones, lifts) stay correct
-      const rec = { o, off: sphere.center.clone().sub(o.position), r: sphere.radius, region: regionOf(sphere.center), culled: false };
-      let want = o.visible;
-      Object.defineProperty(o, 'visible', { get: () => want && !rec.culled, set: (v) => (want = v), configurable: true });
-      this.cullList.push(rec);
+      this.cull(o, box, sphere);
     }
+  }
+
+  // Put one more object (e.g. a restocked drone) under culling.
+  cull(o, box = new THREE.Box3(), sphere = new THREE.Sphere()) {
+    box.setFromObject(o);
+    if (box.isEmpty()) return;
+    box.getBoundingSphere(sphere);
+    // bounds relative to the object's position, so moving things (drones, lifts) stay correct
+    const rec = { o, off: sphere.center.clone().sub(o.position), r: sphere.radius, region: regionOf(sphere.center), culled: false };
+    let want = o.visible;
+    Object.defineProperty(o, 'visible', { get: () => want && !rec.culled, set: (v) => (want = v), configurable: true });
+    this.cullList.push(rec);
   }
 
   updateCulling(camPos, far) {
