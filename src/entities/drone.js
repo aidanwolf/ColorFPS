@@ -60,6 +60,7 @@ export class Orb {
   onHit(color) {
     if (!this.alive) return undefined;
     if (color === this.color) {
+      audio.orbPop();
       this.pop();
       return 'kill';
     }
@@ -151,6 +152,7 @@ export class Drone {
     if (this.sightTimer <= 0) {
       this.sightTimer = 0.25;
       this.sees = dist < this.range && this.world.lineOfSight(this.pos, _eye);
+      if (this.sees && !this.aggro) audio.droneAlert();
       if (this.sees) this.aggro = true;
     }
     // hover around home, strafing when engaged

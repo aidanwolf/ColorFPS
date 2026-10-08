@@ -150,6 +150,7 @@ export class Barrier {
   }
 
   restore() {
+    audio.barrierReform();
     this.broken = false;
     this.solid.enabled = true;
     this.group.visible = true;

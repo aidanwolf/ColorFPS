@@ -1,33 +1,260 @@
 {
-  "shoot": { "text": "Punchy sci-fi energy blaster shot, short bright laser zap with a crisp transient and a quick tail, video game weapon", "dur": 0.6 },
-  "shatter": { "text": "Glowing energy barrier shattering into crystalline shards, glassy electric burst, sci-fi video game", "dur": 1.2 },
-  "ricochet": { "text": "Laser bolt ricocheting off hard metal armor, sharp metallic ping with a fast whizzing tail", "dur": 0.8 },
-  "hit": { "text": "Short electric impact zap hitting a robot drone, crisp punchy hit confirmation sound", "dur": 0.5 },
-  "drone_explode": { "text": "Small hovering robot drone exploding, electrical crackle, pop and metallic debris", "dur": 1.5 },
-  "enemy_shot": { "text": "Plasma orb launched from a hovering robot drone, warbly sci-fi pew", "dur": 0.6 },
-  "hurt": { "text": "Futuristic power armor taking a hit, digital glitch crunch and electric thud", "dur": 0.6 },
-  "death": { "text": "Dramatic sci-fi video game death: power armor systems failing, descending digital distortion, electric shutdown and a heavy body impact", "dur": 2.5 },
-  "step_metal1": { "text": "Single heavy armored boot footstep on a metal grate floor, close up, one step only", "dur": 0.5, "influence": 0.7 },
-  "step_metal2": { "text": "One armored boot step on a steel floor panel, metallic clank, single footstep", "dur": 0.5, "influence": 0.7 },
-  "step_metal3": { "text": "Single sci-fi soldier footstep on hollow metal floor, one step, short", "dur": 0.5, "influence": 0.7 },
-  "step_grass1": { "text": "Single heavy boot footstep on grass and soft dirt, one step only", "dur": 0.5, "influence": 0.7 },
-  "step_grass2": { "text": "One armored footstep crunching on leaves and grass, single step", "dur": 0.5, "influence": 0.7 },
-  "jump": { "text": "Short whoosh of an armored suit jumping, quick servo hiss and cloth movement", "dur": 0.5 },
-  "land": { "text": "Heavy armored landing thud on a metal floor, short and punchy", "dur": 0.6 },
-  "switch": { "text": "Quick sci-fi weapon mode switch, mechanical click with a short rising electronic chirp", "dur": 0.5 },
-  "health": { "text": "Health pickup, bright shimmering sci-fi healing chime", "dur": 1.0 },
-  "secret": { "text": "Secret area discovered jingle, sparkling mysterious sci-fi chime arpeggio rising upward", "dur": 2.5 },
-  "checkpoint": { "text": "Checkpoint activated, soft sci-fi power-up hum with a bright confirmation tone", "dur": 1.5 },
-  "jump_pad": { "text": "Sci-fi jump pad launching a player high into the air, powerful pneumatic boost whoosh", "dur": 1.2 },
-  "absorb": { "text": "Massive glowing energy core being absorbed into a power suit, rising swirling whoosh building to a bright explosive burst, sci-fi power-up", "dur": 3.5 },
-  "door_slam": { "text": "Heavy sci-fi blast door slamming shut, deep metallic boom and hiss", "dur": 1.5 },
-  "door_open": { "text": "Sci-fi door sliding open, pneumatic hiss and servo motor whir", "dur": 1.5 },
-  "target": { "text": "Sci-fi target switch hit and activated, satisfying electronic ding with a mechanical clunk", "dur": 1.0 },
-  "boss_roar": { "text": "Giant mech monster roar, distorted mechanical bellow with deep metallic resonance, epic and terrifying", "dur": 3.0 },
-  "boss_slam": { "text": "Colossal energy sword slamming into the ground, heavy shockwave impact boom with debris", "dur": 2.0 },
-  "boss_sweep": { "text": "Huge laser sword sweeping through the air, roaring energy whoosh", "dur": 1.2 },
-  "boss_step": { "text": "Giant robot footstep, heavy metallic stomp that shakes the ground", "dur": 1.0 },
-  "charge_up": { "text": "Energy weapon charging up, rising high-pitched electric whine", "dur": 1.2 },
-  "shield_break": { "text": "Massive energy shield shattering, huge glassy explosion with crackling electric discharge", "dur": 2.0 },
-  "boss_death": { "text": "Colossal robot exploding in a chain of explosions, final huge blast and collapsing metal", "dur": 5.0 }
+ "shoot": {
+  "text": "Punchy sci-fi energy blaster shot, short bright laser zap with a crisp transient and a quick tail, video game weapon",
+  "dur": 0.6
+ },
+ "shatter": {
+  "text": "Glowing energy barrier shattering into crystalline shards, glassy electric burst, sci-fi video game",
+  "dur": 1.2
+ },
+ "ricochet": {
+  "text": "Laser bolt ricocheting off hard metal armor, sharp metallic ping with a fast whizzing tail",
+  "dur": 0.8
+ },
+ "hit": {
+  "text": "Short electric impact zap hitting a robot drone, crisp punchy hit confirmation sound",
+  "dur": 0.5
+ },
+ "drone_explode": {
+  "text": "Small hovering robot drone exploding, electrical crackle, pop and metallic debris",
+  "dur": 1.5
+ },
+ "enemy_shot": {
+  "text": "Plasma orb launched from a hovering robot drone, warbly sci-fi pew",
+  "dur": 0.6
+ },
+ "hurt": {
+  "text": "Futuristic power armor taking a hit, digital glitch crunch and electric thud",
+  "dur": 0.6
+ },
+ "death": {
+  "text": "Dramatic sci-fi video game death: power armor systems failing, descending digital distortion, electric shutdown and a heavy body impact",
+  "dur": 2.5
+ },
+ "step_metal1": {
+  "text": "Single heavy armored boot footstep on a metal grate floor, close up, one step only",
+  "dur": 0.5,
+  "influence": 0.7
+ },
+ "step_metal2": {
+  "text": "One armored boot step on a steel floor panel, metallic clank, single footstep",
+  "dur": 0.5,
+  "influence": 0.7
+ },
+ "step_metal3": {
+  "text": "Single sci-fi soldier footstep on hollow metal floor, one step, short",
+  "dur": 0.5,
+  "influence": 0.7
+ },
+ "step_grass1": {
+  "text": "Single heavy boot footstep on grass and soft dirt, one step only",
+  "dur": 0.5,
+  "influence": 0.7
+ },
+ "step_grass2": {
+  "text": "One armored footstep crunching on leaves and grass, single step",
+  "dur": 0.5,
+  "influence": 0.7
+ },
+ "jump": {
+  "text": "Short whoosh of an armored suit jumping, quick servo hiss and cloth movement",
+  "dur": 0.5
+ },
+ "land": {
+  "text": "Heavy armored landing thud on a metal floor, short and punchy",
+  "dur": 0.6
+ },
+ "switch": {
+  "text": "Quick sci-fi weapon mode switch, mechanical click with a short rising electronic chirp",
+  "dur": 0.5
+ },
+ "health": {
+  "text": "Health pickup, bright shimmering sci-fi healing chime",
+  "dur": 1.0
+ },
+ "secret": {
+  "text": "Secret area discovered jingle, sparkling mysterious sci-fi chime arpeggio rising upward",
+  "dur": 2.5
+ },
+ "checkpoint": {
+  "text": "Checkpoint activated, soft sci-fi power-up hum with a bright confirmation tone",
+  "dur": 1.5
+ },
+ "jump_pad": {
+  "text": "Sci-fi jump pad launching a player high into the air, powerful pneumatic boost whoosh",
+  "dur": 1.2
+ },
+ "absorb": {
+  "text": "Massive glowing energy core being absorbed into a power suit, rising swirling whoosh building to a bright explosive burst, sci-fi power-up",
+  "dur": 3.5
+ },
+ "door_slam": {
+  "text": "Heavy sci-fi blast door slamming shut, deep metallic boom and hiss",
+  "dur": 1.5
+ },
+ "door_open": {
+  "text": "Sci-fi door sliding open, pneumatic hiss and servo motor whir",
+  "dur": 1.5
+ },
+ "target": {
+  "text": "Sci-fi target switch hit and activated, satisfying electronic ding with a mechanical clunk",
+  "dur": 1.0
+ },
+ "boss_roar": {
+  "text": "Giant mech monster roar, distorted mechanical bellow with deep metallic resonance, epic and terrifying",
+  "dur": 3.0
+ },
+ "boss_slam": {
+  "text": "Colossal energy sword slamming into the ground, heavy shockwave impact boom with debris",
+  "dur": 2.0
+ },
+ "boss_sweep": {
+  "text": "Huge laser sword sweeping through the air, roaring energy whoosh",
+  "dur": 1.2
+ },
+ "boss_step": {
+  "text": "Giant robot footstep, heavy metallic stomp that shakes the ground",
+  "dur": 1.0
+ },
+ "charge_up": {
+  "text": "Energy weapon charging up, rising high-pitched electric whine",
+  "dur": 1.2
+ },
+ "shield_break": {
+  "text": "Massive energy shield shattering, huge glassy explosion with crackling electric discharge",
+  "dur": 2.0
+ },
+ "boss_death": {
+  "text": "Colossal robot exploding in a chain of explosions, final huge blast and collapsing metal",
+  "dur": 5.0
+ },
+ "shoot_red": {
+  "text": "Heavy crimson plasma blaster shot, deep punchy thump with a fiery crackle, sci-fi video game weapon",
+  "dur": 0.6
+ },
+ "shoot_yellow": {
+  "text": "Bright electric laser zap, crackling high-voltage snap, sci-fi video game weapon shot",
+  "dur": 0.6
+ },
+ "shoot_green": {
+  "text": "Bio-energy blaster pulse, bubbly wet whoosh zap, sci-fi video game weapon shot",
+  "dur": 0.6
+ },
+ "shoot_blue": {
+  "text": "Icy cryo laser shot, crystalline shimmering zap with a frosty tail, sci-fi video game weapon",
+  "dur": 0.6
+ },
+ "amb_foundry": {
+  "text": "Industrial facility ambience, deep machinery hum, distant clanks and steam hiss, sci-fi factory interior",
+  "dur": 20,
+  "loop": true,
+  "influence": 0.4
+ },
+ "amb_wind": {
+  "text": "High open-air wind ambience on a tall alien tower, gusting wind with a distant hum",
+  "dur": 20,
+  "loop": true,
+  "influence": 0.4
+ },
+ "amb_jungle": {
+  "text": "Alien jungle ambience, exotic bird calls, insects, gentle wind through leaves, distant water",
+  "dur": 20,
+  "loop": true,
+  "influence": 0.4
+ },
+ "amb_core": {
+  "text": "Ominous low drone ambience in a vast sci-fi arena, deep resonant hum and faint electric crackle",
+  "dur": 20,
+  "loop": true,
+  "influence": 0.4
+ },
+ "heartbeat": {
+  "text": "Heavy tense heartbeat thumping, low and muffled, danger",
+  "dur": 4,
+  "loop": true
+ },
+ "spike_hit": {
+  "text": "Metal spikes stabbing into power armor, sharp impact with an electric crackle",
+  "dur": 0.8
+ },
+ "acid": {
+  "text": "Falling into bubbling glowing acid, loud sizzling splash",
+  "dur": 1.2
+ },
+ "crouch": {
+  "text": "Power armor crouching down, short servo whir and armor plates shifting",
+  "dur": 0.5
+ },
+ "respawn": {
+  "text": "Sci-fi teleport materialize, digital shimmer and rising whoosh",
+  "dur": 1.5
+ },
+ "maxhp": {
+  "text": "Armor upgrade installed, satisfying mechanical lock clunk with a rising synth tone",
+  "dur": 1.8
+ },
+ "ui_click": {
+  "text": "Clean futuristic menu button click, short and crisp",
+  "dur": 0.5
+ },
+ "game_start": {
+  "text": "Cinematic deep whoosh into a heavy impact, game start",
+  "dur": 2.0
+ },
+ "glass_hit": {
+  "text": "Laser hitting thick bulletproof glass, dull thunk with a short glassy ping",
+  "dur": 0.6
+ },
+ "mirror_hit": {
+  "text": "Laser beam reflecting off a mirror, bright shimmering metallic ping",
+  "dur": 0.6
+ },
+ "barrier_reform": {
+  "text": "Energy barrier re-forming, quick rising electric hum and crackle",
+  "dur": 0.8
+ },
+ "orb_pop": {
+  "text": "Plasma orb destroyed in mid-air, small crisp energy burst",
+  "dur": 0.5
+ },
+ "drone_alert": {
+  "text": "Hovering robot drone detecting an intruder, short electronic alert chirp",
+  "dur": 0.6
+ },
+ "boss_land": {
+  "text": "Giant robot crashing down from the sky, massive ground impact and earthquake rumble",
+  "dur": 3.0
+ },
+ "boss_orbs": {
+  "text": "Giant robot launching a volley of homing plasma orbs, rapid whooshing energy bursts",
+  "dur": 1.5
+ },
+ "boss_charge": {
+  "text": "Giant robot charging forward with a huge shield, thunderous stomps and roaring engine",
+  "dur": 1.5
+ },
+ "boss_limb_break": {
+  "text": "Heavy armor plate shattering off a giant robot, loud metal crack, sparks and debris",
+  "dur": 1.5
+ },
+ "boss_phase": {
+  "text": "Giant robot powering up into a rage, mechanical roar with a rising electric surge",
+  "dur": 2.5
+ },
+ "boss_core_hit": {
+  "text": "Deep resonant crystal core impact, glassy thud with electric crackle",
+  "dur": 0.6
+ },
+ "combo_tick": {
+  "text": "Energy shield charge tick, bright rising chime, sci-fi",
+  "dur": 0.5
+ },
+ "combo_fail": {
+  "text": "Energy shield combo broken, descending error buzz",
+  "dur": 0.6
+ },
+ "ring_wave": {
+  "text": "Expanding energy shockwave rolling across the ground, low whoomp and crackling sweep",
+  "dur": 1.5
+ }
 }

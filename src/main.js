@@ -42,6 +42,7 @@ function verticalFov(fov43) {
 class Game {
   constructor() {
     this.settings = loadSettings();
+    this.audio = audio; // handy for debugging from the console
     this.state = 'title';
     this.stats = { time: 0, deaths: 0 };
     this.secretsFound = 0;
@@ -221,6 +222,8 @@ class Game {
       const a = e.target.closest('[data-action]')?.dataset.action;
       if (!a) return;
       audio.unlock();
+      audio.uiClick();
+      if (this.state === 'title' && a !== 'play') audio.playMusic('music_title');
       if (a === 'play') this.play();
       else if (a === 'resume') this.resume();
       else if (a === 'settings') this.openSettings();
@@ -271,6 +274,8 @@ class Game {
 
   play() {
     audio.unlock();
+    if (!this.started) audio.gameStart();
+    audio.playAmbient(this.ambient || 'amb_foundry');
     audio.playMusic(this.musicTrack || 'music_red');
     this.state = 'playing';
     this.hud.show(true);
@@ -337,8 +342,18 @@ class Game {
   // Each sector has its own music; the antechamber gets the ominous title theme until the boss drops.
   enterZone(sub, main, color) {
     this.hud.zoneTitle(sub, main, color);
-    const track = { 'CRIMSON FOUNDRY': 'music_red', 'AMBER CONDUITS': 'music_yellow', 'OVERGROWTH YARD': 'music_green', 'AZURE GAUNTLET': 'music_blue', 'PRISM CORE': 'music_title' }[main];
+    const track = { 'CRIMSON FOUNDRY': 'music_red', 'AMBER CONDUITS': 'music_yellow', 'OVERGROWTH YARD': 'music_green', 'AZURE GAUNTLET': 'music_blue', 'PRISM CORE': 'music_antechamber' }[main];
     if (track) this.setMusic(track);
+  }
+
+  setAmbient(name) {
+    this.ambient = name;
+    if (this.started) audio.playAmbient(name);
+  }
+
+  // the boss's final phase gets its own, faster track
+  onBossPhase(phase) {
+    if (phase === 3) this.setMusic('music_boss_final');
   }
 
   setMusic(track) {
@@ -399,7 +414,7 @@ class Game {
     this.level.setSeal(false);
     this.hud.bossShow(false);
     audio.setIntensity(0);
-    this.setMusic('music_title');
+    this.setMusic('music_victory');
     this.hud.zoneTitle('PRISM WARDEN', 'SHATTERED', '#ffd23a');
     setTimeout(async () => {
       await this.naturalBreak();
@@ -433,6 +448,7 @@ class Game {
     this.deathEye = this.camera.position.clone();
     this.deathRoll = Math.random() < 0.5 ? -1 : 1;
     this.input.mouseDown = false;
+    audio.setHeartbeat(false);
     audio.death();
     const eye = this.deathEye.clone();
     const hex = COLORS[this.blaster.color].hex;
@@ -482,10 +498,11 @@ class Game {
       this.level.bossTrigger.inside = false;
       this.hud.bossShow(false);
       audio.setIntensity(1);
-      this.setMusic('music_title');
+      this.setMusic('music_antechamber');
     }
     for (const pr of this.world.projectiles) pr.alive = false;
     this.clearDeathFx();
+    audio.respawn();
     p.updateCamera();
     this.state = 'playing';
     this.showScreen(null);
@@ -584,6 +601,7 @@ class Game {
     this.player.update(dt, this.input, this.settings);
     this.blaster.update(dt, this.input);
     this.hud.setHealth(this.player.health, this.player.maxHealth);
+    audio.setHeartbeat(this.player.health > 0 && this.player.health < this.player.maxHealth * 0.3);
   }
 
   tick() {

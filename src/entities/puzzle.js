@@ -1,5 +1,5 @@
 // Ricochet puzzle pieces: mirror panels (reflect any shot), glass (stops players and shots),
-// color targets (only their color activates them; anything else bounces off) and sliding doors.
+// target panels (only their color activates them; anything else bounces off) and sliding doors.
 import * as THREE from 'three';
 import { COLORS } from '../colors.js';
 import { boxGeo, mat, glyphTex } from '../materials.js';
@@ -44,54 +44,65 @@ export class Glass {
   }
 }
 
-export class ColorTarget {
-  // A floor plate facing up. Hit it with its color to activate; other colors ricochet off.
-  constructor(world, { pos, color, onActivate }) {
+export class TargetPanel {
+  // A big flat target (a floor or a wall). Panels in the same `group` light up together.
+  constructor(world, { min, max, color, face = 'up', onActivate }) {
     this.world = world;
     this.color = color;
     this.onActivate = onActivate;
     this.active = false;
     this.flash = 0;
-    this.t = 0;
-    const p = v3(pos);
-    this.pos = p;
+    this.group = [this];
+    const a = v3(min), b = v3(max);
+    const size = b.clone().sub(a), center = a.clone().add(b).multiplyScalar(0.5);
+    this.center = center;
     const c = new THREE.Color(COLORS[color].hex);
-    this.group = new THREE.Group();
-    this.group.position.copy(p);
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.85, 0.14, 32), new THREE.MeshStandardMaterial({ color: 0x23252e, metalness: 0.8, roughness: 0.35 }));
-    base.position.y = 0.07;
-    this.glow = new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(2.2) });
-    this.ring = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.07, 8, 32), this.glow);
-    this.ring.rotation.x = Math.PI / 2;
-    this.ring.position.y = 0.16;
-    const eye = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.05, 24), this.glow);
-    eye.position.y = 0.16;
-    this.group.add(base, this.ring, eye);
-    world.scene.add(this.group);
-    this.solid = world.addSolid(new THREE.Vector3(p.x - 0.8, p.y, p.z - 0.8), new THREE.Vector3(p.x + 0.8, p.y + 0.18, p.z + 0.8), { static: true, entity: this });
+    this.mat = new THREE.MeshStandardMaterial({ color: 0x1b1d24, emissive: c, emissiveIntensity: 0.55, metalness: 0.6, roughness: 0.4 });
+    this.mesh = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), this.mat);
+    this.mesh.position.copy(center);
+    // bullseye decal on the face players see
+    this.glyph = new THREE.MeshBasicMaterial({ map: glyphTex, color: c.clone().multiplyScalar(2.2), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+    const gs = face === 'up' ? Math.min(size.x, size.z) * 0.9 : face === '+z' ? Math.min(size.x, size.y) * 0.9 : Math.min(size.y, size.z) * 0.9;
+    const decal = new THREE.Mesh(new THREE.PlaneGeometry(gs, gs), this.glyph);
+    if (face === 'up') {
+      decal.rotation.x = -Math.PI / 2;
+      decal.position.y = size.y / 2 + 0.01;
+    } else if (face === '+z') {
+      decal.position.z = size.z / 2 + 0.01;
+    } else {
+      decal.rotation.y = -Math.PI / 2;
+      decal.position.x = -size.x / 2 - 0.01;
+    }
+    this.mesh.add(decal);
+    world.scene.add(this.mesh);
+    world.addSolid(a, b, { static: true, entity: this });
     world.add(this);
   }
 
-  onHit(color) {
+  onHit(color, hit) {
     if (this.active) return 'hit';
     if (color !== this.color) {
       this.flash = 1;
       return 'immune';
     }
-    this.active = true;
-    this.glow.color.setRGB(2.5, 2.5, 2.5);
-    this.world.fx.burst(this.pos.clone().setY(this.pos.y + 0.3), COLORS[this.color].hex, { count: 60, speed: 6, life: 0.9, size: 0.3, gravity: -2 });
+    for (const p of this.group) p.light();
+    this.world.fx.burst(hit?.point || this.center, COLORS[this.color].hex, { count: 80, speed: 7, life: 1, size: 0.32, gravity: -1 });
     audio.target();
     this.onActivate?.();
     return 'kill';
   }
 
+  light() {
+    this.active = true;
+    this.mat.emissive.setRGB(1, 1, 1);
+    this.mat.emissiveIntensity = 1.4;
+    this.glyph.color.setRGB(2.5, 2.5, 2.5);
+  }
+
   update(dt) {
-    this.t += dt;
-    this.ring.rotation.z += dt * (this.active ? 0.5 : 2);
-    if (this.flash > 0) {
+    if (this.flash > 0 && !this.active) {
       this.flash = Math.max(0, this.flash - dt * 4);
-      if (!this.active) this.glow.color.set(COLORS[this.color].hex).multiplyScalar(2.2 + this.flash * 2);
+      this.mat.emissiveIntensity = 0.55 + this.flash * 1.2;
     }
   }
 }

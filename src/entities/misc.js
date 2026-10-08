@@ -90,7 +90,7 @@ export class Pickup {
     } else if (this.type === 'maxhp') {
       player.maxHealth += this.amount;
       player.health = player.maxHealth;
-      audio.secret();
+      audio.maxhp();
     }
     this.active = false;
     this.group.visible = false;

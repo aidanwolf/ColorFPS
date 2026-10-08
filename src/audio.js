@@ -8,7 +8,12 @@ const SFX_FILES = [
   'step_metal1', 'step_metal2', 'step_metal3', 'step_grass1', 'step_grass2', 'jump', 'land', 'switch',
   'health', 'secret', 'checkpoint', 'jump_pad', 'absorb', 'door_slam', 'door_open', 'target',
   'boss_roar', 'boss_slam', 'boss_sweep', 'boss_step', 'charge_up', 'shield_break', 'boss_death', 'fanfare',
+  'shoot_red', 'shoot_yellow', 'shoot_green', 'shoot_blue', 'amb_foundry', 'amb_wind', 'amb_jungle', 'amb_core',
+  'heartbeat', 'spike_hit', 'acid', 'crouch', 'respawn', 'maxhp', 'ui_click', 'game_start', 'glass_hit', 'mirror_hit',
+  'barrier_reform', 'orb_pop', 'drone_alert', 'boss_land', 'boss_orbs', 'boss_charge', 'boss_limb_break', 'boss_phase',
+  'boss_core_hit', 'combo_tick', 'combo_fail', 'ring_wave',
 ];
+const SHOT_NAMES = ['shoot_red', 'shoot_yellow', 'shoot_green', 'shoot_blue'];
 const MUSIC_GAIN = 1.7;
 
 class Audio {
@@ -57,6 +62,8 @@ class Audio {
       (buf) => {
         this.buffers.set(n, buf);
         if (this.wantTrack === n) this.playMusic(n);
+        if (this.wantAmbient === n) this.playAmbient(n);
+        if (n === 'heartbeat' && this.heartbeatOn) this.setHeartbeat(true, true);
       },
       () => {},
     );
@@ -108,6 +115,52 @@ class Audio {
     src.connect(g).connect(this.musicBus);
     src.start(t);
     this.track = { name, src, gain: g };
+  }
+
+  // ---- ambience: one looping bed per area, crossfaded ----
+  playAmbient(name) {
+    this.wantAmbient = name;
+    if (!this.ctx || this.amb?.name === name) return;
+    const buf = this.buffers.get(name);
+    if (!buf) return;
+    const t = this.t;
+    if (this.amb) {
+      this.amb.gain.gain.setTargetAtTime(0, t, 0.6);
+      this.amb.src.stop(t + 3);
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.35, t + 2);
+    src.connect(g).connect(this.sfxBus);
+    src.start(t, Math.random() * buf.duration);
+    this.amb = { name, src, gain: g };
+  }
+
+  // Low-health heartbeat loop.
+  setHeartbeat(on, force = false) {
+    if (on === this.heartbeatOn && !force) return;
+    this.heartbeatOn = on;
+    if (!this.ctx) return;
+    if (on && !this.hb) {
+      const buf = this.buffers.get('heartbeat');
+      if (!buf) return;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0, this.t);
+      g.gain.linearRampToValueAtTime(0.7, this.t + 0.5);
+      src.connect(g).connect(this.sfxBus);
+      src.start();
+      this.hb = { src, gain: g };
+    } else if (!on && this.hb) {
+      this.hb.gain.gain.setTargetAtTime(0, this.t, 0.3);
+      this.hb.src.stop(this.t + 1.5);
+      this.hb = null;
+    }
   }
 
   // A one-shot cue (the upgrade fanfare) that ducks the music, then lets it return.
@@ -199,7 +252,9 @@ class Audio {
   }
 
   // ---- game sounds ----
+  // every color has its own shot sound; the generic shot (pitched per color) and synth are fallbacks
   shoot(color) {
+    if (this.sample(SHOT_NAMES[color], { gain: 0.6, vary: 0.06 })) return;
     if (this.sample('shoot', { rate: [1.0, 1.12, 1.25, 0.88][color], gain: 0.55 })) return;
     const f = COLORS[color].freq * 4;
     this.tone({ type: 'square', f, f2: f * 0.35, dur: 0.09, gain: 0.09 });
@@ -335,7 +390,71 @@ class Audio {
     if (this.sample('target', { gain: 0.8, vary: 0 })) return;
     [0, 7, 12].forEach((n, i) => this.tone({ type: 'square', f: 660 * 2 ** (n / 12), dur: 0.15, gain: 0.08, delay: i * 0.05 }));
   }
+  spike() {
+    if (!this.sample('spike_hit', { gain: 0.9 })) this.hurt();
+  }
+  acid() {
+    if (!this.sample('acid', { gain: 0.9 })) this.noise({ dur: 0.6, gain: 0.3, freq: 3000, f2: 800 });
+  }
+  crouch() {
+    this.sample('crouch', { gain: 0.35 });
+  }
+  respawn() {
+    if (!this.sample('respawn', { gain: 0.8, vary: 0 })) this.checkpoint();
+  }
+  maxhp() {
+    if (!this.sample('maxhp', { gain: 0.9, vary: 0 })) this.secret();
+  }
+  uiClick() {
+    this.sample('ui_click', { gain: 0.5 });
+  }
+  gameStart() {
+    this.sample('game_start', { gain: 0.9, vary: 0 });
+  }
+  glassHit() {
+    this.sample('glass_hit', { gain: 0.5, vary: 0.1 });
+  }
+  mirrorHit() {
+    if (!this.sample('mirror_hit', { gain: 0.5, vary: 0.12 })) this.ricochet();
+  }
+  barrierReform() {
+    this.sample('barrier_reform', { gain: 0.4 });
+  }
+  orbPop() {
+    if (!this.sample('orb_pop', { gain: 0.6, vary: 0.1 })) this.hit();
+  }
+  droneAlert() {
+    this.sample('drone_alert', { gain: 0.5, vary: 0.1 });
+  }
+  bossLand() {
+    if (!this.sample('boss_land', { gain: 1, vary: 0 })) this.slam();
+  }
+  bossOrbs() {
+    this.sample('boss_orbs', { gain: 0.8 });
+  }
+  bossCharge() {
+    if (!this.sample('boss_charge', { gain: 0.9 })) this.charge();
+  }
+  bossLimbBreak() {
+    if (!this.sample('boss_limb_break', { gain: 1 })) {
+      this.shatter();
+      this.explode();
+    }
+  }
+  bossPhase() {
+    if (!this.sample('boss_phase', { gain: 1, vary: 0 })) this.bossRoar();
+  }
+  bossCoreHit() {
+    if (!this.sample('boss_core_hit', { gain: 0.7, vary: 0.08 })) this.hit();
+  }
+  comboFail() {
+    if (!this.sample('combo_fail', { gain: 0.7 })) this.immune();
+  }
+  ringWave() {
+    this.sample('ring_wave', { gain: 0.8 });
+  }
   comboTick(step) {
+    if (this.sample('combo_tick', { rate: 0.85 + step * 0.15, gain: 0.7, vary: 0 })) return;
     this.tone({ type: 'square', f: 600 * 2 ** (step * 3 / 12), dur: 0.1, gain: 0.1 });
   }
 

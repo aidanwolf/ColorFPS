@@ -1,9 +1,42 @@
 {
-  "music_title": { "prompt": "Atmospheric dark sci-fi main menu theme, slow pulsing synth pads, deep sub bass, distant metallic echoes, mysterious and grand, instrumental, seamless loop", "ms": 60000 },
-  "music_red": { "prompt": "Driving industrial metal first-person shooter soundtrack in the style of Quake and Doom, heavy distorted guitar riffs, pounding drums, gritty industrial synths, aggressive and relentless, instrumental, seamless loop", "ms": 90000 },
-  "music_yellow": { "prompt": "Fast electronic action soundtrack for a sci-fi corridor shooter, pulsing analog bass arpeggios, punchy breakbeat drums, bright warm synth leads, energetic, instrumental, seamless loop", "ms": 90000 },
-  "music_green": { "prompt": "Adventurous sci-fi exploration theme in the style of Metroid Prime's overworld, lush synth pads, organic percussion, soaring heroic melody, open outdoor feeling, instrumental, seamless loop", "ms": 90000 },
-  "music_blue": { "prompt": "High-energy drum and bass sci-fi chase track, rapid breakbeats, icy shimmering synths, urgent and intense, instrumental, seamless loop", "ms": 90000 },
-  "music_boss": { "prompt": "Epic boss battle theme, choir and orchestra with heavy metal guitars and industrial synths, thunderous drums, menacing and heroic, fighting a giant robot, instrumental, seamless loop", "ms": 120000 },
-  "fanfare": { "prompt": "Short triumphant sci-fi item acquisition fanfare in the style of Metroid Prime, heroic synth brass and choir swell, shimmering arpeggio rising, resolving to a powerful major chord, instrumental", "ms": 7000 }
+ "music_title": {
+  "prompt": "Atmospheric dark sci-fi main menu theme, slow pulsing synth pads, deep sub bass, distant metallic echoes, mysterious and grand, instrumental, seamless loop",
+  "ms": 60000
+ },
+ "music_red": {
+  "prompt": "Driving industrial metal soundtrack for a fast 1990s-style sci-fi shooter, heavy distorted guitar riffs, pounding double-kick drums, gritty industrial synths, aggressive and relentless, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_yellow": {
+  "prompt": "Fast electronic action soundtrack for a sci-fi corridor shooter, pulsing analog bass arpeggios, punchy breakbeat drums, bright warm synth leads, energetic, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_green": {
+  "prompt": "Adventurous sci-fi exploration theme for an alien jungle, lush ethereal synth pads, organic tribal percussion, soaring heroic melody, sense of wonder and open sky, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_blue": {
+  "prompt": "High-energy drum and bass sci-fi chase track, rapid breakbeats, icy shimmering synths, urgent and intense, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_boss": {
+  "prompt": "Epic boss battle theme, choir and orchestra with heavy metal guitars and industrial synths, thunderous drums, menacing and heroic, fighting a giant robot, instrumental, seamless loop",
+  "ms": 120000
+ },
+ "fanfare": {
+  "prompt": "Short triumphant sci-fi item acquisition fanfare for a video game power-up: heroic synth brass and choir swell, shimmering rising arpeggio, resolving to a powerful sustained major chord, instrumental",
+  "ms": 7000
+ },
+ "music_antechamber": {
+  "prompt": "Ominous tense ambient build-up before a boss fight, deep sub drones, slow heartbeat percussion, distant metallic groans, choir whispers, foreboding and dark, instrumental, seamless loop",
+  "ms": 60000
+ },
+ "music_boss_final": {
+  "prompt": "Frantic final phase boss battle music, faster tempo, chanting choir, blasting double-kick drums, alarming synth stabs and screaming metal guitars, desperate and epic, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_victory": {
+  "prompt": "Triumphant victory theme after defeating a giant robot, soaring orchestral sci-fi anthem with bright synth arpeggios, celebratory and emotional, instrumental",
+  "ms": 45000
+ }
 }

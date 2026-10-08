@@ -97,6 +97,7 @@ export class Player {
     const wantCrouch = input.down('KeyC') || input.down('ControlLeft') || input.down('ControlRight') || input.down('TouchCrouch');
     if (wantCrouch && !this.crouching) {
       this.crouching = true;
+      audio.crouch();
       // crouching in mid-air tucks the legs up, which helps clear ledges
       if (!this.grounded && this.fits(this.pos.x, this.pos.y + STAND_H - CROUCH_H, this.pos.z, CROUCH_H)) this.pos.y += STAND_H - CROUCH_H;
     } else if (!wantCrouch && this.crouching) {
@@ -191,10 +192,12 @@ export class Player {
       if (!s.enabled || !s.hazard) continue;
       if (b.min.x < s.max.x + 0.04 && b.max.x > s.min.x - 0.04 && b.min.y < s.max.y + 0.06 && b.max.y > s.min.y - 0.04 && b.min.z < s.max.z + 0.04 && b.max.z > s.min.z - 0.04) {
         if (s.hazard === 'acid') {
+          audio.acid();
           this.fallRecover();
           return;
         }
         if (s.hazard === 'spike') {
+          if (this.invuln <= 0) audio.spike();
           this.damage(s.damage ?? 30, 'spike');
           this.vel.y = 9;
           this.launched = true;

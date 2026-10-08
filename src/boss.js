@@ -331,7 +331,10 @@ export class Boss {
         else this.refreshShield();
         return 'hit';
       }
-      if (s.idx > 0) this.game.hud.bossHint('Combo broken — start again!', true);
+      if (s.idx > 0) {
+        this.game.hud.bossHint('Combo broken — start again!', true);
+        audio.comboFail();
+      }
       s.idx = 0;
       this.flash = 1;
       this.refreshShield();
@@ -341,6 +344,7 @@ export class Boss {
       if (this.shield.up) return 'immune';
       if (color !== this.coreColor) return 'immune';
       this.coreFlash = 1;
+      audio.bossCoreHit();
       this.damage(this.kneel > 0 ? 38 : 26);
       return 'hit';
     }
@@ -373,7 +377,8 @@ export class Boss {
     const phase = frac > 0.66 ? 1 : frac > 0.33 ? 2 : 3;
     if (phase !== this.phase) {
       this.phase = phase;
-      audio.bossRoar();
+      audio.bossPhase();
+      this.game.onBossPhase(phase);
       audio.setIntensity(2);
       this.game.player.shake = 0.8;
       this.stagger = 1.4;
@@ -403,8 +408,7 @@ export class Boss {
     l.plates.forEach((p) => (p.visible = false));
     const p = (l.thigh || l.shoulder || this.head).getWorldPosition(new THREE.Vector3());
     this.world.fx.burst(p, COLORS[l.color].hex, { count: 70, speed: 8, life: 0.9, size: 0.4, gravity: 10 });
-    audio.shatter();
-    audio.explode();
+    audio.bossLimbBreak();
     const msgs = {
       head: 'Visor cracked — the Warden is stunned!',
       armL: 'Shield arm broken — its core is exposed!',
@@ -574,7 +578,7 @@ export class Boss {
     if (this.pos.y > this.floorY) {
       this.pos.y = Math.max(this.floorY, this.floorY + 30 - T * T * 22);
       if (this.pos.y === this.floorY) {
-        audio.slam();
+        audio.bossLand();
         player.shake = 1;
         this.spawnRing(this.pos.clone(), false);
         this.world.fx.burst(this.pos.clone().setY(this.floorY + 0.3), 0xd9c8ff, { count: 120, speed: 12, life: 1, size: 0.5, gravity: 4 });
@@ -612,7 +616,8 @@ export class Boss {
     const type = opts[rand(opts.length)];
     this.attack = { type, t: 0, step: 0, fired: 0, hit: false };
     if (type === 'sweep') audio.charge();
-    if (type === 'charge') audio.charge();
+    if (type === 'charge') audio.bossCharge();
+    if (type === 'volley') audio.bossOrbs();
   }
 
   updateAttack(dt, player, dist, targetYaw) {
@@ -758,6 +763,7 @@ export class Boss {
     mesh.position.set(pos.x, this.floorY + 0.3, pos.z);
     this.world.scene.add(mesh);
     this.rings.push({ mesh, r: 1, harmful, hit: false, center: pos.clone() });
+    if (harmful) audio.ringWave();
   }
 
   updateRings(dt, player) {

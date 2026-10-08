@@ -5,7 +5,7 @@ import { COLORS } from './colors.js';
 import { audio } from './audio.js';
 
 const FIRE_INTERVAL = 0.13;
-const MAX_BOUNCES = 4;
+const MAX_BOUNCES = 6;
 const _dir = new THREE.Vector3();
 const _muzzle = new THREE.Vector3();
 
@@ -152,9 +152,11 @@ export class Blaster {
       world.fx.burst(p, 0xffffff, { count: 8, speed: 5, life: 0.25, size: 0.16, gravity: 4, dir: n });
       world.fx.burst(p, hex, { count: 10, speed: 3, life: 0.35, size: 0.2, gravity: 2, dir: n });
       if (result === 'immune') audio.ricochet();
+      else audio.mirrorHit();
       const r = dir.clone().addScaledVector(n, -2 * dir.dot(n)).normalize();
       return this.trace(p, r, hit.point.clone(), depth + 1, outcome);
     }
+    if (result === 'glass') audio.glassHit();
     world.fx.burst(p, result === 'glass' ? 0xbfe8ff : hex, { count: 10, speed: 4, life: 0.35, size: 0.18, gravity: 6, dir: n });
     return outcome;
   }
