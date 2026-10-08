@@ -47,6 +47,62 @@ function solarAfter(p, st) {
   return '';
 }
 
+// ---- Verdant (one loop; green is picked up in the Seed Vault halfway): the next step for the stretch you're in
+function verdantObjective(game) {
+  const p = game.player.pos, v = game.level.verdant || {}, green = game.blaster.unlocked[GREEN];
+  const fought = (e) => e && e.state !== 'armed' && e.state !== 'cleared';
+  if (game.isWorldDown?.('verdant')) {
+    if (p.y > 11 && p.x > 7.5 && p.x < 12.5) return 'Follow the aqueduct home to the Nexus: blast each gate with its color.';
+    return `The engine is dead. Take the <b>bridge west</b> from the courtyard's south gate and the aqueduct home.`;
+  }
+  if (!green) {
+    if (p.y > 11 && p.z > -158.5 && p.x > 7) return `A dead end from this side. Drop to the Nexus floor and take the ${tag(YELLOW, 'yellow gate')} in the north wall.`;
+    if (p.z > -172) return `Cross the sludge moat: hop the stones, breaking the ${tag(RED, 'red')} and ${tag(YELLOW, 'yellow')} spikes on them first.`;
+    if (p.z > -203 && p.y > 3) {
+      if (p.x < -14.5 && p.z > -184) return `Break the spikes on each stone with its own color, then hop on to the island.`;
+      if (p.x < 0.5) return 'Hop east over the crumbling stones to the second island. <b>Don\'t stop on the last one.</b>';
+      return `Ride the raft north to the bank: <b>keep shooting it</b> ${tag(RED, 'red')}.`;
+    }
+    if (p.z > -214 && p.y > 3) {
+      if (fought(v.bankFight)) return 'Ambush! Clear the bank.';
+      return `Head for the gateway at the bank's <b>west</b> end and the root bridge beyond.`;
+    }
+    if (p.x > -26 && p.x < -22 && p.z > -246 && p.y > 3) return 'Swing each root arm with its color until it <b>points back at you</b>, then walk out along it.';
+    if (p.x > -60 && p.z < -244 && p.y > -1 && p.x > -50) return 'Cross the walkway west. <b>Sprint</b> over its sagging middle.';
+    if (p.x > -60 && p.z < -244 && p.y > -11) return `Shoot the ${tag(RED, 'red')} and ${tag(YELLOW, 'yellow')} orbs, then hop down the phase stones while they hold.`;
+    if (p.x > -44 && p.y > -21) return 'Hop down the root steps west to the dock.';
+    if (p.x > -60) return 'Into the <b>greenhouse</b> through the tunnel in the west wall.';
+    if (p.z > -299.5) return fought(v.greenhouse) ? 'Clear the <b>Greenhouse</b>.' : 'On through the north door to the <b>Seed Vault</b>.';
+    if (v.cage && !v.cage()) {
+      if (p.y > -21) return `Bank ${tag(YELLOW, 'yellow')} off the <b>mirrored leaf</b> above the cage so it drops onto the cage floor.`;
+      return 'Shoot the arrows beside each ledge on the west wall to line the four up into a <b>staircase</b> to the balcony.';
+    }
+    return `Take the ${tag(GREEN, 'VERDANT core')} from the cage.`;
+  }
+  if (p.x < -69.5 && p.z < -299.5) return `Stand on the ${tag(GREEN, 'green riser')} by the east wall and <b>hold fire on it</b> to climb to the door.`;
+  if (p.x < -61 && p.z < -324 && p.z > -334) return `Burst each spore membrane with ${tag(GREEN, 'green')}, then ride the pad under it.`;
+  if (p.z < -315 && p.y > 13) {
+    if (p.x < -21) return `Cross the chroma vines with your blaster on ${tag(GREEN, 'green')}.`;
+    if (p.x < -6) return 'Run the bough to the far platform — <b>don\'t stop</b>.';
+    return `${tag(GREEN, 'Green')} builds the near stone, ${tag(YELLOW, 'yellow')} the far one: jump, then shoot yellow in mid-air.`;
+  }
+  if (p.z < -301 && p.z > -315 && p.y > 15) return 'Ride the jump pad onto the <b>Great Tree\'s crown</b>.';
+  if (p.y > 20 && p.y < 23.5 && p.z > -271) return 'A quiet nest. The pad takes you back up.';
+  if (p.y > 25 && Math.abs(p.x) < 14.5) {
+    if (fought(v.crownFight)) return 'Clear the <b>Crown Nest</b>.';
+    return `Drop down the shaft at the deck's <b>north-east</b> corner: fire through each film's open end, ${tag(GREEN, 'green')}, ${tag(YELLOW, 'yellow')}, ${tag(RED, 'red')}.`;
+  }
+  if (p.x > 13.5 && p.x < 20.6 && p.z < -294.5 && p.z > -301.5) return `Fire through each film's open end as you fall: ${tag(GREEN, 'green')}, ${tag(YELLOW, 'yellow')}, ${tag(RED, 'red')}.`;
+  if (p.x > 20 && p.x < 40 && p.z < -296 && p.z > -300) return `Keep the ${tag(GREEN, 'green sinker')} door shot down as you run at it.`;
+  if (p.x > 40 && p.x < 58.5 && p.z < -276 && p.z > -300.5) return `Push the raft south with ${tag(GREEN, 'green')}; swing the gates out of its lane with ${tag(YELLOW, 'yellow')} and ${tag(RED, 'red')}.`;
+  const boss = v.arena?.boss;
+  if (p.x > 60.8 && p.x < 107.2 && p.z < -246.8 && p.z > -293.2) {
+    if (boss?.defeated) return `The Heart is exposed: shut it down with ${tag(GREEN, 'green')}.`;
+    return boss?.state === 'dormant' ? 'Into the courtyard.' : '';
+  }
+  return 'Through the courtyard gate: the guardian of the <b>Verdant Heart</b> waits.';
+}
+
 export function currentObjective(game) {
   const b = game.blaster, has = (c) => b.has && b.unlocked[c];
   const where = regionOf(game.player.pos);
@@ -62,27 +118,11 @@ export function currentObjective(game) {
   }
   if (!has(GREEN)) {
     if (where === 'solar') return { html: solarAfter(game.player.pos, game.level.solarState) || `${tag(YELLOW, 'Solar')} restored. Climb back up to the Nexus.` };
-    if (where === 'verdant') {
-      const p = game.player.pos, v = game.level.verdant;
-      if (p.y > 11 && p.z > -158.5) return { html: `A dead end from this side. Drop to the Nexus floor and take the ${tag(YELLOW, 'yellow gate')} in the north wall.` };
-      if (p.z < -292) return { html: `Take the ${tag(GREEN, 'VERDANT core')} from the shrine's dais.` };
-      if (p.y < 2 && p.z < -208) return { html: `Hop down to the Great Tree's roots, go round the tree and cross the spiked stones north to the ${tag(GREEN, 'Sunken Shrine')}.` };
-      if (p.z < -202.5) return { html: 'Find the way down into the <b>Great Hollow</b>: the ruined arch at the <b>west</b> end of this bank.' };
-      if (v && !v.bridge.active && p.x < -13 && p.z < -179) return { html: `Power the bridge: shoot ${tag(YELLOW, 'yellow')} over the kiosk's glass so its mirrors carry the shot to the target.` };
-      return { html: 'Cross the <b>Root Court</b>: hop the islands over the acid moat to the far bank.' };
-    }
+    if (where === 'verdant') return { html: verdantObjective(game) };
     return { html: `Blast open the ${tag(GREEN, 'VERDANT gate')} on the <b>north</b> wall with ${tag(YELLOW, 'yellow')}.`, door: 'verdant' };
   }
   if (!has(BLUE)) {
-    if (where === 'verdant') {
-      const p = game.player.pos, v = game.level.verdant;
-      if (p.x > -7.5 && p.x < 7.5 && p.z < -254.5 && p.z > -269.5 && p.y > -25.5 && p.y < 27) return { html: 'Climb the hollow tree: ride the lifts up inside the trunk.' };
-      if (p.y > 23) return { html: `Out along the branch and down the shielded shaft: shoot ${tag(RED, 'red')}, ${tag(YELLOW, 'yellow')}, ${tag(GREEN, 'green')} as you pass each shield.` };
-      if (p.y > 11 && p.x > 7.5 && p.x < 12.5) return { html: 'Follow the aqueduct home to the Nexus: blast each gate with its color.' };
-      if (p.y < -20 && v && v.treeDoor.openT < 0) return { html: `Open the <b>Great Tree</b>: bounce ${tag(GREEN, 'green')} off the ${tag(RED, 'red')} panels in the alcove beside its door.` };
-      if (p.y < -20) return { html: 'The tree is open: go inside and ride the lifts up the trunk.' };
-      return { html: `${tag(GREEN, 'Verdant')} restored. Head back to the Nexus.` };
-    }
+    if (where === 'verdant') return { html: verdantObjective(game) };
     if (where === 'azure') {
       const p = game.player.pos;
       if (p.y < -50 && p.z < -157.5) return { html: `Free the vault door: fire ${tag(YELLOW, 'yellow')} over the glass in the west alcove; the azure panels carry it to the target.` };
