@@ -49,10 +49,12 @@ export const ads = {
     THREE.Object3D.prototype.intersectsFrustum ??= function () {};
     (window.bonusround = window.bonusround || []).push((BR) => {
       BR.attach({ THREE, scene, camera, renderer, worldRoot, host });
-      BR.on('start', onStart);
+      BR.on('start', () => onStart('start'));
       BR.on('end', onEnd);
       BR.on('event', (e) => {
-        if (e?.type === 'impression' || e?.type === 'start') onStart();
+        // (impressions also come from the ambient prop in the world, so the game only trusts one as
+        // a round start while it's actually asked for a round)
+        if (e?.type === 'impression' || e?.type === 'start') onStart(e.type);
         else if (e?.type === 'complete') onEnd();
       });
     });

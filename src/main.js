@@ -188,7 +188,7 @@ class Game {
         setBounds: (b) => (player.arenaBounds = b),
         onFrame: (cb) => this.frameCallbacks.push(cb),
       },
-      onStart: () => this.onAdStart(),
+      onStart: (kind) => (kind !== 'impression' || this.inBreak || this.reviving) && this.onAdStart(),
       onEnd: () => this.onAdEnd(),
     });
     ads.safe(true);
