@@ -426,6 +426,61 @@ class Audio {
   droneAlert() {
     this.sample('drone_alert', { gain: 0.5, vary: 0.1 });
   }
+  // ---- API used by drones / elevators (the audio agent fills these in with real samples) ----
+  // A drone took a correct-color hit. gain 0..1 (distance falloff is the caller's job).
+  droneHit(gain = 1) {
+    if (!this.sample('drone_hit', { gain: 0.9 * gain, vary: 0.12 })) this.hit();
+  }
+  // A drone's been killed and is spinning out of the sky.
+  droneCrash(gain = 1) {
+    this.sample('drone_crash', { gain: 0.8 * gain, vary: 0.08 });
+  }
+  // The crashing drone hits the ground (or times out) and blows up.
+  droneExplode(gain = 1) {
+    if (!this.sample('drone_explode', { gain: 0.9 * gain, vary: 0.1 })) this.explode();
+  }
+  // A looping positional-ish sound (drone hum, elevator motor, sun hum...). Returns a handle whose
+  // gain/rate the caller updates every frame; stop() fades it out. Safe to call before audio unlocks:
+  // the handle starts playing once the sample is decoded.
+  createLoop(name, { gain = 0, rate = 1 } = {}) {
+    const h = { name, gain, rate, src: null, g: null, dead: false };
+    const self = this;
+    h.setGain = (v) => {
+      h.gain = v;
+      self._loopSync(h);
+    };
+    h.setRate = (v) => {
+      h.rate = v;
+      if (h.src) h.src.playbackRate.setTargetAtTime(v, self.t, 0.1);
+    };
+    h.stop = () => {
+      h.dead = true;
+      if (h.src) {
+        h.g.gain.setTargetAtTime(0, self.t, 0.15);
+        h.src.stop(self.t + 1);
+        h.src = null;
+      }
+    };
+    this.prefetch([name]);
+    return h;
+  }
+  _loopSync(h) {
+    if (h.dead || !this.ctx) return;
+    if (!h.src) {
+      if (h.gain <= 0.001) return;
+      const buf = this.buffers.get(h.name);
+      if (!buf) return;
+      h.src = this.ctx.createBufferSource();
+      h.src.buffer = buf;
+      h.src.loop = true;
+      h.src.playbackRate.value = h.rate;
+      h.g = this.ctx.createGain();
+      h.g.gain.value = 0;
+      h.src.connect(h.g).connect(this.sfxBus);
+      h.src.start(this.t, Math.random() * buf.duration);
+    }
+    h.g.gain.setTargetAtTime(h.gain, this.t, 0.08);
+  }
   bossLand() {
     if (!this.sample('boss_land', { gain: 1, vary: 0 })) this.slam();
   }

@@ -19,6 +19,16 @@ import { UnlockCutscene } from './cutscene.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
+
+// The look of the Crimson Foundry; every atmosphere preset (level.atmospheres) overrides some of these.
+// Sky colors are raw shader RGB [0..1+]; sunDir is the direction the sunlight comes from.
+const ATMOSPHERE_DEFAULT = {
+  fog: 0x140f26, fogNear: 35, fogFar: 190,
+  skyTop: [0.03, 0.03, 0.1], skyMid: [0.16, 0.06, 0.24], skyHorizon: [0.55, 0.2, 0.32], aurora: 0.12, stars: 1,
+  hemiSky: 0xb9c3ff, hemiGround: 0x2a2030, hemiIntensity: 1.1,
+  sunColor: 0xffe2c4, sunIntensity: 1.5, sunDir: [0.5, 1, 0.3],
+  exposure: 1.05, bloom: 0.6,
+};
 const DEV = params.has('dev');
 // Phones and tablets get touch controls and a lighter render setup.
 const COARSE = matchMedia('(pointer: coarse)').matches;
@@ -62,8 +72,9 @@ class Game {
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environmentIntensity = 0.35;
     this.addSky();
-    scene.add(new THREE.HemisphereLight(0xb9c3ff, 0x2a2030, 1.1));
-    const sun = new THREE.DirectionalLight(0xffe2c4, 1.5);
+    this.hemi = new THREE.HemisphereLight(0xb9c3ff, 0x2a2030, 1.1);
+    scene.add(this.hemi);
+    const sun = (this.sunLight = new THREE.DirectionalLight(0xffe2c4, 1.5));
     sun.position.set(0.5, 1, 0.3);
     scene.add(sun);
 
@@ -83,6 +94,7 @@ class Game {
     this.hud.setSecrets(0, this.level.secretsTotal);
     this.player.spawn(this.level.spawn, this.level.spawnYaw);
     this.checkpoint = { pos: this.level.spawn.clone(), yaw: this.level.spawnYaw, ref: null };
+    this.setAtmosphere('foundry', true);
 
     // ---- post processing: world → bloom → view model on top → output ----
     const target = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: COARSE ? 0 : 4 });
@@ -153,7 +165,7 @@ class Game {
     });
     ads.safe(true);
 
-    if (params.get('start') === 'boss' || params.get('start') === 'gauntlet') this.devSkip(params.get('start'));
+    if (DEV && params.get('start')) this.devSkip(params.get('start'));
 
     this.timer = new THREE.Timer();
     this.timer.connect(document);
@@ -166,26 +178,32 @@ class Game {
       side: THREE.BackSide,
       depthWrite: false,
       fog: false,
-      uniforms: { uTime: { value: 0 } },
+      uniforms: {
+        uTime: { value: 0 },
+        uTop: { value: new THREE.Vector3(...ATMOSPHERE_DEFAULT.skyTop) },
+        uMid: { value: new THREE.Vector3(...ATMOSPHERE_DEFAULT.skyMid) },
+        uHor: { value: new THREE.Vector3(...ATMOSPHERE_DEFAULT.skyHorizon) },
+        uAurora: { value: ATMOSPHERE_DEFAULT.aurora },
+        uStars: { value: ATMOSPHERE_DEFAULT.stars },
+      },
       vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
       fragmentShader: `
         varying vec3 vDir;
         uniform float uTime;
+        uniform vec3 uTop, uMid, uHor;
+        uniform float uAurora, uStars;
         float hash(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,45.164))) * 43758.5453); }
         void main(){
           float h = vDir.y;
-          vec3 top = vec3(0.03, 0.03, 0.10);
-          vec3 mid = vec3(0.16, 0.06, 0.24);
-          vec3 hor = vec3(0.55, 0.20, 0.32);
-          vec3 c = mix(hor, mid, smoothstep(-0.05, 0.25, h));
-          c = mix(c, top, smoothstep(0.25, 0.9, h));
+          vec3 c = mix(uHor, uMid, smoothstep(-0.05, 0.25, h));
+          c = mix(c, uTop, smoothstep(0.25, 0.9, h));
           // prismatic aurora bands
           float band = sin(vDir.x * 6.0 + uTime * 0.05) * 0.5 + 0.5;
           float a = smoothstep(0.15, 0.45, h) * smoothstep(0.75, 0.45, h);
-          c += a * 0.12 * vec3(band, 0.4 + 0.6 * (1.0 - band), 0.9);
+          c += a * uAurora * vec3(band, 0.4 + 0.6 * (1.0 - band), 0.9);
           // stars
           vec3 p = floor(vDir * 300.0);
-          float s = step(0.9975, hash(p)) * smoothstep(0.1, 0.4, h);
+          float s = step(0.9975, hash(p)) * smoothstep(0.1, 0.4, h) * uStars;
           c += vec3(s);
           gl_FragColor = vec4(c, 1.0);
         }`,
@@ -339,11 +357,52 @@ class Game {
   }
 
   // ------------------------------------------------------------------ progression hooks
-  // Each sector has its own music; the antechamber gets the ominous title theme until the boss drops.
-  enterZone(sub, main, color) {
+  // Title card for a new area, plus its music if one is given (tracks crossfade in audio.playMusic).
+  enterZone(sub, main, color, music) {
     this.hud.zoneTitle(sub, main, color);
-    const track = { 'CRIMSON FOUNDRY': 'music_red', 'AMBER CONDUITS': 'music_yellow', 'OVERGROWTH YARD': 'music_green', 'AZURE GAUNTLET': 'music_blue', 'PRISM CORE': 'music_antechamber' }[main];
-    if (track) this.setMusic(track);
+    if (music) this.setMusic(music);
+  }
+
+  // Crossfade fog, sky, hemisphere/sun light and exposure toward a named preset (level.atmospheres,
+  // registered by the world modules; missing fields fall back to ATMOSPHERE_DEFAULT).
+  setAtmosphere(name, instant = false) {
+    const preset = name === 'foundry' || !this.level.atmospheres[name] ? {} : this.level.atmospheres[name];
+    if (name !== 'foundry' && !this.level.atmospheres[name]) console.warn('[chroma] unknown atmosphere', name);
+    const a = { ...ATMOSPHERE_DEFAULT, ...(this.level.atmospheres.foundry || {}), ...preset };
+    const c = (hex) => new THREE.Color(hex);
+    const v = (arr) => new THREE.Vector3(...arr);
+    this.atmo = {
+      name,
+      fog: c(a.fog), fogNear: a.fogNear, fogFar: a.fogFar,
+      skyTop: v(a.skyTop), skyMid: v(a.skyMid), skyHorizon: v(a.skyHorizon), aurora: a.aurora, stars: a.stars,
+      hemiSky: c(a.hemiSky), hemiGround: c(a.hemiGround), hemiIntensity: a.hemiIntensity,
+      sunColor: c(a.sunColor), sunIntensity: a.sunIntensity, sunDir: v(a.sunDir).normalize(), exposure: a.exposure,
+      bloom: a.bloom,
+    };
+    if (instant) this.updateAtmosphere(1, true);
+  }
+
+  updateAtmosphere(dt, snap = false) {
+    const a = this.atmo;
+    if (!a) return;
+    const k = snap ? 1 : 1 - Math.exp(-dt * 1.2);
+    const f = this.scene.fog, u = this.sky.material.uniforms;
+    f.color.lerp(a.fog, k);
+    f.near += (a.fogNear - f.near) * k;
+    f.far += (a.fogFar - f.far) * k;
+    u.uTop.value.lerp(a.skyTop, k);
+    u.uMid.value.lerp(a.skyMid, k);
+    u.uHor.value.lerp(a.skyHorizon, k);
+    u.uAurora.value += (a.aurora - u.uAurora.value) * k;
+    u.uStars.value += (a.stars - u.uStars.value) * k;
+    this.hemi.color.lerp(a.hemiSky, k);
+    this.hemi.groundColor.lerp(a.hemiGround, k);
+    this.hemi.intensity += (a.hemiIntensity - this.hemi.intensity) * k;
+    this.sunLight.color.lerp(a.sunColor, k);
+    this.sunLight.intensity += (a.sunIntensity - this.sunLight.intensity) * k;
+    this.sunLight.position.lerp(a.sunDir, k);
+    this.renderer.toneMappingExposure += (a.exposure - this.renderer.toneMappingExposure) * k;
+    if (this.bloom) this.bloom.strength += (a.bloom - this.bloom.strength) * k;
   }
 
   setAmbient(name) {
@@ -500,6 +559,7 @@ class Game {
       this.setMusic('music_antechamber');
     }
     for (const pr of this.world.projectiles) pr.alive = false;
+    for (const fn of this.level.respawnHooks) fn();
     this.clearDeathFx();
     audio.respawn();
     p.updateCamera();
@@ -569,12 +629,14 @@ class Game {
   }
 
   // ------------------------------------------------------------------ dev helpers (?dev)
+  // ?dev&start=<name>: spawn at a start registered by a world module (devStart in levels/builders.js)
   devSkip(where) {
-    [RED, YELLOW, GREEN, BLUE].forEach((c) => this.blaster.give(c));
-    this.blaster.setColor(RED, true);
-    const pos = where === 'boss' ? new THREE.Vector3(0, 4.4, -341) : new THREE.Vector3(0, 4.4, -286);
-    this.player.spawn(pos, 0);
-    this.checkpoint = { pos, yaw: 0, ref: null };
+    const s = this.level.devStarts[where];
+    if (!s) return console.warn('[chroma] unknown start', where, Object.keys(this.level.devStarts));
+    s.colors.forEach((c) => this.blaster.give(c));
+    if (s.colors.length) this.blaster.setColor(s.colors[s.colors.length - 1], true);
+    this.player.spawn(s.pos, s.yaw);
+    this.checkpoint = { pos: s.pos.clone(), yaw: s.yaw, ref: null };
     this.started = true;
   }
 
@@ -586,7 +648,8 @@ class Game {
     }
     if (i.hit('KeyU')) [RED, YELLOW, GREEN, BLUE].forEach((c) => this.blaster.give(c));
     if (i.hit('KeyB')) {
-      this.player.spawn(new THREE.Vector3(0, 4.4, -341), 0);
+      const s = this.level.devStarts.boss;
+      this.player.spawn(s.pos, s.yaw);
     }
     if (i.hit('KeyK') && this.level.boss.active) this.level.boss.damage(600);
   }
@@ -609,6 +672,7 @@ class Game {
     const t = this.timer.getElapsed();
     this.sky.material.uniforms.uTime.value = t;
     this.sky.position.copy(this.camera.position);
+    this.updateAtmosphere(dt);
 
     this.input.active = this.state === 'playing';
     this.touch.show(this.touchMode && this.state === 'playing');

@@ -1,0 +1,205 @@
+// Shared level-building helpers. Every world module calls makeBuilders(world, game, level) and builds
+// with the returned functions; see src/levels/LAYOUT.md for where each world lives.
+import * as THREE from 'three';
+import { Barrier } from '../entities/barrier.js';
+import { Pickup } from '../entities/misc.js';
+import { Mirror, Glass, TargetPanel, ShotShield, Updraft } from '../entities/puzzle.js';
+
+export const T = 0.5; // wall thickness
+export const CH = 3.2; // corridor height
+export const GLOW = { red: 'glow0', yellow: 'glow1', green: 'glow2', blue: 'glow3', boss: 'trimWhite', hub: 'trimWhite' };
+
+export function makeBuilders(W, game, level) {
+  // A wall along x (thickness z1..z2) with rectangular openings centered at c (x), bottom y0, height h.
+  function wallX(z1, z2, x1, x2, yb, yt, openings, zone, kind = 'wall') {
+    let x = x1;
+    for (const o of [...openings].sort((a, b) => a.c - b.c)) {
+      const a = o.c - o.w / 2, b = o.c + o.w / 2;
+      W.box(x, yb, z1, a, yt, z2, kind, zone);
+      if (o.y0 > yb) W.box(a, yb, z1, b, o.y0, z2, kind, zone);
+      if (o.y0 + o.h < yt) W.box(a, o.y0 + o.h, z1, b, yt, z2, kind, zone);
+      x = b;
+    }
+    W.box(x, yb, z1, x2, yt, z2, kind, zone);
+  }
+  // A wall along z (thickness x1..x2); opening centers c are z coordinates.
+  function wallZ(x1, x2, z1, z2, yb, yt, openings, zone, kind = 'wall') {
+    let z = z1;
+    for (const o of [...openings].sort((a, b) => a.c - b.c)) {
+      const a = o.c - o.w / 2, b = o.c + o.w / 2;
+      W.box(x1, yb, z, x2, yt, a, kind, zone);
+      if (o.y0 > yb) W.box(x1, yb, a, x2, o.y0, b, kind, zone);
+      if (o.y0 + o.h < yt) W.box(x1, o.y0 + o.h, a, x2, yt, b, kind, zone);
+      z = b;
+    }
+    W.box(x1, yb, z, x2, yt, z2, kind, zone);
+  }
+  const abs = (y, list) => (list || []).map((o) => ({ ...o, y0: y + (o.y0 || 0) }));
+
+  // Room: interior x1..x2, z from zS (south, larger) to zN (north), floor top at y, height h.
+  // Openings (n/s: c is x; e/w: c is z) have y0 relative to the floor.
+  function room({ x1, x2, zS, zN, y, h, zone, n, s, e, w, ceiling = true, floor = true, trim = true, wallKind = 'wall' }) {
+    if (floor) W.box(x1 - T, y - 1, zN - T, x2 + T, y, zS + T, 'floor', zone);
+    if (ceiling) W.box(x1 - T, y + h, zN - T, x2 + T, y + h + 0.5, zS + T, 'ceil', zone);
+    wallX(zS, zS + T, x1, x2, y, y + h, abs(y, s), zone, wallKind);
+    wallX(zN - T, zN, x1, x2, y, y + h, abs(y, n), zone, wallKind);
+    wallZ(x2, x2 + T, zN - T, zS + T, y, y + h, abs(y, e), zone, wallKind);
+    wallZ(x1 - T, x1, zN - T, zS + T, y, y + h, abs(y, w), zone, wallKind);
+    if (trim && h > 3) {
+      const g = GLOW[zone];
+      const ty = y + Math.min(h - 0.6, 4.2);
+      W.deco(x1, ty, zN, x1 + 0.05, ty + 0.08, zS, g, zone);
+      W.deco(x2 - 0.05, ty, zN, x2, ty + 0.08, zS, g, zone);
+    }
+  }
+
+  // North-south corridor between zStart and zEnd (either order), 3 m wide, centered on x = cx.
+  // e/w openings: c is z.  low: [{ z1, z2, h }] lowers the ceiling to h (crawlspace).
+  function corridor({ zStart, zEnd, y, zone, e, w, low = [], h = CH, cx = 0 }) {
+    const x1 = cx - 1.5, x2 = cx + 1.5;
+    const za = Math.min(zStart, zEnd), zb = Math.max(zStart, zEnd);
+    W.box(x1 - T, y - 1, za, x2 + T, y, zb, 'floor', zone);
+    W.box(x1 - T, y + h, za, x2 + T, y + h + 0.5, zb, 'ceil', zone);
+    wallZ(x2, x2 + T, za, zb, y, y + h, abs(y, e), zone);
+    wallZ(x1 - T, x1, za, zb, y, y + h, abs(y, w), zone);
+    for (const l of low) W.box(x1, y + l.h, Math.min(l.z1, l.z2), x2, y + h, Math.max(l.z1, l.z2), 'metal', zone);
+    // glowing base strips guide the eye down the hall
+    const g = GLOW[zone];
+    W.deco(x1, y + 0.02, za, x1 + 0.06, y + 0.1, zb, g, zone);
+    W.deco(x2 - 0.06, y + 0.02, za, x2, y + 0.1, zb, g, zone);
+  }
+
+  // East-west corridor between xStart and xEnd (either order), 3 m wide, centered on z = cz.
+  // n/s openings: c is x.  low: [{ x1, x2, h }].
+  function corridorX({ xStart, xEnd, y, zone, n, s, low = [], h = CH, cz }) {
+    const z1 = cz - 1.5, z2 = cz + 1.5;
+    const xa = Math.min(xStart, xEnd), xb = Math.max(xStart, xEnd);
+    W.box(xa, y - 1, z1 - T, xb, y, z2 + T, 'floor', zone);
+    W.box(xa, y + h, z1 - T, xb, y + h + 0.5, z2 + T, 'ceil', zone);
+    wallX(z1 - T, z1, xa, xb, y, y + h, abs(y, n), zone);
+    wallX(z2, z2 + T, xa, xb, y, y + h, abs(y, s), zone);
+    for (const l of low) W.box(Math.min(l.x1, l.x2), y + l.h, z1, Math.max(l.x1, l.x2), y + h, z2, 'metal', zone);
+    const g = GLOW[zone];
+    W.deco(xa, y + 0.02, z1, xb, y + 0.1, z1 + 0.06, g, zone);
+    W.deco(xa, y + 0.02, z2 - 0.06, xb, y + 0.1, z2, g, zone);
+  }
+
+  function tunnelX({ x1, x2, zc, w, y, h, zone }) {
+    const a = zc - w / 2, b = zc + w / 2;
+    W.box(x1, y - 0.5, a - T, x2, y, b + T, 'grate', zone);
+    W.box(x1, y + h, a - T, x2, y + h + 0.5, b + T, 'metal', zone);
+    W.box(x1, y, a - T, x2, y + h, a, 'metal', zone);
+    W.box(x1, y, b, x2, y + h, b + T, 'metal', zone);
+  }
+
+  // Floating slab with neon edge lines so its outline reads mid-jump.
+  function plat(x1, z1, x2, z2, top, zone, thick = 0.6, kind = 'plat') {
+    W.box(x1, top - thick, z1, x2, top, z2, kind, zone);
+    const za = Math.min(z1, z2), zb = Math.max(z1, z2), g = GLOW[zone], y1 = top - 0.12, y2 = top - 0.04, o = 0.02;
+    W.deco(x1 - o, y1, za - o, x2 + o, y2, za, g, zone);
+    W.deco(x1 - o, y1, zb, x2 + o, y2, zb + o, g, zone);
+    W.deco(x1 - o, y1, za, x1, y2, zb, g, zone);
+    W.deco(x2, y1, za, x2 + o, y2, zb, g, zone);
+  }
+
+  // A chroma core on a pedestal: collecting it plays the unlock cutscene and grants the color.
+  function pedestal(x, y, z, color, zone) {
+    W.box(x - 0.7, y, z - 0.7, x + 0.7, y + 0.9, z + 0.7, 'metal', zone);
+    W.deco(x - 0.75, y + 0.9, z - 0.75, x + 0.75, y + 0.98, z + 0.75, GLOW[zone], zone);
+    return new Pickup(W, { pos: [x, y + 1.8, z], type: 'color', color, onCollect: (pk) => game.unlockColor(color, pk.pos) });
+  }
+
+  // A secret room: a prism trophy plus a trigger that counts the secret when you step inside.
+  function secretRoom(min, max, label) {
+    level.secretsTotal++;
+    W.trigger(min, max, () => game.foundSecret(label));
+  }
+  const trophy = (x, y, z) => new Pickup(W, { pos: [x, y, z], type: 'maxhp', amount: 20 });
+
+  // A side alcove off a room's east wall (x = 5), centered on zc: a glass wall you can't climb, open
+  // above. Behind it the ceiling and side walls reflect (mirrors, or energy panels of another color) and
+  // the floor and back wall are one big target, so nearly any shot fired over the glass lands on it.
+  function sideAlcove({ zc, y, color, zone, onActivate, reflector = null }) {
+    const z1 = zc - 1.5, z2 = zc + 1.5, top = y + 4, glassTop = y + 2.6;
+    room({ x1: 6, x2: 11.5, zS: z2, zN: z1, y, h: 4, zone, w: [{ c: zc, w: 3, h: 4 }], trim: false });
+    new Glass(W, { min: [6.6, y, z1], max: [6.7, glassTop, z2] });
+    W.deco(6.55, glassTop, z1, 6.75, glassTop + 0.06, z2, GLOW[zone], zone); // glowing lip marks the glass top
+    const reflect = (min, max) =>
+      reflector === null ? new Mirror(W, { min, max }) : new Barrier(W, { min, max, color: reflector, kind: 'wall', regen: 2.5, zone });
+    reflect([6.7, top - 0.15, z1], [11.5, top, z2]);
+    reflect([6.7, y, z1], [11.3, top - 0.15, z1 + 0.1]);
+    reflect([6.7, y, z2 - 0.1], [11.3, top - 0.15, z2]);
+    let done = false;
+    const once = () => {
+      if (done) return;
+      done = true;
+      onActivate();
+    };
+    const panels = [
+      new TargetPanel(W, { min: [6.8, y, z1 + 0.1], max: [11.3, y + 0.12, z2 - 0.1], color, face: 'up', onActivate: once }),
+      new TargetPanel(W, { min: [11.3, y + 0.12, z1 + 0.1], max: [11.5, top - 0.15, z2 - 0.1], color, face: '-x', onActivate: once }),
+    ];
+    panels.forEach((p) => (p.group = panels));
+  }
+
+  // A spike-drop shaft: shield walls on every side and a shield above each spike layer stop shots but not
+  // bodies, so each layer can only be shot after you've fallen past its shield. An updraft slows the fall.
+  // Shots come from the eyes (1.6 m above the feet), so each layer sits ~2.7 m under its shield: at the
+  // 1.8 m/s updraft that leaves ~0.6 s to fire once your eyes are through.
+  function shieldedShaft({ x1, x2, z1, z2, floor, capY, cap, layers, zone }) {
+    const t = 0.06, pad = 0.2;
+    // cap: extends toward the drop-off side (cap = { x1, x2, z1, z2 }) so you can't shoot in at an angle
+    new ShotShield(W, { min: [cap.x1, capY, cap.z1], max: [cap.x2, capY + t, cap.z2] });
+    const X1 = x1 - pad, X2 = x2 + pad, Z1 = z1 - pad, Z2 = z2 + pad, yb = floor + 0.2;
+    new ShotShield(W, { min: [X1, yb, Z1], max: [X2, capY, Z1 + t] });
+    new ShotShield(W, { min: [X1, yb, Z2 - t], max: [X2, capY, Z2] });
+    new ShotShield(W, { min: [X1, yb, Z1 + t], max: [X1 + t, capY, Z2 - t] });
+    new ShotShield(W, { min: [X2 - t, yb, Z1 + t], max: [X2, capY, Z2 - t] });
+    for (const L of layers) {
+      new Barrier(W, { min: [x1, L.y, z1], max: [x2, L.y + 0.6, z2], color: L.color, kind: 'spike', regen: 2.2, zone });
+      if (L.shieldY) new ShotShield(W, { min: [x1, L.shieldY, z1], max: [x2, L.shieldY + t, z2] });
+    }
+    new Updraft(W, { min: [x1, floor + 0.1, z1], max: [x2, capY + 2.5, z2], cap: 1.8 });
+  }
+
+  const hint = (min, max, html, time = 5) => W.trigger(min, max, () => game.hud.message(html, time));
+  // Title card the first time you enter a sector; also switches the music if a track is given.
+  const zoneTitle = (min, max, sub, main, color, music) => W.trigger(min, max, () => game.enterZone(sub, main, color, music));
+  // A mood volume: every time you walk in, music / ambience / atmosphere crossfade to these (any may be
+  // omitted). Put one just inside each doorway so backtracking restores the right mood.
+  const area = (min, max, { music, ambient, atmosphere } = {}) =>
+    W.trigger(min, max, () => {
+      if (music) game.setMusic(music);
+      if (ambient) game.setAmbient(ambient);
+      if (atmosphere) game.setAtmosphere(atmosphere);
+    }, { once: false });
+  // Point lights are expensive (every lit pixel loops over all of them): keep to the budget in LAYOUT.md.
+  const light = (x, y, z, color, intensity = 30, dist = 30) => {
+    const l = new THREE.PointLight(color, intensity, dist, 1.5);
+    l.position.set(x, y, z);
+    W.scene.add(l);
+    return l;
+  };
+  const barrierWall = (z, y, color, zone, h = CH, cx = 0) =>
+    new Barrier(W, { min: [cx - 1.5, y, z - 0.2], max: [cx + 1.5, y + h, z + 0.2], color, kind: 'wall', zone });
+  const barrierWallX = (x, y, color, zone, cz, h = CH) =>
+    new Barrier(W, { min: [x - 0.2, y, cz - 1.5], max: [x + 0.2, y + h, cz + 1.5], color, kind: 'wall', zone });
+  const tree = (x, y, z, scale = 1) => {
+    W.box(x - 0.3 * scale, y, z - 0.3 * scale, x + 0.3 * scale, y + 2.8 * scale, z + 0.3 * scale, 'rock', 'green');
+    const canopy = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6 * scale, 0), new THREE.MeshStandardMaterial({ color: 0x2f8a46, flatShading: true, roughness: 1 }));
+    canopy.position.set(x, y + 3.6 * scale, z);
+    canopy.scale.y = 1.2;
+    W.scene.add(canopy);
+    return canopy;
+  };
+  // ?dev&start=<name> drops you here with the given colors (see main.js devSkip).
+  const devStart = (name, pos, yaw = 0, colors = [0]) => (level.devStarts[name] = { pos: new THREE.Vector3(...pos), yaw, colors });
+  // Called whenever the player respawns at a checkpoint (reset elevators, encounters, ...).
+  const onRespawn = (fn) => level.respawnHooks.push(fn);
+
+  return {
+    W, game, level, T, CH, GLOW,
+    wallX, wallZ, abs, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy,
+    sideAlcove, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, tree, devStart, onRespawn,
+  };
+}

@@ -129,6 +129,7 @@ export const ZONE_TINT = {
   green: 0xa4c2ad,
   blue: 0xa2acc8,
   boss: 0xb3a5c7,
+  hub: 0xb4c2c8,
 };
 
 const cache = new Map();
