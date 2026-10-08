@@ -5,7 +5,8 @@ import { Barrier } from '../entities/barrier.js';
 import { Pickup } from '../entities/misc.js';
 import { AudioLog } from '../entities/audiolog.js';
 import { Recorder } from '../story/recorder.js';
-import { Mirror, Glass, TargetPanel, ShotShield, Updraft } from '../entities/puzzle.js';
+import { Mirror, Glass, TargetPanel } from '../entities/puzzle.js';
+import { SpikeShield, ShaftSpikes } from '../entities/spikeShield.js';
 import { waterSurface } from '../liquid.js';
 import {
   ColorSwitch, PhasePlatform, ChromaPlatform, TimedGate, CrumblePlatform, Trapdoor, SpikeBed,
@@ -150,24 +151,44 @@ export function makeBuilders(W, game, level) {
     panels.forEach((p) => (p.group = panels));
   }
 
-  // A spike-drop shaft: shield walls on every side and a shield above each spike layer stop shots but not
-  // bodies, so each layer can only be shot after you've fallen past its shield. An updraft slows the fall.
-  // Shots come from the eyes (1.6 m above the feet), so each layer sits ~2.7 m under its shield: at the
-  // 1.8 m/s updraft that leaves ~0.6 s to fire once your eyes are through.
-  function shieldedShaft({ x1, x2, z1, z2, floor, capY, cap, layers, zone }) {
-    const t = 0.06, pad = 0.2;
-    // cap: extends toward the drop-off side (cap = { x1, x2, z1, z2 }) so you can't shoot in at an angle
-    new ShotShield(W, { min: [cap.x1, capY, cap.z1], max: [cap.x2, capY + t, cap.z2] });
-    const X1 = x1 - pad, X2 = x2 + pad, Z1 = z1 - pad, Z2 = z2 + pad, yb = floor + 0.2;
-    new ShotShield(W, { min: [X1, yb, Z1], max: [X2, capY, Z1 + t] });
-    new ShotShield(W, { min: [X1, yb, Z2 - t], max: [X2, capY, Z2] });
-    new ShotShield(W, { min: [X1, yb, Z1 + t], max: [X1 + t, capY, Z2 - t] });
-    new ShotShield(W, { min: [X2 - t, yb, Z1 + t], max: [X2, capY, Z2 - t] });
-    for (const L of layers) {
-      new Barrier(W, { min: [x1, L.y, z1], max: [x2, L.y + 0.6, z2], color: L.color, kind: 'spike', regen: 2.2, zone });
-      if (L.shieldY) new ShotShield(W, { min: [x1, L.shieldY, z1], max: [x2, L.shieldY + t, z2] });
-    }
-    new Updraft(W, { min: [x1, floor + 0.1, z1], max: [x2, capY + 2.5, z2], cap: 1.8 });
+  // A spike drop: a free fall down a shaft through stacked spike layers (no slow-fall; that's Azure's water).
+  //   shieldedShaft({ x1, x2, z1, z2, floor, capY, cap, layers: [{ y?, color, port?, regen? }, ...], zone })
+  // Every layer covers the footprint x1..x2 / z1..z2 (top to bottom in `layers`). Just above each one hangs a
+  // SpikeShield film tinted the layer's color: bodies fall straight through it, shots are swallowed (ripple,
+  // no ricochet). The film leaves one end of its layer open (the port; ports alternate ends along the
+  // shaft's long axis, the first at the end away from the drop-off side), so each layer can only be shot
+  // through its port, from the right angle: the first from the ledge (or as you drop), the next ones
+  // mid-fall, looking through the port above at the port below. A broken layer won't regrow while you're in
+  // the column above it. Hold fire, aim at the next port, switch color as each layer goes.
+  // Spacing: leave `y` out on every layer and they're spread evenly from capY - 2.4 down to floor + 2 (the
+  // bottom one reforms over a standing player's head). Keep the whole drop under ~15 m (an 18 m fall is
+  // lethal); 2 layers in 10-12 m or 3 in 13-15 m feel right. Explicit y's are honoured as given.
+  // cap ({ x1, x2, z1, z2 }, optional) only tells which side you drop in from (the side it overhangs);
+  // layer.shieldY (old updraft design) is ignored. port: 'n' | 's' | 'e' | 'w' forces a layer's open end.
+  function shieldedShaft({ x1, x2, z1, z2, floor, capY, cap = null, layers, zone = 'red' }) {
+    const lx = x2 - x1, lz = z2 - z1;
+    const over = cap ? { n: z1 - cap.z1, s: cap.z2 - z2, w: x1 - cap.x1, e: cap.x2 - x2 } : { n: 0, s: 0, w: 0, e: 0 };
+    const entry = Object.keys(over).reduce((a, b) => (over[b] > over[a] ? b : a), 'n');
+    const axis = Math.abs(lx - lz) < 0.01 ? (entry === 'e' || entry === 'w' ? 'x' : 'z') : lx > lz ? 'x' : 'z';
+    // the first port sits at the far end from where you drop in (or the + end if you enter from the side)
+    let end = axis === 'z' ? (entry === 's' ? 'n' : 's') : entry === 'e' ? 'w' : 'e';
+    const auto = layers.every((L) => L.y === undefined);
+    const yTop = capY - 2.4, yBot = floor + 2;
+    const n = layers.length;
+    layers.forEach((L, i) => {
+      const y = auto ? (n === 1 ? (yTop + yBot) / 2 : yTop + ((yBot - yTop) * i) / (n - 1)) : L.y;
+      new ShaftSpikes(W, { min: [x1, y, z1], max: [x2, y + 0.6, z2], color: L.color, regen: L.regen ?? 2.6, zone, top: capY + 4 });
+      const side = L.port ?? end;
+      const len = side === 'n' || side === 's' ? lz : lx, pw = Math.max(1.4, Math.min(len * 0.4, 2.4));
+      const fy = y + 0.6 + 0.35;
+      let fmin, fmax, port;
+      if (side === 'n') (fmin = [x1, fy, z1 + pw]), (fmax = [x2, fy + 0.06, z2]), (port = { axis: 'z', edge: z1 + pw, side: -1 });
+      else if (side === 's') (fmin = [x1, fy, z1]), (fmax = [x2, fy + 0.06, z2 - pw]), (port = { axis: 'z', edge: z2 - pw, side: 1 });
+      else if (side === 'w') (fmin = [x1 + pw, fy, z1]), (fmax = [x2, fy + 0.06, z2]), (port = { axis: 'x', edge: x1 + pw, side: -1 });
+      else (fmin = [x1, fy, z1]), (fmax = [x2 - pw, fy + 0.06, z2]), (port = { axis: 'x', edge: x2 - pw, side: 1 });
+      new SpikeShield(W, { min: fmin, max: fmax, color: L.color, port });
+      end = { n: 's', s: 'n', e: 'w', w: 'e' }[side];
+    });
   }
 
   const hint = (min, max, html, time = 5) => W.trigger(min, max, () => game.hud.message(html, time));
