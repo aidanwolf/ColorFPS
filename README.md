@@ -23,13 +23,14 @@ npm run build    # production build in dist/
 
 ## The demo
 
-1. **Crimson Foundry**: grab the blaster (red), shoot through red barriers, then cross a hall of floating and moving platforms over acid.
-2. **Amber Conduits**: unlock yellow. Run a red/yellow switching gauntlet that ends in a crawlspace, then climb the open-air Spike Spire and drop through a red→yellow spike stack.
-3. **Overgrowth Yard**: unlock green. Cross floating islands, ride a jump pad up to a perch, and fall through the red→yellow→green spike stack to land on the platform below.
-4. **Azure Gauntlet**: unlock blue, then sprint a four-color barrier run with a crawlspace in the middle.
-5. **Prism Core**: the Prism Warden. Its shield shows a color combo; hit the colors in order, fast, to shatter it, then hit the core with whatever color it's cycling through. Every limb is armored in its own color, and breaking one has an effect: shield arm → core exposed, sword arm → no sword attacks, visor → stun, both legs → it kneels. Dodge the low laser sweep and the shockwave rings by jumping, shoot the homing orbs with their own color, and watch for the shield charge. It has three phases with longer combos in each.
+1. **Crimson Foundry** (red, linear intro): grab the blaster, shoot through red barriers, then cross the Crucible: spiked floating and moving platforms over acid.
+2. **The Prism Hub**: a calm atrium joining everything. Through its windows you can see each color world before you can enter it. Each world is a loop: you leave from the Hub floor and come back onto a Hub balcony.
+3. **Solar · Sunscorch Mesa** (yellow): outdoors under a huge, hot sun. Drop into a scorched canyon past sun lances, find yellow in the Sun Well, then climb back up via mirror puzzles, solar-panel lifts and a red→yellow spike drop.
+4. **Verdant · Emerald Hollow** (green, behind a yellow door): overgrown ruins, a bridge-powering ricochet kiosk, a descent into a sunken hollow to the green core, a climb up a giant hollow tree, and the red→yellow→green spike drop.
+5. **Azure · The Cold Deep** (blue, behind a green door): descend a frozen research station to the blue core, then ride the **forced ascent**: an elevator that carries you 70 m up while colored spike hatches and drones come at you.
+6. **Prism Core**: the four-color lock in the Hub opens the elevator down to the Prism Warden. Shoot its tiled shield away with the matching color, then break its colored limbs and core. It has a laser sword, slam shockwaves you jump over, and volleys of colored orbs.
 
-**Secrets (5):** a crouch vent in the spawn room, a crawl-in hut in the yard, and three color-locked doors (yellow, green, blue) you can't open until you come back with that color. Each one holds a collectible prism.
+**Secrets:** color-locked doors and crawl vents in every world (the spawn-room vent needs yellow). Each holds a collectible prism.
 
 ## Monetization: Bonus Round
 
@@ -59,14 +60,14 @@ Anything not generated yet falls back to the built-in synthesized sounds.
 
 ## Dev helpers
 
-Add `?dev` to the URL for cheats: `G` god mode, `U` unlock all colors, `B` teleport to the boss antechamber, `K` hit the boss for 600. `?dev&start=boss` or `?dev&start=gauntlet` starts there with all colors.
+Add `?dev` to the URL for cheats: `G` god mode, `U` unlock all colors, `B` teleport to the boss antechamber, `K` hit the boss for 600. `?dev&start=<name>` starts at a registered point with the colors you'd have there: `red`, `crucible`, `hub`, `solar`, `solar2`, `verdant`, `verdant2`, `azure`, `azurelab`, `azurewell`, `azure2`, `ascent`, `boss`.
 
 ## Code map
 
 - `src/main.js`: game states, render pipeline (bloom plus a separate view-model pass), progression and ad hooks
-- `src/level.js`: the whole level, built from boxes with room/corridor/platform helpers
+- `src/level.js` + `src/levels/`: one module per area (red, hub, solar, verdant, azure, prism) built with the shared helpers in `builders.js`; `LAYOUT.md` has the map, region boxes and Hub ports
 - `src/player.js`: AABB controller (coyote time, jump buffer, crouch, step-up, platform riding)
 - `src/weapon.js`: hitscan Chroma Blaster and its view model
 - `src/boss.js`: the Prism Warden
 - `src/entities/`: barriers, doors and spike layers; drones and orbs; pickups, platforms, jump pads, checkpoints
-- `src/audio.js`: all sound effects and music, synthesized with WebAudio (no assets)
+- `src/audio.js`: ElevenLabs-generated SFX and music (crossfaded per area), with synthesized fallbacks

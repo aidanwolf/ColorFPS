@@ -90,6 +90,7 @@ class Game {
     this.cutscene = new UnlockCutscene(this);
     this.level = buildLevel(this.world, this);
     this.world.finalize();
+    this.world.setupCulling([this.sky]);
     this.hud.buildColors(this.blaster);
     this.hud.setSecrets(0, this.level.secretsTotal);
     this.player.spawn(this.level.spawn, this.level.spawnYaw);
@@ -406,6 +407,14 @@ class Game {
     this.sunLight.position.lerp(a.sunDir, k);
     this.renderer.toneMappingExposure += (a.exposure - this.renderer.toneMappingExposure) * k;
     if (this.bloom) this.bloom.strength += (a.bloom - this.bloom.strength) * k;
+    // nothing past the fog can be seen, so don't draw it: the far plane follows the fog (all the
+    // worlds share one scene). A Bonus Round brings its own scenery, so it gets the full range.
+    const far = this.adRound ? 800 : Math.max(200, f.far + 30);
+    if (Math.abs(this.camera.far - far) > 1) {
+      this.camera.far = far;
+      this.camera.updateProjectionMatrix();
+      this.sky.scale.setScalar((far * 0.95) / 600);
+    }
   }
 
   setAmbient(name) {
@@ -695,6 +704,7 @@ class Game {
     this.sky.position.copy(this.camera.position);
     this.updateAtmosphere(dt);
     this.world.updateLights(this.camera.position, dt);
+    this.world.updateCulling(this.camera.position, this.camera.far);
 
     this.input.active = this.state === 'playing';
     audio.setLoopsMuted(this.state !== 'playing');
@@ -729,4 +739,5 @@ class Game {
   }
 }
 
+if (DEV) window.THREE = THREE; // for console debugging
 window.game = new Game();

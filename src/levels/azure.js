@@ -783,6 +783,7 @@ export function buildAzure(B) {
     });
     const dust = new THREE.Points(geo, dustMat);
     dust.frustumCulled = false;
+    dust.userData.noCull = true; // its particles wrap around the camera
     dust.visible = false;
     W.scene.add(dust);
     const wrap = (v, c) => ((((v - c + R) % (2 * R)) + 2 * R) % (2 * R)) - R + c;

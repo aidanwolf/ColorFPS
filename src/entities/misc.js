@@ -260,7 +260,7 @@ export class Checkpoint {
     this.gem.rotation.y += dt * (this.active ? 3 : 1);
     this.gem.position.y = 2.3 + Math.sin(this.t * 2) * 0.1;
     // the beam fades while you stand in it, so it doesn't wash out your view
-    const near = player ? Math.min(1, Math.max(0, (Math.hypot(player.pos.x - this.pos.x, player.pos.z - this.pos.z) - 0.6) / 1.2)) : 1;
+    const near = player ? Math.min(1, Math.max(0, (Math.hypot(player.pos.x - this.pos.x, player.pos.z - this.pos.z) - 1.2) / 2.3)) : 1;
     this.beamMat.opacity = (this.active ? 0.22 + Math.sin(this.t * 4) * 0.06 : 0.08) * near;
   }
 }

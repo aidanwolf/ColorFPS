@@ -88,13 +88,17 @@ class Sun {
     this.corona = new THREE.Mesh(new THREE.PlaneGeometry(2 * S, 2 * S), this.coronaMat);
     this.group = new THREE.Group();
     this.group.add(this.disc, this.corona);
+    this.group.userData.noCull = true; // follows the camera; World culling would misplace it
     W.scene.add(this.group);
     W.add(this);
   }
 
   update(dt, player) {
     const cam = this.game.camera;
-    this.group.position.copy(cam.position).addScaledVector(this.dir, this.dist);
+    // stay inside the camera's far plane (it follows the fog), scaled so it looks the same size
+    const d = Math.min(this.dist, cam.far * 0.85);
+    this.group.position.copy(cam.position).addScaledVector(this.dir, d);
+    this.group.scale.setScalar(d / this.dist);
     this.corona.lookAt(cam.position);
     const want = inSolar(player.pos) ? 1 : 0;
     this.fade += (want - this.fade) * Math.min(1, dt * 2);

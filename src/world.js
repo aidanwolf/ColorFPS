@@ -4,12 +4,14 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { boxGeo, mat } from './materials.js';
 import { Fx } from './fx.js';
+import { regionOf, VISIBLE_FROM } from './levels/regions.js';
 
 const _v = new THREE.Vector3();
 const _ray = new THREE.Raycaster();
 const GRID_CELL = 8;
 const GRID_MARGIN = 1;
-const POOL_SIZE = 10; // real point lights shared by every placed light (see updateLights)
+const POOL_SIZE = 10;
+const CULL_SIZE = 1 / 45; // objects smaller than this (radius / distance) aren't drawn // real point lights shared by every placed light (see updateLights)
 
 export class World {
   constructor(game) {
@@ -34,6 +36,39 @@ export class World {
       const l = new THREE.PointLight(0xffffff, 0, 1, 1.5);
       this.scene.add(l);
       this.lightPool.push({ light: l, owner: null, weight: 0 });
+    }
+  }
+
+  // Distance/size culling for everything the levels added to the scene. All the worlds share one scene,
+  // and from any spot most of the others are in front of the camera: anything farther than the fog, or
+  // too small on screen to matter, isn't drawn. Each object keeps its own visibility (code that hides a
+  // collected pickup or a dead drone still works): `visible` reads as wanted-and-not-culled.
+  setupCulling(skip = []) {
+    this.cullList = [];
+    const box = new THREE.Box3(), sphere = new THREE.Sphere();
+    for (const o of this.scene.children) {
+      if (o === this.staticGroup || o.isCamera || o.isLight || o.userData.noCull || skip.includes(o)) continue;
+      box.setFromObject(o);
+      if (box.isEmpty()) continue;
+      box.getBoundingSphere(sphere);
+      // bounds relative to the object's position, so moving things (drones, lifts) stay correct
+      const rec = { o, off: sphere.center.clone().sub(o.position), r: sphere.radius, region: regionOf(sphere.center), culled: false };
+      let want = o.visible;
+      Object.defineProperty(o, 'visible', { get: () => want && !rec.culled, set: (v) => (want = v), configurable: true });
+      this.cullList.push(rec);
+    }
+  }
+
+  updateCulling(camPos, far) {
+    const seen = VISIBLE_FROM[regionOf(camPos)];
+    for (const m of this.staticGroup.children) m.visible = seen.has(m.userData.region);
+    for (const rec of this.cullList || []) {
+      if (!seen.has(rec.region)) {
+        rec.culled = true;
+        continue;
+      }
+      const d = _v.copy(rec.o.position).add(rec.off).distanceTo(camPos) - rec.r;
+      rec.culled = d > far || (d > 0 && rec.r / (d + rec.r) < CULL_SIZE);
     }
   }
 
@@ -97,9 +132,13 @@ export class World {
     const w = maxX - minX, h = maxY - minY, d = maxZ - minZ;
     if (w <= 0.001 || h <= 0.001 || d <= 0.001) return null;
     const m = mat(kind, zone);
-    const geo = boxGeo(w, h, d, opts.uv ?? 0.5).translate((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
-    if (!this.staticParts.has(m)) this.staticParts.set(m, []);
-    this.staticParts.get(m).push(geo);
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, cz = (minZ + maxZ) / 2;
+    const geo = boxGeo(w, h, d, opts.uv ?? 0.5).translate(cx, cy, cz);
+    // merged per material *and* per area (regions.js), so whole worlds can be culled
+    const region = regionOf(_v.set(cx, cy, cz));
+    const key = m.uuid + ':' + region;
+    if (!this.staticParts.has(key)) this.staticParts.set(key, { m, region, geos: [] });
+    this.staticParts.get(key).geos.push(geo);
     if (opts.solid === false) return null;
     return this.addSolid(new THREE.Vector3(minX, minY, minZ), new THREE.Vector3(maxX, maxY, maxZ), {
       static: true,
@@ -112,12 +151,13 @@ export class World {
     return this.box(x1, y1, z1, x2, y2, z2, kind, zone, { solid: false });
   }
 
-  // Merge everything added with box()/deco() into one mesh per material.
+  // Merge everything added with box()/deco() into one mesh per material per area.
   finalize() {
-    for (const [m, geos] of this.staticParts) {
+    for (const { m, region, geos } of this.staticParts.values()) {
       const merged = mergeGeometries(geos, false);
       geos.forEach((g) => g.dispose());
       const mesh = new THREE.Mesh(merged, m);
+      mesh.userData.region = region;
       mesh.matrixAutoUpdate = false;
       mesh.updateMatrix();
       this.staticGroup.add(mesh);
