@@ -616,12 +616,12 @@
  },
  "crab_beep": {
   "text": "Short high electronic arming beep, single beep",
-  "dur": 0.25,
+  "dur": 0.5,
   "influence": 0.55
  },
  "crab_chirp": {
   "text": "Small robot crab alert chirp, quick mechanical squeak",
-  "dur": 0.4,
+  "dur": 0.5,
   "influence": 0.55
  },
  "crab_skitter": {
@@ -646,12 +646,12 @@
  },
  "welder_step": {
   "text": "Heavy metal robot footfall clank, single step",
-  "dur": 0.4,
+  "dur": 0.5,
   "influence": 0.55
  },
  "welder_rivet": {
   "text": "Pneumatic rivet gun shot, punchy thunk clack",
-  "dur": 0.4,
+  "dur": 0.5,
   "influence": 0.55
  },
  "welder_ignite": {
@@ -716,7 +716,7 @@
  },
  "mummy_dodge": {
   "text": "Quick cloth flutter with a sand scuff",
-  "dur": 0.4,
+  "dur": 0.5,
   "influence": 0.55
  },
  "mummy_shield": {
@@ -762,7 +762,7 @@
  },
  "core_chirp": {
   "text": "Tiny robotic double chirp",
-  "dur": 0.3,
+  "dur": 0.5,
   "influence": 0.55
  },
  "spider_hiss": {
@@ -782,7 +782,7 @@
  },
  "spider_land": {
   "text": "Light cluster of metal robot legs tapping down",
-  "dur": 0.4,
+  "dur": 0.5,
   "influence": 0.55
  },
  "spider_skitter": {
@@ -834,12 +834,12 @@
  },
  "glob_pop": {
   "text": "Wet pop as a glob bursts",
-  "dur": 0.4,
+  "dur": 0.5,
   "influence": 0.55
  },
  "critter_hit": {
   "text": "Metallic clang hit on a small robot",
-  "dur": 0.4,
+  "dur": 0.5,
   "influence": 0.55
  },
  "critter_die": {
@@ -1059,7 +1059,7 @@
  },
  "energy_crackle": {
   "text": "Short sharp electrical arc crackle, high voltage zap",
-  "dur": 0.4,
+  "dur": 0.5,
   "influence": 0.55
  },
  "warp_shatter": {
