@@ -423,8 +423,8 @@ export function buildVerdant(B) {
   trophy(-25.25, 6, -193.75);
   secretRoom([-27, 5, -195.5], [-23.5, 7.2, -192], 'Overgrown Hut');
   // slime molds lurk on the islands (yellow goo, red cores: you don't carry green yet)
-  B.slime([-20, 5, -190], { color: YELLOW, core: RED });
-  B.slime([-16.5, 5, -192.5], { color: YELLOW, core: RED, size: 0.85 });
+  B.slime([-25.5, 5, -186.5], { color: YELLOW, core: RED });
+  B.slime([-21, 5, -194.8], { color: YELLOW, core: RED, size: 0.85 });
   // the crumble run east: two honest stones, then one that looks solid and isn't (don't stop on it)
   B.crumble({ min: [-13, 4.5, -191], max: [-10.5, 5, -188], delay: 0.6, respawn: 3, zone });
   B.crumble({ min: [-8.5, 4.5, -191], max: [-6, 5, -188], delay: 0.6, respawn: 3, zone });

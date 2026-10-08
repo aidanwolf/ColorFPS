@@ -82,7 +82,7 @@ function verdantObjective(game) {
   if (p.x < -69.5 && p.z < -299.5) return `Stand on the ${tag(GREEN, 'green riser')} by the east wall and <b>hold fire on it</b> to climb to the door.`;
   if (p.x < -61 && p.z < -324 && p.z > -334) return `Burst each spore membrane with ${tag(GREEN, 'green')}, then ride the pad under it.`;
   if (p.z < -315 && p.y > 13) {
-    if (p.x < -21) return `Cross the chroma vines with your blaster on ${tag(GREEN, 'green')}.`;
+    if (p.x < -27) return `Cross the chroma vines with your blaster on ${tag(GREEN, 'green')}.`;
     if (p.x < -6) return 'Run the bough to the far platform — <b>don\'t stop</b>.';
     return `${tag(GREEN, 'Green')} builds the near stone, ${tag(YELLOW, 'yellow')} the far one: jump, then shoot yellow in mid-air.`;
   }
