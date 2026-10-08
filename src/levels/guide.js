@@ -50,7 +50,11 @@ function solarAfter(p, st) {
 export function currentObjective(game) {
   const b = game.blaster, has = (c) => b.has && b.unlocked[c];
   const where = regionOf(game.player.pos);
-  if (!b.has) return { html: 'Grab the <b>Chroma Blaster</b> from the pedestal.', color: COLORS[RED].css };
+  if (!b.has) {
+    const cell = game.level.cellBlock; // the opening (cellblock.js): locked up, then out of the block
+    if (cell && !cell.escaped) return { html: cell.fieldDown ? 'Escape the <b>cell block</b>.' : 'You wake in a <b>holding cell</b>.', color: COLORS[RED].css };
+    return { html: 'Grab the <b>Chroma Blaster</b> from the pedestal.', color: COLORS[RED].css };
+  }
   if (!has(YELLOW)) {
     if (where === 'red') return { html: `Fight north through the ${tag(RED, 'Crimson Foundry')} to the Nexus.`, color: COLORS[RED].css };
     if (where === 'solar') return { html: solarBefore(game.player.pos) || `Find the ${tag(YELLOW, 'SOLAR core')} somewhere below the mesas.`, door: null };

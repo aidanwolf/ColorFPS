@@ -3,6 +3,8 @@
 import * as THREE from 'three';
 import { Barrier } from '../entities/barrier.js';
 import { Pickup } from '../entities/misc.js';
+import { AudioLog } from '../entities/audiolog.js';
+import { Recorder } from '../story/recorder.js';
 import { Mirror, Glass, TargetPanel, ShotShield, Updraft } from '../entities/puzzle.js';
 import { waterSurface } from '../liquid.js';
 import {
@@ -285,6 +287,12 @@ export function makeBuilders(W, game, level) {
   const devStart = (name, pos, yaw = 0, colors = [0]) => (level.devStarts[name] = { pos: new THREE.Vector3(...pos), yaw, colors });
   // Called whenever the player respawns at a checkpoint (reset elevators, encounters, ...).
   const onRespawn = (fn) => level.respawnHooks.push(fn);
+  // One of Iris Calder's audio logs ('01'..'16', see tools/audio/logs.json), floating over the floor point
+  // pos. Once picked up it never comes back (story/recorder.js keeps the list).
+  const audioLog = (id, pos) => {
+    const rec = (game.recorder ??= new Recorder(game));
+    return rec.has(id) ? null : new AudioLog(W, game, { id, pos });
+  };
 
   // ---------- mechanics toolkit: one line per piece (options: see the top of entities/mechanics.js) ----------
   // Each wrapper takes the entity's options (zone defaults to 'red'), returns the entity and resets it on
@@ -315,5 +323,6 @@ export function makeBuilders(W, game, level) {
     sideAlcove, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, tree, blocker, killZone, devStart, onRespawn, water,
     guideStrip, glowEdge, hintEvery,
     colorSwitch, phasePlatform, chromaPlatform, crumble, trapdoor, spikes, shotMover, riser, sinker, shotRotor, platformRack, timedGate,
+    audioLog,
   };
 }

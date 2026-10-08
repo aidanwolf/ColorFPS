@@ -507,5 +507,15 @@
   "text": "Heavy blast door slamming shut with a boom and rattle",
   "dur": 0.9,
   "influence": 0.6
+ },
+ "log_pickup": {
+  "text": "Soft holographic data pickup chime: a gentle rising two-note glassy tone with a faint digital shimmer and a tiny tape recorder click, calm and mysterious, sci-fi video game collectible",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "cell_malfunction": {
+  "text": "Energy force field malfunctioning and failing: electrical sputtering, buzzing stutters, violent crackling sparks bursting, a rising power surge whine, then the field collapsing with a descending hum and a final electric pop, sci-fi prison cell",
+  "dur": 4.5,
+  "influence": 0.6
  }
 }

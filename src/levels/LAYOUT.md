@@ -30,6 +30,7 @@ From the Hub you can **see into every world through big windows before you can e
 | module | file | x | y | z |
 |---|---|---|---|---|
 | Crimson Foundry | `red.js` | -20 → 20 | -7 → 15 | 2 → -99.5 |
+| Cell block (the opening; door in the spawn room's east wall at z -3.8) | `cellblock.js` | 6.5 → 22.5 | -1 → 3.9 | 0.5 → -5.5 |
 | Foundry annex (color-locked challenge rooms off the spawn room) | `redAnnex.js` | -45 → 45 | -25 → 30 | 100 → -38 (keep clear of red.js's rooms) |
 | The Hub | `hub.js` | -25 → 25 | 2 → 45 | -99.5 → -148.5 |
 | Prism Core (boss) | `prism.js` | -31 → 31 | -60 → -6 | -88 → -175 |
@@ -102,6 +103,12 @@ Width 0.7, height 1.75 (crouched 0.95 — crawlspaces 1.0–1.1 high), eye 1.6. 
 automatically. Jump apex ≈ 1.5 m. Run 7.6 m/s, sprint 10.5 m/s: comfortable gaps ≤ 4 m (≤ 5.5 m
 sprinting), rises ≤ 1.2 m per jump. Falling below y -60 is death; touching spikes/acid/orbs is death
 (instant), so be fair: telegraph hazards, put a `Checkpoint` before every hard section.
+
+## Audio logs
+
+Iris Calder's 16 audio logs (story: `src/story/STORY.md`) are placed in one table in `logs.js`:
+`B.audioLog(id, [x, y, z])` floats a recorder 1.15 m over the floor point. If you rebuild an area, move
+its logs there (keep them off the main path but reachable).
 
 ## Dev starts
 
