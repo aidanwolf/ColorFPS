@@ -7,6 +7,7 @@
 //   sits above its door (dim = locked, pulsing = open, bright = complete).
 //   Centre: the Prism dais (x 0, z -110) — four color locks; when all four are attuned the seal drops and
 //   the elevator descends 52.8 m to the Prism Core antechamber (prism.js). A sunken plaza sits further north.
+//   Overhead hangs the reactor heart (reactor.js), drawing power from every world through four conduits.
 import * as THREE from 'three';
 import { COLORS, RED, YELLOW, GREEN, BLUE } from '../colors.js';
 import { Barrier } from '../entities/barrier.js';
@@ -15,6 +16,8 @@ import { Glass, TargetPanel } from '../entities/puzzle.js';
 import { boxGeo, mat } from '../materials.js';
 import { audio } from '../audio.js';
 import { boxOverlap } from '../world.js';
+import { buildReactor } from './reactor.js';
+import { WorkerSwarm } from '../entities/workerDrone.js';
 
 const FLOOR = 4; // main floor top
 const GAL = 12; // gallery / balcony floor top
@@ -463,13 +466,13 @@ export function buildHub(B) {
   let sealT = -1; // -1 sealed; 0..1 dissolving
 
   // the Prism: a floating crystal over the dais, one orbiting shard per color, beams from the locks
-  const PRISM_Y = 15.5;
+  const PRISM_Y = 12; // under the reactor heart's tip (reactor.js)
   const prismMat = new THREE.MeshStandardMaterial({ color: 0xdfeaff, emissive: 0x7a8cff, emissiveIntensity: 0.35, metalness: 0.25, roughness: 0.08, flatShading: true });
   const prism = new THREE.Mesh(new THREE.OctahedronGeometry(1.7, 0), prismMat);
   prism.scale.y = 1.7;
   prism.position.set(0, PRISM_Y, DZ);
   const cage = new THREE.Mesh(new THREE.OctahedronGeometry(2.3, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(0x9bf6ff).multiplyScalar(0.8), wireframe: true, transparent: true, opacity: 0.35 }));
-  cage.scale.y = 1.6;
+  cage.scale.y = 1.35;
   cage.position.copy(prism.position);
   const halo = new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.06, 6, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xdfe6ff).multiplyScalar(0.9) }));
   halo.rotation.x = Math.PI / 2;
@@ -515,6 +518,13 @@ export function buildHub(B) {
     game.hud.message('All four frequencies attuned. <b>The Prism Core is open</b> — step onto the lift.', 6);
   }
   const centreLight = light(0, 11, DZ, 0xcfe4ff, 12, 30);
+  // the reactor heart hanging over it all, fed by a conduit from every world (reactor.js)
+  level.reactor = buildReactor(B);
+  // its maintenance crew: white worker drones flying service routes from four wall bays (workerDrone.js)
+  level.workers = new WorkerSwarm(W, {
+    reactor: level.reactor,
+    bays: [{ p: [-14, 22.5, -100], n: [0, 0, -1] }, { p: [14, 22.5, -100], n: [0, 0, -1] }, { p: [-24.5, 22.5, -104.5], n: [1, 0, 0] }, { p: [24.5, 22.5, -104.5], n: [-1, 0, 0] }],
+  });
 
   // ---------------------------------------------------------------- director: banners, prism, seal
   let t = 0, moteT = 0;
