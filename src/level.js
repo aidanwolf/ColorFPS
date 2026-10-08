@@ -19,6 +19,7 @@ import { buildCombatRange } from './levels/combatRange.js';
 import { buildVerdantBossRange } from './levels/verdantBossRange.js';
 import { buildBossRange } from './levels/bossRange.js';
 import { buildLeviathanRange } from './levels/leviathanRange.js';
+import { buildForgeRange } from './levels/forgeRange.js';
 
 export function buildLevel(world, game) {
   const level = {
@@ -49,5 +50,6 @@ export function buildLevel(world, game) {
   buildVerdantBossRange(B); // dev-only (?dev&start=hydra)
   buildBossRange(B); // ?dev only: mini-bosses off the map
   buildLeviathanRange(B); // ?dev only: the Azure mini-boss arena, off the map
+  buildForgeRange(B); // dev-only Forge Titan test arena (?dev)
   return level;
 }
