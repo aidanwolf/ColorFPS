@@ -2,9 +2,9 @@
 // Natural breaks in Chroma Breach become 15-second playable branded rounds.
 // Docs: https://bonusround.io/docs/  ·  Integration recipe: https://bonusround.io/integrate.md
 //
-// Only the PUBLIC publisher id goes in the game. Set it in `.env.local`:
+// Only the PUBLIC publisher id goes in the game. It's set in `.env` (override in `.env.local`):
 //   VITE_BONUSROUND_PUB=pub_xxxxxxxxxxxxxxxx
-// Never put a `br_sk_` API key in game code.
+// Never put a `br_sk_` or `br_pk_` key in game code.
 //
 // Every call is safe when the SDK didn't load (ad blockers, offline): `attach` goes through the
 // `bonusround` queue and everything else through `window.BonusRound?.`.
@@ -18,7 +18,7 @@ export const ads = {
   // Inject the loader tag (equivalent to the <script async data-pub> tag in the docs).
   load() {
     if (!PUB) {
-      console.info('[chroma] Bonus Round is off: set VITE_BONUSROUND_PUB in .env.local to your pub_ id.');
+      console.info('[chroma] Bonus Round is off: set VITE_BONUSROUND_PUB in .env to your pub_ id.');
       return;
     }
     const s = document.createElement('script');

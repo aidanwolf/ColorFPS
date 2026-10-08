@@ -32,11 +32,9 @@ npm run build    # production build in dist/
 
 ## Monetization: Bonus Round
 
-[Bonus Round](https://bonusround.io) turns natural breaks into 15-second playable branded rounds (overlay mode). Setup:
+[Bonus Round](https://bonusround.io) turns natural breaks into 15-second playable branded rounds (overlay mode). The game is registered as **Chroma Breach** with publisher id `pub_4e2464e82324152a`, set in `.env` (public by design; override it in `.env.local` if needed).
 
-```bash
-cp .env.example .env.local   # then set VITE_BONUSROUND_PUB=pub_xxxxxxxxxxxxxxxx
-```
+The game was registered without an account, so it's **unclaimed**: localhost only shows the Bonus Round test ad, and a public site shows free, unpaid house ads. To turn on paid ads, open the claim link (kept in the gitignored `.bonusround/agent.json`, or recover it with `npx bonusround status`), create your account, and add the game's public domain in its Bonus Round settings. Unclaimed games are deleted after 90 days.
 
 Where it hooks in (`src/monetization/bonusround.js`, wired up in `src/main.js`):
 
