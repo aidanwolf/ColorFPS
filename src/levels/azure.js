@@ -361,6 +361,10 @@ export function buildAzure(B) {
   W.box(104, -21, -121, 107.5, -16, -116, 'metal', zone); // frozen turbine housing
   W.deco(103.9, -18.8, -121.1, 107.6, -18.5, -115.9, 'glow3', zone);
   cluster(107, -16, -120.5, 2.4, 'ice', 0.2, -0.2);
+  // ARMOR: in the dead-end strip behind the turbine housing (over the drop, out of the turret's sight), and
+  // over the deck's west edge (lean out).
+  B.armor([105.75, -21, -121.5]);
+  B.armor([95.3, -21, -117.5], { base: false });
   // COMBAT (small): the deck's sentries wake as you land; the hatch into the Flooded Depths (its entry
   // tunnel leaves the deck's east edge at z -114.6) stays sealed until they're down
   B.encounter({
@@ -405,6 +409,10 @@ export function buildAzure(B) {
   W.deco(88, -18.4, -164.6, 108, -17.8, -163.8, 'metal', zone);
   W.deco(88, -18.4, -160.6, 108, -17.8, -159.8, 'metal', zone);
   light(97, -18.6, -164, 0x86c8ff, 34, 28);
+  // ARMOR: tucked behind the specimen tanks against the east wall, and up on the crate by the south-west
+  // corner (where the brute comes in).
+  B.armor([107.35, -25, -166.25]);
+  B.armor([94.75, -23.5, -159.75]);
   new Checkpoint(W, game, { pos: [90.5, -25, -170], yaw: Math.PI / 2, size: [3, 3, 3] });
   B.encounter({
     trigger: [[89, -25, -171], [107, -20, -156]],

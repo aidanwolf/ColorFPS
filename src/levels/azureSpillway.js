@@ -111,6 +111,10 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   deco(156.95, -63.1, -162.5, 157, -59.9, -162.4, 'glow1');
   deco(156.95, -60, -165.6, 157, -59.9, -162.4, 'glow1');
   deco(156.9, HT + 0.6, -165.6, 157, HT + 0.7, -162.4, 'glow1');
+  // ARMOR: on the lone stepping stone east of the island (a 4 m jump from it), and on the island in the lee
+  // of its cover.
+  B.armor([147.25, HT, -177]);
+  B.armor([136, HT, -174.8]);
   B.encounter({
     trigger: [[117, HT - 1, -166], [123, HT + 4, -160]],
     seals: [
@@ -265,6 +269,10 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     onDefeated: () => game.hud.message('The engine is dead. Somewhere a <b>pressure lock</b> lets go — back out into the gallery and head <b>west</b>.', 6),
   }));
 
+  // ARMOR: floating at the surface in two of the air domes, the south-west one (a swim up from the murk) and
+  // a corner of the south-east one (mind its down-tube). Longer respawn: you come up for air all the time.
+  B.armor([143, -8.9, -178], { base: false, respawn: 45 });
+  B.armor([179.5, -8.9, -175.5], { base: false, respawn: 45 });
   // (its shore ledge stands 0.3 m over the alcove pool with no way to wade out: a flight of submerged steps
   // up the pool's east side, so the way back out after the fight is a swim and a walk)
   for (let k = 0; k < 5; k++) plat(162.6, -165.6 - 0.6 * k, 164, -165 - 0.6 * k, -8.1 - 0.4 * k, zone, 0.25);

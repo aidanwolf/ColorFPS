@@ -47,6 +47,8 @@ export function buildDeep({ B, W, game, level, H, boss }) {
     floe(Math.round(Math.cos(a) * r * 2) / 2, Math.round(Math.sin(a) * r * 2) / 2, 3.4);
   }
   for (const [x, z] of POCKETS) floe(x, z, 3.2);
+  // ARMOR: on the far (north-west) pocket floe, out at its corner.
+  B.armor([X(-19.5), 0, Z(-19.5)], { respawn: 45 });
   // stepping floes out to the walls, and a ledge along each wall (gaps of ~2 m: jump them, or swim)
   for (const s of [-1, 1]) {
     floe(0, s * 19, 2.2);

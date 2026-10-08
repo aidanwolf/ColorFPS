@@ -77,6 +77,8 @@ export function buildHeart({ B, W, game, level, H, boss }) {
     W.scene.add(beam);
     pylons.push({ crystal, beam, beamMat, color: COLORS[i].hex });
   });
+  // ARMOR: one, tucked behind the far (north) pylon; slow to come back, this is the last fight.
+  B.armor([X(0), 0, Z(-20.6)], { respawn: 60 });
   // the Prism Heart: a vast faceted crystal, slowly turning, its light pulsing through every color
   const heartMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xb890ff, emissiveIntensity: 0.55, metalness: 0.3, roughness: 0.1, flatShading: true, transparent: true, opacity: 0.92 });
   const heart = new THREE.Group();

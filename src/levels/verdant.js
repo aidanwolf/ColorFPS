@@ -476,6 +476,9 @@ export function buildVerdant(B) {
   W.box(-30.2, 11, -214.2, -17.8, 11.8, -213.3, 'metal', zone);
   W.deco(-25.5, 7.85, -213.45, -22.5, 7.95, -213.35, GLOW[zone], zone);
   vines(-30, -213.3, -18, -213.25, 11, 10, 3);
+  // ARMOR: over the moat at the bank's edge (lean out over the sludge), and up on the column at the east end.
+  B.armor([-11, 4.5, -202.3], { base: false });
+  B.armor([22, 5.9, -206]);
   const bankFight = B.encounter({
     trigger: [[-29, 4.5, -213.4], [29, 8, -204.2]],
     seals: [{ min: [-25.5, 4.5, -214], max: [-22.5, 7.9, -213.5], closed: true }],
@@ -667,6 +670,11 @@ export function buildVerdant(B) {
   glowPatch(-67.5, -298.5, -64.5, -263.5, -25, 20, 0.3);
   lamp(-81, -13.5, -281, 0xc8ffb0, 45, 40);
   B.spiderBot([-83, -11.5, -296], { color: RY, ceiling: true, leash: 10 });
+  // ARMOR: at the far (south) end of each catwalk (the pads throw you up at the north end), and over the
+  // north trough's sludge (jump across it).
+  B.armor([-96, -20.5, -267.5]);
+  B.armor([-66, -20.5, -267.5]);
+  B.armor([-88, -25, -290.4], { base: false });
   const greenhouse = B.encounter({
     trigger: [[-95, -25, -297], [-67, -20, -265.5]],
     seals: [
@@ -873,6 +881,10 @@ export function buildVerdant(B) {
   lamp(0, 33, -286, 0xe8ffb0, 36, 34);
   glowPatch(-13.5, -300.5, 13.5, -294, 26, 14);
   glowPatch(-13.5, -278, 13.5, -271.5, 26, 14);
+  // ARMOR: out over the drop beside the pad's landing (lean out past the deck's edge), and down in the
+  // hidden nest under the south gap (the pad there throws you back up).
+  B.armor([-4.8, 26, -301.7], { base: false });
+  B.armor([0, 21, -266.4]);
   const crownFight = B.encounter({
     trigger: [[-13.5, 26, -300.5], [13.5, 30, -271.5]],
     seals: [{ min: [13.6, 26, -301], max: [14.2, 29.4, -295], color: GREEN, closed: true }],
@@ -976,6 +988,11 @@ export function buildVerdant(B) {
 
   // ================================================================ THE THORNMAW'S COURTYARD (verdantArena.js)
   const arena = buildVerdantArena(B, { center: [84, 12, -270], size: 44, entry: 'w', exit: 's', colors: RYG, reactorColor: GREEN, world: 'verdant' });
+  // ARMOR: on the north-east and south-west towers (ride their jump pads up), and over the moat's east lip,
+  // in the Thornmaw's reach.
+  B.armor([102.5, 16.2, -287.5]);
+  B.armor([65.5, 16.2, -252.5]);
+  B.armor([92.8, 12, -270], { base: false });
   bark(54, -29, -271, 56, 11, -269); // a pier under the vestibule
   area([52.8, 12, -271.5], [55, 15, -268.5], MOOD);
 

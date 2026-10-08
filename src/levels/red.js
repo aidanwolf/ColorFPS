@@ -558,6 +558,11 @@ export function buildRed(B) {
   foundry.forge = placeForgeBoss(B, {
     onDefeated: () => game.hud.message('The Foundry\'s heart is cold. <b>North</b>, up the stairs, to the Atrium.', 5),
   });
+  // ARMOR: on the far ends of the two catwalks (the side pads throw you up), and over the lava channel at
+  // the east walkway's end (lean out). All clear of the tiles that drop in phase 3.
+  B.armor([-15.5, 5.5, -84]);
+  B.armor([15.5, 5.5, -62]);
+  B.armor([13.5, 0, -87.3], { base: false });
   mood([-16, 0, -88], [16, 6, -60], null);
   // ===================================================================== 9. THE STAIRS UP TO THE ATRIUM
   const ZE = -90.5, ZH = -99.5;

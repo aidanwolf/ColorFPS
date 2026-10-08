@@ -833,6 +833,11 @@ export function buildSolar(B) {
   banner('-z', -42, -89, 7.6);
   banner('-x', -74, -55, 7.6);
   banner('+x', -104, -48, 7.6, 1.6, 4.4);
+  // ARMOR: up on the north-west block (hop the drum beside it), on the broken pillar by the tower in the
+  // turret's sights, and on the low east block (a jump up, where the scarabs come in).
+  B.armor([-98.5, 1.2, -65]);
+  B.armor([-95, 0.6, -54]);
+  B.armor([-78.5, 0.8, -64]);
   B.encounter({
     trigger: [[-104, -1, -69], [-74, 6, -42]],
     seals: [
@@ -1044,6 +1049,11 @@ export function buildSolar(B) {
   blocker([-158.6, -2, -120], [-158, SKY, -110]);
   blocker([-196, 6, -46], [-147, SKY, -42]);
   blocker([-200, -10, -122], [-194, SKY, -42]);
+  // ARMOR: over the north sinkhole's lip (lean out), up on the broken pillar by the south wall, and on the
+  // short pillar on the east side under the drones.
+  B.armor([-167, -20, -62.7], { base: false });
+  B.armor([-172, -17.8, -53]);
+  B.armor([-158, -18.6, -98]);
   // the ambush: it wakes once you're holding yellow and step down off the dais
   const ambush = B.encounter({
     trigger: [[0, -500, 0], [1, -499, 1]], // started by hand (below)
@@ -1258,6 +1268,9 @@ export function buildSolar(B) {
     person(-129.6, -166.8, -1.3, 1.1);
     W.scene.add(new THREE.Mesh(mergeBoxes(shapes), shadowMat));
   }
+  // ARMOR: on a standing stone in the ring (where the mummy rises), and over the west cliff edge (lean out).
+  B.armor([-129.8, 13.9, -167.12]);
+  B.armor([-134.7, 12, -146], { base: false });
   const hopSeal = B.seal([-113.5, 12, -168.5], [-110.5, 14.5, -165.5], { color: YELLOW, zone, closed: true });
   B.encounter({
     trigger: [[-134, 12, -152], [-104, 17, -137.5]],
@@ -1315,6 +1328,9 @@ export function buildSolar(B) {
   R(-82, -14, -171.5, -78, 15, -165.5);
   const court = buildSphinxArena(B, { center: COURT, size: 44, entry: 'w', exit: 's', stub: 6, powerSource: true, world: 'solar', sunDir: SUN_DIR });
   level.solarCourt = court;
+  // ARMOR: on the two sun-altar ledges (ride their jump pads up): a breather off the court floor.
+  B.armor([-80, 20.6, -215.5]);
+  B.armor([-59.5, 20.6, -195]);
   area([-109.5, 16, -196.5], [-103.5, 19.2, -193.5], mood);
   area([-81.5, 16, -171.5], [-78.5, 19.2, -165.5], mood);
   devStart('solar11', court.checkpoint, court.checkpointYaw, [RED, YELLOW]);

@@ -53,6 +53,8 @@ export function buildForge({ B, W, game, level, H, boss }) {
     glowEdge(X(x - HALF), Z(z - HALF), X(x + HALF), Z(z + HALF), 0, 'glow0', zone, 0.06);
     if (!x || !z) anvil(x, z);
   }
+  // ARMOR: on the far (north-west) corner island, which has no anvil: get off it before the surge.
+  B.armor([X(-O), 0, Z(-O)], { respawn: 45 });
   // the lake bed and the caldera walls (cliffs with molten seams)
   rock(-WALL, -8, -WALL, WALL, -7, WALL);
   for (const [x1, z1, x2, z2] of [[-WALL - 3, -WALL - 3, WALL + 3, -WALL], [-WALL - 3, WALL, WALL + 3, WALL + 3], [-WALL - 3, -WALL, -WALL, WALL], [WALL, -WALL, WALL + 3, WALL]]) rock(x1, -8, z1, x2, 16, z2);
