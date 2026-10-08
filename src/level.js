@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { makeBuilders } from './levels/builders.js';
 import { buildRed } from './levels/red.js';
+import { buildRedAnnex } from './levels/redAnnex.js';
 import { buildHub } from './levels/hub.js';
 import { buildSolar } from './levels/solar.js';
 import { buildVerdant } from './levels/verdant.js';
@@ -23,6 +24,7 @@ export function buildLevel(world, game) {
   };
   const B = makeBuilders(world, game, level);
   buildRed(B);
+  buildRedAnnex(B);
   buildHub(B);
   buildSolar(B);
   buildVerdant(B);
