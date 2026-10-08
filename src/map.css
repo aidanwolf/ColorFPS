@@ -1,0 +1,111 @@
+/* ---------- Holographic map (map.js) ---------- */
+#map {
+  --holo: #9bf6ff; --area: #4ff0ff;
+  position: fixed; inset: 0; z-index: 6; overflow: hidden; color: var(--holo);
+  user-select: none; -webkit-user-select: none; touch-action: none;
+}
+body.map-open #hud { opacity: 0; }
+#map .map-label { font-size: 10px; letter-spacing: 4px; color: rgba(155, 246, 255, 0.55); margin: 0 0 6px; }
+
+/* panels: dark glass with corner brackets, sliding in as the hologram scans up */
+#map .map-head, #map .map-obj, #map .map-side {
+  position: absolute; padding: 12px 16px; background: linear-gradient(135deg, rgba(4, 18, 28, 0.72), rgba(4, 10, 20, 0.45));
+  border: 1px solid rgba(155, 246, 255, 0.18); box-shadow: 0 0 24px rgba(79, 240, 255, 0.08) inset;
+  transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.35s;
+}
+#map .map-head::before, #map .map-obj::before, #map .map-side::before,
+#map .map-head::after, #map .map-obj::after, #map .map-side::after {
+  content: ""; position: absolute; width: 10px; height: 10px; border: 2px solid var(--holo); filter: drop-shadow(0 0 4px var(--holo));
+}
+#map .map-head::before, #map .map-obj::before, #map .map-side::before { left: -2px; top: -2px; border-right: 0; border-bottom: 0; }
+#map .map-head::after, #map .map-obj::after, #map .map-side::after { right: -2px; bottom: -2px; border-left: 0; border-top: 0; }
+#map:not(.show) .map-head, #map.closing .map-head { transform: translateY(-24px); opacity: 0; }
+#map:not(.show) .map-obj, #map.closing .map-obj { transform: translateY(24px); opacity: 0; }
+#map:not(.show) .map-side, #map.closing .map-side { transform: translateX(24px); opacity: 0; }
+#map.closing .map-labels, #map.closing .map-hint { opacity: 0; transition: opacity 0.2s; }
+
+#map .map-head { left: 24px; top: 20px; min-width: 260px; }
+#map .map-kicker { font-size: 10px; letter-spacing: 5px; color: rgba(155, 246, 255, 0.6); }
+#map .map-area {
+  margin-top: 4px; font-size: 24px; font-weight: 800; letter-spacing: 3px; color: var(--area);
+  text-shadow: 0 0 14px var(--area), 0 0 2px #fff;
+}
+#map .map-charted { margin-top: 4px; font-size: 11px; letter-spacing: 3px; color: rgba(155, 246, 255, 0.75); }
+
+#map .map-obj { left: 24px; bottom: 54px; max-width: min(420px, 44vw); }
+#map .map-obj-text { font-size: 14px; line-height: 1.4; color: #e8fbff; }
+#map .map-obj-text b { color: var(--holo); }
+
+#map .map-side { right: 24px; top: 20px; width: 236px; }
+#map .map-areas { margin-bottom: 12px; }
+#map .map-sector { position: relative; display: flex; justify-content: space-between; gap: 8px; padding: 4px 0 6px; font-size: 10.5px; letter-spacing: 1.5px; color: rgba(232, 251, 255, 0.85); }
+#map .map-sector b { color: var(--ac); font-weight: 700; }
+#map .map-sector i { position: absolute; left: 0; bottom: 1px; height: 2px; background: var(--ac); box-shadow: 0 0 6px var(--ac); }
+#map .map-sector::after { content: ""; position: absolute; left: 0; right: 0; bottom: 1px; height: 2px; background: rgba(155, 246, 255, 0.1); }
+#map .map-sector.here span { color: var(--ac); text-shadow: 0 0 8px var(--ac); }
+#map .map-sector.here span::before { content: "▶ "; }
+#map .map-sector.unknown { color: rgba(155, 246, 255, 0.35); }
+#map .map-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; font-size: 10.5px; letter-spacing: 1px; color: rgba(232, 251, 255, 0.85); }
+#map .map-legend div { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+#map .map-legend i { flex: none; display: inline-block; width: 12px; height: 12px; }
+#map .lg-you { background: #dfffff; clip-path: polygon(50% 0, 100% 100%, 50% 72%, 0 100%); filter: drop-shadow(0 0 3px #4ff0ff); }
+#map .lg-goal { width: 6px !important; margin: 0 3px; background: linear-gradient(#fff0, #ffd23a); box-shadow: 0 0 8px #ffd23a; }
+#map .lg-save { background: #c8fbff; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); box-shadow: 0 0 6px #9bf6ff; }
+#map .lg-cp { background: #5fd3a0; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); transform: scale(0.8); }
+#map .lg-gate { border: 2px solid #3dff7a; background: rgba(61, 255, 122, 0.3); box-shadow: 0 0 6px #3dff7a; }
+#map .lg-core { background: conic-gradient(#ff3344, #ffd23a, #3dff7a, #3a8bff, #ff3344); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+#map .lg-hazard { background: repeating-linear-gradient(45deg, #ff5a1a 0 3px, #ff5a1a33 3px 6px); }
+#map .lg-known { height: 2px !important; background: #4ff0ff; box-shadow: 0 0 6px #4ff0ff; }
+#map .lg-unknown { height: 2px !important; background: repeating-linear-gradient(90deg, #4ff0ff88 0 3px, transparent 3px 6px); }
+
+#map .map-hint { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); font-size: 11px; letter-spacing: 1px; color: rgba(155, 246, 255, 0.7); white-space: nowrap; }
+#map .map-hint kbd { border-color: rgba(155, 246, 255, 0.35); color: #e8fbff; margin-left: 8px; font-size: 10.5px; }
+#map .touch-hint { display: none; }
+body.touch #map .desk-hint { display: none; }
+body.touch #map .touch-hint { display: block; }
+#map .map-close {
+  display: none; position: absolute; right: calc(16px + env(safe-area-inset-right, 0px)); top: calc(14px + env(safe-area-inset-top, 0px));
+  width: 44px; height: 44px; min-width: 0; padding: 0; border-radius: 10px; font-size: 16px;
+  color: var(--holo); background: rgba(4, 18, 28, 0.6); border: 2px solid rgba(155, 246, 255, 0.45);
+}
+body.touch #map .map-close { display: block; }
+body.touch #map .map-side { top: auto; bottom: 54px; right: calc(16px + env(safe-area-inset-right, 0px)); }
+body.touch #map .map-legend, body.touch #map .lg-title { display: none; }
+
+/* floating labels in the hologram */
+#map .map-labels { position: absolute; inset: 0; pointer-events: none; transition: opacity 0.3s; }
+#map .map-tag { position: absolute; left: 0; top: 0; white-space: nowrap; text-align: center; will-change: transform; }
+#map .map-tag.area b { display: block; font-size: 13px; font-weight: 800; letter-spacing: 4px; color: var(--ac); text-shadow: 0 0 10px var(--ac), 0 0 2px #000; }
+#map .map-tag.area small { display: block; margin-top: 2px; font-size: 9px; letter-spacing: 3px; color: rgba(232, 251, 255, 0.7); }
+#map .map-tag.area::after { content: ""; display: block; width: 1px; height: 18px; margin: 3px auto 0; background: linear-gradient(var(--ac), transparent); }
+#map .map-tag.area.below::after { display: none; }
+#map .map-tag.area.below::before { content: ""; display: block; width: 1px; height: 18px; margin: 0 auto 3px; background: linear-gradient(transparent, var(--ac)); }
+#map .map-tag.area.here b { font-size: 15px; }
+#map .map-tag.area.here small { color: #fff; animation: map-blink 1.2s steps(2) infinite; }
+#map .map-tag.area.unknown { opacity: 0.45; }
+#map .map-tag.goal, #map .map-tag.core {
+  font-size: 10px; font-weight: 700; letter-spacing: 3px; padding: 2px 8px; color: #05060b; background: var(--ac); box-shadow: 0 0 12px var(--ac);
+}
+#map .map-tag.core { color: var(--ac); background: rgba(4, 10, 20, 0.6); border: 1px solid var(--ac); }
+#map .map-tag.compass { font-size: 11px; font-weight: 700; color: rgba(155, 246, 255, 0.55); text-shadow: 0 0 6px rgba(79, 240, 255, 0.6); }
+#map .map-tag.compass.north { color: #fff; font-size: 13px; }
+@keyframes map-blink { 50% { opacity: 0.45; } }
+
+/* a bright line that sweeps down the screen as the map opens */
+#map .map-scanline { position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--holo); box-shadow: 0 0 18px 4px var(--holo); opacity: 0; pointer-events: none; }
+#map.show .map-scanline { animation: map-scan 0.55s ease-out; }
+@keyframes map-scan { 0% { top: 0; opacity: 0.9; } 100% { top: 100%; opacity: 0; } }
+
+/* the touch button that opens the map, beside pause */
+.tbtn.map { width: 44px; height: 44px; right: calc(70px + env(safe-area-inset-right, 0px)); top: calc(14px + env(safe-area-inset-top, 0px)); border-radius: 10px; font-size: 10px; letter-spacing: 1px; }
+
+@media (max-height: 460px) {
+  #map .map-side { display: none; }
+}
+@media (max-width: 760px), (max-height: 460px) {
+  #map .map-side { width: 200px; padding: 8px 12px; }
+  #map .map-legend, #map .lg-title { display: none; }
+  #map .map-head { min-width: 0; padding: 8px 12px; }
+  #map .map-area { font-size: 18px; }
+  #map .map-hint { font-size: 10px; }
+}

@@ -14,7 +14,7 @@ const PATHS = {
   verdant: [[0, -103], [-6.5, -104], [-10, -112], [-10, -146.5]],
   azure: [[0, -103], [6.5, -103.6], [23, -112]],
 };
-const DOORS = {
+export const DOORS = {
   solar: { pos: [-24.6, -112], color: YELLOW },
   verdant: { pos: [-10, -148.2], color: GREEN },
   azure: { pos: [24.6, -112], color: BLUE },
