@@ -367,5 +367,70 @@
   "text": "Massive incinerator beam igniting, sudden explosive whoomph of fire and plasma, bright searing blast with crackle",
   "dur": 1.5,
   "influence": 0.6
+ },
+ "step_tile1": {
+  "text": "Loud hard boot heel clack on a polished marble tile floor, sharp crisp high heel click, single isolated footstep, close mic, completely dry, no reverb, no echo, no room sound",
+  "dur": 0.5,
+  "influence": 0.75
+ },
+ "step_tile2": {
+  "text": "Single boot heel strike on glossy ceramic tile, bright hard click with a short solid thud, single isolated footstep, close mic, completely dry, no reverb, no echo, no room sound",
+  "dur": 0.5,
+  "influence": 0.75
+ },
+ "step_tile3": {
+  "text": "Hard boot heel tap on a shiny ceramic tile floor, bright sharp clack, crisp high click, single isolated footstep, close mic, completely dry, no reverb, no echo, no room sound",
+  "dur": 0.5,
+  "influence": 0.75
+ },
+ "step_grate1": {
+  "text": "Heavy boot stepping on a loose steel mesh grating, rattly metallic clank and jingle, single isolated footstep, close mic, completely dry, no reverb, no echo, no room sound",
+  "dur": 0.5,
+  "influence": 0.75
+ },
+ "step_grate2": {
+  "text": "Loud boot step on a loose metal floor grating, bright rattling clank, jangling steel mesh, single isolated footstep, close mic, completely dry, no reverb, no echo, no room sound",
+  "dur": 0.5,
+  "influence": 0.75
+ },
+ "step_stone1": {
+  "text": "Heavy boot scuffing on rough rock and concrete, gritty dull stone step, single isolated footstep, close mic, completely dry, no reverb, no echo, no room sound",
+  "dur": 0.5,
+  "influence": 0.75
+ },
+ "step_stone2": {
+  "text": "Single boot step on solid rocky ground, low gritty scrape and thump, single isolated footstep, close mic, completely dry, no reverb, no echo, no room sound",
+  "dur": 0.5,
+  "influence": 0.75
+ },
+ "step_sand1": {
+  "text": "Heavy boot crunching into dry desert sand and fine gravel, crunchy grainy step, single isolated footstep, close mic, completely dry, no reverb, no echo, no room sound",
+  "dur": 0.5,
+  "influence": 0.75
+ },
+ "step_sand2": {
+  "text": "Single boot step on loose gravel and sand, crisp crunching grit, single isolated footstep, close mic, completely dry, no reverb, no echo, no room sound",
+  "dur": 0.5,
+  "influence": 0.75
+ },
+ "step_ice1": {
+  "text": "Boot crunching on a crisp thin layer of ice over a frozen metal floor, icy crackle and cold clink, single isolated footstep, close mic, completely dry, no reverb, no echo, no room sound",
+  "dur": 0.5,
+  "influence": 0.75
+ },
+ "step_ice2": {
+  "text": "Loud crisp crunch of a boot stepping on frost and thin ice over a steel floor, sharp icy crackle and bright glassy clink, single isolated footstep, close mic, completely dry, no reverb, no echo, no room sound",
+  "dur": 0.5,
+  "influence": 0.75
+ },
+ "land_tile": {
+  "text": "Heavy armored boots landing from a jump onto a hard polished stone tile floor, sharp solid double clack thud, short, completely dry, no reverb, no echo",
+  "dur": 0.6,
+  "influence": 0.7
+ },
+ "land_sand": {
+  "text": "Heavy armored boots landing from a jump onto dry sand and gravel, crunchy thump with scattering grit, short, completely dry, no reverb, no echo",
+  "dur": 0.6,
+  "influence": 0.7
  }
 }

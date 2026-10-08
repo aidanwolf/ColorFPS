@@ -1,6 +1,7 @@
 // Sound: ElevenLabs-generated samples and music from public/audio/ (see tools/audio/gen.mjs),
 // with synthesized fallbacks for anything that isn't there, so the game always has sound.
 import { COLORS } from './colors.js';
+import { regionOf } from './levels/regions.js';
 
 const AUDIO_URL = `${import.meta.env.BASE_URL}audio/`;
 const SFX_FILES = [
@@ -14,6 +15,8 @@ const SFX_FILES = [
   'boss_core_hit', 'combo_tick', 'combo_fail', 'ring_wave',
   'drone_hum', 'drone_hit', 'drone_crash', 'elevator_start', 'elevator_loop', 'elevator_stop', 'alarm', 'sun_hum',
   'amb_hub', 'amb_solar', 'amb_abyss', 'fall_wind', 'land_hard', 'impact_death',
+  'step_tile1', 'step_tile2', 'step_tile3', 'step_grate1', 'step_grate2', 'step_stone1', 'step_stone2',
+  'step_sand1', 'step_sand2', 'step_ice1', 'step_ice2', 'land_tile', 'land_sand',
 ];
 const SHOT_NAMES = ['shoot_red', 'shoot_yellow', 'shoot_green', 'shoot_blue'];
 const MUSIC_GAIN = 1.7;
@@ -33,6 +36,85 @@ const AMB_GAIN = 0.35;
 // The generated beds came out at very different loudness (-10 .. -39 LUFS); these even them out.
 const AMB_TRIM = { amb_foundry: 1, amb_hub: 0.33, amb_solar: 2.2, amb_jungle: 2.2, amb_abyss: 2.4, amb_wind: 4, amb_core: 0.4 };
 const AMB_XFADE = 3;
+
+// Footstep materials. Every sample is played at `level` relative to its own peak (the generated takes
+// came out anywhere from -30 to 0 dBFS), `layer` adds a quieter second material on top (frost on tile),
+// `land` is the landing thud, `hz` the synth fallback's pitch.
+const STEPS = {
+  tile: { names: ['step_tile1', 'step_tile2', 'step_tile3'], level: 0.3, land: 'land_tile', hz: 2600 },
+  icetile: { names: ['step_tile1', 'step_tile2', 'step_tile3'], level: 0.26, layer: 'ice', land: 'land_tile', hz: 3200 },
+  grate: { names: ['step_grate1', 'step_grate2'], level: 0.26, land: 'land', hz: 1800 },
+  metal: { names: ['step_metal1', 'step_metal2', 'step_metal3'], level: 0.26, land: 'land', hz: 1400 },
+  stone: { names: ['step_stone1', 'step_stone2'], level: 0.26, land: 'land', hz: 900 },
+  sand: { names: ['step_sand1', 'step_sand2'], level: 0.24, land: 'land_sand', hz: 3000 },
+  ice: { names: ['step_ice1', 'step_ice2'], level: 0.24, land: 'land_tile', hz: 4000 },
+  grass: { names: ['step_grass1', 'step_grass2'], level: 0.22, land: 'land_sand', hz: 500 },
+};
+
+// What walking on this solid sounds like: its kind (world.box), shaded by the area it's in.
+function stepSurface(solid, pos) {
+  const k = solid?.kind;
+  const r = pos ? regionOf(pos) : 'red';
+  const icy = r === 'azure';
+  if (k === 'grass') return 'grass';
+  if (k === 'floor') return icy ? 'icetile' : 'tile';
+  if (k === 'grate') return 'grate';
+  if (k === 'rock') return r === 'solar' ? 'sand' : icy ? 'ice' : 'stone';
+  // standing on top of walls: masonry out in the wilds, plating indoors
+  if (k === 'wall' || k === 'ceil' || k === 'door') return r === 'solar' || r === 'verdant' ? 'stone' : icy ? 'ice' : 'metal';
+  return icy ? 'ice' : 'metal'; // metal, plat, lifts and elevators, anything unnamed
+}
+
+// ---- room acoustics ----
+// Sound effects feed a reverb send: a short room and a long hall (procedural impulse responses in two
+// ConvolverNodes, built once) and a stereo feedback delay for discrete echoes. updateSpace() measures
+// the space around the camera with a fan of rays and moves only the three send levels (and the echo
+// time), so walking from a corridor into the atrium blooms the tail and the echo in naturally.
+const SPACE_FAR = 120;
+const SPACE_RATE = 3; // full fan refreshes per second (a ray costs ~0.1-0.5 ms against every solid)
+const SPACE_BATCHES = 8; // ...spread over this many small batches a second
+const SPACE_DIRS = [
+  [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], // horizontal 0..7: the walls
+  [0.7071, 0, 0.7071], [0.7071, 0, -0.7071], [-0.7071, 0, 0.7071], [-0.7071, 0, -0.7071],
+  [0, 1, 0], // 8: straight up
+  [0.7071, 0.7071, 0], [-0.7071, 0.7071, 0], [0, 0.7071, 0.7071], [0, 0.7071, -0.7071], // 9..12: is there a roof?
+].map(([x, y, z]) => ({ x, y, z }));
+const SPANS = [[0, 1], [2, 3], [4, 7], [5, 6]]; // opposite horizontal pairs
+const DOWN = { x: 0, y: -1, z: 0 };
+const LOOP_SEND = 0.25; // drone hums and motors: a hint of the room, not a wash
+const DRY_LOOPS = new Set(['fall_wind']); // wind in your ears has no room
+
+const smooth = (a, b, x) => {
+  const u = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return u * u * (3 - 2 * u);
+};
+
+// A procedural impulse response: decaying stereo noise (independent channels, so the tail is wide)
+// that darkens as it decays, behind a pre-delay and a few discrete early reflections.
+function impulse(ctx, { len, rt60, pre = 0.005, rise = 0.01, early = [], bright = 0.7 }) {
+  const sr = ctx.sampleRate, n = Math.floor(len * sr);
+  const buf = ctx.createBuffer(2, n, sr);
+  const p0 = Math.floor(pre * sr);
+  const tap = Math.sqrt((sr * 0.01) / 3); // an early-reflection gain of 1 carries about as much as 10 ms of tail
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    let y = 0;
+    for (let i = p0; i < n; i++) {
+      const t = (i - p0) / sr;
+      // a one-pole lowpass closing over the tail: the highs die first, like air and soft walls do;
+      // the sqrt term keeps the filtered noise at the same power, so rt60 stays the decay time
+      const b = Math.max(0.04, bright * Math.exp(-t / (rt60 * 0.45)));
+      y += (Math.random() * 2 - 1 - y) * b;
+      const env = Math.exp((-6.91 * t) / rt60) * (1 - Math.exp(-t / rise)) * Math.min(1, (n - i) / (0.03 * n));
+      d[i] = y * Math.sqrt((2 - b) / b) * env;
+    }
+    for (const [t, g] of early) {
+      const i = p0 + Math.floor(t * (c ? 1.07 : 0.94) * sr);
+      if (i < n) d[i] += g * tap * (Math.random() < 0.5 ? -1 : 1);
+    }
+  }
+  return buf;
+}
 
 // Cancel a param's pending automation, holding it at its current value (no jump back).
 function hold(param, t) {
@@ -288,7 +370,9 @@ class Audio {
   }
 
   // Play a loaded sample. Returns false if it isn't available so callers can fall back to synth.
-  sample(name, { rate = 1, gain = 1, vary = 0.05, delay = 0 } = {}) {
+  // dry: skip the room reverb (UI and jingles).
+  // cut: fade it out after this many seconds (keeps rapid footsteps crisp instead of smearing).
+  sample(name, { rate = 1, gain = 1, vary = 0.05, delay = 0, dry = false, cut = 0 } = {}) {
     const buf = this.ctx && this.buffers.get(name);
     if (!buf) return false;
     const src = this.ctx.createBufferSource();
@@ -296,8 +380,12 @@ class Audio {
     src.playbackRate.value = rate * (1 + (Math.random() * 2 - 1) * vary);
     const g = this.ctx.createGain();
     g.gain.value = gain;
-    src.connect(g).connect(this.sfxBus);
+    src.connect(g).connect(dry ? this.dryBus : this.sfxBus);
     src.start(this.t + delay);
+    if (cut) {
+      g.gain.setTargetAtTime(0, this.t + delay + cut, 0.025);
+      src.stop(this.t + delay + cut + 0.2);
+    }
     return true;
   }
 
@@ -357,7 +445,7 @@ class Audio {
         this.prefetch([n]);
         return null;
       }
-      return new Bed(this.ctx, n, buf, this.sfxBus, AMB_GAIN * (AMB_TRIM[n] ?? 1), Math.random() * buf.duration);
+      return new Bed(this.ctx, n, buf, this.dryBus, AMB_GAIN * (AMB_TRIM[n] ?? 1), Math.random() * buf.duration);
     };
     this.ambLayer.blend(a, b, w, make);
   }
@@ -374,7 +462,7 @@ class Audio {
       return;
     }
     const level = AMB_GAIN * (AMB_TRIM[name] ?? 1);
-    this.ambLayer.to(name, () => new Bed(this.ctx, name, buf, this.sfxBus, level, Math.random() * buf.duration), AMB_XFADE);
+    this.ambLayer.to(name, () => new Bed(this.ctx, name, buf, this.dryBus, level, Math.random() * buf.duration), AMB_XFADE);
   }
 
   // Low-health heartbeat loop.
@@ -391,7 +479,7 @@ class Audio {
       const g = this.ctx.createGain();
       g.gain.setValueAtTime(0, this.t);
       g.gain.linearRampToValueAtTime(0.7, this.t + 0.5);
-      src.connect(g).connect(this.sfxBus);
+      src.connect(g).connect(this.dryBus);
       src.start();
       this.hb = { src, gain: g };
     } else if (!on && this.hb) {
@@ -431,12 +519,25 @@ class Audio {
       comp.threshold.value = -14;
       comp.ratio.value = 6;
       this.master.connect(comp).connect(this.ctx.destination);
+      // sound effects: dry to the master plus a full send into the room reverb; the dry bus (ambience
+      // beds, heartbeat, UI) skips the room
+      this.buildReverb();
       this.sfxBus = this.ctx.createGain();
       this.sfxBus.connect(this.master);
-      // world loops (drone hums, motors) go through their own fader so they hush while the game is paused
+      this.sfxBus.connect(this.verbIn);
+      this.dryBus = this.ctx.createGain();
+      this.dryBus.connect(this.master);
+      // world loops (drone hums, motors) go through their own fader so they hush while the game is paused,
+      // with only a light reverb send so a hovering drone doesn't smear into a drone of its own
       this.loopBus = this.ctx.createGain();
       this.loopBus.gain.value = this.loopsMuted ? 0 : 1;
-      this.loopBus.connect(this.sfxBus);
+      this.loopBus.connect(this.master);
+      const loopSend = this.ctx.createGain();
+      loopSend.gain.value = LOOP_SEND;
+      this.loopBus.connect(loopSend).connect(this.verbIn);
+      this.loopDry = this.ctx.createGain();
+      this.loopDry.gain.value = this.loopsMuted ? 0 : 1;
+      this.loopDry.connect(this.master);
       // music: tracks → duck (stingers) → bus (mute) → master; the synth fallback has its own fader
       this.musicBus = this.ctx.createGain();
       this.musicBus.gain.value = MUSIC_BUS;
@@ -458,6 +559,132 @@ class Audio {
   setVolume(v) {
     this.volume = v;
     if (this.master) this.master.gain.value = v;
+  }
+
+  // ---- room reverb: verbIn → [room IR, hall IR, echo delays] → master; updateSpace sets the sends ----
+  buildReverb() {
+    const ctx = this.ctx;
+    this.verbIn = ctx.createGain();
+    // keep the rumble and the fizz out of the tail
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 160;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 7000;
+    this.verbIn.connect(hp).connect(lp);
+    const out = ctx.createGain();
+    out.connect(this.master);
+    const send = (dest) => {
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      lp.connect(g).connect(dest);
+      return g;
+    };
+    const conv = (opts) => {
+      const c = ctx.createConvolver();
+      c.buffer = impulse(ctx, opts);
+      c.connect(out);
+      return c;
+    };
+    // a small hard room (corridors, chambers) and a big hall whose first reflections come off far walls
+    const room = conv({ len: 1, rt60: 0.6, pre: 0.003, rise: 0.004, bright: 0.85, early: [[0.006, 0.6], [0.011, 0.45], [0.019, 0.3]] });
+    const hall = conv({ len: 4, rt60: 3.4, pre: 0.018, rise: 0.05, bright: 0.6, early: [[0.03, 0.6], [0.052, 0.45], [0.077, 0.4], [0.1, 0.3], [0.13, 0.22]] });
+    // echo: two feedback delays a little apart (left / right), each repeat darker than the last
+    const echoIn = ctx.createGain();
+    const merge = ctx.createChannelMerger(2);
+    const delays = [0, 1].map((ch) => {
+      const d = ctx.createDelay(1.5);
+      d.delayTime.value = 0.3;
+      const damp = ctx.createBiquadFilter();
+      damp.type = 'lowpass';
+      damp.frequency.value = 3000;
+      const fb = ctx.createGain();
+      fb.gain.value = 0;
+      echoIn.connect(d).connect(damp);
+      damp.connect(fb).connect(d);
+      damp.connect(merge, 0, ch);
+      return { d, fb };
+    });
+    merge.connect(out);
+    this.verb = { room: send(room), hall: send(hall), echo: send(echoIn), delays };
+  }
+
+  // Called every frame with the camera position: measures the space around it with a fan of rays
+  // (a few at a time, the whole fan three times a second) and steers the reverb sends.
+  //   corridor / small room: a short tight room, low wet
+  //   big enclosed hall (the Hub atrium): the long hall plus an echo off the far walls
+  //   huge cavern (the Prism Core): even more hall, and an echo that keeps ringing
+  //   open sky: next to no reverb, but a slapback off any walls in range (canyons)
+  updateSpace(world, pos, dt) {
+    const v = this.verb;
+    if (!v || !world?.raycast) return;
+    const N = SPACE_DIRS.length;
+    const sp = (this.space ??= { dist: SPACE_DIRS.map(() => SPACE_FAR), next: 0, acc: 0, x: 0, y: 0, z: 0, down: 1.7, primed: false });
+    // a teleport (respawn, dev start) re-measures everything at once and snaps the mix
+    const jump = !sp.primed || (pos.x - sp.x) ** 2 + (pos.y - sp.y) ** 2 + (pos.z - sp.z) ** 2 > 64;
+    Object.assign(sp, { x: pos.x, y: pos.y, z: pos.z, primed: true });
+    // measured in small batches, eight a second; between them nothing changes
+    sp.acc += dt;
+    if (!jump && sp.acc < 1 / SPACE_BATCHES) return;
+    sp.acc = 0;
+    for (let n = jump ? N : Math.ceil((N * SPACE_RATE) / SPACE_BATCHES); n > 0; n--) {
+      const i = sp.next;
+      sp.next = (i + 1) % N;
+      sp.dist[i] = world.raycast(pos, SPACE_DIRS[i], SPACE_FAR, { meshes: false })?.t ?? Infinity;
+    }
+    // and the floor below, every batch: how high the room is, and what a landing will sound like
+    const below = world.raycast(pos, DOWN, 40, { meshes: false });
+    sp.down = below ? below.t : 40;
+    this.under = below ? { surface: stepSurface(below.solid, pos), t: this.t } : null;
+
+    const d = sp.dist;
+    const hz = d.slice(0, 8).map((x) => Math.min(x, SPACE_FAR)).sort((a, b) => a - b);
+    // size: the cube root of a rough volume, from the two longest wall-to-wall spans (x, z and both
+    // diagonals) and floor-to-ceiling height. Two spans, so a hall reads big from its middle or a corner
+    // or beside a pillar, and a corridor stays small however long it is.
+    const span = SPANS.map(([i, j]) => Math.min(d[i], SPACE_FAR) + Math.min(d[j], SPACE_FAR)).sort((x, y) => y - x);
+    const roof = (d[8] < SPACE_FAR ? 2 : 0) + [9, 10, 11, 12].filter((i) => d[i] < SPACE_FAR).length;
+    const openSides = hz.filter((x) => x >= SPACE_FAR).length / 8;
+    const enc = smooth(0.35, 0.9, roof / 6) * (1 - 0.7 * openSides); // 0 open sky .. 1 roofed in
+    const size = Math.cbrt(span[0] * span[1] * Math.max(2, Math.min(d[8], 80) + Math.min(sp.down, 20)));
+    const big = smooth(14, 40, size); // corridor ~4, the Crucible ~27, the Hub atrium ~45-50
+    // a cavern: the Prism Core's chambers (deep under the Hub) or anything vaster than the atrium
+    const huge = big * Math.max(smooth(60, 90, size), regionOf(pos) === 'prism' ? 1 : 0);
+    // indoors: the room for small spaces handing over to the hall (and its echo) as they grow
+    let room = enc * (0.9 - 0.72 * big);
+    let hall = enc * (0.05 + 0.9 * big + 0.35 * huge);
+    const echoIn = enc * (0.25 * big + 0.07 * huge);
+    // there and back off the farthest surface that answers (a far wall, the vault)
+    const tIn = (2 * Math.max(...d.filter((x) => x < SPACE_FAR), 0)) / 343;
+    // outdoors: a slapback off the walls in range, louder the more of them there are (far ones count less)
+    const walls = hz.filter((x) => x > 3 && x < 90);
+    const wf = walls.reduce((sum, x) => sum + 1 - 0.5 * smooth(30, 90, x), 0) / 8;
+    const echoOut = (1 - enc) * 0.36 * smooth(0, 0.6, wf);
+    const tOut = (2 * (walls[Math.floor(walls.length * 0.75)] || 30)) / 343;
+    room += (1 - enc) * 0.08 * wf;
+    hall += (1 - enc) * 0.06 * wf;
+    const echo = echoIn + echoOut;
+    const w = echo > 1e-3 ? echoIn / echo : enc;
+    const time = Math.min(0.8, Math.max(0.1, tIn * w + tOut * (1 - w)));
+    const fb = (0.35 + 0.15 * huge) * w + (0.12 + 0.12 * wf) * (1 - w);
+    sp.mix = { enc, size, room, hall, echo, time, fb };
+
+    const t = this.t, tc = jump ? 0.03 : 0.3;
+    const want = (v.want ??= {});
+    const set = (key, param, val, eps, k = tc) => {
+      if (Math.abs((want[key] ?? -1) - val) < eps) return;
+      want[key] = val;
+      param.setTargetAtTime(val, t, k);
+    };
+    set('room', v.room.gain, room, 0.004);
+    set('hall', v.hall.gain, hall, 0.004);
+    set('echo', v.echo.gain, echo, 0.004);
+    v.delays.forEach((line, i) => {
+      // the echo time glides slowly (a quick change would warble the repeats in flight)
+      set('time' + i, line.d.delayTime, time * (i ? 1.13 : 1), time * 0.04, jump ? 0.03 : 0.6);
+      set('fb' + i, line.fb.gain, fb, 0.01);
+    });
   }
 
   get t() {
@@ -544,8 +771,17 @@ class Audio {
     if (this.sample('jump', { gain: 0.4 })) return;
     this.tone({ type: 'sine', f: 200, f2: 320, dur: 0.08, gain: 0.05 });
   }
+  // A landing thud on whatever is underfoot (updateSpace keeps a ray on the floor below the camera),
+  // with a footstep of that material on top.
   land(strength = 1) {
-    if (this.sample('land', { gain: Math.min(1, 0.3 + strength * 0.3) })) return;
+    const surface = this.under && this.t - this.under.t < 1 ? this.under.surface : this.lastSurface || 'metal';
+    const S = STEPS[surface];
+    const name = this.buffers.has(S.land) ? S.land : 'land';
+    if (this.buffers.has(name)) {
+      this.sample(name, { gain: (Math.min(1, 0.3 + strength * 0.3) * 0.3) / this.peak(name) });
+      this.stepSample(surface, 0.4 + 0.3 * Math.min(1, strength));
+      return;
+    }
     this.noise({ dur: 0.1, gain: 0.08 * strength, freq: 300, type: 'lowpass' });
   }
   pad() {
@@ -564,7 +800,7 @@ class Audio {
     );
   }
   secret() {
-    if (this.sample('secret', { gain: 0.8, vary: 0 })) return;
+    if (this.sample('secret', { gain: 0.8, vary: 0, dry: true })) return;
     [0, 3, 7, 10, 14].forEach((n, i) => this.tone({ type: 'sine', f: 660 * 2 ** (n / 12), dur: 0.3, gain: 0.1, delay: i * 0.07 }));
   }
   checkpoint() {
@@ -606,10 +842,43 @@ class Audio {
     if (this.sample('ricochet', { gain: 0.55, vary: 0.15 })) return;
     this.tone({ type: 'triangle', f: 2600, f2: 1200, dur: 0.18, gain: 0.07 });
   }
-  footstep(surface, sprint = false) {
-    const name = surface === 'grass' ? this.pick('step_grass1', 'step_grass2') : this.pick('step_metal1', 'step_metal2', 'step_metal3');
-    if (name && this.sample(name, { gain: sprint ? 0.45 : 0.32, vary: 0.1 })) return;
-    this.noise({ dur: 0.06, gain: sprint ? 0.08 : 0.05, freq: surface === 'grass' ? 500 : 1400, q: 1.5 });
+  // One stride on `ground` (the solid underfoot) at `pos`: its material picks the sample set (see
+  // stepSurface). Sprinting hits harder and brighter. (Also takes a surface name in place of the solid.)
+  footstep(ground, pos, sprint = false) {
+    if (typeof pos === 'boolean') [pos, sprint] = [null, pos];
+    const surface = typeof ground === 'string' ? (STEPS[ground] ? ground : 'metal') : stepSurface(ground, pos);
+    this.lastSurface = surface;
+    if (this.stepSample(surface, 1, sprint)) return;
+    this.noise({ dur: 0.06, gain: sprint ? 0.08 : 0.05, freq: STEPS[surface].hz, q: 1.5 });
+  }
+  // One footstep sample of a surface at k × its level (never the same take twice running).
+  stepSample(surface, k = 1, sprint = false) {
+    const S = STEPS[surface];
+    const last = (this.lastStep ??= {});
+    const ok = S.names.filter((n) => this.buffers.has(n) && n !== last[surface]);
+    const name = ok.length ? ok[Math.floor(Math.random() * ok.length)] : this.pick(...S.names);
+    if (!name) return false;
+    last[surface] = name;
+    // every stride plays (no rate limit); each take is trimmed to its transient so a quick run stays
+    // a crisp patter and the room, not the sample's own tail, carries the decay
+    this.sample(name, { gain: (S.level * k * (sprint ? 1.35 : 1)) / this.peak(name), rate: sprint ? 1.05 : 1, vary: 0.08, cut: 0.2 });
+    if (S.layer) this.stepSample(S.layer, k * 0.45, sprint);
+    return true;
+  }
+  // A sample's peak level (cached), for evening out takes generated at very different loudness.
+  peak(name) {
+    let p = this.peaks?.get(name);
+    if (p === undefined) {
+      const buf = this.buffers.get(name);
+      p = 0;
+      for (let c = 0; c < buf.numberOfChannels; c++) {
+        const d = buf.getChannelData(c);
+        for (let i = 0; i < d.length; i++) p = Math.max(p, Math.abs(d[i]));
+      }
+      p = Math.max(0.05, p);
+      (this.peaks ??= new Map()).set(name, p);
+    }
+    return p;
   }
   bossStep() {
     if (this.sample('boss_step', { gain: 0.9 })) return;
@@ -647,16 +916,16 @@ class Audio {
     this.sample('crouch', { gain: 0.35 });
   }
   respawn() {
-    if (!this.sample('respawn', { gain: 0.8, vary: 0 })) this.checkpoint();
+    if (!this.sample('respawn', { gain: 0.8, vary: 0, dry: true })) this.checkpoint();
   }
   maxhp() {
-    if (!this.sample('maxhp', { gain: 0.9, vary: 0 })) this.secret();
+    if (!this.sample('maxhp', { gain: 0.9, vary: 0, dry: true })) this.secret();
   }
   uiClick() {
-    this.sample('ui_click', { gain: 0.5 });
+    this.sample('ui_click', { gain: 0.5, dry: true });
   }
   gameStart() {
-    this.sample('game_start', { gain: 0.9, vary: 0 });
+    this.sample('game_start', { gain: 0.9, vary: 0, dry: true });
   }
   glassHit() {
     this.sample('glass_hit', { gain: 0.5, vary: 0.1 });
@@ -745,7 +1014,7 @@ class Audio {
       h.g = this.ctx.createGain();
       h.g.gain.value = 0;
       h.setG = 0;
-      h.src.connect(h.g).connect(this.loopBus);
+      h.src.connect(h.g).connect(DRY_LOOPS.has(h.name) ? this.loopDry : this.loopBus);
       // a random point in the loop, so several drones humming together don't phase
       h.src.start(this.t, Math.random() * buf.duration);
     }
@@ -761,7 +1030,7 @@ class Audio {
   setLoopsMuted(m) {
     if (m === this.loopsMuted) return;
     this.loopsMuted = m;
-    if (this.loopBus) this.loopBus.gain.setTargetAtTime(m ? 0 : 1, this.t, 0.12);
+    if (this.loopBus) for (const b of [this.loopBus, this.loopDry]) b.gain.setTargetAtTime(m ? 0 : 1, this.t, 0.12);
   }
   _loopRelease(h, tc) {
     if (!h.src) return;
