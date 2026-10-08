@@ -28,6 +28,56 @@ function mulberry32(a) {
   };
 }
 
+// ---- wayfinding helpers (playtest pass)
+// Pulsing floor chevrons along paths of [x, y, z] points (each segment lies at its start point's y),
+// pulses running toward the end of each path. One instanced draw per call; shown while active(player).
+function guideTrail(W, hex, paths, active) {
+  const shape = new THREE.Shape();
+  shape.moveTo(-0.45, -0.2);
+  shape.lineTo(0, 0.25);
+  shape.lineTo(0.45, -0.2);
+  shape.lineTo(0.45, 0.05);
+  shape.lineTo(0, 0.5);
+  shape.lineTo(-0.45, 0.05);
+  shape.closePath();
+  const geo = new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
+  const marks = [];
+  for (const pts of paths) {
+    let s = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, ay, az] = pts[i], [bx, , bz] = pts[i + 1], len = Math.hypot(bx - ax, bz - az);
+      const yaw = Math.atan2(-(bx - ax), -(bz - az));
+      for (let d = i ? 0 : 0.8; d < len - 0.3; d += 1.5) marks.push({ x: ax + ((bx - ax) * d) / len, y: ay, z: az + ((bz - az) * d) / len, yaw, s: s + d });
+      s += len;
+    }
+  }
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+  const mesh = new THREE.InstancedMesh(geo, mat, marks.length);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3();
+  const base = new THREE.Color(hex), col = new THREE.Color();
+  marks.forEach((k, i) => {
+    mesh.setMatrixAt(i, m4.compose(p.set(k.x, k.y + 0.04, k.z), q.setFromAxisAngle(up, k.yaw), one));
+    mesh.setColorAt(i, col.copy(base).multiplyScalar(0.4));
+  });
+  mesh.userData.noCull = true; // spans whole areas; shown and hidden below
+  mesh.renderOrder = 3;
+  W.scene.add(mesh);
+  let t = 0;
+  W.add({
+    update(dt, player) {
+      mesh.visible = active(player);
+      if (!mesh.visible) return;
+      t += dt;
+      marks.forEach((k, i) => {
+        const wave = Math.pow(Math.max(0, Math.sin((k.s / 6 - t * 1.4) * Math.PI)), 6);
+        mesh.setColorAt(i, col.copy(base).multiplyScalar(0.45 + 1.6 * wave));
+      });
+      mesh.instanceColor.needsUpdate = true;
+    },
+  });
+  return mesh;
+}
+
 export function buildAzure(B) {
   const { W, game, level, CH, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy, shieldedShaft, hint, zoneTitle, area, light, barrierWallX, devStart, onRespawn } = B;
   const zone = 'blue';
@@ -805,6 +855,28 @@ export function buildAzure(B) {
       },
     });
   }
+
+  // ---- wayfinding (playtest pass)
+  // The Well's ice pillars were near-invisible in the gloom, the way off the Rim Deck and out of the
+  // Core Sanctum wasn't marked, and at the top of the ride the open exit sat beside you, unlit.
+  level.azure = { lift }; // read by guide.js for the objective line
+  const BLUE_HEX = COLORS[BLUE].hex;
+  guideTrail(W, BLUE_HEX, [
+    [[47.5, 4, -112], [53, 4, -107.6], [57.6, 4, -106.5]], // Rim Deck → the gap in the rail
+  ], (pl) => pl.pos.x > 25 && pl.pos.y > 0);
+  // the sanctum's way out: once you hold blue, a trail from the pedestal to the blue lock
+  guideTrail(W, BLUE_HEX, [[[63.6, -56, -136], [52.4, -56, -136], [48, -56, -136]]], (pl) => pl.pos.y < -50 && pl.pos.z > -151 && game.blaster.unlocked[BLUE]);
+  light(57, -33, -170, 0xa8dcff, 30, 26); // the Well: light the pillars from the middle
+  // ...and band each pillar's lip with light, so the ledges read against the gloom from the catwalk
+  for (const [x1, z1, x2, z2, top] of [[60, -181, 64, -177, -28.5], [51, -181, 55, -177, -32], [51, -172, 54.5, -168, -35.5], [51, -163, 55, -159, -39], [58, -166.5, 66, -158, -44.2]]) {
+    const y1 = top - 0.5, y2 = top - 0.3, o = 0.04;
+    W.deco(x1 - o, y1, z1 - o, x2 + o, y2, z1, 'glow3', zone);
+    W.deco(x1 - o, y1, z2, x2 + o, y2, z2 + o, 'glow3', zone);
+    W.deco(x1 - o, y1, z1, x1, y2, z2, 'glow3', zone);
+    W.deco(x2, y1, z1, x2 + o, y2, z2, 'glow3', zone);
+  }
+  // a lit frame round the exit in the shaft head (inside face), so the open way out reads as a door
+  for (const [y1, y2, z1, z2] of [[TOP + CH, TOP + CH + 0.1, -137.6, -134.4], [TOP, TOP + CH, -137.6, -137.5], [TOP, TOP + CH, -134.5, -134.4]]) W.deco(35, y1, z1, 35.08, y2, z2, 'glow3', zone);
 
   devStart('azure', [27, 4, -112], -Math.PI / 2, [RED, YELLOW, GREEN]);
   devStart('azurelab', [100, -25, -146], 0, [RED, YELLOW, GREEN]);

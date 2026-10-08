@@ -34,6 +34,67 @@ function softTex(draw) {
   return t;
 }
 
+// ---- wayfinding helpers (playtest pass)
+// Pulsing floor chevrons along paths of [x, y, z] points (each segment lies at its start point's y),
+// pulses running toward the end of each path. One instanced draw per call; shown while active(player).
+function guideTrail(W, hex, paths, active) {
+  const shape = new THREE.Shape();
+  shape.moveTo(-0.45, -0.2);
+  shape.lineTo(0, 0.25);
+  shape.lineTo(0.45, -0.2);
+  shape.lineTo(0.45, 0.05);
+  shape.lineTo(0, 0.5);
+  shape.lineTo(-0.45, 0.05);
+  shape.closePath();
+  const geo = new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
+  const marks = [];
+  for (const pts of paths) {
+    let s = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, ay, az] = pts[i], [bx, , bz] = pts[i + 1], len = Math.hypot(bx - ax, bz - az);
+      const yaw = Math.atan2(-(bx - ax), -(bz - az));
+      for (let d = i ? 0 : 0.8; d < len - 0.3; d += 1.5) marks.push({ x: ax + ((bx - ax) * d) / len, y: ay, z: az + ((bz - az) * d) / len, yaw, s: s + d });
+      s += len;
+    }
+  }
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+  const mesh = new THREE.InstancedMesh(geo, mat, marks.length);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3();
+  const base = new THREE.Color(hex), col = new THREE.Color();
+  marks.forEach((k, i) => {
+    mesh.setMatrixAt(i, m4.compose(p.set(k.x, k.y + 0.04, k.z), q.setFromAxisAngle(up, k.yaw), one));
+    mesh.setColorAt(i, col.copy(base).multiplyScalar(0.4));
+  });
+  mesh.userData.noCull = true; // spans whole areas; shown and hidden below
+  mesh.renderOrder = 3;
+  W.scene.add(mesh);
+  let t = 0;
+  W.add({
+    update(dt, player) {
+      mesh.visible = active(player);
+      if (!mesh.visible) return;
+      t += dt;
+      marks.forEach((k, i) => {
+        const wave = Math.pow(Math.max(0, Math.sin((k.s / 6 - t * 1.4) * Math.PI)), 6);
+        mesh.setColorAt(i, col.copy(base).multiplyScalar(0.45 + 1.6 * wave));
+      });
+      mesh.instanceColor.needsUpdate = true;
+    },
+  });
+  return mesh;
+}
+
+// A soft column of light standing on a landing you should head for.
+function beacon(W, x, y, z, hex, h = 7, r = 0.8) {
+  const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(0.9), transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.8, r, h, 20, 1, true), m);
+  mesh.position.set(x, y + h / 2, z);
+  W.scene.add(mesh);
+  let t = Math.random() * 6;
+  W.add({ update: (dt) => (t += dt, (m.opacity = 0.13 + Math.sin(t * 2.6) * 0.05)) });
+  return mesh;
+}
+
 export function buildVerdant(B) {
   const { W, game, level, GLOW, wallX, wallZ, room, corridor, plat, pedestal, sideAlcove, shieldedShaft, secretRoom, trophy, hint, zoneTitle, area, light, devStart } = B;
   const zone = 'green';
@@ -578,7 +639,7 @@ export function buildVerdant(B) {
   } });
   W.box(5.3, -20.5, -276.7, 12.2, -20.1, -271.3, 'grass', zone);
   vines(5.4, -276.6, 12.1, -271.4, -20.5, 8, 2.5);
-  hint([-6, -25, -278], [4, -21, -272], 'A seal of living <b style="color:#3dff7a">green</b>. Green would bounce off those <b style="color:#ff3344">red</b> panels...', 6);
+  hint([-6, -25, -278], [4, -21, -272], 'A seal of living <b style="color:#3dff7a">green</b> — you\'ll need that color. The <b>Sunken Shrine</b> lies north, across the spiked stones.', 6);
   const greenHint = hint([-6, -25, -278], [4, -21, -270], 'Fire <b style="color:#3dff7a">green</b> over the glass and let the <b style="color:#ff3344">red panels</b> carry it to the target.', 6);
   greenHint.enabled = false;
   new Drone(W, { pos: [0, -19, -285], color: [RED, YELLOW], range: 20 });
@@ -746,4 +807,50 @@ export function buildVerdant(B) {
   }
 
   devStart('verdant', [-10, 4, -151], 0, [RED, YELLOW]);
+
+  // ---- wayfinding (playtest pass)
+  // Playtesters lost the way at the court (where do the islands start?), on the north bank (the way down is
+  // an arch at its far west end), around the Great Tree (where's the shrine?), inside the trunk (which
+  // platforms are lifts?) and, from the Hub, walked the aqueduct backwards into a dead end.
+  level.verdant = { bridge, treeDoor }; // read by guide.js for the objective line
+  const GREEN_HEX = 0x3dff7a;
+  const inVerdant = (pl) => pl.pos.z < -148.5;
+  guideTrail(W, 0xd2ffb8, [ // (a pale mint: pure green vanished against the turf)
+    [[-10, 4, -160], [-12, 4, -168], [-19.5, 4, -171.6]], // court terrace → the first stepping stone
+    [[3, 4.5, -205.2], [-21.5, 4.5, -205.2], [-26.2, 4.5, -207.6]], // north bank → the arch where the way down starts
+    [[-10, -25, -250], [-11.6, -25, -258], [-11.6, -25, -273.5], [-2.5, -25, -276.6], [0, -25, -279.8]], // round the Great Tree to the shrine stones
+  ], inVerdant);
+  beacon(W, -19.5, 4.5, -176, GREEN_HEX, 6); // the first stepping stone
+  beacon(W, -26.5, 1, -213.5, GREEN_HEX, 9); // the first ledge down into the Hollow
+  // a lit lintel over the arch on the bank's lip, the start of the way down
+  W.deco(-28.9, 10.95, -206.85, -23.1, 11.05, -206.75, GLOW[zone], zone);
+  hint([-19, 4.5, -208], [30, 8, -203], 'The way down into the <b>Great Hollow</b> starts at the ruined arch at the <b>west</b> end of this bank.', 6);
+  hint([-14, -25, -257], [-6, -21, -251.5], 'The <b>Sunken Shrine</b> lies beyond the Great Tree. Go round it to the spiked stepping stones.', 5);
+  // carrying green out of the shrine: point back at the tree
+  let backHint = false;
+  W.trigger([-3.5, -25, -296], [3.5, -21, -291.5], () => {
+    if (backHint || !game.blaster.unlocked[GREEN]) return;
+    backHint = true;
+    game.hud.message('Back to the <b>Great Tree</b>: open its door with <b style="color:#3dff7a">green</b>, then climb up inside the trunk.', 6);
+  }, { once: false });
+  // the tree's lifts: a glowing ring and a faint column on each, so they read as rides, not ledges
+  const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(GREEN_HEX).multiplyScalar(1.6) });
+  const colMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(GREEN_HEX).multiplyScalar(0.8), transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  for (const e of W.entities) {
+    if (!(e instanceof MovingPlatform) || e.base.x < -7 || e.base.x > 7 || e.base.z > -255 || e.base.z < -269) continue;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(Math.min(e.size.x, e.size.z) * 0.38, 0.05, 6, 32), ringMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(e.size.x / 2, e.size.y + 0.03, e.size.z / 2);
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.2, 2.6, 16, 1, true), colMat);
+    col.position.set(e.size.x / 2, e.size.y + 1.3, e.size.z / 2);
+    e.mesh.add(ring, col);
+  }
+  // the return gatehouse is one-way: it opens as you come home along the aqueduct, and from the Hub's
+  // balcony it is a sealed door that says where Verdant's entrance really is
+  const homeDoor = new SlidingDoor(W, { min: [8.5, 12, -155.2], max: [11.5, 15.2, -154.8], color: GREEN, zone });
+  W.trigger([8.5, 12, -175], [11.5, 15, -156], () => homeDoor.open());
+  W.trigger([8.5, 12, -154.8], [11.5, 15, -148.5], () => {
+    if (homeDoor.openT >= 0) return;
+    game.hud.message('Sealed from this side: this is <b>Verdant\'s way out</b>. Its entrance is the <b style="color:#ffd23a">yellow gate</b> on the Nexus floor below.', 6);
+  }, { once: false });
 }

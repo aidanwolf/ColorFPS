@@ -34,7 +34,7 @@ export function buildPrism(B) {
   W.deco(-0.1, Y, A.zN, 0.1, Y + 0.03, SHAFT.z1 - 0.6, g, zone);
   new Checkpoint(W, game, { pos: [0, Y, -113.5], yaw: 0, size: [20, 4, 3] });
   zoneTitle([-3, Y, -113], [3, Y + 4, -107], 'FINAL SECTOR', 'PRISM CORE', '#d9a8ff', 'music_antechamber');
-  hint([-10, Y, -115], [10, Y + 4, -112.5], 'Something enormous waits ahead. <b>You will need every color.</b>', 5);
+  hint([-10, Y, -115], [10, Y + 4, -112.5], 'Something enormous waits ahead. <b>You will need every color</b>, and every hit is lethal.', 6);
   light(0, Y + 7, -104, 0xc8a0ff, 26, 26);
   area([A.x1, Y, A.zN], [A.x2, Y + 6, A.zS], { music: 'music_antechamber', ambient: 'amb_core', atmosphere: 'prism' });
   corridor({ zStart: A.zN - T, zEnd: -118, y: Y, zone });
@@ -145,4 +145,26 @@ export function buildPrism(B) {
     exposure: 1.1, bloom: 0.75,
   };
   devStart('boss', [0, Y, -113.5], 0, [0, 1, 2, 3]);
+
+  // ---- wayfinding (playtest pass)
+  // The Warden is built at the origin (inside the Foundry's area), so area culling filed it under the
+  // Foundry and hid it in its own arena: never cull it (it's only drawn while the fight is on).
+  level.boss.root.userData.noCull = true;
+  // Every hit is lethal and resets the fight, so say what each attack wants the first time it comes
+  // (the boss hint line keeps the shield/core rule); the antechamber hint warns on the way in.
+  const tips = {
+    slam: '<b>JUMP</b> the red shockwave when it reaches you!',
+    volley: 'Orbs! <b>Shoot each in its color</b>, or put a pillar between you.',
+    sweep: 'The blade sweeps wide: <b>back off</b> out of its reach!',
+    charge: 'It\'s charging: <b>sidestep</b>!',
+  };
+  const told = new Set();
+  W.add({
+    update() {
+      const b = level.boss, k = b.active && b.attack?.type;
+      if (!k || told.has(k) || !tips[k]) return;
+      told.add(k);
+      game.hud.message(tips[k], 3);
+    },
+  });
 }
