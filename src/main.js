@@ -14,12 +14,23 @@ import { Blaster } from './weapon.js';
 import { Hud } from './hud.js';
 import { buildLevel } from './level.js';
 import { currentObjective } from './levels/guide.js';
+import { regionOf } from './levels/regions.js';
+import { loadSave, writeSave, clearSave } from './save.js';
 import { ads } from './monetization/bonusround.js';
 import { TouchControls } from './touch.js';
 import { UnlockCutscene } from './cutscene.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
+// the music, ambience and atmosphere to resume with in each area (see levels/regions.js)
+const AREA_MOOD = {
+  red: { music: 'music_red', ambient: 'amb_foundry', atmosphere: 'foundry' },
+  hub: { music: 'music_hub', ambient: 'amb_hub', atmosphere: 'hub' },
+  solar: { music: 'music_solar', ambient: 'amb_solar', atmosphere: 'solar' },
+  verdant: { music: 'music_green', ambient: 'amb_jungle', atmosphere: 'verdant' },
+  azure: { music: 'music_blue', ambient: 'amb_abyss', atmosphere: 'azure' },
+  prism: { music: 'music_antechamber', ambient: 'amb_core', atmosphere: 'prism' },
+};
 const REVIVE_AFTER_DEATHS = 3; // the rewarded revive is offered from this many deaths at one checkpoint
 
 // The look of the Crimson Foundry; every atmosphere preset (level.atmospheres) overrides some of these.
@@ -183,6 +194,7 @@ class Game {
     ads.safe(true);
 
     if (DEV && params.get('start')) this.devSkip(params.get('start'));
+    else this.restore(loadSave());
 
     this.timer = new THREE.Timer();
     this.timer.connect(document);
@@ -267,6 +279,10 @@ class Game {
       else if (a === 'quit') location.reload();
       else if (a === 'revive') this.reviveTapped = true;
       else if (a === 'continue') this.resume();
+      else if (a === 'newgame') {
+        clearSave();
+        location.reload();
+      }
     });
     const bind = (id, key, parse, after) => {
       const el = $(id);
@@ -319,9 +335,62 @@ class Game {
     ads.safe(false);
     if (!this.started) {
       this.started = true;
-      this.enterZone('SECTOR 1', 'CRIMSON FOUNDRY', '#ff3344');
-      setTimeout(() => this.hud.message('Grab the <b>Chroma Blaster</b> from the pedestal.', 5), 1200);
+      if (this.resumed) this.hud.message('Welcome back. Resuming from your last checkpoint.', 3);
+      else {
+        this.enterZone('SECTOR 1', 'CRIMSON FOUNDRY', '#ff3344');
+        setTimeout(() => this.hud.message('Grab the <b>Chroma Blaster</b> from the pedestal.', 5), 1200);
+      }
     }
+  }
+
+  // ------------------------------------------------------------------ saving
+  save() {
+    if (DEV && params.get('start')) return; // dev jumps don't overwrite your real progress
+    const cp = this.checkpoint;
+    writeSave({
+      cp: { pos: cp.pos.toArray(), yaw: cp.yaw },
+      colors: this.blaster.unlocked.map((u, i) => (u && this.blaster.has ? i : -1)).filter((i) => i >= 0),
+      color: this.blaster.color,
+      secrets: this.level.secrets.filter((s) => s.trigger.fired).map((s) => s.label),
+      time: Math.floor(this.stats.time),
+      deaths: this.stats.deaths,
+    });
+  }
+
+  // Put the world back the way the save left it: colors, cores already taken, secrets, the checkpoint
+  // (lit up) and the right music/atmosphere for where it is.
+  restore(s) {
+    if (!s) return;
+    this.resumed = true;
+    s.colors.forEach((c) => this.blaster.give(c));
+    if (s.colors.length) this.blaster.setColor(s.colors.includes(s.color) ? s.color : s.colors[0], true);
+    for (const e of [...this.world.entities]) {
+      if (e.type === 'color' && s.colors.includes(e.color)) {
+        e.active = false;
+        e.group.visible = false;
+        if (e.light) e.light.intensity = 0;
+        this.world.remove(e);
+      }
+    }
+    for (const sec of this.level.secrets) {
+      if (!s.secrets.includes(sec.label)) continue;
+      sec.trigger.fired = true;
+      this.secretsFound++;
+    }
+    this.hud.setSecrets(this.secretsFound, this.level.secretsTotal);
+    this.stats.time = s.time || 0;
+    this.stats.deaths = s.deaths || 0;
+    const pos = new THREE.Vector3(...s.cp.pos);
+    const ref = this.world.entities.find((e) => e.constructor.name === 'Checkpoint' && e.pos.distanceTo(pos) < 0.5) || null;
+    ref?.setActive(true);
+    this.checkpoint = { pos, yaw: s.cp.yaw, ref };
+    this.player.spawn(pos, s.cp.yaw);
+    const mood = AREA_MOOD[regionOf(pos)];
+    this.musicTrack = mood.music;
+    this.ambient = mood.ambient;
+    this.setAtmosphere(mood.atmosphere, true);
+    $('[data-action="play"]').textContent = 'Continue';
+    $('[data-action="newgame"]').classList.remove('hidden');
   }
 
   enableTouch() {
@@ -452,6 +521,7 @@ class Game {
     this.checkpoint = { pos: pos.clone(), yaw, ref };
     this.deathsHere = 0;
     this.revivedHere = false;
+    this.save();
     audio.checkpoint();
     this.hud.message('Checkpoint', 1.5);
     this.player.heal(10);
@@ -471,6 +541,7 @@ class Game {
     this.state = 'playing';
     this.blaster.give(c);
     const name = `<b>${COLORS[c].name}</b>`;
+    this.save();
     if (first) this.hud.message(`${name} blaster online. <b>LMB</b> to fire.`, 4);
     else this.hud.message(`${name} unlocked — press <b>${c + 1}</b>. Remember those ${name}-marked doors?`, 6);
     // finishing a color world is a natural break for a Bonus Round
@@ -481,6 +552,7 @@ class Game {
     this.secretsFound++;
     this.hud.setSecrets(this.secretsFound, this.level.secretsTotal);
     this.hud.message(`SECRET FOUND — <b>${label}</b> (${this.secretsFound}/${this.level.secretsTotal})`, 4);
+    this.save();
     audio.secret();
   }
 

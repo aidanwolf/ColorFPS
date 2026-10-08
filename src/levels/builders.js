@@ -112,7 +112,7 @@ export function makeBuilders(W, game, level) {
   // A secret room: a prism trophy plus a trigger that counts the secret when you step inside.
   function secretRoom(min, max, label) {
     level.secretsTotal++;
-    W.trigger(min, max, () => game.foundSecret(label));
+    level.secrets.push({ label, trigger: W.trigger(min, max, () => game.foundSecret(label)) });
   }
   const trophy = (x, y, z) => new Pickup(W, { pos: [x, y, z], type: 'maxhp', amount: 20 });
 

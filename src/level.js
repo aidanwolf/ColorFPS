@@ -19,6 +19,7 @@ export function buildLevel(world, game) {
     devStarts: {}, // ?dev&start=<name>
     respawnHooks: [], // run on every checkpoint respawn
     atmospheres: {}, // name -> preset for game.setAtmosphere (see main.js ATMOSPHERE_DEFAULT)
+    secrets: [], // { label, trigger } for every secret room (restored from a save)
   };
   const B = makeBuilders(world, game, level);
   buildRed(B);
