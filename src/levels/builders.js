@@ -173,11 +173,11 @@ export function makeBuilders(W, game, level) {
       if (ambient) game.setAmbient(ambient);
       if (atmosphere) game.setAtmosphere(atmosphere);
     }, { once: false });
-  // Point lights are expensive (every lit pixel loops over all of them): keep to the budget in LAYOUT.md.
+  // Point lights: only the nearest few really shine at once (World.updateLights), but keep to the budget.
+  // (pooled: see World.addLight; returns an object with position/color/intensity like a PointLight)
   const light = (x, y, z, color, intensity = 30, dist = 30) => {
-    const l = new THREE.PointLight(color, intensity, dist, 1.5);
+    const l = W.addLight(color, intensity, dist, 1.5);
     l.position.set(x, y, z);
-    W.scene.add(l);
     return l;
   };
   const barrierWall = (z, y, color, zone, h = CH, cx = 0) =>

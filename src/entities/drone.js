@@ -262,6 +262,12 @@ export class Drone {
     this.dist = this.pos.distanceTo(_eye);
     if (this.crashing) return this.updateCrash(dt);
     if (this.dead) return;
+    // dormant while the player is far off: no flight or collision work (it adds up across every world)
+    if (this.dist > Math.max(60, this.range + 30)) {
+      this.aggro = false;
+      this.updateHum(this.humPitch);
+      return;
+    }
     this.t += dt;
     if (this.shifter) {
       this.cycleTimer -= dt;

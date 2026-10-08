@@ -694,6 +694,7 @@ class Game {
     this.sky.material.uniforms.uTime.value = t;
     this.sky.position.copy(this.camera.position);
     this.updateAtmosphere(dt);
+    this.world.updateLights(this.camera.position, dt);
 
     this.input.active = this.state === 'playing';
     audio.setLoopsMuted(this.state !== 'playing');

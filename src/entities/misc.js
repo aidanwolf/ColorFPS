@@ -29,7 +29,7 @@ export class Pickup {
       this.rings = new THREE.Group();
       this.rings.add(r1, r2);
       this.group.add(this.spin, this.rings);
-      this.light = new THREE.PointLight(c, 6, 9, 1.6);
+      this.light = world.addLight(c, 6, 9, 1.6);
     } else if (type === 'health') {
       const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x6dffb0).multiplyScalar(1.8) });
       this.spin = new THREE.Group();
@@ -58,15 +58,13 @@ export class Pickup {
         this.rings.add(shard);
       });
       this.group.add(this.spin, base, this.rings);
-      this.light = new THREE.PointLight(0xffffff, 3, 6, 1.6);
+      this.light = world.addLight(0xffffff, 3, 6, 1.6);
     }
     world.scene.add(this.group);
-    // Lights live in the scene, not the pickup group, and are dimmed instead of hidden:
-    // changing the number of visible lights makes three.js recompile every material (a big hitch).
+    // the glow is a pooled world light (World.addLight), dimmed to 0 once collected
     if (this.light) {
       this.light.position.copy(this.pos);
       this.lightIntensity = this.light.intensity;
-      world.scene.add(this.light);
     }
     world.add(this);
   }
@@ -257,10 +255,12 @@ export class Checkpoint {
     this.beamMat.opacity = on ? 0.28 : 0.08;
   }
 
-  update(dt) {
+  update(dt, player) {
     this.t += dt;
     this.gem.rotation.y += dt * (this.active ? 3 : 1);
     this.gem.position.y = 2.3 + Math.sin(this.t * 2) * 0.1;
-    if (this.active) this.beamMat.opacity = 0.22 + Math.sin(this.t * 4) * 0.06;
+    // the beam fades while you stand in it, so it doesn't wash out your view
+    const near = player ? Math.min(1, Math.max(0, (Math.hypot(player.pos.x - this.pos.x, player.pos.z - this.pos.z) - 0.6) / 1.2)) : 1;
+    this.beamMat.opacity = (this.active ? 0.22 + Math.sin(this.t * 4) * 0.06 : 0.08) * near;
   }
 }

@@ -7,6 +7,9 @@ import { Fx } from './fx.js';
 
 const _v = new THREE.Vector3();
 const _ray = new THREE.Raycaster();
+const GRID_CELL = 8;
+const GRID_MARGIN = 1;
+const POOL_SIZE = 10; // real point lights shared by every placed light (see updateLights)
 
 export class World {
   constructor(game) {
@@ -22,6 +25,68 @@ export class World {
     this.scene.add(this.staticGroup);
     this.fx = new Fx(this.scene);
     this.time = 0;
+    // Placed lights are virtual: a fixed pool of real PointLights is handed to whichever are nearest the
+    // camera. Every lit pixel loops over every real light, and changing their count recompiles every
+    // shader, so the count stays constant no matter how many lights the levels place.
+    this.virtualLights = [];
+    this.lightPool = [];
+    for (let i = 0; i < POOL_SIZE; i++) {
+      const l = new THREE.PointLight(0xffffff, 0, 1, 1.5);
+      this.scene.add(l);
+      this.lightPool.push({ light: l, owner: null, weight: 0 });
+    }
+  }
+
+  // A light that behaves like a PointLight for level code (position, color, intensity, distance, decay)
+  // but only shines while it holds one of the pooled real lights.
+  addLight(color, intensity = 30, distance = 30, decay = 1.5) {
+    const v = { position: new THREE.Vector3(), color: new THREE.Color(color), intensity, distance, decay, slot: null };
+    this.virtualLights.push(v);
+    return v;
+  }
+
+  // Give the pool to the lights that matter most from where the camera is, fading them in and out.
+  updateLights(camPos, dt) {
+    const want = [];
+    for (const v of this.virtualLights) {
+      if (v.intensity <= 0) continue;
+      const score = v.position.distanceTo(camPos) - v.distance;
+      if (score < 50) want.push([score, v]);
+    }
+    want.sort((a, b) => a[0] - b[0]);
+    const chosen = new Set(want.slice(0, POOL_SIZE).map((w) => w[1]));
+    const fade = Math.min(1, dt * 4);
+    for (const s of this.lightPool) {
+      if (s.owner && !chosen.has(s.owner)) {
+        s.weight -= fade;
+        if (s.weight <= 0) {
+          s.owner.slot = null;
+          s.owner = null;
+          s.weight = 0;
+        }
+      } else if (s.owner) s.weight = Math.min(1, s.weight + fade);
+    }
+    for (const v of chosen) {
+      if (v.slot) continue;
+      const s = this.lightPool.find((p) => !p.owner);
+      if (!s) break;
+      s.owner = v;
+      v.slot = s;
+      s.weight = dt === Infinity ? 1 : 0;
+    }
+    for (const s of this.lightPool) {
+      const l = s.light;
+      if (!s.owner) {
+        l.intensity = 0;
+        continue;
+      }
+      const v = s.owner;
+      l.position.copy(v.position);
+      l.color.copy(v.color);
+      l.distance = v.distance;
+      l.decay = v.decay;
+      l.intensity = v.intensity * s.weight;
+    }
   }
 
   // ---------- static geometry ----------
@@ -149,8 +214,42 @@ export class World {
     return !hit;
   }
 
+  // Static boxes never move, so they're bucketed into an xz grid (rebuilt whenever solids are added);
+  // everything else (barriers, platforms, doors) is checked directly. Cells include a GRID_MARGIN border,
+  // so a lookup in the point's own cell is exact for pads up to that margin.
+  gridFor(p) {
+    if (this.gridCount !== this.solids.length) {
+      this.gridCount = this.solids.length;
+      this.grid = new Map();
+      this.loose = [];
+      for (const s of this.solids) {
+        if (!s.static) {
+          this.loose.push(s);
+          continue;
+        }
+        const x0 = Math.floor((s.min.x - GRID_MARGIN) / GRID_CELL), x1 = Math.floor((s.max.x + GRID_MARGIN) / GRID_CELL);
+        const z0 = Math.floor((s.min.z - GRID_MARGIN) / GRID_CELL), z1 = Math.floor((s.max.z + GRID_MARGIN) / GRID_CELL);
+        for (let x = x0; x <= x1; x++)
+          for (let z = z0; z <= z1; z++) {
+            const k = x * 4096 + z;
+            if (!this.grid.has(k)) this.grid.set(k, []);
+            this.grid.get(k).push(s);
+          }
+      }
+    }
+    return this.grid.get(Math.floor(p.x / GRID_CELL) * 4096 + Math.floor(p.z / GRID_CELL));
+  }
+
   pointInSolid(p, pad = 0) {
-    for (const s of this.solids) {
+    if (pad <= GRID_MARGIN) {
+      const cell = this.gridFor(p);
+      return (cell && this.solidAt(cell, p, pad)) || this.solidAt(this.loose, p, pad);
+    }
+    return this.solidAt(this.solids, p, pad);
+  }
+
+  solidAt(list, p, pad) {
+    for (const s of list) {
       if (!s.enabled || s.noShot) continue;
       if (p.x > s.min.x - pad && p.x < s.max.x + pad && p.y > s.min.y - pad && p.y < s.max.y + pad && p.z > s.min.z - pad && p.z < s.max.z + pad) return s;
     }
