@@ -35,6 +35,7 @@ import { liquidMaterial } from '../liquid.js';
 import { mat } from '../materials.js';
 import { audio } from '../audio.js';
 import { buildSphinxArena } from './sphinxArena.js';
+import { regionOf } from './regions.js';
 
 // where the sunlight comes from: west, a little north, 30° up (also the atmosphere's sunDir)
 const SUN_DIR = [-0.85, 0.5, -0.12];
@@ -370,14 +371,54 @@ class SolarDirector {
 // with a thread of light from every mirror to the lens. stow(): the mirrors tip flat and the threads die.
 const _q = new THREE.Quaternion(), _m4 = new THREE.Matrix4(), _s = new THREE.Vector3(), _v = new THREE.Vector3(), _n = new THREE.Vector3();
 const Z_AXIS = new THREE.Vector3(0, 0, 1), Y_AXIS = new THREE.Vector3(0, 1, 0);
+// the mirror face: a silvery-gold sheet in six facets with a bright streak across it (drawn once)
+let mirrorTex = null;
+function mirrorFace() {
+  if (mirrorTex) return mirrorTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 128, 128);
+  grad.addColorStop(0, '#fffaf0');
+  grad.addColorStop(0.35, '#f2d79a');
+  grad.addColorStop(0.7, '#c99a45');
+  grad.addColorStop(1, '#f7e3b0');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  // a glancing streak of reflected sky
+  const sg = g.createLinearGradient(20, 128, 108, 0);
+  sg.addColorStop(0.38, 'rgba(255,255,255,0)');
+  sg.addColorStop(0.5, 'rgba(255,255,255,0.95)');
+  sg.addColorStop(0.62, 'rgba(255,255,255,0)');
+  g.fillStyle = sg;
+  g.fillRect(0, 0, 128, 128);
+  // facet seams
+  g.strokeStyle = 'rgba(70,45,15,0.75)';
+  g.lineWidth = 3;
+  for (const x of [43, 85]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 128); g.stroke(); }
+  g.beginPath(); g.moveTo(0, 64); g.lineTo(128, 64); g.stroke();
+  mirrorTex = new THREE.CanvasTexture(c);
+  mirrorTex.colorSpace = THREE.SRGBColorSpace;
+  return mirrorTex;
+}
+
 class CollectorArray {
   constructor(W, { target, sites }) {
     this.world = W;
     this.target = new THREE.Vector3(...target);
     const sun = new THREE.Vector3(...SUN_DIR).normalize();
     const n = sites.length;
-    this.panelMat = new THREE.MeshStandardMaterial({ color: 0xcdb27a, metalness: 1, roughness: 0.18, emissive: 0xffa030, emissiveIntensity: 0.45 });
-    this.panels = new THREE.InstancedMesh(new THREE.BoxGeometry(3.4, 2.4, 0.12), this.panelMat, n);
+    // the panel: a mirror face toward the lens (local +z) in a bronze frame, dark metal behind
+    this.faceMat = new THREE.MeshBasicMaterial({ map: mirrorFace(), color: 0xffffff });
+    this.frameMat = new THREE.MeshStandardMaterial({ color: 0xb08840, metalness: 0.6, roughness: 0.4, emissive: 0x3a2a10 });
+    // (the backs are polished too, a little duller: from the causeway and the Hub you see them from behind)
+    this.backMat = new THREE.MeshBasicMaterial({ map: mirrorFace(), color: 0xb0a080 });
+    const F = this.frameMat;
+    this.panels = new THREE.InstancedMesh(new THREE.BoxGeometry(3.4, 2.4, 0.1), [F, F, F, F, this.faceMat, F], n);
+    this.frames = new THREE.InstancedMesh(new THREE.BoxGeometry(3.8, 2.8, 0.14), [F, F, F, F, F, this.backMat], n);
+    // where each thread of light lands: a hot glint on the mirror
+    this.spotMat = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+    this.spots = new THREE.InstancedMesh(new THREE.CircleGeometry(0.55, 16), this.spotMat, n);
     this.beamMat = new THREE.MeshBasicMaterial({ color: 0xffc060, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false });
     this.beams = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 5, 1, true), this.beamMat, n);
     this.items = sites.map(([x, y, z], i) => {
@@ -390,14 +431,18 @@ class CollectorArray {
       const len = c.distanceTo(this.target);
       const mid = c.clone().add(this.target).multiplyScalar(0.5);
       _q.setFromUnitVectors(Y_AXIS, to);
-      this.beams.setMatrixAt(i, _m4.compose(mid, _q, _s.set(0.07, len, 0.07)));
-      return { c, live, stow };
+      this.beams.setMatrixAt(i, _m4.compose(mid, _q, _s.set(0.09, len, 0.09)));
+      return { c, live, stow, phase: (i * 2.399) % (Math.PI * 2) };
     });
     this.k = 1; // 1 = tracking, 0 = stowed
     this.target1 = 1;
+    this.col = new THREE.Color();
     this.place();
-    this.panels.userData.noCull = this.beams.userData.noCull = true;
-    W.scene.add(this.panels, this.beams);
+    for (let i = 0; i < n; i++) this.panels.setColorAt(i, this.col.setRGB(1, 1, 1));
+    for (const m of [this.panels, this.frames, this.spots, this.beams]) {
+      m.userData.noCull = true;
+      W.scene.add(m);
+    }
     this.t = Math.random() * 10;
     W.add(this);
   }
@@ -405,9 +450,12 @@ class CollectorArray {
   place() {
     this.items.forEach((it, i) => {
       _q.copy(it.stow).slerp(it.live, this.k);
+      _n.copy(Z_AXIS).applyQuaternion(_q);
       this.panels.setMatrixAt(i, _m4.compose(it.c, _q, _s.set(1, 1, 1)));
+      this.frames.setMatrixAt(i, _m4.compose(_v.copy(it.c).addScaledVector(_n, -0.07), _q, _s));
+      this.spots.setMatrixAt(i, _m4.compose(_v.copy(it.c).addScaledVector(_n, 0.07), _q, _s));
     });
-    this.panels.instanceMatrix.needsUpdate = true;
+    for (const m of [this.panels, this.frames, this.spots]) m.instanceMatrix.needsUpdate = true;
   }
 
   stow(instant = false) {
@@ -418,16 +466,27 @@ class CollectorArray {
     }
   }
 
-  update(dt) {
+  update(dt, player) {
     this.t += dt;
     if (this.k !== this.target1) {
       this.k = Math.max(0, this.k - dt * 0.25);
       this.place();
     }
     const live = this.k;
-    this.beamMat.opacity = live > 0.7 ? 0.32 + 0.12 * Math.sin(this.t * 3.1) : 0;
+    this.beamMat.opacity = live > 0.7 ? 0.36 + 0.14 * Math.sin(this.t * 3.1) : 0;
     this.beams.visible = this.beamMat.opacity > 0;
-    this.panelMat.emissiveIntensity = 0.06 + 0.4 * live;
+    this.spotMat.opacity = live > 0.7 ? 0.75 + 0.2 * Math.sin(this.t * 5.3) : 0;
+    this.spots.visible = this.spotMat.opacity > 0;
+    // glints: now and then a mirror flares as the sun catches it (only worth doing where it can be seen)
+    if (inSolar(player.pos)) {
+      const base = 0.18 + 0.82 * live;
+      this.items.forEach((it, i) => {
+        const g = live > 0.7 ? Math.pow(Math.max(0, Math.sin(this.t * 0.8 + it.phase)), 24) * 1.6 : 0;
+        this.panels.setColorAt(i, this.col.setRGB(base + g, base + g * 0.9, base + g * 0.7));
+      });
+      this.panels.instanceColor.needsUpdate = true;
+    }
+    this.backMat.color.setRGB(0.69, 0.63, 0.5).multiplyScalar(0.25 + 0.75 * live);
   }
 }
 
@@ -553,8 +612,79 @@ export function buildSolar(B) {
     M(x - 0.18, y, z - 0.18, x + 0.18, y + 2.2, z + 0.18);
     if (alongZ) new Mirror(W, { min: [x - 0.06, y + 2.2, z - 1.4], max: [x + 0.06, y + 4.0, z + 1.4] });
     else new Mirror(W, { min: [x - 1.4, y + 2.2, z - 0.06], max: [x + 1.4, y + 4.0, z + 0.06] });
+    // out here a polished mirror catches the full sun and blows the bloom out across the screen: brush it
+    // (the Mirror keeps its own material; it's the last thing it added to the scene)
+    const m = W.scene.children[W.scene.children.length - 1]?.material;
+    if (m && m.metalness === 1) {
+      m.metalness = 0.6;
+      m.roughness = 0.55;
+      m.color.set(0xb0a07a);
+      m.emissive?.set(0x1a1206);
+    }
+    // a bronze frame round the panel
+    if (alongZ) {
+      W.deco(x - 0.1, y + 2.1, z - 1.5, x + 0.1, y + 2.2, z + 1.5, 'metal', zone);
+      W.deco(x - 0.1, y + 4.0, z - 1.5, x + 0.1, y + 4.1, z + 1.5, 'metal', zone);
+    } else {
+      W.deco(x - 1.5, y + 2.1, z - 0.1, x + 1.5, y + 2.2, z + 0.1, 'metal', zone);
+      W.deco(x - 1.5, y + 4.0, z - 0.1, x + 1.5, y + 4.1, z + 0.1, 'metal', zone);
+    }
   };
   // a gatehouse frame over a deck (for barrier walls across a 3 m path along x)
+  // ---- temple dressing (all static boxes, merged per material; the banners share one mesh)
+  // a broken pillar: drum courses, a glowing glyph band, sometimes its capital still on
+  const brokenPillar = (x, y, z, h, cap = false) => {
+    R(x - 0.75, y, z - 0.75, x + 0.75, y + 0.5, z + 0.75); // plinth
+    R(x - 0.6, y + 0.5, z - 0.6, x + 0.6, y + h, z + 0.6);
+    for (let k = 1.6; k < h - 0.3; k += 1.4) W.deco(x - 0.63, y + k, z - 0.63, x + 0.63, y + k + 0.08, z + 0.63, 'metal', zone);
+    if (h > 2.2) G(x - 0.62, y + h - 0.9, z - 0.62, x + 0.62, y + h - 0.8, z + 0.62);
+    if (cap) R(x - 0.95, y + h, z - 0.95, x + 0.95, y + h + 0.5, z + 0.95);
+  };
+  // a fallen drum lying on the sand
+  const drum = (x, y, z, alongX = true, len = 2.8) => (alongX ? R(x - len / 2, y, z - 0.6, x + len / 2, y + 1.2, z + 0.6) : R(x - 0.6, y, z - len / 2, x + 0.6, y + 1.2, z + len / 2));
+  // a sand drift: three soft steps, low enough to wade through (decor, not solid)
+  const drift = (x, y, z, w, d) => {
+    for (let k = 0; k < 3; k++) W.deco(x - w / 2 + k * w * 0.15, y, z - d / 2 + k * d * 0.15, x + w / 2 - k * w * 0.12, y + 0.1 * (k + 1), z + d / 2 - k * d * 0.12, 'plat', zone);
+  };
+  // carvings on a wall face: n = the way the face looks ('+x' '-x' '+z' '-z'), at = the face's coordinate
+  const onWall = (n, at, u1, y1, u2, y2, depth, kind) => {
+    const sg = n[0] === '+' ? 1 : -1, a = at, b = at + sg * depth;
+    if (n[1] === 'x') W.deco(Math.min(a, b), y1, Math.min(u1, u2), Math.max(a, b), y2, Math.max(u1, u2), kind, zone);
+    else W.deco(Math.min(u1, u2), y1, Math.min(a, b), Math.max(u1, u2), y2, Math.max(a, b), kind, zone);
+  };
+  // a sun disc relief: a ring of rays round a glowing boss, cut in the wall
+  const sunRelief = (n, at, u, yc, r = 1.6) => {
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * Math.PI * 2, cu = u + Math.cos(a) * r, cy = yc + Math.sin(a) * r;
+      onWall(n, at, cu - 0.18, cy - 0.18, cu + 0.18, cy + 0.18, 0.18, 'rock');
+    }
+    onWall(n, at, u - r * 0.55, yc - r * 0.55, u + r * 0.55, yc + r * 0.55, 0.12, 'rock');
+    onWall(n, at, u - r * 0.3, yc - r * 0.3, u + r * 0.3, yc + r * 0.3, 0.16, 'glow1');
+  };
+  // a strip of glyphs: dashes and blocks of glow in a band along a wall
+  const glyphStrip = (n, at, u1, u2, y) => {
+    const end = Math.max(u1, u2);
+    let u = Math.min(u1, u2), k = 0;
+    while (u < end - 0.4) {
+      const w = [0.3, 0.7, 0.2, 0.5, 1.1, 0.25][k % 6], h = [0.3, 0.12, 0.45, 0.12, 0.12, 0.3][k % 6];
+      onWall(n, at, u, y - h / 2, Math.min(u + w, end), y + h / 2, 0.06, 'glow1');
+      u += w + 0.35;
+      k++;
+    }
+    onWall(n, at, Math.min(u1, u2), y - 0.42, end, y - 0.36, 0.08, 'metal');
+    onWall(n, at, Math.min(u1, u2), y + 0.36, end, y + 0.42, 0.08, 'metal');
+  };
+  // banners: sun-cloth hung from the wall tops (one shared texture and mesh for the whole world)
+  const bannerGeos = [];
+  const banner = (n, at, u, yTop, w = 1.8, h = 5) => {
+    const pg = new THREE.PlaneGeometry(w, h);
+    const sg = n[0] === '+' ? 1 : -1;
+    if (n[1] === 'x') pg.rotateY(sg > 0 ? Math.PI / 2 : -Math.PI / 2).translate(at + sg * 0.12, yTop - h / 2, u);
+    else pg.rotateY(sg > 0 ? 0 : Math.PI).translate(u, yTop - h / 2, at + sg * 0.12);
+    bannerGeos.push(pg);
+    if (n[1] === 'x') M(Math.min(at, at + sg * 0.5), yTop - 0.15, u - w / 2 - 0.2, Math.max(at, at + sg * 0.5), yTop + 0.1, u + w / 2 + 0.2);
+    else M(u - w / 2 - 0.2, yTop - 0.15, Math.min(at, at + sg * 0.5), u + w / 2 + 0.2, yTop + 0.1, Math.max(at, at + sg * 0.5));
+  };
   const gateX = (x, y, cz, w = 3, h = 4.7) => {
     M(x - 0.4, y - 3, cz - w / 2 - 1, x + 0.4, y + h + 0.8, cz - w / 2);
     M(x - 0.4, y - 3, cz + w / 2, x + 0.4, y + h + 0.8, cz + w / 2 + 1);
@@ -688,6 +818,21 @@ export function buildSolar(B) {
   R(-80, -1, -66, -77, 0.8, -62);
   heliostat(-96, -1, -58);
   heliostat(-82, -1, -56);
+  // dressing: the yard was a sun temple's forecourt
+  for (const [x, z, h, cap] of [[-101, -45, 5.5, true], [-101, -69, 2.4], [-77, -45, 3.6], [-95, -54, 1.6], [-77, -69, 6.2, true]]) brokenPillar(x, -1, z, h, cap);
+  drum(-93, -1, -66, true);
+  drum(-84, -1, -45.5, false, 2.4);
+  for (const [x, z, w, d] of [[-99, -60, 6, 4], [-79, -52, 5, 6], [-88, -44, 9, 2.6], [-96, -70, 7, 3]]) drift(x, -1, z, w, d);
+  sunRelief('-z', -42, -95, 4, 1.6);
+  sunRelief('-z', -42, -83, 4, 1.6);
+  sunRelief('-x', -74, -63, 4, 1.4);
+  glyphStrip('-z', -42, -103, -75, 6.6);
+  glyphStrip('-x', -74, -71, -43, 6.6);
+  glyphStrip('+x', -104, -71, -59.5, 4.8);
+  glyphStrip('+x', -104, -54.5, -43, 4.8);
+  banner('-z', -42, -89, 7.6);
+  banner('-x', -74, -55, 7.6);
+  banner('+x', -104, -48, 7.6, 1.6, 4.4);
   B.encounter({
     trigger: [[-104, -1, -69], [-74, 6, -42]],
     seals: [
@@ -748,10 +893,28 @@ export function buildSolar(B) {
   const disc = [[-0.3, -4.2, -4.2, 0.3, 4.2, -1.5], [-0.3, -4.2, 1.5, 0.3, 4.2, 4.2], [-0.3, -1.0, -1.5, 0.3, 4.2, 1.5]];
   const dialA = B.shotRotor({ pivot: [-117.5, 3.2, -57], parts: disc, axis: 'x', color: RED, start: 2, correct: 0, zone });
   const dialB = B.shotRotor({ pivot: [-124.5, 3.2, -57], parts: disc, axis: 'x', color: RED, start: 1, correct: 0, zone });
+  // the discs are heavy: it takes two red hits to shift one a quarter turn (the first one only rocks it),
+  // so the first needs 4 hits and the second 6
+  for (const d of [dialA, dialB]) {
+    const hitTurn = d.onHit.bind(d);
+    let charge = 0;
+    d.onHit = (color, hit) => {
+      if (color !== d.color || d.turning) return hitTurn(color, hit);
+      if (++charge < 2) {
+        d.flash = 1;
+        d.world.fx.sparks(hit?.point || d.pivot, hit?.normal || new THREE.Vector3(0, 1, 0), d.hex, { count: 6, speed: 6, spread: 0.8, life: 0.25 });
+        d.jam = 0.5; // it rocks on its axle (the rotor's own wobble)
+        return 'hit';
+      }
+      charge = 0;
+      return hitTurn(color, hit);
+    };
+    onRespawn(() => (charge = 0));
+  }
   B.riser({ min: [-131.8, -1, -58.5], max: [-128.8, 0, -55.5], rise: 4, color: RED, zone });
   const sinker = B.sinker({ min: [-133.6, 3.5, -58.5], max: [-132, 6.7, -55.5], depth: 5, color: RED, back: 0.9, zone });
   new Drone(W, { pos: [-121, 8, -51], color: RED, range: 20 });
-  hint([-114, -1, -59], [-110, 3, -55], 'Each <b style="color:#ff3344">red</b> hit turns a sun disc a quarter turn. Turn each <b>notch down</b> onto the bridge.', 6);
+  hint([-114, -1, -59], [-110, 3, -55], 'The sun discs are heavy: every <b>two</b> <b style="color:#ff3344">red</b> hits turn one a quarter turn. Turn each <b>notch down</b> onto the bridge.', 6);
   hint([-128, -1, -60], [-126, 3, -54], 'Shoot the <b>door</b> on the ledge down into the rock, then stand on the <b>riser</b> and keep shooting it to climb. Quick — the door comes back up.', 7);
   // GREEN stairs up to the ledge along the south wall: a shortcut for later (it skips the race)
   R(-130, -1, -51, -128, -0.59, -49); // (the bottom step is the width of the barrier)
@@ -845,6 +1008,26 @@ export function buildSolar(B) {
   G(-176.05, -19.7, -88.05, -167.95, -19.55, -79.95);
   pedestal(-172, -19.6, -84, YELLOW, zone);
   light(-172, -14, -84, 0xffd060, 26, 28); // (light 3/4)
+  // dressing: the plaza of a sunken temple
+  for (const [x, z, h, cap] of [[-158, -84, 3.2], [-186, -84, 5.4, true], [-172, -53, 2.2], [-158, -98, 1.4], [-186, -66, 2.8], [-176, -116, 4.2, true]]) brokenPillar(x, -20, z, h, cap);
+  drum(-180, -20, -92, true);
+  drum(-164, -20, -76, false);
+  drum(-170, -20, -108, true, 2.2);
+  for (const [x, z, w, d] of [[-160, -58, 6, 5], [-184, -102, 6, 6], [-178, -60, 5, 4], [-163, -114, 6, 3]]) drift(x, -20, z, w, d);
+  // a sun-ray inlay round the dais
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * Math.PI * 2, x = -172 + Math.cos(a) * 7.5, z = -84 + Math.sin(a) * 7.5;
+    W.deco(x - 0.25, -20, z - 0.25, x + 0.25, -19.96, z + 0.25, 'glow1', zone);
+  }
+  sunRelief('-z', -46, -165, -12, 2.2);
+  sunRelief('-z', -46, -179, -12, 2.2);
+  sunRelief('+z', -122, -184, -11, 1.8);
+  glyphStrip('-z', -46, -193, -151, -7.5);
+  glyphStrip('+z', -122, -193, -175.5, -8);
+  glyphStrip('+z', -122, -168.5, -151, -8);
+  banner('-z', -46, -172, -4, 2.2, 7);
+  banner('+z', -122, -160, -5, 1.8, 6);
+  banner('+z', -122, -184, -5, 1.8, 6);
   // the rim and the ledges down the east wall
   R(-158, -30, -120, -150, -2, -110);
   R(-158.5, -2, -120, -158, -1, -110);
@@ -1027,6 +1210,9 @@ export function buildSolar(B) {
   };
   hideSurprise();
   onRespawn(hideSurprise);
+  // the area restock (restock.js) rebuilds broken barriers when you leave Solar: hide the trap again while
+  // you're away so it's a surprise every time, never a plain spike layer
+  W.add({ update: (dt, player) => regionOf(player.pos) !== 'solar' && !(surprise.broken && surprise.armed) && hideSurprise() });
   W.trigger([-119.6, 3.5, -131.6], [-116.9, 6.5, -128.4], () => {
     if (!surprise.armed || !surprise.broken) return;
     surprise.armed = false;
@@ -1217,6 +1403,44 @@ export function buildSolar(B) {
   strata(-196.3, -224, -196, -124, [-2, 10, 22]);
   strata(-199.5, -222.3, -36, -222, [2, 14]);
   killZone([-201, -40, -232], [-31.5, -30.5, -38]);
+
+  if (bannerGeos.length) {
+    const cv = document.createElement('canvas');
+    cv.width = 64;
+    cv.height = 160;
+    const cx2 = cv.getContext('2d');
+    cx2.fillStyle = '#b8862a';
+    cx2.fillRect(0, 0, 64, 160);
+    cx2.fillStyle = '#7a2a18';
+    cx2.fillRect(0, 0, 64, 12);
+    cx2.fillRect(0, 134, 64, 10);
+    cx2.fillStyle = '#ffd86a';
+    cx2.beginPath();
+    cx2.arc(32, 52, 15, 0, Math.PI * 2);
+    cx2.fill();
+    cx2.strokeStyle = '#ffd86a';
+    cx2.lineWidth = 3;
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      cx2.beginPath();
+      cx2.moveTo(32 + Math.cos(a) * 19, 52 + Math.sin(a) * 19);
+      cx2.lineTo(32 + Math.cos(a) * 26, 52 + Math.sin(a) * 26);
+      cx2.stroke();
+    }
+    cx2.fillStyle = '#2a3f8a';
+    for (let y = 84; y < 128; y += 12) cx2.fillRect(14, y, 36, 5);
+    // a swallowtail hem
+    cx2.globalCompositeOperation = 'destination-out';
+    cx2.beginPath();
+    cx2.moveTo(16, 160);
+    cx2.lineTo(32, 146);
+    cx2.lineTo(48, 160);
+    cx2.fill();
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const bm = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, side: THREE.DoubleSide, alphaTest: 0.5 });
+    W.scene.add(new THREE.Mesh(mergeBoxes(bannerGeos), bm));
+  }
 
   // ================================================================ THE SHUTDOWN: what changes
   // The sun is eclipsed and dusk falls, every lance dies, the haze and the hum stop, the quicksand goes
