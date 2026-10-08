@@ -21,6 +21,7 @@ import { Barrier } from '../entities/barrier.js';
 import { Drone } from '../entities/drone.js';
 import { Checkpoint } from '../entities/misc.js';
 import { Glass, TargetPanel, SlidingDoor } from '../entities/puzzle.js';
+import { ShaftSpikes } from '../entities/spikeShield.js';
 import { boxGeo } from '../materials.js';
 import { buildAzureSpillway } from './azureSpillway.js';
 
@@ -486,10 +487,10 @@ export function buildAzure(B) {
   W.box(49.5, -47.5, -160.5, 66.5, -46.5, -157.5, 'ceil', zone);
   W.box(49.5, -47.5, -164.5, 60, -46.5, -160.5, 'ceil', zone);
   W.box(64, -47.5, -164.5, 66.5, -46.5, -160.5, 'ceil', zone);
-  brine(50, -182, 58, -158, -46);
-  brine(58, -182, 66, -166.5, -46);
+  brine(50, -182, 57, -158, -46);
+  brine(57, -182, 66, -166.5, -46);
   // the pit platform around the hole
-  W.box(58, -46.5, -166.5, 60, -44.2, -158, 'floor', zone);
+  W.box(57, -46.5, -166.5, 60, -44.2, -158, 'floor', zone); // (a wide west lip to land on from the last pillar)
   W.box(64, -46.5, -166.5, 66, -44.2, -158, 'floor', zone);
   W.box(60, -46.5, -166.5, 64, -44.2, -164.5, 'floor', zone);
   W.box(60, -46.5, -160.5, 64, -44.2, -158, 'floor', zone);
@@ -516,7 +517,7 @@ export function buildAzure(B) {
   pillar(51, -159, 55, -163, -39);
   spikes(51, -159, 55, -163, -39, RED);
   new Drone(W, { pos: [57, -27.5, -174], color: YELLOW, range: 22 }); // (level with the catwalk, where you can see it)
-  keepOut.push([[58, -47, -167], [66, -40, -158], [60, -26, -173], [66, -20, -167]]);
+  keepOut.push([[57, -47, -167], [66, -40, -158], [60, -26, -173], [66, -20, -167]]);
   for (const [x, z, tx, tz] of [[50.6, -181.4, 0.3, 0.3], [65.4, -181.4, -0.3, 0.3], [50.6, -158.6, 0.3, -0.3], [56, -181.6, 0, 0.35]]) cluster(x, -46.2, z, 3 + rng() * 3, 'ice', tx, tz);
   for (let i = 0; i < 10; i++) cluster(50.3, -44 + rng() * 22, -160 - rng() * 21, 1.5 + rng() * 2, 'ice', 1.2, 0, 4);
   for (let i = 0; i < 10; i++) cluster(51 + rng() * 14, -44 + rng() * 22, -181.7, 1.5 + rng() * 2, 'ice', 0, 1.2, 4);
@@ -528,12 +529,12 @@ export function buildAzure(B) {
   W.box(64, -53.9, -165, 64.5, -47.5, -160, 'metal', zone);
   W.box(59.5, -53.9, -165, 64.5, -47.5, -164.5, 'metal', zone);
   W.box(59.5, -53.9, -160.5, 64.5, -47.5, -160, 'metal', zone);
-  B.water([60, -53.9, -164.5], [64, -44.6, -160.5], { current: [0, -3.4, 0] }); // (its surface just under the grate)
+  B.water([60, -53.9, -164.5], [64, -44.6, -160.5], { current: [0, -2.6, 0] }); // (its surface just under the grate)
   // a RED grate seals the mouth (so nobody tumbles in by accident); once shot it stays open
   new Barrier(W, { min: [60, -44.55, -164.5], max: [64, -44.2, -160.5], color: RED, kind: 'wall', zone });
-  spikes(60, -164.5, 64, -160.5, -48.8, YELLOW, 3);
-  spikes(60, -164.5, 64, -160.5, -52.4, GREEN, 3);
-  for (const y of [-47.6, -51.2]) {
+  // (shaft layers: a broken one won't regrow while you're still in the pipe above it)
+  for (const [y, color] of [[-49.6, YELLOW], [-52.6, GREEN]]) new ShaftSpikes(W, { min: [60, y, -164.5], max: [64, y + 0.6, -160.5], color, regen: 3, zone, top: -40 });
+  for (const y of [-48.4, -51.4]) {
     W.deco(60, y, -164.5, 60.05, y + 0.08, -160.5, 'glow3', zone);
     W.deco(63.95, y, -164.5, 64, y + 0.08, -160.5, 'glow3', zone);
   }
@@ -709,7 +710,7 @@ export function buildAzure(B) {
   guideTrail(W, BLUE_HEX, [[[71.6, -56, -138], [76, -56, -146], [79.6, -56, -146]]], (pl) => pl.pos.y < -50 && pl.pos.x < 81 && pl.pos.z > -151 && game.blaster.unlocked[BLUE]);
   light(57, -33, -170, 0xa8dcff, 30, 26); // the Well: light the pillars from the middle
   // ...and band each pillar's lip with light, so the ledges read against the gloom from the catwalk
-  for (const [x1, z1, x2, z2, top] of [[60, -181, 64, -177, -28.5], [52, -181, 56, -177, -32], [51, -172, 54.5, -168, -35.5], [51, -163, 55, -159, -39], [58, -166.5, 66, -158, -44.2]]) {
+  for (const [x1, z1, x2, z2, top] of [[60, -181, 64, -177, -28.5], [52, -181, 56, -177, -32], [51, -172, 54.5, -168, -35.5], [51, -163, 55, -159, -39], [57, -166.5, 66, -158, -44.2]]) {
     const y1 = top - 0.5, y2 = top - 0.3, o = 0.04;
     W.deco(x1 - o, y1, z1 - o, x2 + o, y2, z1, 'glow3', zone);
     W.deco(x1 - o, y1, z2, x2 + o, y2, z2 + o, 'glow3', zone);
