@@ -14,6 +14,7 @@ import { Swarm } from './swarmer.js';
 import { Warden } from './warden.js';
 import { Brute } from './brute.js';
 import { Mortar, clearBlastZones } from './mortar.js';
+import { Checkpoint } from './misc.js';
 import { BlastCrab, Welder } from './foundryEnemies.js';
 import { Scarab, Mummy } from './solarEnemies.js';
 import { Slime, SpiderBot } from './verdantEnemies.js';
@@ -38,6 +39,8 @@ const firstColor = (c) => (Array.isArray(c) ? c[0] : c);
 //  'mortar' { color, interval, flight, radius, linger }
 //  'blastCrab' | 'welder' | 'scarab' | 'mummy' | 'slime' | 'spider' | 'fish' | 'squid': the world enemies
 // Returns the enemy; `.dead` turns true once it's down (a swarm: all of it).
+const relentless = (e) => ((e.relentless = true), e);
+
 export function spawnEnemy(world, spec) {
   const { type = 'drone', ...o } = spec;
   switch (type) {
@@ -63,10 +66,11 @@ export function spawnEnemy(world, spec) {
     case 'mortar':
       return new Mortar(world, o);
     // the world enemies (see their files for options); pos is on the floor (fish/squid: in the water)
-    case 'blastCrab': return new BlastCrab(world, o);
-    case 'welder': return new Welder(world, o);
-    case 'scarab': return new Scarab(world, o);
-    case 'mummy': return new Mummy(world, o);
+    // (an encounter's ground enemies come in hunting, see the whole arena and never give up)
+    case 'blastCrab': return relentless(new BlastCrab(world, { range: 45, ...o, aggro: o.aggro ?? true }));
+    case 'welder': return relentless(new Welder(world, { range: 45, ...o, aggro: o.aggro ?? true }));
+    case 'scarab': return relentless(new Scarab(world, { range: 45, ...o, aggro: o.aggro ?? true }));
+    case 'mummy': return relentless(new Mummy(world, { range: 45, ...o, aggro: o.aggro ?? true }));
     case 'slime': return new Slime(world, o);
     case 'spider': return new SpiderBot(world, o);
     case 'fish': return new FishSchool(world, o);
@@ -426,13 +430,17 @@ export class Encounter {
     for (const s of this.seals) s.open();
     if (this.clearTitle) this.game.hud.zoneTitle('', this.clearTitle, '#9bf6ff', 2.2);
     if (!sfx('arena_clear', { gain: 0.9, vary: 0 })) audio.target();
-    if (this.checkpoint) {
-      const { pos, yaw = 0 } = this.checkpoint;
-      const p = new THREE.Vector3(...pos);
-      this.game.checkpoint?.ref?.setActive?.(false);
-      this.world.fx.checkpoint(p);
-      this.game.setCheckpoint(p, yaw, null);
-    }
+    // a checkpoint beacon rises where the fight was (its given spot, else where you stand) and saves you
+    // right away; it stays, so you can save there again on the way back
+    const { pos = null, yaw = this.game.player.yaw } = this.checkpoint || {};
+    const p = pos ? new THREE.Vector3(...pos) : this.game.player.safePos.clone();
+    if (!this.beacon) this.beacon = new Checkpoint(this.world, this.game, { pos: p.toArray(), yaw });
+    this.game.checkpoint?.ref?.setActive?.(false);
+    this.beacon.setActive(true);
+    this.world.fx.checkpoint(p);
+    this.world.fx.burst(p.clone().setY(p.y + 1.2), 0x9bf6ff, { count: 70, speed: 5, life: 0.9, size: 0.22, gravity: -1 });
+    this.game.setCheckpoint(p, yaw, this.beacon);
+    this.game.hud.message('<b style="color:#9bf6ff">CHECKPOINT</b> saved.', 2.5);
     this.restoreMusic();
     this.onClear?.(this);
   }

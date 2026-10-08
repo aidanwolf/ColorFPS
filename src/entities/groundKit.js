@@ -523,6 +523,7 @@ export class GroundEnemy {
     const from = _a.copy(this.pos).setY(this.pos.y + this.height * 0.85);
     this.sees = this.dist < this.range && this.world.lineOfSight(from, _eye);
     if (this.sees) {
+      this.alerted = true;
       if (!this.aggro) {
         this.aggro = true;
         this.onAlert?.(player);
@@ -532,7 +533,7 @@ export class GroundEnemy {
     } else if (this.aggro) {
       // lose interest once you've been gone (and far off) for a while
       this.lostT += 0.25;
-      if (this.lostT > 8 && this.dist > this.range * 0.8) {
+      if (!this.relentless && this.lostT > 8 && this.dist > this.range * 0.8) {
         this.aggro = false;
         this.onCalm?.();
       }
@@ -608,6 +609,12 @@ export class GroundEnemy {
     AWAKE.add(this);
     this.stateT += dt;
     this.look(dt, player);
+    // spawned already hunting (an encounter's wave): wake the moment it lands, and never lose interest
+    if (this.aggro && !this.alerted && this.state === 'idle') {
+      this.alerted = true;
+      this.lastSeen.copy(player.pos);
+      this.onAlert?.(player);
+    }
     this.think(dt, player);
     if (this.dead) return;
     this.physics(dt);
