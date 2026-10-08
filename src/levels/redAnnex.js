@@ -202,10 +202,10 @@ export function buildRedAnnex(B) {
   shieldedShaft({
     x1: -38, x2: -34, z1: 44, z2: 48, floor: -12.5, capY: 2.8, zone,
     cap: { x1: -38, x2: -34, z1: 43.6, z2: 48 },
-    layers: [{ y: -0.5, color: GREEN }, { y: -4, color: RED, shieldY: -0.7 }, { y: -7.5, color: YELLOW, shieldY: -4.2 }, { y: -11, color: GREEN, shieldY: -7.7 }],
+    layers: [{ color: GREEN }, { color: RED }, { color: YELLOW }],
   });
-  hint([-37.5, 3.2, 40.5], [-34.5, 6, 43], 'Four layers deep. Drop through each shield, then fire: ' +
-    `${tag(GREEN, 'GREEN')} · ${tag(RED, 'RED')} · ${tag(YELLOW, 'YELLOW')} · ${tag(GREEN, 'GREEN')}`, 6);
+  hint([-37.5, 3.2, 40.5], [-34.5, 6, 43], 'Shields swallow shots. Fire through each <b>open end</b>, the next one mid-fall: ' +
+    `${tag(GREEN, 'GREEN')} · ${tag(RED, 'RED')} · ${tag(YELLOW, 'YELLOW')}`, 6);
 
   // under the pit: back north to the ricochet lock
   corridor({ zStart: 43.5, zEnd: 20.5, y: -12.5, zone, cx: -36 });
@@ -369,9 +369,9 @@ export function buildRedAnnex(B) {
   shieldedShaft({
     x1: 12, x2: 16, z1: 44, z2: 48, floor: -5.6, capY: 6.2, zone,
     cap: { x1: 11.5, x2: 16.5, z1: 43.5, z2: 48 },
-    layers: [{ y: 2.9, color: BLUE }, { y: -0.6, color: RED, shieldY: 2.7 }, { y: -4.1, color: GREEN, shieldY: -0.8 }],
+    layers: [{ color: BLUE }, { color: RED }],
   });
-  hint([16.5, 6.6, 44.5], [19, 9, 47.5], `Drop through each shield, then fire: ${tag(BLUE, 'BLUE')} · ${tag(RED, 'RED')} · ${tag(GREEN, 'GREEN')}`, 5);
+  hint([16.5, 6.6, 44.5], [19, 9, 47.5], `Shoot through each shield's <b>open end</b>: ${tag(BLUE, 'BLUE')} · ${tag(RED, 'RED')}`, 5);
   W.box(10.5, -6.6, 44.5, 11.5, -5.6, 47.5, 'floor', zone);
   W.box(10.5, -5.6 + CH, 44.5, 11.5, -5.1 + CH, 47.5, 'ceil', zone);
   W.box(10.5, -5.6, 44, 11.5, -5.6 + CH, 44.5, 'wall', zone);
