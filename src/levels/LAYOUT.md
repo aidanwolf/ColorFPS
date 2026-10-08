@@ -30,7 +30,7 @@ From the Hub you can **see into every world through big windows before you can e
 | module | file | x | y | z |
 |---|---|---|---|---|
 | Crimson Foundry | `red.js` | -20 → 20 | -7 → 15 | 2 → -99.5 |
-| Cell block (the opening; door in the spawn room's east wall at z -3.8) | `cellblock.js` | 6.5 → 22.5 | -1 → 3.9 | 0.5 → -5.5 |
+| Cell block (the opening; door in the spawn room's east wall at z -3.8) | `cellblock.js` | 6.5 → 22.5 | -1 → 3.9 | 0.5 → -5.5 (north row of cells: to -7.8 for x 6.5 → 19.15; red.js's Maintenance Vent room sits behind it at z -7.8 → -14.8) |
 | Foundry annex (color-locked challenge rooms off the spawn room) | `redAnnex.js` | -45 → 45 | -25 → 30 | 100 → -38 (keep clear of red.js's rooms) |
 | The Hub | `hub.js` | -25 → 25 | 2 → 45 | -99.5 → -148.5 |
 | Prism Core (boss) | `prism.js` | -31 → 31 | -60 → -6 | -88 → -175 |

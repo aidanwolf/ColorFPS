@@ -1,8 +1,11 @@
 // THE CELL BLOCK — where the game starts: a holding block off the Crimson Foundry's spawn room (through a
 // door in its east wall at z -3.8). Five cells in a row along the south side of a narrow hall
-// (x 6.5 → 22, z 0 → -5.5, y 0 → 3.4); the player wakes in the last one, cell 05, behind a red field.
-// A few seconds in (sooner if you look around) the field sputters, sparks and dies: Iris Calder jammed
-// its emitter (log 01 waits in the hall). The other cells still hold their prisoners' bones behind the
+// (x 6.5 → 22, z 0 → -5, y 0 → 3.4) and four more facing them across it (06 → 09, z -5 → -7.8; the far
+// end of the north wall, opposite your cell, is left bare for the eye); the player wakes in the last
+// south cell, 05, behind a red field.
+// A few seconds in (sooner if you look around) the field sputters, sparks and dies: a power flicker from
+// the Atrium (Dr. Wren Ashby has clipped a probe onto a reactor conduit there, unaware of what it reaches
+// down here) is enough to short its worn emitter. The other cells still hold their prisoners' bones behind the
 // Lumen's own violet fields, which nothing you carry can break. A machine eye on the far wall watches.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -16,6 +19,8 @@ const CELL_W = 3;
 const CELL_X = (k) => 7 + k * CELL_W; // west edge of cell k (0..4)
 const FRONT = -2.6; // the line of the cell fields
 const FIELD_ALPHA = 0.6;
+const NFRONT = -5; // the north row's field line (the hall's old north wall)
+const NBACK = -7.3; // and its back wall's inner face (the wall itself runs to -7.8)
 export const SPAWN = [20.6, 0, -1.3];
 
 export function buildCellBlock(B) {
@@ -28,7 +33,15 @@ export function buildCellBlock(B) {
   // ---------------------------------------------------------------- shell
   box(x1, -1, zN - 0.5, x2 + 0.5, 0, 0.5, 'floor');
   box(x1, h, zN - 0.5, x2 + 0.5, h + 0.5, 0.5, 'ceil');
-  box(x1, 0, zN - 0.5, x2 + 0.5, h, zN); // north wall
+  // the north row (cells 06 → 09) reaches back to z -7.8 over x 6.5 → 19.15; past it the north wall
+  // stays a bare wall for the eye, across from your cell
+  const NX2 = CELL_X(4) + 0.15;
+  box(x1, -1, NBACK - 0.5, NX2, 0, zN - 0.5, 'floor');
+  box(x1, h, NBACK - 0.5, NX2, h + 0.5, zN - 0.5, 'ceil');
+  box(x1, 0, NBACK - 0.5, NX2, h, NBACK); // back wall of the north row
+  box(x1, 0, NBACK, CELL_X(0) + 0.15, h, NFRONT); // the corner by the door
+  box(CELL_X(4) - 0.15, 0, NBACK, NX2, h, NFRONT); // end divider (flush: no stub by your cell's door)
+  box(NX2, 0, zN - 0.5, x2 + 0.5, h, zN); // north wall (the eye's)
   box(x1, 0, 0, x2 + 0.5, h, 0.5); // south wall (the Foundry annex lies beyond z 0.5)
   box(x2, 0, zN, x2 + 0.5, h, 0); // east wall
   box(x1, 0, FRONT, CELL_X(0) + 0.15, h, 0); // the corner by the door
@@ -41,7 +54,7 @@ export function buildCellBlock(B) {
   deco(5.95, 2.95, -4.9, 6.0, 3.15, -2.7, 'hazard');
   // a drain channel down the middle of the hall, and grime-dark baseboards
   box(7.5, 0, -3.95, 21.5, 0.01, -3.75, 'grate');
-  deco(x1, 0.02, zN + 0.02, x2, 0.1, zN + 0.08, 'glow0');
+  deco(NX2, 0.02, zN + 0.02, x2, 0.1, zN + 0.08, 'glow0');
 
   // ---------------------------------------------------------------- the cells
   const fields = [];
@@ -61,6 +74,54 @@ export function buildCellBlock(B) {
   const myField = fields[4];
   myField.mat.uniforms.uAlpha.value = FIELD_ALPHA; // see-through enough to watch the eye watching you
 
+  // across the hall: 06 → 09, numbered back toward the door. Not a copy of the south row: 07 was
+  // purged and its field has all but died (still solid: nothing gets out), 08's emitter is failing and
+  // stutters, and each cell has its cot somewhere different (07's is tipped against the wall).
+  const north = []; // { k, num, field, lamp }
+  const lampOn = new THREE.MeshBasicMaterial({ color: new THREE.Color(LUMEN).multiplyScalar(1.15) });
+  const lampOff = new THREE.MeshBasicMaterial({ color: 0x15131c });
+  const lampGeo = new THREE.BoxGeometry(0.6, 0.07, 0.1);
+  for (let k = 0; k < 4; k++) {
+    const num = 9 - k, a = CELL_X(k) + 0.15, b = CELL_X(k + 1) - 0.15;
+    const dark = num === 7, faulty = num === 8;
+    if (k < 3) box(b, 0, NBACK, b + 0.3, h, NFRONT + 0.25); // divider
+    box(a, 2.6, NFRONT - 0.25, b, h, NFRONT + 0.25, 'metal');
+    box(a, 0, NFRONT - 0.25, b, 0.06, NFRONT + 0.25, 'metal');
+    if (!dark) deco(a, 2.55, NFRONT - 0.2, b, 2.6, NFRONT + 0.2, 'trimWhite');
+    if (num === 9) {
+      // cot along the back wall, bucket in the west corner
+      box(a + 0.6, 0, NBACK + 0.05, a + 2.45, 0.42, NBACK + 0.9, 'metal');
+      box(a + 0.65, 0.42, NBACK + 0.1, a + 2.4, 0.5, NBACK + 0.85, 'floor');
+      box(a + 0.2, 0, NBACK + 0.15, a + 0.55, 0.38, NBACK + 0.5, 'metal');
+    } else if (num === 6) {
+      // cot along the east divider (the back wall is the kneeler's), bucket by the field
+      box(b - 0.9, 0, NBACK + 0.05, b - 0.05, 0.42, NBACK + 1.9, 'metal');
+      box(b - 0.85, 0.42, NBACK + 0.1, b - 0.1, 0.5, NBACK + 1.85, 'floor');
+      box(a + 0.15, 0, NFRONT - 0.75, a + 0.5, 0.38, NFRONT - 0.4, 'metal');
+    } else if (faulty) {
+      // cot along the west divider
+      box(a + 0.05, 0, NBACK + 0.05, a + 0.9, 0.42, NBACK + 1.9, 'metal');
+      box(a + 0.1, 0.42, NBACK + 0.1, a + 0.85, 0.5, NBACK + 1.85, 'floor');
+      box(b - 0.45, 0, NFRONT - 0.75, b - 0.1, 0.38, NFRONT - 0.4, 'metal');
+    } else {
+      // 07: the cot torn off the wall and stood on end; the bucket on its side
+      box(b - 0.5, 0, NBACK + 0.25, b - 0.08, 1.85, NBACK + 1.1, 'metal');
+      box(a + 0.7, 0, NFRONT - 0.95, a + 1.1, 0.3, NFRONT - 0.6, 'metal');
+    }
+    const lamp = new THREE.Mesh(lampGeo, dark ? lampOff : faulty ? lampOn.clone() : lampOn);
+    lamp.position.set((a + b) / 2, 2.38, NBACK + 0.06);
+    W.scene.add(lamp);
+    const field = lumenField(W, [a, 0.06, NFRONT - 0.1], [b, 2.55, NFRONT + 0.1]);
+    if (dark) {
+      field.mat.uniforms.uColor.value.set(LUMEN).multiplyScalar(0.1);
+      field.mat.uniforms.uAlpha.value = 0.22;
+      field.frame.color.set(0x2c2440);
+    }
+    fields.push(field);
+    north.push({ k, num, a, b, field, lamp });
+  }
+  const faulty = north.find((c) => c.num === 8);
+
   // ---------------------------------------------------------------- the dead
   const bones = new Bones();
   // 01: laid out on the cot as if asleep
@@ -72,6 +133,19 @@ export function buildCellBlock(B) {
   // 04: curled up on the cot; a second skull by the bucket
   bones.add(POSES.curled, CELL_X(3) + 1.2, 0.5, -0.5, Math.PI / 2 + 0.2);
   bones.skull(CELL_X(3) + 2.2, 0.09, -0.75, 1.9, 0.4);
+  // 06: knelt facing the back wall, forehead to it, under the words
+  bones.add(POSES.kneel, CELL_X(3) + 1.0, 0, NBACK + 0.72, Math.PI / 2);
+  // 07 (purged): nobody left whole; a heap of loose bones and three skulls swept into the corner
+  bones.skull(CELL_X(2) + 0.55, 0.09, NBACK + 0.45, 0.4, 0.2);
+  bones.skull(CELL_X(2) + 0.95, 0.09, NBACK + 0.4, 2.6, 0.9);
+  bones.skull(CELL_X(2) + 0.7, 0.17, NBACK + 0.75, 4.1, 0.3);
+  bones.heap(CELL_X(2) + 0.8, NBACK + 0.6, 14, 0.55, 7);
+  bones.heap(CELL_X(2) + 1.9, NBACK + 1.3, 4, 0.45, 3);
+  // 08: one asleep on the cot, another sat against the east wall facing it
+  bones.add(POSES.supine, CELL_X(1) + 0.62, 0.5, NBACK + 1.05, Math.PI / 2);
+  bones.add(POSES.sitting, CELL_X(2) - 0.32, 0, NBACK + 1.45, Math.PI + 0.25);
+  // 09: curled up on the floor just inside the field, back to the hall
+  bones.add(POSES.curled, CELL_X(0) + 1.6, 0, NFRONT - 0.55, Math.PI);
   const boneMesh = bones.build();
   W.scene.add(boneMesh);
 
@@ -79,6 +153,10 @@ export function buildCellBlock(B) {
   scratches(W, { x: CELL_X(1) + CELL_W - 0.16, y: 1.55, z: -1.25, w: 2.1, h: 1.5, face: -1, tallies: 230 });
   scratches(W, { x: CELL_X(0) + CELL_W - 0.16, y: 1.2, z: -1.6, w: 1.1, h: 0.7, face: -1, tallies: 26 });
   scratches(W, { x: CELL_X(3) + 0.16, y: 1.45, z: -1.35, w: 1.6, h: 1.1, face: 1, tallies: 11, text: ['IT WATCHES', 'IT WAITS'] });
+  // and across the hall: 06's words over the kneeling one, 08's long count, 09's riddle on its back wall
+  scratches(W, { x: CELL_X(3) + 1.0, y: 1.55, z: NBACK, w: 1.5, h: 0.95, face: 0, tallies: 4, text: ['THE EYE', 'NEVER SLEEPS'] });
+  scratches(W, { x: CELL_X(2) - 0.16, y: 1.6, z: NBACK + 1.0, w: 1.6, h: 1.6, face: -1, tallies: 412 });
+  scratches(W, { x: CELL_X(0) + 1.9, y: 1.4, z: NBACK, w: 1.5, h: 1.0, face: 0, tallies: 19, text: ['FOUR COLORS', 'ONE DOOR'] });
 
   // status plates over each cell, in the machine's terse hand
   const plates = [];
@@ -88,6 +166,11 @@ export function buildCellBlock(B) {
     p.mesh.rotation.y = Math.PI;
     W.scene.add(p.mesh);
     plates.push(p);
+  }
+  for (const c of north) {
+    const p = plate([`0${c.num}`, c.num === 7 ? 'PURGED' : c.num === 8 ? 'FAULT' : 'EXPIRED'], c.num === 7 ? '#5e5770' : '#b9a3e6');
+    p.mesh.position.set(CELL_X(c.k) + 1.5, 3.0, NFRONT + 0.26);
+    W.scene.add(p.mesh);
   }
 
   // ---------------------------------------------------------------- light: three lamps, one dead, one failing
@@ -101,6 +184,9 @@ export function buildCellBlock(B) {
   const hallLight = light(14.5, h - 0.4, -3.9, 0xc0ccff, 10, 13);
   const cellLight = light(20.6, 1.4, -2.0, 0xff3344, 7, 7);
   area([x1, 0, zN], [x2, h, 0], { ambient: 'amb_foundry', atmosphere: 'cells' });
+  // the block keeps the title's haunting track (an override: see Game.setMusic) until you step out into
+  // the spawn room, whose area (red.js) asks for music_red and so hands back to the Foundry's mix
+  W.trigger([x1, 0, zN], [x2, h, 0], () => game.setMusic(audio.musicOr('music_haunt', 'music_title')), { once: false });
   // the block is dim: the fields, the lamps and the red of your own cell do the lighting
   level.atmospheres.cells = {
     fog: 0x07060c, fogNear: 6, fogFar: 60,
@@ -125,10 +211,10 @@ export function buildCellBlock(B) {
   });
   audio.manifest.then(() => audio.prefetch(['cell_malfunction']));
 
-  const sparkAt = (x, y, z, n, big = false) => {
+  const sparkAt = (x, y, z, n, big = false, tint = 0xff6a50) => {
     const fx = W.fx;
     const p = new THREE.Vector3(x, y, z);
-    fx.sparks(p, n, big ? 0xffd0a0 : 0xff6a50, { count: big ? 26 : 9, speed: big ? 9 : 6, spread: 1.1, life: big ? 0.6 : 0.4, gravity: 9 });
+    fx.sparks(p, n, big ? 0xffd0a0 : tint, { count: big ? 26 : 9, speed: big ? 9 : 6, spread: 1.1, life: big ? 0.6 : 0.4, gravity: 9 });
     if (big) fx.flash(p, 0xff5544, { size: 0.9, life: 0.12, k: 1.6 });
   };
   const sx = [CELL_X(4) + 0.2, CELL_X(4) + CELL_W - 0.05]; // the emitter posts
@@ -142,7 +228,20 @@ export function buildCellBlock(B) {
     lampMats[1].color.set(0xc8d4ff).multiplyScalar(1.6 * f);
     hallLight.intensity = 10 * (0.25 + 0.75 * f);
     eye.update(dt, tt);
+    // 08's failing emitter: bursts of stutter, its lamp dropping out with it, a spark now and then
+    const fu = faulty.field.mat.uniforms;
+    const glitch = Math.sin(tt * 3.1) * Math.sin(tt * 1.27 + 2) > 0.3 || tt % 6.1 < 0.25;
+    const out = glitch && Math.random() < 0.55;
+    fu.uAlpha.value = out ? Math.random() * 0.18 : glitch ? 0.3 + Math.random() * 0.3 : 0.5;
+    fu.uFlash.value = glitch && Math.random() < 0.08 ? 0.6 : 0;
+    faulty.field.frame.color.set(LUMEN).multiplyScalar(out ? 0.25 : 1.2);
+    faulty.lamp.material.color.set(LUMEN).multiplyScalar(out ? 0.08 : 1.15);
+    if (glitch && (faultSpark -= dt) <= 0) {
+      faultSpark = 0.6 + Math.random() * 1.4;
+      sparkAt(faulty.a + (Math.random() < 0.5 ? 0.05 : faulty.b - faulty.a - 0.05), 2.45, NFRONT, down, false, 0xb98cff);
+    }
   }
+  let faultSpark = 0;
 
   function breakField(silent) {
     phase = 3;
@@ -241,6 +340,7 @@ function lumenField(W, min, max) {
   f.mat.uniforms.uAlpha.value = 0.5;
   const frame = new THREE.MeshBasicMaterial({ color: new THREE.Color(LUMEN).multiplyScalar(1.2) });
   f.group.children.forEach((c) => c !== f.mesh && (c.material = frame));
+  f.frame = frame; // (its own: the dead and failing fields across the hall dim theirs)
   f.onHit = () => {
     f.flash = 1;
     return 'immune';
@@ -278,7 +378,8 @@ function plate(lines, color) {
   return { mesh, draw };
 }
 
-// Scratches on a wall facing ±x (face): groups of tally marks, maybe a line or two of words.
+// Scratches on a wall facing ±x (face ±1), or +z (face 0: a north cell's back wall): groups of tally
+// marks, maybe a line or two of words.
 function scratches(W, { x, y, z, w, h, face, tallies, text = null }) {
   const c = document.createElement('canvas');
   c.width = Math.round(w * 220);
@@ -321,7 +422,8 @@ function scratches(W, { x, y, z, w, h, face, tallies, text = null }) {
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.55, depthWrite: false }));
-  m.position.set(x + face * 0.005, y, z);
+  if (face) m.position.set(x + face * 0.005, y, z);
+  else m.position.set(x, y, z + 0.005);
   m.rotation.y = (face * Math.PI) / 2;
   W.scene.add(m);
 }
@@ -398,6 +500,13 @@ const POSES = {
     sL: [0.47, 0.26, 0.02], sR: [0.47, 0.05, 0.02], eL: [0.62, 0.25, 0.26], eR: [0.64, 0.04, 0.22], hL: [0.6, 0.2, 0.4], hR: [0.7, 0.04, 0.36],
     pL: [0, 0.2, 0], pR: [0, 0.04, 0], kL: [0.28, 0.2, 0.4], kR: [0.3, 0.04, 0.36], fL: [-0.12, 0.18, 0.46], fR: [-0.08, 0.04, 0.42],
   },
+  // sat back on its heels, bent forward until the skull rests against the wall (+x), hands on the floor
+  kneel: {
+    f: [0.82, -0.57, 0],
+    pelvis: [0, 0.4, 0], neck: [0.34, 0.84, 0], head: [0.47, 0.8, 0.02],
+    sL: [0.31, 0.8, 0.18], sR: [0.31, 0.8, -0.18], eL: [0.42, 0.44, 0.25], eR: [0.45, 0.42, -0.24], hL: [0.5, 0.04, 0.22], hR: [0.54, 0.04, -0.2],
+    pL: [0, 0.4, 0.09], pR: [0, 0.4, -0.09], kL: [0.36, 0.06, 0.13], kR: [0.36, 0.06, -0.13], fL: [-0.14, 0.05, 0.12], fR: [-0.14, 0.05, -0.12],
+  },
 };
 
 class Bones {
@@ -443,6 +552,22 @@ class Bones {
     // the skull, facing F, crown along the neck → head line
     const up = J.head.clone().sub(J.neck).normalize();
     this.skullAt(J.head, up, F);
+  }
+
+  // n loose long bones and a few small ones heaped on the floor around (x, z), within radius r
+  heap(x, z, n, r, seed) {
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < n; i++) {
+      const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * r, len = 0.18 + rnd() * 0.28, yaw = rnd() * Math.PI;
+      const cx = x + Math.cos(a) * d, cz = z + Math.sin(a) * d, y = 0.02 + (1 - d / r) * 0.12 * rnd();
+      const hx = (Math.cos(yaw) * len) / 2, hz = (Math.sin(yaw) * len) / 2, dy = (rnd() - 0.5) * 0.06;
+      this.limb(new THREE.Vector3(cx - hx, y + dy, cz - hz), new THREE.Vector3(cx + hx, y - dy, cz + hz), 0.012 + rnd() * 0.01);
+    }
+    // a few ribs: arcs lying on the floor
+    for (let i = 0; i < Math.ceil(n / 4); i++) {
+      const g = new THREE.TorusGeometry(0.12, 0.01, 4, 10, Math.PI * 0.8).rotateX(Math.PI / 2).rotateY(rnd() * 6.3);
+      this.white.push(g.translate(x + (rnd() - 0.5) * r, 0.03, z + (rnd() - 0.5) * r));
+    }
   }
 
   // a loose skull on the floor: tilt rolls it onto its side

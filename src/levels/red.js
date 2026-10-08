@@ -105,10 +105,11 @@ export function buildRed(B) {
     game.hud.message('A <b>SOLAR</b> lock seals this vent. Come back once your blaster fires yellow.', 4);
   }, { once: false });
   tunnelX({ x1: 6.5, x2: 13.5, zc: -9, w: 1.2, y: 0, h: 1.0, zone });
-  room({ x1: 14, x2: 18, zS: -6, zN: -12, y: 0, h: 3, zone, w: [{ c: -9, w: 1.2, h: 1.0 }] });
-  trophy(16, 1, -9);
-  light(16, 2.5, -9, 0xffcc55, 8, 8);
-  secretRoom([14, 0, -12], [18, 3, -6], 'Maintenance Vent');
+  // (set back to z -8.3 so the cell block's north row of cells fits in front of it, cellblock.js)
+  room({ x1: 14, x2: 18, zS: -8.3, zN: -14.3, y: 0, h: 3, zone, w: [{ c: -9, w: 1.2, h: 1.0 }] });
+  trophy(16, 1, -11.3);
+  light(16, 2.5, -11.3, 0xffcc55, 8, 8);
+  secretRoom([14, 0, -14.3], [18, 3, -8.3], 'Maintenance Vent');
 
   // SECRET 2 — yellow door in the west wall (come back after Sector 2)
   new Barrier(W, { min: [-6.5, 0, -7.2], max: [-6, 3, -4.8], color: YELLOW, kind: 'door', zone });
@@ -170,7 +171,8 @@ export function buildRed(B) {
   barrierWall(-90, 4, RED, zone);
   new Drone(W, { pos: [0, 6, -92], color: RED, orbit: 0.4, range: 9 }); // short range so it can't reach the Hub checkpoint
 
-  area([-6, 0, -12], [6, 6, 0], { ambient: 'amb_foundry', atmosphere: 'foundry' });
+  // (music_red here ends the cell block's music_haunt override: the position-based mix takes back over)
+  area([-6, 0, -12], [6, 6, 0], { music: 'music_red', ambient: 'amb_foundry', atmosphere: 'foundry' });
   area([-1.5, 4, -99.5], [1.5, 7, -95], { music: 'music_red', ambient: 'amb_foundry', atmosphere: 'foundry' });
   // ---- wayfinding (playtest pass)
   // A drone shot in the last corridor sent you back to the mid-Crucible checkpoint, three spiked hops
