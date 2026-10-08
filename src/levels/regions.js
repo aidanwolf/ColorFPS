@@ -23,3 +23,18 @@ export const VISIBLE_FROM = {
   azure: new Set(['azure', 'hub', 'red', 'verdant']),
   prism: new Set(['prism', 'hub']),
 };
+
+// Doorways between areas, for the position-driven music/ambience mix: within BLEND m of one, the two
+// areas' tracks are mixed by which side you're on and how far (50/50 standing in the doorway).
+// n points from area a into area b.
+export const PORTALS = [
+  { p: [0, 5.6, -99.5], n: [0, 0, -1], a: 'red', b: 'hub' },
+  { p: [-25, 5.6, -112], n: [-1, 0, 0], a: 'hub', b: 'solar' },
+  { p: [-25, 13.6, -136], n: [-1, 0, 0], a: 'hub', b: 'solar' },
+  { p: [-10, 5.6, -148.5], n: [0, 0, -1], a: 'hub', b: 'verdant' },
+  { p: [10, 13.6, -148.5], n: [0, 0, -1], a: 'hub', b: 'verdant' },
+  { p: [25, 5.6, -112], n: [1, 0, 0], a: 'hub', b: 'azure' },
+  { p: [25, 13.6, -136], n: [1, 0, 0], a: 'hub', b: 'azure' },
+  { p: [0, -6, -110], n: [0, -1, 0], a: 'hub', b: 'prism' }, // the Prism lift shaft
+];
+export const PORTAL_BLEND = 6;

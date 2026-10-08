@@ -58,6 +58,7 @@ class Bed {
     this.src.connect(this.out).connect(out);
     this.src.start(ctx.currentTime, offset % buf.duration);
     this.p0 = this.p1 = 0;
+    this.fresh = true;
     this.t0 = ctx.currentTime;
     this.dur = 0;
     this.timer = 0;
@@ -95,6 +96,18 @@ class Bed {
       };
       this.timer = setTimeout(check, (dur + 0.1) * 1000);
     }
+  }
+
+  // Jump straight to fade position p (smoothed over ~0.1 s): for position-driven mixing.
+  setLevel(p) {
+    const t = this.ctx.currentTime;
+    if (this.dur === 0 && Math.abs(p - this.p1) < 0.004) return;
+    clearTimeout(this.timer);
+    hold(this.out.gain, t);
+    // a bed that has only just started (its file arrived) eases in; after that it tracks the mix closely
+    this.out.gain.setTargetAtTime(this.level * Math.sin((p * Math.PI) / 2), t, this.fresh ? 0.5 : 0.06);
+    this.fresh = false;
+    Object.assign(this, { p0: p, p1: p, t0: t, dur: 0 });
   }
 
   stop() {
@@ -138,6 +151,31 @@ class Layer {
     }
     if (bed) bed.fadeTo(1, full);
     this.cur = bed || null;
+  }
+
+  // Position-driven mix of two beds: a at (1 - w), b at w (equal power), everything else out quickly.
+  // make(name) builds a bed, or returns null if its audio isn't ready (that side is just silent).
+  blend(a, b, w, make) {
+    const get = (n) => {
+      if (!n) return null;
+      let bed = this.beds.get(n);
+      if (!bed) {
+        bed = make(n);
+        if (bed) this.beds.set(n, bed);
+      }
+      return bed;
+    };
+    const A = get(a), B = w > 0.001 ? get(b) : null;
+    for (const bed of this.beds.values()) {
+      if (bed === A || bed === B) continue;
+      if (bed.p1 !== 0) bed.fadeTo(0, 1, () => {
+        bed.stop();
+        if (this.beds.get(bed.name) === bed) this.beds.delete(bed.name);
+      });
+    }
+    A?.setLevel(1 - w);
+    B?.setLevel(w);
+    this.cur = (w < 0.5 ? A : B) || A || B || null;
   }
 }
 
@@ -290,6 +328,38 @@ class Audio {
     this.stopMusic(full / 2);
     layer.to(name, () => new Bed(this.ctx, name, buf, this.musicDuck, MUSIC_GAIN * (MUSIC_TRIM[name] ?? 1)), full);
     this.evictMusic();
+  }
+
+  // Position-driven music: a and b mixed by w as you walk through a doorway between their areas (the
+  // game calls this every frame; see Game.updateMix). Missing tracks load in the background.
+  musicBlend(a, b, w) {
+    this.wantTrack = w < 0.5 ? a : b;
+    if (!this.ctx) return void this.musicFile(this.wantTrack);
+    const make = (n) => {
+      const buf = this.musicBufs.get(n);
+      if (!buf) {
+        this.loadMusic(n);
+        return null;
+      }
+      return new Bed(this.ctx, n, buf, this.musicDuck, MUSIC_GAIN * (MUSIC_TRIM[n] ?? 1));
+    };
+    if (this.music && (this.musicBufs.has(a) || this.musicBufs.has(b))) this.stopMusic(1);
+    else if (!this.music && !this.musicBufs.has(a) && !this.musicBufs.has(b) && !this.musicLayer.cur) this.startMusic();
+    this.musicLayer.blend(a, b, w, make);
+  }
+
+  ambientBlend(a, b, w) {
+    this.wantAmbient = w < 0.5 ? a : b;
+    if (!this.ctx) return;
+    const make = (n) => {
+      const buf = this.buffers.get(n);
+      if (!buf) {
+        this.prefetch([n]);
+        return null;
+      }
+      return new Bed(this.ctx, n, buf, this.sfxBus, AMB_GAIN * (AMB_TRIM[n] ?? 1), Math.random() * buf.duration);
+    };
+    this.ambLayer.blend(a, b, w, make);
   }
 
   // ---- ambience: one looping bed per area, crossfaded the same way (null fades it out) ----

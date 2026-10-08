@@ -14,7 +14,7 @@ import { Blaster } from './weapon.js';
 import { Hud } from './hud.js';
 import { buildLevel } from './level.js';
 import { currentObjective } from './levels/guide.js';
-import { regionOf } from './levels/regions.js';
+import { regionOf, PORTALS, PORTAL_BLEND } from './levels/regions.js';
 import { loadSave, writeSave, clearSave } from './save.js';
 import { ads } from './monetization/bonusround.js';
 import { TouchControls } from './touch.js';
@@ -31,6 +31,8 @@ const AREA_MOOD = {
   azure: { music: 'music_blue', ambient: 'amb_abyss', atmosphere: 'azure' },
   prism: { music: 'music_antechamber', ambient: 'amb_core', atmosphere: 'prism' },
 };
+const AREA_TRACKS = new Set(Object.values(AREA_MOOD).map((m) => m.music));
+const AREA_AMBIENTS = new Set(Object.values(AREA_MOOD).map((m) => m.ambient));
 const REVIVE_AFTER_DEATHS = 3; // the rewarded revive is offered from this many deaths at one checkpoint
 
 // The look of the Crimson Foundry; every atmosphere preset (level.atmospheres) overrides some of these.
@@ -326,8 +328,8 @@ class Game {
   play() {
     audio.unlock();
     if (!this.started) audio.gameStart();
-    audio.playAmbient(this.ambient || 'amb_foundry');
-    audio.playMusic(this.musicTrack || 'music_red');
+    // area music and ambience follow the player (updateMix); only special tracks (boss, ascent) are pushed
+    if (this.musicOverride) audio.playMusic(this.musicOverride);
     this.state = 'playing';
     this.hud.show(true);
     this.showScreen(null);
@@ -504,7 +506,8 @@ class Game {
 
   setAmbient(name) {
     this.ambient = name;
-    if (this.started) audio.playAmbient(name);
+    this.ambOverride = AREA_AMBIENTS.has(name) ? null : name;
+    if (this.started && this.ambOverride) audio.playAmbient(name);
   }
 
   // the boss's final phase gets its own, faster track
@@ -512,9 +515,33 @@ class Game {
     if (phase === 3) this.setMusic('music_boss_final');
   }
 
+  // Area tracks are mixed by position (updateMix); anything else (boss, ascent, victory) takes over
+  // until an area track is asked for again.
   setMusic(track) {
     this.musicTrack = track;
-    if (this.started) audio.playMusic(track);
+    this.musicOverride = AREA_TRACKS.has(track) ? null : track;
+    if (this.started && this.musicOverride) audio.playMusic(track);
+  }
+
+  // Music and ambience follow you: inside an area its tracks play; within a few metres of a doorway the
+  // two sides are mixed by where you stand (50/50 in the doorway), so crossing is immediate and stepping
+  // back reverses it at once.
+  updateMix() {
+    const pos = this.camera.position;
+    let a = regionOf(pos), b = a, w = 0;
+    for (const P of PORTALS) {
+      const dx = pos.x - P.p[0], dy = pos.y - P.p[1], dz = pos.z - P.p[2];
+      const s = dx * P.n[0] + dy * P.n[1] + dz * P.n[2];
+      if (Math.abs(s) > PORTAL_BLEND) continue;
+      const lx = dx - P.n[0] * s, ly = dy - P.n[1] * s, lz = dz - P.n[2] * s;
+      if (lx * lx + ly * ly + lz * lz > 25) continue;
+      a = P.a;
+      b = P.b;
+      w = Math.min(1, Math.max(0, 0.5 + (0.5 * s) / PORTAL_BLEND));
+      break;
+    }
+    if (!this.musicOverride) audio.musicBlend(AREA_MOOD[a].music, AREA_MOOD[b].music, w);
+    if (!this.ambOverride) audio.ambientBlend(AREA_MOOD[a].ambient, AREA_MOOD[b].ambient, w);
   }
 
   setCheckpoint(pos, yaw, ref) {
@@ -826,6 +853,7 @@ class Game {
     this.sky.material.uniforms.uTime.value = t;
     this.sky.position.copy(this.camera.position);
     this.updateAtmosphere(dt);
+    if (this.started && this.state !== 'title') this.updateMix();
     this.world.updateLights(this.camera.position, dt);
     this.world.updateCulling(this.camera.position, this.camera.far);
 
