@@ -432,5 +432,80 @@
   "text": "Heavy armored boots landing from a jump onto dry sand and gravel, crunchy thump with scattering grit, short, completely dry, no reverb, no echo",
   "dur": 0.6,
   "influence": 0.7
+ },
+ "switch_on": {
+  "text": "Bright sci-fi switch latch, punchy click into a rising two-note chime",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "switch_off": {
+  "text": "Sci-fi switch powering down, descending blip and soft relay clunk",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "timer_tick": {
+  "text": "Short crisp digital countdown tick, dry, single tick",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "phase_in": {
+  "text": "Hologram platform materializing, shimmering upward energy sweep ending in a solid thunk",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "phase_out": {
+  "text": "Energy platform dissolving, crackling downward fizz into glittery dust",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "chroma_solid": {
+  "text": "Very soft glassy blip as a colored energy platform solidifies, subtle",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "crumble_crack": {
+  "text": "Stone slab cracking under weight, sharp crack plus gritty creak",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "crumble_break": {
+  "text": "Heavy stone platform breaking apart and chunks tumbling away, rumbly",
+  "dur": 1.3,
+  "influence": 0.6
+ },
+ "trapdoor_drop": {
+  "text": "Metal trapdoor latch snapping and two heavy panels swinging open with a clang",
+  "dur": 0.9,
+  "influence": 0.6
+ },
+ "mover_step": {
+  "text": "Heavy mechanical clunk of a platform ratcheting one notch, servo tail",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "rotor_turn": {
+  "text": "Big metal block rotating a quarter turn, hydraulic whirr and grinding",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "rotor_lock": {
+  "text": "Rotating metal block locking into place, deep metallic clunk",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "rotor_jam": {
+  "text": "Machinery jamming, grinding stutter and strained motor whine",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "gate_open": {
+  "text": "Fast pneumatic blast door hissing up",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "gate_slam": {
+  "text": "Heavy blast door slamming shut with a boom and rattle",
+  "dur": 0.9,
+  "influence": 0.6
  }
 }
