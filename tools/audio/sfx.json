@@ -532,5 +532,584 @@
   "text": "Energy shield shattering violently: a sharp crystalline explosion of breaking hexagonal glass panels, an electric burst and crackle, then a descending power-down whine, sci-fi armor destroyed, dramatic",
   "dur": 1.4,
   "influence": 0.65
+ },
+ "arena_seal": {
+  "text": "Massive blast door slamming shut, deep metal boom with an alarm tone, sci-fi arena lockdown",
+  "dur": 2.0,
+  "influence": 0.55
+ },
+ "arena_clear": {
+  "text": "Triumphant short sci-fi success chime, rising synth stinger, arena cleared",
+  "dur": 1.5,
+  "influence": 0.55
+ },
+ "spawn_portal": {
+  "text": "Teleport charging, swirling energy rising, sci-fi portal opening",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "spawn_in": {
+  "text": "Teleport arrival burst, airy whoosh pop with electric crackle",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "turret_charge": {
+  "text": "Rising electric whine, sci-fi turret charging up, ends sharp",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "turret_shot": {
+  "text": "Punchy plasma blaster shot from a heavy turret, single shot",
+  "dur": 0.6,
+  "influence": 0.55
+ },
+ "swarm_dive": {
+  "text": "High-pitched mechanical screech rising, small drone diving at high speed",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "swarm_pop": {
+  "text": "Small metallic drone popping, crunchy glassy burst",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "swarm_buzz": {
+  "text": "Swarm of tiny robotic drones buzzing, seamless loop",
+  "dur": 3.0,
+  "influence": 0.55,
+  "loop": true
+ },
+ "warden_shield_hit": {
+  "text": "Energy shield impact, resonant glassy hum thud",
+  "dur": 0.6,
+  "influence": 0.55
+ },
+ "warden_shield_break": {
+  "text": "Energy shield shattering, big crystalline crash with electric fizz",
+  "dur": 1.4,
+  "influence": 0.55
+ },
+ "warden_shield_up": {
+  "text": "Energy shield recharging and snapping back on",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "brute_roar": {
+  "text": "Heavy mechanical beast roar with engine rev, big robot",
+  "dur": 1.3,
+  "influence": 0.55
+ },
+ "brute_slam": {
+  "text": "Huge metal machine slamming into a wall, deep crunch and boom",
+  "dur": 1.4,
+  "influence": 0.55
+ },
+ "mortar_launch": {
+  "text": "Hollow mortar thump launch, deep pop",
+  "dur": 0.7,
+  "influence": 0.55
+ },
+ "mortar_blast": {
+  "text": "Fiery explosion with a sizzle tail",
+  "dur": 1.4,
+  "influence": 0.55
+ },
+ "crab_beep": {
+  "text": "Short high electronic arming beep, single beep",
+  "dur": 0.25,
+  "influence": 0.55
+ },
+ "crab_chirp": {
+  "text": "Small robot crab alert chirp, quick mechanical squeak",
+  "dur": 0.4,
+  "influence": 0.55
+ },
+ "crab_skitter": {
+  "text": "Tiny metal robot legs ticking on a hard floor, quick skitter",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "crab_leap": {
+  "text": "Spring-loaded hiss and whoosh of a small robot jumping",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "crab_explode": {
+  "text": "Sharp compact explosion with a metallic crack and debris rattle",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "welder_alert": {
+  "text": "Heavy servo growl with a gas hiss, a big industrial robot noticing you",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "welder_step": {
+  "text": "Heavy metal robot footfall clank, single step",
+  "dur": 0.4,
+  "influence": 0.55
+ },
+ "welder_rivet": {
+  "text": "Pneumatic rivet gun shot, punchy thunk clack",
+  "dur": 0.4,
+  "influence": 0.55
+ },
+ "welder_ignite": {
+  "text": "Gas hiss and sparking igniter sputter, flamethrower winding up",
+  "dur": 0.7,
+  "influence": 0.55
+ },
+ "welder_ignite_burst": {
+  "text": "Flamethrower whoomp as the flame catches, roaring burst",
+  "dur": 0.9,
+  "influence": 0.55
+ },
+ "welder_roll": {
+  "text": "Servo whir, armor scrape, then a heavy thud, robot combat roll",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "welder_death": {
+  "text": "Sputtering servos and a gas leak hiss before an explosion, robot dying",
+  "dur": 1.5,
+  "influence": 0.55
+ },
+ "scarab_dig": {
+  "text": "Churning sand rumble, something burrowing fast under sand",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "scarab_emerge": {
+  "text": "Sand eruption burst with an insect-like mechanical screech",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "scarab_chitter": {
+  "text": "Rapid mechanical beetle mandible clicks",
+  "dur": 0.6,
+  "influence": 0.55
+ },
+ "scarab_pounce": {
+  "text": "Buzzing wing whirr as a metal beetle leaps",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "scarab_crunch": {
+  "text": "Metal beetle shell cracking with a gold tinkle and sand spill",
+  "dur": 0.7,
+  "influence": 0.55
+ },
+ "mummy_alert": {
+  "text": "Dry raspy synthetic moan, ancient robot awakening",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "mummy_cast": {
+  "text": "Swirling sand rising into a magical energy charge",
+  "dur": 0.9,
+  "influence": 0.55
+ },
+ "mummy_bolt": {
+  "text": "Whooshing launch of three sand projectiles",
+  "dur": 0.7,
+  "influence": 0.55
+ },
+ "mummy_dodge": {
+  "text": "Quick cloth flutter with a sand scuff",
+  "dur": 0.4,
+  "influence": 0.55
+ },
+ "mummy_shield": {
+  "text": "Vortex of sand forming into a humming energy barrier",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "mummy_shield_break": {
+  "text": "Sand glass shatter and a whoomp",
+  "dur": 0.9,
+  "influence": 0.55
+ },
+ "mummy_death": {
+  "text": "Crumbling sand cascade with a fading electronic groan",
+  "dur": 1.6,
+  "influence": 0.55
+ },
+ "slime_squelch": {
+  "text": "Wet gloopy squelch, slime creature winding up",
+  "dur": 0.6,
+  "influence": 0.55
+ },
+ "slime_leap": {
+  "text": "Springy wet thwop launch, slime jumping",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "slime_splat": {
+  "text": "Heavy wet splat, slime blasted apart",
+  "dur": 0.7,
+  "influence": 0.55
+ },
+ "slime_regrow": {
+  "text": "Rising bubbling ooze swell, slime regrowing",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "slime_burble": {
+  "text": "Soft bubbling goo, gentle slime gurgle, seamless loop",
+  "dur": 2.0,
+  "influence": 0.55,
+  "loop": true
+ },
+ "core_chirp": {
+  "text": "Tiny robotic double chirp",
+  "dur": 0.3,
+  "influence": 0.55
+ },
+ "spider_hiss": {
+  "text": "Mechanical steam hiss with a clicking mandible rattle, robot spider",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "spider_spit": {
+  "text": "Acidic spit and sizzle",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "spider_leap": {
+  "text": "Quick servo whoosh and metal leg clatter",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "spider_land": {
+  "text": "Light cluster of metal robot legs tapping down",
+  "dur": 0.4,
+  "influence": 0.55
+ },
+ "spider_skitter": {
+  "text": "Fast metallic robot spider legs skittering, seamless loop",
+  "dur": 2.0,
+  "influence": 0.55,
+  "loop": true
+ },
+ "fish_alert": {
+  "text": "Short sonar ping, underwater",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "fish_dart": {
+  "text": "Underwater whoosh with a small propeller whine",
+  "dur": 0.6,
+  "influence": 0.55
+ },
+ "fish_leap": {
+  "text": "Splash bursting out of water with a mechanical snap",
+  "dur": 0.7,
+  "influence": 0.55
+ },
+ "squid_charge": {
+  "text": "Rising pressurized hum, underwater",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "squid_torpedo": {
+  "text": "Deep muffled launch thump with bubbles, underwater",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "squid_jet": {
+  "text": "Powerful underwater water jet burst",
+  "dur": 0.6,
+  "influence": 0.55
+ },
+ "squid_pulse": {
+  "text": "Low sonar pulse throb, underwater",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "squid_hum": {
+  "text": "Low hydraulic underwater hum, seamless loop",
+  "dur": 3.0,
+  "influence": 0.55,
+  "loop": true
+ },
+ "glob_pop": {
+  "text": "Wet pop as a glob bursts",
+  "dur": 0.4,
+  "influence": 0.55
+ },
+ "critter_hit": {
+  "text": "Metallic clang hit on a small robot",
+  "dur": 0.4,
+  "influence": 0.55
+ },
+ "critter_die": {
+  "text": "Small robot explosion, crunchy pop with debris",
+  "dur": 0.9,
+  "influence": 0.55
+ },
+ "sphinx_roar": {
+  "text": "Huge mechanical lion cat roar from a giant ancient Egyptian robot, metallic resonance and grinding servos under a deep feline snarl, echoing in a stone temple",
+  "dur": 2.5,
+  "influence": 0.6
+ },
+ "sphinx_pounce": {
+  "text": "Giant robot cat leaping into the air, heavy whoosh of displaced air, hydraulic launch thump and rattling armor plates",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "sphinx_slam": {
+  "text": "Colossal metal beast landing on sand and stone, deep earth-shaking boom, sand blast, armor clang and a rumbling shockwave",
+  "dur": 2.0,
+  "influence": 0.55
+ },
+ "sphinx_purr": {
+  "text": "Deep rumbling mechanical purr of a giant robot cat, low servo hum with rhythmic feline vibration, seamless loop",
+  "dur": 4.0,
+  "influence": 0.55,
+  "loop": true
+ },
+ "sphinx_swipe": {
+  "text": "Giant metal claw swipe, sharp blade whoosh with a hiss and scraping golden claws",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "sphinx_beam": {
+  "text": "Searing focused sunlight laser beam, intense crackling solar hum with a scorching sizzle, seamless loop",
+  "dur": 3.0,
+  "influence": 0.55,
+  "loop": true
+ },
+ "sphinx_death": {
+  "text": "Giant robot sphinx breaking apart, massive explosion, collapsing stone and gold armor, cascading sand pouring, fading mechanical groan",
+  "dur": 4.0,
+  "influence": 0.55
+ },
+ "solar_shutdown": {
+  "text": "Huge solar reactor lens overloading and shutting down, rising electric whine, shattering crystal, a deep power-down drone fading to silence",
+  "dur": 3.5,
+  "influence": 0.55
+ },
+ "titan_roar": {
+  "text": "Colossal furnace golem roar, grinding metal with a deep bellows blast",
+  "dur": 2.0,
+  "influence": 0.55
+ },
+ "titan_steam": {
+  "text": "High-pressure steam vent hiss and whistle, short burst",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "titan_slam": {
+  "text": "Giant forge hammer hitting an iron floor, huge clang with a rumbling crack and molten splash",
+  "dur": 1.8,
+  "influence": 0.55
+ },
+ "titan_pour": {
+  "text": "Heavy slosh of molten metal flung from a crucible, then a hissing splash",
+  "dur": 1.5,
+  "influence": 0.55
+ },
+ "titan_death": {
+  "text": "Massive metal structure cooling and collapsing, groaning steel, crackling hiss, final deep explosion",
+  "dur": 4.0,
+  "influence": 0.55
+ },
+ "titan_step": {
+  "text": "Enormous iron footstep, heavy thud with a metallic ring",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "titan_charge": {
+  "text": "Giant machine bracing to charge, steam roar and grinding gears",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "floor_collapse": {
+  "text": "Steel floor plates breaking loose and crashing into lava, rumble with a sizzle",
+  "dur": 2.0,
+  "influence": 0.55
+ },
+ "core_shutdown": {
+  "text": "Magma reactor overloading and dying, a rising whine, a blast, then a turbine spinning down",
+  "dur": 3.5,
+  "influence": 0.55
+ },
+ "hydra_roar": {
+  "text": "Colossal plant monster roar, wet creaking wood and a layered beast bellow with leafy rustle, cavernous",
+  "dur": 2.2,
+  "influence": 0.55
+ },
+ "hydra_hiss": {
+  "text": "Venus flytrap head rearing to strike, rising wet hiss with a sticky creak of jaws opening",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "hydra_snap": {
+  "text": "Huge jaws slamming shut into dirt, wooden crunch, thorny clack, heavy earth thump",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "hydra_spit": {
+  "text": "Thick gurgling spit launching a seed pod, wet pop with a hollow thoomp",
+  "dur": 0.7,
+  "influence": 0.55
+ },
+ "pod_burst": {
+  "text": "Seed pod splattering into toxic sludge, wet burst, sizzle and bubbling",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "vine_whip": {
+  "text": "Giant thorny root whipping across stone, heavy whoosh, grinding bark, scraping thorns",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "root_rumble": {
+  "text": "Roots tearing up through flagstones, deep rumble, cracking stone, groaning wood",
+  "dur": 1.8,
+  "influence": 0.55
+ },
+ "thorn_erupt": {
+  "text": "Cluster of bone thorns erupting from the ground, sharp splintering crack and a stab of debris",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "spore_puff": {
+  "text": "Giant bulb exhaling spores, long breathy whoosh with a soft dusty hiss",
+  "dur": 1.5,
+  "influence": 0.55
+ },
+ "hydra_sever": {
+  "text": "Plant head severed, fibrous snap, a gush of sap, leaves shredding",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "hydra_bloom": {
+  "text": "Giant flower bud bursting open, creaking petals unfurling, a shimmering swell of light",
+  "dur": 2.0,
+  "influence": 0.55
+ },
+ "hydra_death": {
+  "text": "Plant colossus dying, agonized creaking wail that withers into dry rattling, ending in a soft burst of petals",
+  "dur": 4.0,
+  "influence": 0.55
+ },
+ "leviathan_roar": {
+  "text": "Deep underwater roar of a colossal sea serpent, muffled and booming, rising to a resonant howl",
+  "dur": 2.5,
+  "influence": 0.55
+ },
+ "leviathan_lunge": {
+  "text": "Huge creature surging through water, rushing whoosh with jaws snapping shut",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "leviathan_splash": {
+  "text": "Massive creature breaching then crashing back into deep water, heavy splash and spray",
+  "dur": 2.0,
+  "influence": 0.55
+ },
+ "leviathan_death": {
+  "text": "Dying wail of a giant sea monster, long mournful whale-like cry that cracks and fades into bubbles",
+  "dur": 5.0,
+  "influence": 0.55
+ },
+ "leviathan_groan": {
+  "text": "Distant whale-like groans and deep rumbling of a vast creature in an abyss, seamless loop",
+  "dur": 10.0,
+  "influence": 0.55,
+  "loop": true
+ },
+ "leviathan_spit": {
+  "text": "Wet gurgling spit of glowing energy orbs underwater",
+  "dur": 0.8,
+  "influence": 0.55
+ },
+ "leviathan_hurt": {
+  "text": "Pained underwater shriek of a huge beast",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "engine_hum": {
+  "text": "Giant underwater turbine churning, deep throbbing machine drone, seamless loop",
+  "dur": 8.0,
+  "influence": 0.55,
+  "loop": true
+ },
+ "engine_shutdown": {
+  "text": "Enormous turbine grinding to a halt underwater, metal groaning, power dying with a final thud",
+  "dur": 5.0,
+  "influence": 0.55
+ },
+ "reactor_hum": {
+  "text": "Deep throbbing machine reactor hum, sub-bass drone with slow pulsing harmonics and faint electrical shimmer, seamless loop",
+  "dur": 9.0,
+  "influence": 0.55,
+  "loop": true
+ },
+ "reactor_heartbeat": {
+  "text": "Single enormous mechanical heartbeat, deep organic lub-dub thump with metallic resonance and a hiss of steam, one beat",
+  "dur": 0.9,
+  "influence": 0.55
+ },
+ "reactor_powerdown": {
+  "text": "Massive energy conduit powering down, electrical sputter and crackle, falling turbine whine, a final heavy clunk and fading hum",
+  "dur": 3.0,
+  "influence": 0.55
+ },
+ "energy_crackle": {
+  "text": "Short sharp electrical arc crackle, high voltage zap",
+  "dur": 0.4,
+  "influence": 0.55
+ },
+ "warp_shatter": {
+  "text": "Reality cracking like a giant pane of glass shattering, deep sci-fi impact",
+  "dur": 2.0,
+  "influence": 0.55
+ },
+ "warp_whoosh": {
+  "text": "Rising prismatic whoosh into a bright white-out, sci-fi teleport",
+  "dur": 1.8,
+  "influence": 0.55
+ },
+ "lava_surge": {
+  "text": "Deep volcanic rumble with lava boiling up and surging",
+  "dur": 2.5,
+  "influence": 0.55
+ },
+ "spore_burst": {
+  "text": "Wet pod popping into a hissing spore cloud",
+  "dur": 0.9,
+  "influence": 0.55
+ },
+ "tide_rise": {
+  "text": "Massive water surge rising with a groaning reactor",
+  "dur": 3.0,
+  "influence": 0.55
+ },
+ "ice_crack": {
+  "text": "Rapid ice spikes cracking up through stone",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "heart_shatter": {
+  "text": "Colossal crystal core exploding into cascading chimes",
+  "dur": 3.5,
+  "influence": 0.55
+ },
+ "map_open": {
+  "text": "Sci-fi holographic projector powering on, rising shimmer with soft digital chirps",
+  "dur": 0.7,
+  "influence": 0.55
+ },
+ "map_close": {
+  "text": "Hologram collapsing, quick descending shimmer",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "shield_absorb": {
+  "text": "Energy shield absorbing a laser shot, soft resonant ripple thump",
+  "dur": 0.5,
+  "influence": 0.55
  }
 }

@@ -54,5 +54,33 @@
  "music_ascent": {
   "prompt": "Urgent escalating relentless climb, rising synth ostinato, pounding drums and driving bass, tension building constantly, intense sci-fi action, instrumental, seamless loop",
   "ms": 75000
+ },
+ "music_combat": {
+  "prompt": "Intense sci-fi combat music for an arena fight, driving industrial drums, aggressive distorted synth bass, urgent brass stabs, relentless tempo, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_miniboss": {
+  "prompt": "Epic mini-boss battle music, pounding taiko and orchestral percussion, ominous low brass, aggressive synth arpeggios, rising tension, heroic and menacing, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_finale_forge": {
+  "prompt": "Molten industrial boss battle, crushing distorted guitars, anvil-strike percussion, roaring choir, volcanic and relentless, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_finale_solar": {
+  "prompt": "Blazing desert boss battle, driving synth arpeggios over taiko drums, searing brass, heat-shimmer pads, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_finale_verdant": {
+  "prompt": "Primal jungle boss battle, tribal war drums, dark choir, hissing organic textures, menacing strings, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_finale_deep": {
+  "prompt": "Drowned abyss boss battle, pounding sub bass, icy bell synths, surging orchestral swells, pressure and dread, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_finale_heart": {
+  "prompt": "Apocalyptic final boss climax, full orchestra and choir with heavy guitars and glittering prismatic synths, every theme colliding, triumphant and desperate, instrumental, seamless loop",
+  "ms": 90000
  }
 }
