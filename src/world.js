@@ -10,11 +10,23 @@ import { audio } from './audio.js';
 
 const _v = new THREE.Vector3();
 const _ray = new THREE.Raycaster();
+_ray.layers.enableAll(); // meshes a batch draws for (batch.js) sit on another layer but still take shots
 const GRID_CELL = 8;
 const GRID_MARGIN = 1;
 const POOL_SIZE = 10; // real point lights shared by every placed light (see updateLights)
 const CULL_SIZE = 1 / 45; // objects smaller than this (radius / distance) aren't drawn
 const SHOOT_KEEP = 60; // ...except shootable things nearer than this (m), which stay drawn however small
+// occlusion culling (World.occlude): the OCC_COUNT biggest-looking faces of static boxes at least this big
+const OCC_COUNT = 48;
+const OCC_MIN_AREA = 12; // m², the box's biggest face
+const OCC_MIN_SIDE = 1.5; // m, both sides of a face used
+const OCC_RANGE = 160; // m
+const OCC_MIN_SCORE = 0.002; // ~ steradians covered
+const OCC_PAD = 1.15; // bounding spheres grow by this for the test
+const AX = ['x', 'y', 'z'];
+const OCC_MATERIALS = new Set(['MeshStandardMaterial', 'MeshPhysicalMaterial', 'MeshBasicMaterial', 'MeshLambertMaterial', 'MeshPhongMaterial']);
+const _e = new THREE.Vector3(), _c3 = new THREE.Vector3(), _m4 = new THREE.Matrix4();
+const _frustum = new THREE.Frustum(), _s = new THREE.Sphere(), _b3 = new THREE.Box3();
 
 export class World {
   constructor(game) {
@@ -28,11 +40,22 @@ export class World {
     this.staticParts = new Map();
     this.staticGroup = new THREE.Group();
     this.scene.add(this.staticGroup);
+    this.batchGroup = new THREE.Group(); // batch.js: merged copies of static meshes, one per material per area
+    this.batchGroup.userData.noCull = true;
+    this.scene.add(this.batchGroup);
     this.fx = new Fx(this.scene);
     this.time = 0;
     // Placed lights are virtual: a fixed pool of real PointLights is handed to whichever are nearest the
     // camera. Every lit pixel loops over every real light, and changing their count recompiles every
     // shader, so the count stays constant no matter how many lights the levels place.
+    this.cullRecs = new WeakMap(); // object -> its culling record (batch.js reads it)
+    this.occFaces = [];
+    this.occludedNow = [];
+    this.occPlanes = Array.from({ length: OCC_COUNT }, () => ({
+      face: new THREE.Plane(),
+      sides: [0, 1, 2, 3].map(() => new THREE.Plane()),
+      corners: [0, 1, 2, 3].map(() => new THREE.Vector3()),
+    }));
     this.virtualLights = [];
     this.lightPool = [];
     for (let i = 0; i < POOL_SIZE; i++) {
@@ -53,6 +76,28 @@ export class World {
       if (o === this.staticGroup || o.isCamera || o.isLight || o.userData.noCull || skip.includes(o)) continue;
       this.cull(o, box, sphere);
     }
+    // Occluders: the big static boxes (walls, floors, mesas). Each frame the few that cover the most of
+    // the view hide whatever lies wholly behind one of them (see occlude).
+    this.occluders = [];
+    for (const s of this.solids) {
+      if (!s.static || !s.drawn) continue;
+      const dx = s.max.x - s.min.x, dy = s.max.y - s.min.y, dz = s.max.z - s.min.z;
+      if (Math.max(dx * dy, dy * dz, dx * dz) >= OCC_MIN_AREA) this.occluders.push(s);
+    }
+    const prev = this.scene.onBeforeRender;
+    this.scene.onBeforeRender = (renderer, scene, camera, ...rest) => {
+      prev.call(scene, renderer, scene, camera, ...rest);
+      _frustum.setFromProjectionMatrix(_m4.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+      this.occlude(camera);
+      this.batcher?.sync(_frustum); // (batch.js) merged meshes follow their objects, after occlusion
+    };
+    // occlusion only applies while drawing: game code reading `visible` between frames never sees it
+    const prevAfter = this.scene.onAfterRender;
+    this.scene.onAfterRender = (...a) => {
+      prevAfter.apply(this.scene, a);
+      for (const rec of this.occludedNow) rec.occluded = false;
+      this.occludedNow.length = 0;
+    };
   }
 
   // Put one more object (e.g. a restocked drone) under culling.
@@ -63,19 +108,25 @@ export class World {
     // bounds relative to the object's position, so moving things (drones, lifts) stay correct
     // shootable things (targets, orbs, enemies) within SHOOT_KEEP aren't dropped for being small on screen:
     // a switch you can see and aim at mustn't vanish at 25 m
-    let shootable = false;
-    o.traverse((c) => { if (c.userData.hit) shootable = true; });
-    const rec = { o, off: sphere.center.clone().sub(o.position), r: sphere.radius, region: regionOf(sphere.center), culled: false, shootable };
+    let shootable = false, xray = false;
+    o.traverse((c) => {
+      if (c.userData.hit) shootable = true;
+      // drawn over walls (depthTest off): occlusion mustn't hide it
+      for (const m of Array.isArray(c.material) ? c.material : c.material ? [c.material] : []) if (!m.depthTest) xray = true;
+    });
+    const rec = { o, off: sphere.center.clone().sub(o.position), r: sphere.radius, region: regionOf(sphere.center), culled: false, occluded: false, shootable, xray, q0: o.quaternion.clone(), s0: o.scale.clone() };
     let want = o.visible;
-    Object.defineProperty(o, 'visible', { get: () => want && !rec.culled, set: (v) => (want = v), configurable: true });
+    Object.defineProperty(o, 'visible', { get: () => want && !rec.culled && !rec.occluded, set: (v) => (want = v), configurable: true });
     o.userData.wantVisible = () => want; // visibility as the game set it, ignoring culling (for raycasts)
     this.cullList.push(rec);
+    this.cullRecs.set(o, rec);
   }
 
   updateCulling(camPos, far) {
-    const seen = VISIBLE_FROM[regionOf(camPos)];
+    const seen = (this.drawnRegions = VISIBLE_FROM[regionOf(camPos)]);
     // (only our merged meshes: the Bonus Round SDK adds its own objects under this group too)
     for (const m of this.staticGroup.children) if (m.userData.region) m.visible = seen.has(m.userData.region);
+    for (const m of this.batchGroup.children) m.visible = seen.has(m.userData.region);
     for (const rec of this.cullList || []) {
       const d = _v.copy(rec.o.position).add(rec.off).distanceTo(camPos) - rec.r;
       rec.region = regionOf(_v); // things move between areas (bosses, lifts, elevators): keep it current
@@ -84,6 +135,105 @@ export class World {
         continue;
       }
       rec.culled = d > far || (d > 0 && rec.r / (d + rec.r) < CULL_SIZE && !(rec.shootable && d < SHOOT_KEEP));
+    }
+  }
+
+  // Occlusion culling, run just before each render (after the camera has moved for the frame): picks the
+  // OCC_COUNT static boxes whose camera-facing faces look biggest, and hides every culled object whose
+  // bounding sphere lies wholly inside the shadow one of those faces casts from the eye. A face of an
+  // opaque box hides everything behind it, so this only drops things the depth test would have hidden.
+  occlude(camera) {
+    const list = this.cullList;
+    if (!list) return;
+    for (const rec of this.occludedNow) rec.occluded = false;
+    this.occludedNow.length = 0;
+    if (camera !== this.game.camera) return;
+    const E = _e.setFromMatrixPosition(camera.matrixWorld);
+    const seen = this.drawnRegions; // the areas whose static meshes updateCulling left drawn
+    if (!seen || !this.staticGroup.visible || this.staticGroup.parent !== this.scene) return; // (a Bonus Round hides it)
+    // choose the faces: score ~ the solid angle they cover
+    const faces = this.occFaces;
+    let n = 0;
+    const R2 = OCC_RANGE * OCC_RANGE;
+    for (const s of this.occluders) {
+      const mn = s.min, mx = s.max;
+      const ox = Math.max(mn.x - E.x, 0, E.x - mx.x), oy = Math.max(mn.y - E.y, 0, E.y - mx.y), oz = Math.max(mn.z - E.z, 0, E.z - mx.z);
+      if (ox * ox + oy * oy + oz * oz > R2) continue;
+      const m = s.drawn.m;
+      if (!seen.has(s.drawn.region) || !OCC_MATERIALS.has(m.type) || m.onBeforeCompile !== THREE.Material.prototype.onBeforeCompile || m.transparent || !m.visible || !m.depthWrite || !m.colorWrite || m.alphaTest > 0 || m.side === THREE.BackSide) continue;
+      _b3.min.copy(mn);
+      _b3.max.copy(mx);
+      if (!_frustum.intersectsBox(_b3)) continue; // off screen: it can't hide anything on screen
+      for (let a = 0; a < 3; a++) {
+        const k = AX[a], ku = AX[(a + 1) % 3], kv = AX[(a + 2) % 3];
+        let c;
+        if (E[k] > mx[k] + 0.01) c = mx[k];
+        else if (E[k] < mn[k] - 0.01) c = mn[k];
+        else continue;
+        const du = mx[ku] - mn[ku], dv = mx[kv] - mn[kv];
+        if (du < OCC_MIN_SIDE || dv < OCC_MIN_SIDE) continue;
+        const h = Math.abs(E[k] - c);
+        const pu = Math.max(mn[ku] - E[ku], 0, E[ku] - mx[ku]), pv = Math.max(mn[kv] - E[kv], 0, E[kv] - mx[kv]);
+        const d2 = h * h + pu * pu + pv * pv;
+        if (d2 > R2 || d2 < 0.04) continue; // (right up against it the near plane could clip it)
+        const score = (du * dv * h) / Math.pow(d2 + 1, 1.5);
+        if (score < OCC_MIN_SCORE) continue;
+        if (n < OCC_COUNT) {
+          faces[n++] = { s, a, c, score };
+        } else {
+          let lo = 0;
+          for (let i = 1; i < n; i++) if (faces[i].score < faces[lo].score) lo = i;
+          if (score > faces[lo].score) faces[lo] = { s, a, c, score };
+        }
+      }
+    }
+    if (!n) return;
+    // each face's shadow: its own plane plus a plane through the eye and each edge (normals point inward)
+    const planes = this.occPlanes;
+    for (let f = 0; f < n; f++) {
+      const { s, a, c } = faces[f];
+      const k = AX[a], ku = AX[(a + 1) % 3], kv = AX[(a + 2) % 3];
+      const P = planes[f];
+      // far side of the face plane: away from the eye
+      const sgn = E[k] > c ? -1 : 1;
+      P.face.normal.set(0, 0, 0).setComponent(a, sgn);
+      P.face.constant = -sgn * c;
+      const corners = P.corners;
+      corners[0].setComponent(a, c).setComponent((a + 1) % 3, s.min[ku]).setComponent((a + 2) % 3, s.min[kv]);
+      corners[1].setComponent(a, c).setComponent((a + 1) % 3, s.max[ku]).setComponent((a + 2) % 3, s.min[kv]);
+      corners[2].setComponent(a, c).setComponent((a + 1) % 3, s.max[ku]).setComponent((a + 2) % 3, s.max[kv]);
+      corners[3].setComponent(a, c).setComponent((a + 1) % 3, s.min[ku]).setComponent((a + 2) % 3, s.max[kv]);
+      _c3.addVectors(corners[0], corners[2]).multiplyScalar(0.5); // the face's centre: inside every side plane
+      for (let i = 0; i < 4; i++) {
+        const pl = P.sides[i];
+        pl.setFromCoplanarPoints(E, corners[i], corners[(i + 1) % 4]);
+        if (pl.distanceToPoint(_c3) < 0) pl.negate();
+      }
+    }
+    for (const rec of list) {
+      if (rec.culled || rec.xray) continue;
+      const o = rec.o;
+      if (!o.visible) continue; // hidden anyway
+      _s.center.copy(o.position).add(rec.off);
+      _s.radius = rec.r;
+      if (!_frustum.intersectsSphere(_s)) continue; // off screen: three skips it anyway
+      let r = rec.r * OCC_PAD + 0.2; // a little slack for parts that swing past their bounds
+      if (!o.quaternion.equals(rec.q0) || !o.scale.equals(rec.s0)) {
+        // turned or scaled since its bounds were taken: a sphere round its origin that holds them any way round
+        const k = Math.max(Math.abs(o.scale.x / rec.s0.x), Math.abs(o.scale.y / rec.s0.y), Math.abs(o.scale.z / rec.s0.z));
+        if (!(k < 1e6)) continue;
+        r = (rec.off.length() + r) * k;
+        _s.center.copy(o.position);
+      }
+      for (let f = 0; f < n; f++) {
+        const P = planes[f];
+        if (P.face.distanceToPoint(_s.center) < r) continue;
+        if (P.sides[0].distanceToPoint(_s.center) < r || P.sides[1].distanceToPoint(_s.center) < r) continue;
+        if (P.sides[2].distanceToPoint(_s.center) < r || P.sides[3].distanceToPoint(_s.center) < r) continue;
+        rec.occluded = true;
+        this.occludedNow.push(rec);
+        break;
+      }
     }
   }
 
@@ -160,6 +310,7 @@ export class World {
       static: true,
       hazard: opts.hazard,
       kind, // floor material, used for footstep sounds
+      drawn: { m, region }, // how it's drawn (for occlusion culling: an opaque box hides what's behind it)
     });
   }
 
