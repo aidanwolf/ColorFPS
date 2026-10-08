@@ -6,6 +6,7 @@ import { boxGeo, mat, glyphTex } from '../materials.js';
 import { audio } from '../audio.js';
 
 const v3 = (a) => new THREE.Vector3(...a);
+const RISE = new THREE.Vector3(0, 2, 0);
 
 function edgeLines(geo, color, opacity = 1) {
   return new THREE.LineSegments(
@@ -56,6 +57,9 @@ export class TargetPanel {
     const a = v3(min), b = v3(max);
     const size = b.clone().sub(a), center = a.clone().add(b).multiplyScalar(0.5);
     this.center = center;
+    this.min = a;
+    this.max = b;
+    this.normal = face === 'up' ? new THREE.Vector3(0, 1, 0) : face === '+z' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(-1, 0, 0);
     const c = new THREE.Color(COLORS[color].hex);
     this.mat = new THREE.MeshStandardMaterial({ color: 0x1b1d24, emissive: c, emissiveIntensity: 0.18, metalness: 0.6, roughness: 0.5 });
     this.mesh = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), this.mat);
@@ -85,8 +89,11 @@ export class TargetPanel {
       this.flash = 1;
       return 'immune';
     }
-    for (const p of this.group) p.light();
-    this.world.fx.burst(hit?.point || this.center, COLORS[this.color].hex, { count: 80, speed: 7, life: 1, size: 0.32, gravity: -1 });
+    for (const p of this.group) {
+      p.light();
+      // the struck panel bursts from the hit; the rest of its group lights up from the middle
+      this.world.fx.targetActivate((p === this && hit?.point) || p.center, p.min, p.max, p.normal, COLORS[p.color].hex);
+    }
     audio.target();
     this.onActivate?.();
     return 'kill';
@@ -176,7 +183,7 @@ export class Updraft {
       this.min.y + Math.random() * 1.5,
       this.min.z + Math.random() * (this.max.z - this.min.z),
     );
-    this.world.fx.burst(p, 0x9bf6ff, { count: 1, speed: 1, life: 2.4, size: 0.14, gravity: -1.5, drag: 0.2, spread: 0.1, dir: new THREE.Vector3(0, 2, 0) });
+    this.world.fx.burst(p, 0x9bf6ff, { count: 1, speed: 1, life: 2.4, size: 0.14, gravity: -1.5, drag: 0.2, spread: 0.1, dir: RISE });
   }
 }
 
@@ -188,6 +195,7 @@ export class SlidingDoor {
     this.b = v3(max);
     this.size = this.b.clone().sub(this.a);
     this.openT = -1;
+    this.hex = COLORS[color].hex;
     const geo = boxGeo(this.size.x, this.size.y, this.size.z);
     this.mesh = new THREE.Mesh(geo, mat('metal', zone));
     this.mesh.position.copy(this.a.clone().add(this.b).multiplyScalar(0.5));
@@ -215,6 +223,7 @@ export class SlidingDoor {
     if (this.openT >= 0) return;
     this.openT = 0;
     audio.doorOpen();
+    this.world.fx.doorOpen(this.a, this.b, this.hex);
   }
 
   update(dt) {
@@ -222,6 +231,8 @@ export class SlidingDoor {
     this.openT = Math.min(1, this.openT + dt / 1.1);
     const e = this.openT * this.openT * (3 - 2 * this.openT);
     this.mesh.position.y = (this.a.y + this.b.y) / 2 + this.size.y * e;
+    // dust shaken off the rising bottom edge
+    if (this.openT < 0.85) this.world.fx.edgeDust(this.a.x, this.b.x, this.a.y + this.size.y * e, this.a.z, this.b.z);
     if (this.openT > 0.45) this.solid.enabled = false;
     if (this.openT >= 1) this.mesh.visible = false;
   }

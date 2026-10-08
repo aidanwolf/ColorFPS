@@ -7,6 +7,8 @@ import { boxGeo, mat, glyphTex } from '../materials.js';
 import { audio } from '../audio.js';
 import { boxOverlap } from '../world.js';
 
+const TELEGRAPH = 0.7; // seconds of converging particles before a broken obstacle reforms
+
 const barrierShader = {
   vertexShader: `
     varying vec2 vUv;
@@ -48,6 +50,8 @@ export class Barrier {
     this.timer = 0;
     this.flash = 0;
     this.reform = 1;
+    this.telegraphed = false;
+    this.shimmer = 0;
     const size = new THREE.Vector3().subVectors(this.max, this.min);
     const center = new THREE.Vector3().addVectors(this.min, this.max).multiplyScalar(0.5);
     const c = new THREE.Color(COLORS[color].hex);
@@ -128,21 +132,27 @@ export class Barrier {
     world.add(this);
   }
 
-  onHit(color) {
+  onHit(color, hit) {
     if (this.broken) return undefined;
     if (color === this.color) {
-      this.shatter();
+      this.shatter(hit);
       return 'kill';
     }
     this.flash = 1;
     return 'immune';
   }
 
-  shatter() {
+  // hit (optional): the shot that broke it, so the shards blow away from the impact
+  shatter(hit = null) {
     this.broken = true;
     this.solid.enabled = false;
     this.group.visible = false;
-    this.world.fx.shatterBox(this.min, this.max, COLORS[this.color].hex, this.kind === 'spike' ? 14 : 5);
+    const hex = COLORS[this.color].hex;
+    // a hatch hung spikes-down (group flipped) throws its shards downward
+    if (this.kind === 'spike') this.world.fx.shatterSpikes(this.min, this.max, hex, Math.cos(this.group.rotation.x) < 0 ? -1 : 1);
+    else this.world.fx.shatterWall(this.min, this.max, hex, { point: hit?.point, dir: hit?.dir, door: this.kind === 'door' });
+    this.telegraphed = false;
+    this.shimmer = 0;
     audio.shatter();
     if (this.kind === 'door') audio.door();
     this.timer = this.regen;
@@ -155,6 +165,7 @@ export class Barrier {
     this.solid.enabled = true;
     this.group.visible = true;
     this.reform = 0;
+    this.world.fx.reformFlash(this.min, this.max, COLORS[this.color].hex, this.kind);
   }
 
   update(dt, player) {
@@ -173,9 +184,20 @@ export class Barrier {
     }
     if (this.broken && this.regen > 0) {
       this.timer -= dt;
+      // telegraph: particles stream back in over the last moments (again if the timer was held back)
+      if (this.timer > TELEGRAPH) this.telegraphed = false;
+      else if (!this.telegraphed) {
+        this.telegraphed = true;
+        this.world.fx.reform(this.min, this.max, COLORS[this.color].hex, Math.max(0.2, this.timer));
+      }
       if (this.timer <= 0) {
         const b = player.bounds();
         if (!boxOverlap(b.min, b.max, this.min, this.max)) this.restore();
+        else if ((this.shimmer -= dt) <= 0) {
+          // blocked by the player: keep a light shimmer going so it's clear it's waiting to reform
+          this.shimmer = 0.35;
+          this.world.fx.reform(this.min, this.max, COLORS[this.color].hex, 0.35, 1);
+        }
       }
     }
   }

@@ -4,6 +4,8 @@ import { COLORS } from '../colors.js';
 import { boxGeo, mat } from '../materials.js';
 import { audio } from '../audio.js';
 
+const _p = new THREE.Vector3();
+
 export class Pickup {
   // type: 'color' (unlocks a blaster color), 'health', 'maxhp' (a secret's prize: a collectible prism)
   constructor(world, { pos, type, color = 0, amount = 30, respawn = 0, onCollect = null }) {
@@ -110,7 +112,7 @@ export class Pickup {
     this.group.visible = false;
     if (this.light) this.light.intensity = 0;
     this.timer = this.respawn;
-    this.world.fx.burst(this.pos, this.type === 'color' ? COLORS[this.color].hex : this.type === 'health' ? 0x6dffb0 : 0xffcc55, { count: 40, speed: 6, life: 0.8, size: 0.3, gravity: 2 });
+    this.world.fx.pickup(this.group.position, this.type === 'color' ? COLORS[this.color].hex : this.type === 'health' ? 0x6dffb0 : 0xffcc55, this.type);
     this.onCollect?.(this, player);
     if (!this.respawn) this.world.remove(this);
   }
@@ -129,6 +131,8 @@ export class MovingPlatform {
     this.u = 0;
     this.dir = 1;
     this.wait = 0;
+    this.puffT = Math.random() * 0.1;
+    this.corner = 0;
     this.cur = this.base.clone();
     this.mesh = new THREE.Group();
     const body = new THREE.Mesh(boxGeo(this.size.x, this.size.y, this.size.z), mat(kind, zone));
@@ -164,6 +168,18 @@ export class MovingPlatform {
     this.solid.min.copy(next);
     this.solid.max.copy(next).add(this.size);
     this.mesh.position.copy(next);
+    this.thrust(dt);
+  }
+
+  // faint motes drifting off the underside corners while it moves (only near the player)
+  thrust(dt) {
+    if ((this.puffT -= dt) > 0) return;
+    this.puffT = 0.07;
+    const pl = this.world.game?.player;
+    if (!pl || pl.pos.distanceToSquared(this.cur) > 35 * 35) return;
+    const k = this.corner++ & 3;
+    _p.set(this.cur.x + (k & 1 ? this.size.x - 0.2 : 0.2), this.cur.y - 0.05, this.cur.z + (k & 2 ? this.size.z - 0.2 : 0.2));
+    this.world.fx.thruster(_p, 0x9bf6ff);
   }
 }
 
@@ -175,6 +191,7 @@ export class JumpPad {
     this.push = new THREE.Vector3(...push);
     this.cool = 0;
     this.t = 0;
+    this.color = color;
     this.group = new THREE.Group();
     this.group.position.copy(this.pos);
     const base = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.15, 0.2, 24), new THREE.MeshStandardMaterial({ color: 0x23252e, metalness: 0.8, roughness: 0.3 }));
@@ -209,7 +226,7 @@ export class JumpPad {
       player.launch(this.power, this.push.lengthSq() ? this.push : null);
       this.cool = 0.5;
       audio.pad();
-      this.world.fx.burst(this.pos.clone().setY(this.pos.y + 0.3), 0x9bf6ff, { count: 30, speed: 5, life: 0.5, size: 0.25, gravity: -2 });
+      this.world.fx.padLaunch(this.pos, this.color);
     }
   }
 }
@@ -240,7 +257,7 @@ export class Checkpoint {
       if (game.checkpoint?.ref === this) return;
       game.checkpoint?.ref?.setActive(false);
       this.setActive(true);
-      this.world.fx.burst(this.pos.clone().setY(this.pos.y + 1.2), 0x9bf6ff, { count: 40, speed: 4, life: 0.8, size: 0.25, gravity: -3 });
+      this.world.fx.checkpoint(this.pos);
       game.setCheckpoint(this.pos, yaw, this);
     }, { once: false });
   }
