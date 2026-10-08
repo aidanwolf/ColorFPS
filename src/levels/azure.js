@@ -442,7 +442,7 @@ export function buildAzure(B) {
     W.box(x1, y, zS, x2 + 0.5, y + h, zS + 0.5, 'wall', zone);
     W.box(x2, y, zN, x2 + 0.5, y + h, zS, 'wall', zone);
     B.wallX(zN - 0.5, zN, x1, x2 + 0.5, y, y + h, [{ c: 113, w: 3, y0: y, h: 3 }], zone);
-    for (const z of [-158.2, -163.4]) {
+    for (const z of [-158.2, -162.4]) { // (the north row stands clear of the back wall: the vault door is behind it)
       for (let x = 109.4; x < 114; x += 1.5) {
         W.box(x, y, z - 0.35, x + 1.2, y + 2.4, z + 0.35, 'metal', zone);
         W.deco(x + 0.1, y + 1.6, z - 0.37, x + 1.1, y + 1.66, z + 0.37, 'glow3', zone);
