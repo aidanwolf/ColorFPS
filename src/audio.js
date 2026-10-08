@@ -21,13 +21,22 @@ class Audio {
     this.buffers = new Map(); // name -> AudioBuffer
     this.track = null; // { name, src, gain } for the sample-based music
     this.wantTrack = null;
-    this.prefetch(SFX_FILES);
+    this.available = null; // names listed in audio/manifest.json; null until it loads
+    fetch(AUDIO_URL + 'manifest.json')
+      .then((r) => (r.ok ? r.json() : []))
+      .catch(() => [])
+      .then((names) => {
+        this.available = new Set(names);
+        this.prefetch(SFX_FILES);
+        if (this.wantTrack) this.prefetch([this.wantTrack]);
+      });
   }
 
   // Fetch sample files early; missing files are simply skipped (synth fallback).
   prefetch(names) {
+    if (!this.available) return; // the manifest load calls back in here
     for (const n of names) {
-      if (this.raw.has(n) || this.buffers.has(n)) continue;
+      if (!this.available.has(n) || this.raw.has(n) || this.buffers.has(n)) continue;
       this.raw.set(n, null);
       fetch(AUDIO_URL + n + '.mp3')
         .then((r) => (r.ok && (r.headers.get('content-type') || '').includes('audio') ? r.arrayBuffer() : null))

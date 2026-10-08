@@ -41,4 +41,7 @@ async function worker() {
   }
 }
 await Promise.all([worker(), worker(), worker()]);
-console.log(`done, ${failed} failed`);
+// the game only requests files listed in the manifest (avoids 404s for audio that doesn't exist yet)
+const have = fs.readdirSync(OUT).filter((f) => f.endsWith('.mp3')).map((f) => f.slice(0, -4)).sort();
+fs.writeFileSync(`${OUT}/manifest.json`, JSON.stringify(have, null, 1) + '\n');
+console.log(`done, ${failed} failed; manifest lists ${have.length} files`);

@@ -15,7 +15,8 @@ npm run build    # production build in dist/
 | Action | Keys |
 | --- | --- |
 | Move / jump | `WASD`, `Space` (hold for a higher jump) |
-| Crouch (vents and crawlspaces) | `C` or `Shift` |
+| Sprint | `Shift` |
+| Crouch (vents and crawlspaces) | `Ctrl` or `C` |
 | Fire | Left mouse (hold for auto-fire) |
 | Switch color | `1`–`4`, `Q`/`E`, mouse wheel, `F` = last color |
 | Pause | `Esc` |
@@ -45,6 +46,16 @@ Where it hooks in (`src/monetization/bonusround.js`, wired up in `src/main.js`):
 - The game pauses on the SDK's `start` event and shows a Continue button on `end`.
 
 New games start in test mode, which always serves the Fizzpop Soda test ad. Before going live, add `bonusround.io, pub_XXXXXXXX, DIRECT` to your site's `ads.txt` and turn test mode off in the dashboard.
+
+## Audio
+
+Music and sound effects are generated with ElevenLabs into `public/audio/` (prompts in `tools/audio/sfx.json` and `tools/audio/music.json`):
+
+```bash
+ELEVENLABS_API_KEY=... node tools/audio/gen.mjs      # skips files that already exist; updates manifest.json
+```
+
+Anything not generated yet falls back to the built-in synthesized sounds.
 
 ## Dev helpers
 

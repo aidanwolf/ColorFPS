@@ -32,15 +32,16 @@ export const ads = {
   // Native mode: with worldRoot + host the round plays inside our scene with our own player,
   // controls and physics (https://bonusround.io/docs/attach#host-adapter).
   // onStart/onEnd also fire for rounds that our code didn't start.
-  // SDK 1.0.0 doesn't always emit 'start'/'end', so the first impression/viewable event also counts
-  // as a start and 'complete' as an end; for breaks we request, break() resolving is the final word.
+  // SDK 1.0.0 doesn't always emit 'start'/'end', so an impression/start analytics event also counts
+  // as a start and 'complete' as an end ('viewable' can arrive after 'complete', so it's ignored);
+  // for breaks we request, break() resolving is the final word.
   attach({ THREE, scene, camera, renderer, worldRoot, host, onStart, onEnd }) {
     (window.bonusround = window.bonusround || []).push((BR) => {
       BR.attach({ THREE, scene, camera, renderer, worldRoot, host });
       BR.on('start', onStart);
       BR.on('end', onEnd);
       BR.on('event', (e) => {
-        if (e?.type === 'impression' || e?.type === 'start' || e?.type === 'viewable') onStart();
+        if (e?.type === 'impression' || e?.type === 'start') onStart();
         else if (e?.type === 'complete') onEnd();
       });
     });
