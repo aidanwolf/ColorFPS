@@ -26,6 +26,7 @@ import { Checkpoint, JumpPad } from '../entities/misc.js';
 import { Glass, TargetPanel } from '../entities/puzzle.js';
 import { mat } from '../materials.js';
 import { buildForgeArena } from './forgeArena.js';
+import { dressFoundry } from './redDressing.js';
 
 // A red spike layer covering a Crucible platform. Its regrowth timer holds while you stand on (or hover
 // over) the platform, so it never reforms under you or mid-hop; for its last second the spikes visibly
@@ -134,9 +135,9 @@ export function buildRed(B) {
     W.scene.add(m);
   };
   const lavaPools = []; // [x1, z1, x2, z2, top]: get a crust when the power dies
-  const lava = (x1, z1, x2, z2, top) => {
+  const lava = (x1, z1, x2, z2, top, walls = 'nsew') => {
     W.box(x1, top - 0.4, z1, x2, top, z2, 'acid', zone, { hazard: 'acid' });
-    lavaPools.push([x1, z1, x2, z2, top]);
+    lavaPools.push([x1, z1, x2, z2, top, walls]); // (walls: the sides with a wall for the dressing's uplight)
   };
   const vents = []; // steam vents: { p, t, every }
   const vent = (x, y, z, every = 0.22) => {
@@ -175,9 +176,10 @@ export function buildRed(B) {
     x1: -6, x2: 6, zS: 0, zN: -12, y: 0, h: 6, zone,
     n: [{ c: 0, w: 3, h: CH }],
     s: [{ c: -3.5, w: 2.4, h: 3 }, { c: 0, w: 2.2, h: 1.5, y0: 1.0 }, { c: 3.5, w: 2.4, h: 3 }], // Foundry annex doors + grate (redAnnex.js)
-    e: [{ c: -9, w: 1.2, h: 1.0 }, { c: -3.8, w: 2.2, h: 2.8 }], // (z -3.8: the door to the cell block, cellblock.js)
+    e: [{ c: -11.2, w: 1.6, h: 1.2, y0: 1.2 }, { c: -9, w: 1.2, h: 1.0 }, { c: -3.8, w: 2.2, h: 2.8 }], // (z -3.8: the door to the cell block, cellblock.js; z -11.2: a window onto the processing chamber, redDressing.js)
     w: [{ c: -6, w: 2.4, h: 3 }],
   });
+  new Glass(W, { min: [6.1, 1.2, -12], max: [6.25, 2.4, -10.4] });
   pedestal(0, 0, -6, RED, zone);
   W.deco(-1.2, 5.94, -7.2, 1.2, 6, -4.8, 'glow0', zone); // a lit panel over the pedestal (the blaster has its own glow)
   furnace(-5.98, 0.4, -11.2, -5.94, 1.6, -9.2); // a banked forge in the corner, just for the glow
@@ -373,6 +375,8 @@ export function buildRed(B) {
   mood([-9.5, 4, S1], [-7, 7, S2]);
   // the pit: lava 4 m down, a riser block in the middle (spam it up, ride it, hop off before it sinks)
   W.box(-3, -0.6, S1, 7, 0, S2, 'floor', zone);
+  W.box(-9.5, -0.6, S1, -3, 3, S2, 'wall', zone); // (solid under the floor at both ends of the pit)
+  W.box(7, -0.6, S1, 9, 3, S2, 'wall', zone);
   lava(-3, S1, 7, S2, 0.4);
   glowEdge(-9.5, S1, -3, S2, 4, 'glow0', zone);
   B.riser({ min: [-0.5, 0.4, S1 + 0.2], max: [2.5, 1.4, S2 - 0.2], rise: 2.6, color: RED, zone });
@@ -437,7 +441,7 @@ export function buildRed(B) {
   B.turret([43.95, 8, -28], RED, { mount: [-1, 0, 0] });
   B.turret([27, 9.5, -37.45], RED, { mount: [0, 0, 1] });
   new Drone(W, { pos: [22, 9, -24], color: RED, orbit: 1.5, range: 20 });
-  lit(26, 12.5, -25, 0xff6a33, 50, 42);
+  lit(26, 9.5, -25, 0xff6a33, 40, 42); // (low enough not to blow out the ceiling)
   for (const x of [20, 36]) furnace(x - 2, 5.5, GN + 0.02, x + 2, 8, GN + 0.06);
   vent(40, 4, -34);
   vent(34, 4, -22);
@@ -505,7 +509,7 @@ export function buildRed(B) {
   for (const x of [-2.5, 2.5]) W.box(x - 0.1, 8.6, -47.6, x + 0.1, 9.4, -47.4, 'metal', zone);
   // a lava runnel along the west wall: mind your feet while you dodge
   W.box(AX1 - 0.5, -1.4, -53.5, -17.8, -0.9, -43.5, 'wall', zone);
-  lava(AX1 + 0.1, -53.4, -17.9, -43.6, -0.5);
+  lava(AX1 + 0.1, -53.4, -17.9, -43.6, -0.5, 'w');
   glowEdge(AX1, -53.5, -17.8, -43.5, 0, 'hazard', zone);
   mood([AX1, 0, AN], [AX2, AH, AS]);
   hint([12, 0, -42.5], [13, 2, -38.5], 'The <b>Smelting Floor</b>. The door north is the Forge.', 3);
@@ -576,10 +580,12 @@ export function buildRed(B) {
     m.renderOrder = 1;
     W.scene.add(m);
   }
+  const dress = dressFoundry(B, { pools: lavaPools });
   const glowMat = mat('glow0', zone), glowBase = glowMat.color.clone(), COLD_LIGHT = new THREE.Color(0x6a7aa0);
   let fade = null; // { t, from } while dying
   const apply = (k) => {
     forgeK = k;
+    dress.setHeat(k);
     crustMat.opacity = 0.92 * (1 - k);
     glowMat.color.copy(glowBase).multiplyScalar(0.3 + 0.7 * k);
     for (const [l, base, col] of lights) {
