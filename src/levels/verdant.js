@@ -476,11 +476,14 @@ export function buildVerdant(B) {
         { type: 'drone', pos: [-20, 9, -209], color: RED },
         { type: 'drone', pos: [0, 9, -210], color: YELLOW },
         { type: 'swarm', pos: [-10, 7.5, -208], color: RY, count: 5, delay: 1.4 },
+        { type: 'slime', pos: [-5, 4.5, -207], color: YELLOW, core: RED, delay: 2.2 },
       ],
       [
         { type: 'brute', pos: [-14, 4.5, -205.5], color: YELLOW },
         { type: 'turret', pos: [10, 8.2, -205.45], color: RED, mount: [0, 0, 1], delay: 0.6 },
         { type: 'drone', pos: [-24, 10, -207], color: RY, delay: 1.5 },
+        { type: 'slime', pos: [8, 4.5, -210], color: RED, core: YELLOW, delay: 2.2 },
+        { type: 'slime', pos: [-20, 4.5, -211], color: YELLOW, core: RED, delay: 2.6 },
         { type: 'swarm', pos: [12, 7.5, -209], color: RY, count: 4, delay: 3 },
       ],
     ],
@@ -500,10 +503,10 @@ export function buildVerdant(B) {
   // Three root columns rise out of the Hollow, each carrying a root arm on a pivot. Shoot an arm to swing it a
   // quarter turn; swing each one round until it points back at you, then walk out along it.
   const arms = [];
-  for (const [zc, color, dir, start, correct, len] of [[-224, RED, -1, 0, 1, 9.5], [-234, YELLOW, 1, 0, 3, 9], [-244, RED, 1, 1, 3, 9]]) {
-    bark(-25, -29, zc - 1, -23, 3.9, zc + 1);
-    W.box(-25.2, 3.9, zc - 1.2, -22.8, 4.5, zc + 1.2, 'rock', zone);
-    glowEdge(-25.2, zc - 1.2, -22.8, zc + 1.2, 4.42, GLOW[zone], zone, 0.06);
+  for (const [zc, color, dir, start, correct, len] of [[-224, RED, -1, 0, 1, 9.5], [-234, YELLOW, 1, 1, 3, 9], [-244, RED, 1, 0, 3, 9]]) {
+    bark(-25, -29, zc - 1, -23, 3.3, zc + 1);
+    W.box(-25.2, 3.3, zc - 1.2, -22.8, 3.9, zc + 1.2, 'rock', zone);
+    glowEdge(-25.2, zc - 1.2, -22.8, zc + 1.2, 3.82, GLOW[zone], zone, 0.06);
     vines(-25.1, zc - 1.1, -22.9, zc + 1.1, 3.9, 6, 8);
     arms.push(B.shotRotor({ pivot: [-24, 4.5, zc], parts: [[-1, -0.6, -1, len, 0, 1]], axis: 'y', dir, color, start, correct, zone, kind: 'plat' }));
   }
@@ -666,24 +669,29 @@ export function buildVerdant(B) {
         { type: 'drone', pos: [-88, -19, -284], color: RED },
         { type: 'drone', pos: [-74, -19, -272], color: YELLOW },
         { type: 'swarm', pos: [-81, -20, -278], color: RY, count: 5, delay: 1.5 },
+        { type: 'slime', pos: [-90, -25, -280], color: YELLOW, core: RED, delay: 2 },
+        { type: 'slime', pos: [-72, -25, -280], color: RED, core: YELLOW, delay: 2.3 },
       ],
       [
         { type: 'turret', pos: [-90, -20, -298.95], color: YELLOW, mount: [0, 0, 1] },
         { type: 'turret', pos: [-72, -20, -263.05], color: RED, mount: [0, 0, -1], delay: 0.5 },
         { type: 'swarm', pos: [-81, -21, -270], color: RY, count: 6, delay: 2 },
         { type: 'drone', pos: [-81, -18, -290], color: RY, delay: 3 },
+        { type: 'spider', pos: [-95, -25, -284], color: RY, delay: 3.5 },
       ],
       { title: 'HEAVIES', enemies: [
         { type: 'warden', pos: [-81, -19.5, -290], shield: YELLOW, core: RED },
         { type: 'brute', pos: [-90, -25, -272], color: RED, delay: 1 },
-        { type: 'mortar', pos: [-96, -20.5, -281], color: YELLOW, delay: 2 },
+        { type: 'mortar', pos: [-94.9, -20.5, -281], color: YELLOW, delay: 2 },
       ] },
       [
         { type: 'brute', pos: [-72, -25, -294], color: YELLOW },
         { type: 'warden', pos: [-90, -19.5, -268], shield: RED, core: YELLOW, delay: 0.6 },
-        { type: 'mortar', pos: [-66, -20.5, -282], color: RED, delay: 1.4 },
+        { type: 'mortar', pos: [-67.1, -20.5, -282], color: RED, delay: 1.4 },
         { type: 'turret', pos: [-81, -23.8, -283], colors: RY, delay: 2 },
         { type: 'swarm', pos: [-81, -20, -275], color: RY, count: 8, delay: 3 },
+        { type: 'spider', pos: [-67, -25, -270], color: [YELLOW, RED], delay: 3.5 },
+        { type: 'slime', pos: [-81, -25, -272], color: YELLOW, core: RED, delay: 4 },
       ],
     ],
   });
@@ -750,6 +758,7 @@ export function buildVerdant(B) {
     setTimeout(() => game.hud.message(`${G_('GREEN')} is yours. Stand on the ${G_('green riser')} by the east wall and <b>keep firing at it</b> to climb to the door.`, 7), 600);
   };
   glowPatch(-99.5, -334.5, -92.5, -320.5, -20.5, 10, 0.3);
+  cp([-96, -20.5, -327], EAST, [7, 3, 6]); // the balcony: a death after this doesn't send you back down the rack
   vines(VA.x1, VA.zN, VA.x2, VA.zS, VA.y + VA.h, 50, 7);
   W.box(-99.9, -25, -306, -98, -24, -305.1, 'metal', zone);
   B.spiderBot([-74, -25, -310], { color: RY, leash: 12 });
@@ -768,9 +777,11 @@ export function buildVerdant(B) {
   cliff(-70, -9, CH_.z1, -69.5, 21.5, CH_.z2); // west wall above the vault's roof
   cliff(-70, 21, CH_.z1 - 0.5, -60.5, 21.5, CH_.z2 + 0.5); // lid
   bough(-65, CH_.z1, -61.5, CH_.z2, -4, 1);
-  bough(-69.5, CH_.z1, -65.1, CH_.z2, 5, 1);
+  bough(-69.5, CH_.z1, -66, CH_.z2, 5, 1);
   bough(-65, CH_.z1, -61.5, CH_.z2, 14, 1);
-  for (const [x, y, dx] of [[-67.5, -13, 3.3], [-62.6, -4, -3.3], [-67.7, 5, 3.3]]) new JumpPad(W, { pos: [x, y, -329], power: 22.5, push: [dx, 0, 0], color: 0x7dff8a });
+  // (sized so a launch from anywhere on a pad clears the ledge above's edge and lands on it)
+  // (pads alternate z, so you never land on the next pad before you've burst its membrane)
+  for (const [x, y, z, dx] of [[-68.3, -13, -331, 3.3], [-62.6, -4, -327, -3.3], [-68.3, 5, -331, 3.3]]) new JumpPad(W, { pos: [x, y, z], power: 24, push: [dx, 0, 0], color: 0x7dff8a });
   for (const [x1, x2, y] of [[-69.5, -65.3, -7], [-65, -61.5, 2], [-69.5, -65.3, 11]]) new Barrier(W, { min: [x1, y, CH_.z1], max: [x2, y + 0.35, CH_.z2], color: GREEN, kind: 'wall', regen: 8, zone });
   vines(CH_.x1, CH_.z1, CH_.x2, CH_.z2, 21, 26, 10);
   glowPatch(-69, -332.5, -66, -325.5, -13, 8, 0.2);
@@ -867,6 +878,7 @@ export function buildVerdant(B) {
         { type: 'turret', pos: [0, 28.2, -293.55], color: GREEN, mount: [0, 0, -1], delay: 0.6 },
         { type: 'mortar', pos: [-11, 26, -274], color: RED, delay: 1.4 },
         { type: 'swarm', pos: [-11, 30, -286], color: RYG, count: 6, delay: 2.5 },
+        { type: 'spider', pos: [10, 26, -274], color: [GREEN, RED], delay: 3 },
       ],
       { title: 'FINAL WAVE', enemies: [
         { type: 'warden', pos: [-11, 30, -296], shield: RED, core: GREEN },
@@ -874,6 +886,8 @@ export function buildVerdant(B) {
         { type: 'drone', pos: [-10, 32, -276], color: GREEN, delay: 0.9 },
         { type: 'turret', pos: [0, 28.2, -278.45], colors: [GREEN, RED], mount: [0, 0, 1], delay: 1.2 },
         { type: 'swarm', pos: [0, 30, -274], color: [GREEN, YELLOW], count: 8, delay: 2.5 },
+        { type: 'slime', pos: [-10, 26, -298], color: GREEN, core: RED, delay: 3 },
+        { type: 'slime', pos: [10, 26, -296], color: GREEN, core: YELLOW, delay: 3.3 },
       ] },
     ],
   });
@@ -963,11 +977,10 @@ export function buildVerdant(B) {
   };
   deck(82.5, -246.8, 85.5, -237.5);
   deck(8.5, -240.5, 85.5, -237.5);
-  W.box(85.5, 12, -246.8, 86, 13, -237);
   W.box(82, 12, -246.8, 82.5, 13, -240.5, 'wall', zone);
   W.box(85.5, 12, -246.8, 86, 13, -237, 'wall', zone);
   W.box(8, 12, -241, 82.5, 13, -240.5, 'wall', zone);
-  W.box(8, 12, -237.5, 85.5, 13, -237, 'wall', zone);
+  W.box(11.5, 12, -237.5, 85.5, 13, -237, 'wall', zone);
   blocker([82, 12, -246.8], [82.5, 40, -240.5]);
   blocker([85.5, 12, -246.8], [86, 40, -237]);
   blocker([8, 12, -241], [82.5, 40, -240.5]);
