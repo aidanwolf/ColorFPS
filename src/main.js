@@ -96,6 +96,7 @@ class Game {
     // Each world is an engine feeding the machine; with its chroma in hand you shut its power source down.
     // World modules call shutDownWorld(name) and listen with onPowerDown(fn) to show the aftermath.
     this.powerDown = { red: false, solar: false, verdant: false, azure: false };
+    this.clearedEncounters = new Set(); // arena fights already won (persisted in the save)
     this.powerDownListeners = [];
 
     // ---- renderer / scene ----
@@ -320,7 +321,12 @@ class Game {
       else if (a === 'settings') this.openSettings();
       else if (a === 'settings-back') this.showScreen(this.settingsReturn);
       else if (a === 'checkpoint') this.respawn();
-      else if (a === 'quit') location.reload();
+      else if (a === 'quit' && this.state === 'victory' && !this.leaving) {
+        // leaving the victory screen: the natural break plays here (never longer than 45 s), then the title
+        this.leaving = true;
+        e.target.closest('button')?.setAttribute('disabled', '');
+        Promise.race([this.naturalBreak(), new Promise((r) => setTimeout(r, 45000))]).then(() => location.reload());
+      } else if (a === 'quit') location.reload();
       else if (a === 'revive') this.reviveTapped = true;
       else if (a === 'continue') this.resume();
       else if (a === 'newgame') {
@@ -419,6 +425,8 @@ class Game {
       color: this.blaster.color,
       secrets: this.level.secrets.filter((s) => s.trigger.fired).map((s) => s.label),
       powerDown: Object.keys(this.powerDown).filter((k) => this.powerDown[k]),
+      cleared: [...this.clearedEncounters],
+      won: !!this.won,
       time: Math.floor(this.stats.time),
       deaths: this.stats.deaths,
     });
@@ -451,6 +459,8 @@ class Game {
         for (const fn of this.powerDownListeners) fn(name, { restored: true });
       }
     }
+    for (const id of s.cleared || []) this.clearedEncounters.add(id);
+    this.won = !!s.won;
     this.stats.time = s.time || 0;
     this.stats.deaths = s.deaths || 0;
     const pos = new THREE.Vector3(...s.cp.pos);
@@ -682,10 +692,13 @@ class Game {
     audio.setIntensity(0);
     this.setMusic('music_victory');
     this.hud.zoneTitle('PRISM WARDEN', 'SHATTERED', '#ffd23a');
-    setTimeout(async () => {
-      await this.naturalBreak();
-      this.victory();
-    }, 4000);
+    // the win is saved at once (Continue later puts you back in the Atrium, every world dark, free to roam)
+    this.won = true;
+    const hub = this.level.devStarts?.hub;
+    if (hub) this.checkpoint = { pos: hub.pos.clone(), yaw: hub.yaw, ref: null };
+    this.save();
+    // the victory screen comes straight up; the intermission waits until you leave it
+    setTimeout(() => this.victory(), 4000);
   }
 
   victory() {

@@ -340,7 +340,18 @@ export class Encounter {
     this.wave = -1;
     this.timer = 0;
     this.trigger = world.trigger(trigger[0], trigger[1], () => this.start());
+    this.id = `enc:${trigger[0].map((v) => Math.round(v)).join(',')}`; // stable across loads (for the save)
     world.add(this);
+  }
+
+  // A save says this fight was already won: skip it (seals as after a clear, a beacon to save at).
+  restoreCleared() {
+    if (this.state !== 'armed') return;
+    this.state = 'cleared';
+    this.trigger.fired = true;
+    for (const s of this.seals) s.open(true);
+    const { pos = null, yaw = 0 } = this.checkpoint || {};
+    if (pos && !this.beacon) this.beacon = new Checkpoint(this.world, this.game, { pos, yaw });
   }
 
   get remaining() {
@@ -393,6 +404,7 @@ export class Encounter {
   }
 
   update(dt) {
+    if (this.state === 'armed' && this.game.clearedEncounters?.has(this.id)) return this.restoreCleared();
     if (this.state === 'armed' || this.state === 'cleared') return;
     this.timer += dt;
     this.portals = this.portals.filter((p) => !p.gone);
@@ -439,6 +451,7 @@ export class Encounter {
     this.beacon.setActive(true);
     this.world.fx.checkpoint(p);
     this.world.fx.burst(p.clone().setY(p.y + 1.2), 0x9bf6ff, { count: 70, speed: 5, life: 0.9, size: 0.22, gravity: -1 });
+    this.game.clearedEncounters?.add(this.id); // (saved with the checkpoint: a won fight stays won)
     this.game.setCheckpoint(p, yaw, this.beacon);
     this.game.hud.message('<b style="color:#9bf6ff">CHECKPOINT</b> saved.', 2.5);
     this.restoreMusic();
