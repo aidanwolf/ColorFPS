@@ -294,6 +294,20 @@ class Audio {
     return !this.available || this.available.has(name) ? name : fallback;
   }
 
+  // a big moment: pull the music (and loops) down hard for a beat, then let it swell back
+  slam(depth = 0.2, hold = 0.35, back = 1.4) {
+    if (!this.ctx || !this.musicDuck) return;
+    const t = this.ctx.currentTime;
+    for (const g of [this.musicDuck.gain, this.loopBus?.gain].filter(Boolean)) {
+      const v = g.value;
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(v, t);
+      g.linearRampToValueAtTime(v * depth, t + 0.04);
+      g.setValueAtTime(v * depth, t + hold);
+      g.linearRampToValueAtTime(v, t + hold + back);
+    }
+  }
+
   // a sound effect by name if its file exists, else a stand-in (for sounds still waiting to be generated)
   sfxOr(name, fallback) {
     return this.available && this.available.has(name) ? name : fallback;

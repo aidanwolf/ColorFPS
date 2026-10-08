@@ -17,6 +17,7 @@ const DEG_PER_COUNT = 0.022 * (Math.PI / 180);
 const CROUCH_SPEED = 3.6;
 const GROUND_ACCEL = 70;
 const AIR_ACCEL = 22;
+const PAD_CARRY = 0.6, PAD_CARRY_MAX = 4.5; // how much of your run a directional jump pad keeps
 const STEP = 0.45;
 const HARD_FALL = 17; // m/s landing speed: a heavy, shaking landing (~6 m drop)
 const LETHAL_FALL = 29.5; // m/s: fatal (~18 m drop)
@@ -483,9 +484,16 @@ export class Player {
   launch(vy, push) {
     this.vel.y = vy;
     if (push) {
-      this.vel.x = push.x;
-      this.vel.z = push.z;
-    }
+      // a pad's throw plus the run you came in with (part of it, capped, so its landing stays in reach)
+      let cx = this.vel.x * PAD_CARRY, cz = this.vel.z * PAD_CARRY;
+      const cl = Math.hypot(cx, cz);
+      if (cl > PAD_CARRY_MAX) {
+        cx *= PAD_CARRY_MAX / cl;
+        cz *= PAD_CARRY_MAX / cl;
+      }
+      this.vel.x = push.x + cx;
+      this.vel.z = push.z + cz;
+    } // (a straight-up pad keeps your run whole)
     this.launched = true;
     this.grounded = false;
     this.ground = null;
@@ -513,8 +521,12 @@ export class Player {
       this.invuln = 1.2; // a moment of grace to get out of the line of fire
       this.shake = Math.max(this.shake || 0, 0.45);
       this.game.hud.armorBreak?.();
-      audio.sample(audio.sfxOr('armor_break', 'shield_break'), { gain: 1.2 });
-      audio.sample('shatter', { gain: 0.8, rate: 0.9 });
+      // loud and stunning: the world drops away for a beat under a layered crash, so you know you're bare
+      audio.slam(0.15, 0.4, 1.6);
+      audio.sample(audio.sfxOr('armor_break', 'shield_break'), { gain: 2.2, vary: 0, dry: true });
+      audio.sample('shield_break', { gain: 1.3, rate: 0.75, vary: 0 });
+      audio.sample('shatter', { gain: 1.2, rate: 0.85, vary: 0 });
+      audio.sample('boss_slam', { gain: 0.9, rate: 1.25, vary: 0, dry: true });
       // shards of the shield burst out round you, in view (just in front of the eyes) and all about
       const cam = this.game.camera, fwd = cam.getWorldDirection(new THREE.Vector3());
       const front = cam.position.clone().addScaledVector(fwd, 1.8);

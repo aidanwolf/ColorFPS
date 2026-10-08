@@ -529,9 +529,9 @@
   "influence": 0.6
  },
  "armor_break": {
-  "text": "Energy shield shattering violently: a sharp crystalline explosion of breaking hexagonal glass panels, an electric burst and crackle, then a descending power-down whine, sci-fi armor destroyed, dramatic",
-  "dur": 1.4,
-  "influence": 0.65
+  "text": "Massive energy shield exploding apart right around the listener: a huge violent crystalline shatter of hundreds of glass hexagon panels, a deep sub-bass boom, an electric discharge crackle, then a sharp falling power-down whine, extremely loud, stunning and dramatic, sci-fi armor destroyed",
+  "dur": 1.8,
+  "influence": 0.7
  },
  "arena_seal": {
   "text": "Massive blast door slamming shut, deep metal boom with an alarm tone, sci-fi arena lockdown",
