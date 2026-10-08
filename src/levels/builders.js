@@ -192,6 +192,15 @@ export function makeBuilders(W, game, level) {
     W.scene.add(canopy);
     return canopy;
   };
+  // An invisible wall: it stops the player but not shots, drones or sight lines. Seals the open-air worlds
+  // (stand one on a wall top, up into the sky, and nobody can get onto the wall or over it).
+  const blocker = (min, max) => W.addSolid(new THREE.Vector3(...min), new THREE.Vector3(...max), { noShot: true });
+  // A volume that kills on entry: the bottom of a pit, or the void under the edge of the world.
+  const killZone = (min, max) => {
+    const t = W.trigger(min, max, () => game.player.damage(1, 'fall'), { once: false });
+    t.kill = true;
+    return t;
+  };
   // ?dev&start=<name> drops you here with the given colors (see main.js devSkip).
   const devStart = (name, pos, yaw = 0, colors = [0]) => (level.devStarts[name] = { pos: new THREE.Vector3(...pos), yaw, colors });
   // Called whenever the player respawns at a checkpoint (reset elevators, encounters, ...).
@@ -200,6 +209,6 @@ export function makeBuilders(W, game, level) {
   return {
     W, game, level, T, CH, GLOW,
     wallX, wallZ, abs, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy,
-    sideAlcove, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, tree, devStart, onRespawn,
+    sideAlcove, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, tree, blocker, killZone, devStart, onRespawn,
   };
 }

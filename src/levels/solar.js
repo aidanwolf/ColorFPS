@@ -269,7 +269,7 @@ class SolarDirector {
 }
 
 export function buildSolar(B) {
-  const { W, game, level, CH, GLOW, wallX, room, corridor, corridorX, plat, pedestal, secretRoom, trophy, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, devStart } = B;
+  const { W, game, level, CH, GLOW, wallX, room, corridor, corridorX, plat, pedestal, secretRoom, trophy, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, blocker, killZone, devStart } = B;
   const zone = 'yellow';
   const glow = GLOW[zone];
   const R = (x1, y1, z1, x2, y2, z2) => W.box(x1, y1, z1, x2, y2, z2, 'rock', zone);
@@ -671,4 +671,30 @@ export function buildSolar(B) {
   strata(-190, -46.3, -150, -46, [-14, -2]);
   strata(-196.3, -206, -196, -104, [-2, 10, 22]); // horizon mesas
   strata(-199.5, -206.3, -36, -206, [-4, 6, 18]);
+
+  // ================================================================ SEALS (invisible)
+  // The canyon is open to the sky: invisible walls stand on the rims and wall tops you could otherwise
+  // jump onto (from the overlook, a heliostat or the causeway) and walk off along into the scenery.
+  const SKY = 40;
+  blocker([-38, 7.5, -132], [-25, SKY, -100]); // the bedrock either side of the entry corridor, and its roof
+  blocker([-62, 7.5, -132], [-38, SKY, -124]); // the grotto's rock
+  blocker([-38, 6, -100], [-34, SKY, -40]); // canyon east wall
+  // the Sunset Causeway: over the railings on both sides
+  blocker([-86, 12, -137.6], [-38, SKY, -137.3]);
+  blocker([-86, 12, -134.7], [-38, SKY, -134.4]);
+  // the summit's south edge (a leap off it carries you over to the canyon's west wall; the east edge stays
+  // open: the jump pad lands you over it)
+  blocker([-118.5, 20.8, -132], [-98, SKY, -131.4]);
+  // the summit drop: its landing is open on three sides
+  blocker([-98, 12, -140.5], [-86, SKY, -138.6]);
+  blocker([-98, 12, -133.4], [-86, SKY, -131.5]);
+  blocker([-93, 15.7, -138.6], [-87, SKY, -133.4]);
+  // the Solar Array Terrace: off its sides lies the shelf the Heliostat Hall is sunk into (open only
+  // where the lift tops out)
+  blocker([-148, -4, -150.5], [-147.5, SKY, -139.5]);
+  blocker([-148, -4, -135.5], [-147.5, SKY, -123.5]);
+  blocker([-147.5, -4, -150.5], [-138, SKY, -150]);
+  blocker([-147.5, -4, -128], [-138, SKY, -127.5]);
+  // anything that still falls out of the world dies before it lands on the scenery's footings
+  killZone([-201, -40, -232], [-31.5, -30.5, -38]);
 }

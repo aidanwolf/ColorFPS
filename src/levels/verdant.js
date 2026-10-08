@@ -35,7 +35,7 @@ function softTex(draw) {
 }
 
 export function buildVerdant(B) {
-  const { W, game, level, GLOW, wallX, wallZ, room, corridor, plat, pedestal, sideAlcove, shieldedShaft, secretRoom, trophy, hint, zoneTitle, area, light, devStart } = B;
+  const { W, game, level, GLOW, wallX, wallZ, room, corridor, plat, pedestal, sideAlcove, shieldedShaft, secretRoom, trophy, hint, zoneTitle, area, light, blocker, devStart } = B;
   const zone = 'green';
   const rand = mulberry32(20261008);
   const R = (a, b) => a + (b - a) * rand();
@@ -744,6 +744,14 @@ export function buildVerdant(B) {
     if (m === shaftMat || m === mistMat) mesh.renderOrder = 4;
     W.scene.add(mesh);
   }
+
+  // ================================================================ SEALS (invisible)
+  // The aqueduct's parapets are knee-high: invisible walls over them keep you on the deck (off them lie the
+  // plateau, the court's trees and its walls, and from those the whole jungle rim).
+  blocker([7.9, 12, -205], [8.5, 40, -158.5]);
+  blocker([11.5, 12, -205], [12.1, 40, -158.5]);
+  // the shielded drop's open south face: no slipping down outside the spike layers onto the landing
+  blocker([6.3, 12, -236.6], [13.7, 23, -236]);
 
   devStart('verdant', [-10, 4, -151], 0, [RED, YELLOW]);
 }

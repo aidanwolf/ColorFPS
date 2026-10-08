@@ -29,7 +29,7 @@ function mulberry32(a) {
 }
 
 export function buildAzure(B) {
-  const { W, game, level, CH, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy, shieldedShaft, hint, zoneTitle, area, light, barrierWallX, devStart, onRespawn } = B;
+  const { W, game, level, CH, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy, shieldedShaft, hint, zoneTitle, area, light, barrierWallX, blocker, devStart, onRespawn } = B;
   const zone = 'blue';
   const rng = mulberry32(0xa2e5e);
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -197,6 +197,12 @@ export function buildAzure(B) {
   light(51, 9.5, -112, 0xa8dcff, 40, 34);
   new Drone(W, { pos: [64, 8, -114], color: GREEN, range: 24 });
   keepOut.push([[25, 2, -121], [59, 14, -103]]);
+  // (invisible) over the west, north and south rails: hop them and you'd land on the low west rim, cut
+  // off from everything (the way down, east, stays open)
+  blocker([43.7, 4, -120], [44.3, 30, -114]);
+  blocker([43.7, 4, -110], [44.3, 30, -104]);
+  blocker([44, 4, -120.3], [58.3, 30, -119.7]);
+  blocker([44, 4, -104.3], [58.3, 30, -103.7]);
 
   // ------------------------------------------------------------------ the Shelf: ice ledges stepping down and east
   ledge(60, -101, 64, -106, 2.2);
