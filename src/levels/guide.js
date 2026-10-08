@@ -11,7 +11,7 @@ const FLOOR = 4;
 // Floor paths in the Hub (x, z), skirting the raised dais at x -5..5, z -105..-115.
 // Where the floor path ends for each goal (just inside its doorway), the raised dais to route around,
 // and the Hub's return gallery (y 12): from up there the path leads to the edge nearest the goal.
-const TARGETS = { solar: [-23, -112], verdant: [-10, -146.5], azure: [23, -112], dais: [0, -104.6] };
+const TARGETS = { solar: [-23, -112], verdant: [-10, -146.5], azure: [23, -112], dais: [0, -104.6], red: [0, -101.5] };
 const DAIS = { x1: -6.4, x2: 6.4, z1: -116.4, z2: -103.6 };
 const GALLERY_Y = 12;
 export const DOORS = {
@@ -19,7 +19,17 @@ export const DOORS = {
   verdant: { pos: [-10, -148.2], color: GREEN },
   azure: { pos: [24.6, -112], color: BLUE },
   dais: { pos: [0, -110], color: null },
+  red: { pos: [0, -100.2], color: RED }, // (only when the Foundry's core was left burning: see STILL_RUNNING)
 };
+// After the last color: a world whose engine still runs keeps the Warden asleep, so send the player back.
+const WORLDS = ['red', 'solar', 'verdant', 'azure'];
+const STILL_RUNNING = {
+  red: `The ${tag(RED, 'Foundry')}'s core still burns: go back down the <b>south</b> stairs and shut it down.`,
+  solar: `The ${tag(YELLOW, 'Solar')} engine still runs: go back in by the <b>west</b> door and shut its sun-lens down.`,
+  verdant: `The ${tag(GREEN, 'Verdant')} engine still runs: go back in by the <b>north</b> gate and shut its Heart down.`,
+  azure: `The ${tag(BLUE, 'Azure')} engine still runs: go back in by the <b>east</b> door and shut it down.`,
+};
+const WORLD_NAME = { red: 'the Foundry', solar: 'Solar', verdant: 'Verdant', azure: 'Azure' };
 
 // ---- Solar names the next step for the stretch you're in: solar.js publishes level.solar.objective(pos)
 // (it knows its own puzzles' state), so the Solar branches below just ask it.
@@ -101,7 +111,7 @@ function azureAfter(p, game) {
   if (inBox(p, 52, 80.5, -150, -122, -57, -41)) return `Break the ${tag(BLUE, 'blue door')} in the sanctum's <b>east</b> wall.`;
   if (inBox(p, 80, 113, -152, -140, -60, -48)) return `Cross the Blue Span: stay set to ${tag(BLUE, 'blue')} on the light stones, and shoot the blue switch for the bridge.`;
   if (inBox(p, 112, 158, -195, -144, -70, -43)) return 'Clear the Undercroft, then dive for the <b>gold-lit duct</b> in its east wall.';
-  if (inBox(p, 157, 181, -169, -157, -65, -3)) {
+  if (inBox(p, 165.5, 181, -169, -157, -65, -3)) { // (the Sluice is x 166..180; the cistern's shore ledge sits just west of it)
     const s = st.sluice;
     if (!s || s.stage === 1) return `Keep firing ${tag(BLUE, 'blue')} into the pump valve on the south wall to flood the Sluice.`;
     if (s.stage === 2) return 'Shoot the <b>arrows</b> on the north wall\'s ledges to set them into a staircase up to the east ledge.';
@@ -199,8 +209,16 @@ export function currentObjective(game) {
   if (game.state === 'victory' || boss?.dead || boss?.state === 'dead') return { html: '' };
   if (boss?.active) return { html: '' }; // (the final battle crosses every world: its bar and hints lead)
   if (where === 'azure') return { html: azureAfter(game.player.pos, game) };
-  if (where === 'hub' && !game.isWorldDown?.('azure') && game.level.azure) return { html: `The ${tag(BLUE, 'Azure')} engine still runs: go back in by the <b>east</b> door and shut it down.`, door: 'azure' };
+  const running = game.isWorldDown ? WORLDS.filter((w) => !game.isWorldDown(w)) : [];
+  if (where === 'red' && running.includes('red')) return { html: foundryObjective(game) || STILL_RUNNING.red, color: COLORS[RED].css };
+  if (where === 'solar' && running.includes('solar')) return { html: solarObjective(game) || STILL_RUNNING.solar };
+  if (where === 'verdant' && running.includes('verdant')) return { html: verdantObjective(game) };
+  if (where === 'hub' && running.length) return { html: STILL_RUNNING[running[0]], door: running[0] };
   // (no objective during the fight: the boss bar and its hints own the top of the screen)
+  if (where === 'prism' && running.length) {
+    const names = running.map((w) => WORLD_NAME[w]).join(' and ');
+    return { html: `The Warden sleeps while ${names} still feed${running.length > 1 ? '' : 's'} the machine. Ride the lift back up and <b>shut ${running.length > 1 ? 'them' : 'it'} down</b>.` };
+  }
   if (where === 'prism') return { html: boss?.active ? '' : 'Follow the light down the corridor into the arena. <b>The Warden waits.</b>' };
   if (game.level.prismElevator?.enabled) return { html: 'The Prism Core is open: step onto the lift in the middle of the dais and ride it down.', door: 'dais' };
   return { html: 'Shoot each <b>color lock</b> on the central dais with its own color, then ride the lift down to the <b>Prism Core</b>.', door: 'dais' };
@@ -266,9 +284,10 @@ export function buildGuide(W, game) {
     const tgt = TARGETS[goal];
     let pts, y0;
     if (onGallery) {
-      // up on the gallery: lead to its inner edge nearest the goal, then hop down
+      // up on the gallery: lead to the gap in the railing on this side (in front of its return port; the
+      // railing runs along the rest of the inner edge), then hop down
       const gx = player.pos.x, gz = player.pos.z;
-      let e = gx < -19 ? [-19.4, Math.min(-125, Math.max(-147, tgt[1]))] : gx > 19 ? [19.4, Math.min(-125, Math.max(-147, tgt[1]))] : [Math.min(19, Math.max(-19, tgt[0])), -143.4];
+      const e = gx < -19 ? [-19.4, -136] : gx > 19 ? [19.4, -136] : [10, -143.4];
       pts = [[gx, gz], e];
       y0 = player.pos.y;
     } else {
@@ -299,7 +318,7 @@ export function buildGuide(W, game) {
   W.add({
     update(dt, player) {
       t += dt;
-      const inHub = regionOf(player.pos) === 'hub' && player.pos.y > FLOOR - 1;
+      const inHub = regionOf(player.pos) === 'hub' && player.pos.y > FLOOR - 1.5; // (the sunken plaza's floor is 1.2 m down)
       const goal = inHub ? currentObjective(game).door : null;
       const door = goal && DOORS[goal];
       mesh.visible = !!door;
