@@ -9,8 +9,11 @@ export class Restock {
   constructor(world) {
     this.world = world;
     this.region = null;
-    // every drone the level placed, by area (drones spawned later, e.g. by encounters, aren't included)
-    this.drones = world.entities.filter((e) => e instanceof Drone).map((d) => ({ d, region: regionOf(d.home), opts: d.spawnOpts }));
+    // every drone (and restockable ground enemy, see entities/groundKit.js) the level placed, by area
+    // (enemies spawned later, e.g. by encounters, aren't included)
+    this.drones = world.entities.filter((e) => e instanceof Drone || e.restockable).map((d) => ({ d, region: regionOf(d.home), opts: d.spawnOpts }));
+    // the world creatures (slime, spider bot, robo-fish schools, robo-squid) keep their spawn options too
+    this.critters = world.entities.filter((e) => e.critter && e.spawnOpts).map((d) => ({ d, region: regionOf(d.home), C: d.constructor, opts: d.spawnOpts }));
     this.barriers = world.entities.filter((e) => e instanceof Barrier).map((b) => ({ b, region: regionOf(b.min.clone().add(b.max).multiplyScalar(0.5)) }));
   }
 
@@ -26,7 +29,12 @@ export class Restock {
     for (const rec of this.drones) {
       if (rec.region !== region || !rec.d.dead || !rec.opts) continue;
       if (this.world.entities.includes(rec.d)) continue; // still crashing / scattering debris
-      rec.d = new Drone(this.world, rec.opts);
+      rec.d = new rec.d.constructor(this.world, rec.opts);
+      this.world.cull(rec.d.group);
+    }
+    for (const rec of this.critters) {
+      if (rec.region !== region || !rec.d.dead || this.world.entities.includes(rec.d)) continue;
+      rec.d = new rec.C(this.world, rec.opts);
       this.world.cull(rec.d.group);
     }
     for (const { b, region: br } of this.barriers) {

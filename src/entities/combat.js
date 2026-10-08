@@ -13,6 +13,10 @@ import { Swarm } from './swarmer.js';
 import { Warden } from './warden.js';
 import { Brute } from './brute.js';
 import { Mortar, clearBlastZones } from './mortar.js';
+import { BlastCrab, Welder } from './foundryEnemies.js';
+import { Scarab, Mummy } from './solarEnemies.js';
+import { Slime, SpiderBot } from './verdantEnemies.js';
+import { FishSchool, RoboSquid } from './azureEnemies.js';
 import { GEO, additive, converge, falloff, sfx, DANGER } from './enemyKit.js';
 
 export { Turret, Swarm, Warden, Brute, Mortar };
@@ -30,6 +34,7 @@ const firstColor = (c) => (Array.isArray(c) ? c[0] : c);
 //  'warden' { shield, core (or color: [shield, core]), shieldHp, coreHp, regen }
 //  'brute'  { color, hp, speed, chargeSpeed, windup }
 //  'mortar' { color, interval, flight, radius, linger }
+//  'blastCrab' | 'welder' | 'scarab' | 'mummy' | 'slime' | 'spider' | 'fish' | 'squid': the world enemies
 // Returns the enemy; `.dead` turns true once it's down (a swarm: all of it).
 export function spawnEnemy(world, spec) {
   const { type = 'drone', ...o } = spec;
@@ -49,6 +54,15 @@ export function spawnEnemy(world, spec) {
       return new Brute(world, o);
     case 'mortar':
       return new Mortar(world, o);
+    // the world enemies (see their files for options); pos is on the floor (fish/squid: in the water)
+    case 'blastCrab': return new BlastCrab(world, o);
+    case 'welder': return new Welder(world, o);
+    case 'scarab': return new Scarab(world, o);
+    case 'mummy': return new Mummy(world, o);
+    case 'slime': return new Slime(world, o);
+    case 'spider': return new SpiderBot(world, o);
+    case 'fish': return new FishSchool(world, o);
+    case 'squid': return new RoboSquid(world, o);
   }
   console.warn('[chroma] unknown enemy type', type);
   return null;

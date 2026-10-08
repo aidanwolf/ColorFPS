@@ -13,6 +13,11 @@ import {
   ShotMover, RiserBlock, SinkerBlock, ShotRotor, PlatformRack,
 } from '../entities/mechanics.js';
 import { Encounter, Seal, spawnEnemy } from '../entities/combat.js';
+import { Slime, SpiderBot } from '../entities/verdantEnemies.js';
+import { FishSchool, RoboSquid } from '../entities/azureEnemies.js';
+import { resetCritters } from '../entities/critters.js';
+import { BlastCrab, Welder } from '../entities/foundryEnemies.js';
+import { Scarab, Mummy } from '../entities/solarEnemies.js';
 
 export const T = 0.5; // wall thickness
 export const CH = 3.2; // corridor height
@@ -364,6 +369,57 @@ export function makeBuilders(W, game, level) {
   // A slab that slams shut / slides open on command (seal.close(), seal.open()); color null = metal shutter.
   const seal = (min, max, opts = {}) => new Seal(W, { min, max, ...opts });
 
+  // ---- world creatures (entities/verdantEnemies.js, entities/azureEnemies.js) ----
+  // pos [x, y, z]; every live one goes back to its post when the player respawns (one hook for them all).
+  let crittersHooked = false;
+  const critter = (e) => {
+    if (!crittersHooked) {
+      crittersHooked = true;
+      onRespawn(() => resetCritters(W));
+    }
+    return e;
+  };
+  // Slime Mold (leaper): pos on the floor. opts: color (slime, default green), core (default red), slimeHp,
+  // range, leapRange, regrow (s the bare core has before its slime is back), wander, size
+  const slime = (pos, opts = {}) => critter(new Slime(W, { pos, ...opts }));
+  // Spider Bot: pos on the floor (or under a ceiling with ceiling: true). opts: color (one or a cycling
+  // palette, default [green, red]), hp, range, fireInterval, cycle, leash (m it strays from pos)
+  const spiderBot = (pos, opts = {}) => critter(new SpiderBot(W, { pos, ...opts }));
+  // Robo-Fish school: pos inside a B.water box. opts: count (3–6), color (one, or one per fish), range,
+  // leapRange (m from the water's edge it leaps at you on the bank), patrol (m the school roams)
+  const roboFish = (pos, opts = {}) => critter(new FishSchool(W, { pos, ...opts }));
+  // Robo-Squid: pos inside a B.water box (with none nearby it hovers in the air). opts: color, hp, range,
+  // fireInterval, orbit
+  const roboSquid = (pos, opts = {}) => critter(new RoboSquid(W, { pos, ...opts }));
+
+  // Ground enemies (entities/foundryEnemies.js, solarEnemies.js). pos is on the floor; opts:
+  //  color: a color index, or palette: an array of them (a scarab cycles through it each time it surfaces)
+  //  patrol: how far (m) it wanders from pos while idle   range: how far off it notices you   hp
+  //  count / spread: a pack of `count` (each its own restockable enemy) in a ring of radius `spread`
+  //  blastCrab: blast (radius)   scarab: burrow (false = starts on the surface)   mummy: shieldColor (null = immune to all)
+  // Returns the enemy (or the pack's array). On a checkpoint respawn every living one returns to its post.
+  let groundHooked = false;
+  function groundEnemy(Cls, pos, opts = {}) {
+    if (!groundHooked) {
+      groundHooked = true;
+      onRespawn(() => {
+        for (const e of [...W.entities]) if (e.restockable && !e.dead) e.reset?.();
+      });
+    }
+    const { count = 1, spread = 1.6, palette, ...rest } = opts;
+    if (palette) rest.color = palette;
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + 0.4, r = count > 1 ? spread : 0;
+      out.push(new Cls(W, { ...rest, pos: [pos[0] + Math.cos(a) * r, pos[1], pos[2] + Math.sin(a) * r] }));
+    }
+    return count > 1 ? out : out[0];
+  }
+  const blastCrab = (pos, opts) => groundEnemy(BlastCrab, pos, opts);
+  const welder = (pos, opts) => groundEnemy(Welder, pos, opts);
+  const scarab = (pos, opts) => groundEnemy(Scarab, pos, opts);
+  const mummy = (pos, opts) => groundEnemy(Mummy, pos, opts);
+
   return {
     W, game, level, T, CH, GLOW,
     wallX, wallZ, abs, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy,
@@ -372,5 +428,7 @@ export function makeBuilders(W, game, level) {
     colorSwitch, phasePlatform, chromaPlatform, crumble, trapdoor, spikes, shotMover, riser, sinker, shotRotor, platformRack, timedGate,
     audioLog,
     encounter, enemy, turret, swarm, warden, brute, mortar, seal,
+    slime, spiderBot, roboFish, roboSquid,
+    blastCrab, welder, scarab, mummy,
   };
 }

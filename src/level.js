@@ -18,6 +18,10 @@ import { placeLogs } from './levels/logs.js';
 import { buildCombatRange } from './levels/combatRange.js';
 import { buildVerdantBossRange } from './levels/verdantBossRange.js';
 import { buildBossRange } from './levels/bossRange.js';
+import { buildLeviathanRange } from './levels/leviathanRange.js';
+import { buildForgeRange } from './levels/forgeRange.js';
+import { buildEnemyRangeB } from './levels/enemyRangeB.js';
+import { buildEnemyRangeA } from './levels/enemyRangeA.js';
 
 export function buildLevel(world, game) {
   const level = {
@@ -47,5 +51,9 @@ export function buildLevel(world, game) {
   if (new URLSearchParams(location.search).has('dev')) buildCombatRange(B);
   buildVerdantBossRange(B); // dev-only (?dev&start=hydra)
   buildBossRange(B); // ?dev only: mini-bosses off the map
+  buildLeviathanRange(B); // ?dev only: the Azure mini-boss arena, off the map
+  buildForgeRange(B); // dev-only Forge Titan test arena (?dev)
+  buildEnemyRangeB(B); // ?dev only: test range for the world creatures
+  buildEnemyRangeA(B);
   return level;
 }

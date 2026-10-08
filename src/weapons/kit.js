@@ -12,8 +12,13 @@
 //
 // Static parts go through a Kit, which bakes them into one mesh per material so a whole gun is
 // only a handful of draw calls; moving parts are separate meshes.
+//
+// The family look: a few chunky bevelled forms per gun, flat-ish materials, one or two strong glows,
+// the shared grip below, and the current color burning at the emitter. Model space: the bore runs
+// along −z through the origin's y, +y up; the player sees the left (−x) flank, the top and the back.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
@@ -82,12 +87,6 @@ export function setGlow(mat, hex, k) {
   mat.color.set(hex).multiplyScalar(Number.isFinite(k) ? THREE.MathUtils.clamp(k, 0, 4) : 1);
 }
 
-// a tube along a list of [x, y, z] points
-export function tube(points, radius, segments = 24, radial = 6) {
-  const curve = new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p)));
-  return new THREE.TubeGeometry(curve, segments, radius, radial, false);
-}
-
 // a lathe whose profile runs along the barrel: [radius, z] pairs, back (+z) first
 export function lathe(profile, segments = 16) {
   const geo = new THREE.LatheGeometry(profile.map(([r, z]) => new THREE.Vector2(r, -z)), segments);
@@ -95,22 +94,36 @@ export function lathe(profile, segments = 16) {
   return geo;
 }
 
-// weather a geometry: nudge every vertex by a hash of where it is, so coincident vertices (seams,
-// cap rims) move together and the surface stays closed; flat shading then reads as hewn stone or ice
-export function rough(geo, amount, seed = 1) {
-  const pos = geo.attributes.position;
-  const h = (x, y, z, k) => {
-    const v = Math.sin(x * 127.1 + y * 311.7 + z * 74.7 + k * 19.3 + seed * 3.1) * 43758.5453;
-    return (v - Math.floor(v)) * 2 - 1;
-  };
-  for (let i = 0; i < pos.count; i++) {
-    const x = Math.round(pos.getX(i) * 1e4) / 1e4;
-    const y = Math.round(pos.getY(i) * 1e4) / 1e4;
-    const z = Math.round(pos.getZ(i) * 1e4) / 1e4;
-    pos.setXYZ(i, x + h(x, y, z, 1) * amount, y + h(x, y, z, 2) * amount, z + h(x, y, z, 3) * amount);
-  }
-  geo.computeVertexNormals();
+// a box with rounded (bevelled) edges
+export function rbox(w, h, d, r = 0.014) {
+  return new RoundedBoxGeometry(w, h, d, 2, r);
+}
+
+// extrude a side-view shape `width` across x, centred on it, with a small bevel so the edges catch
+// the light (shape x → model z, back is +z; shape y → model y)
+function extrude(shape, width, bevel) {
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: width - bevel * 2, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 1, curveSegments: 12 });
+  geo.rotateY(-Math.PI / 2); // shape x → z, extrusion → −x
+  geo.translate(width / 2 - bevel, 0, 0);
   return geo;
+}
+
+// a straight-edged side profile: [z, y] points
+export function profile(points, width, bevel = 0.004) {
+  return extrude(new THREE.Shape(points.map(([z, y]) => new THREE.Vector2(z, y))), width, bevel);
+}
+
+// a curved blade: a [z, y] start, then quadratic segments given as [cz, cy, z, y]
+export function blade(start, segments, width, bevel = 0.003) {
+  const shape = new THREE.Shape();
+  shape.moveTo(start[0], start[1]);
+  for (const [cx, cy, x, y] of segments) shape.quadraticCurveTo(cx, cy, x, y);
+  return extrude(shape, width, bevel);
+}
+
+// the grip every gun shares (same shape and place, so the four read as one family)
+export function grip(kit, mat) {
+  kit.add(rbox(0.066, 0.17, 0.084, 0.016), mat, [0, -0.125, 0.135], [0.3, 0, 0]);
 }
 
 export const CYL_Z = [Math.PI / 2, 0, 0]; // rotation that lays a cylinder along the barrel
