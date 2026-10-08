@@ -596,6 +596,12 @@ export function buildHub(B) {
 
   // ---------------------------------------------------------------- arrival, checkpoint, hints, mood
   new Checkpoint(W, game, { pos: [0, FLOOR, -102.4], yaw: 0, size: [6, 3, 2.4] });
+  // and one on each return balcony, so coming home from a world (after its shutdown) is saved in the Nexus,
+  // not back at that world's last checkpoint (each is reached no later than the welcome-home message below,
+  // so its 'Checkpoint' never covers that message)
+  new Checkpoint(W, game, { pos: [-23.5, GAL, -136], yaw: -Math.PI / 2, size: [2.2, 3, 3] });
+  new Checkpoint(W, game, { pos: [10, GAL, -146.9], yaw: Math.PI, size: [3, 3, 2.2] });
+  new Checkpoint(W, game, { pos: [23.5, GAL, -136], yaw: Math.PI / 2, size: [2.2, 3, 3] });
   zoneTitle([-3, FLOOR, -104], [3, FLOOR + 3, -100], 'NEXUS', 'THE PRISM ATRIUM', '#9bf6ff', 'music_hub');
   hint([-4, FLOOR, -105], [4, FLOOR + 3, -103.6],
     `Three chroma signatures detected beyond the Nexus. ${tag(YELLOW, 'SOLAR')} lies west — its way is open.`, 6);
