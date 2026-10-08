@@ -405,13 +405,15 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   // go slack, the conduit drains from the Hub end back, and the station's air turns darker. Restored from
   // a save: all of it at once.
   const glow3 = mat('glow3', zone), glow3Base = glow3.color.clone();
-  const crystals = st.crystalMats, crystalBase = crystals && Object.fromEntries(Object.entries(crystals).map(([k, m]) => [k, m.color.clone()]));
+  let crystals = null, crystalBase = null; // (azure.js makes the crystal materials after this runs: fetched when needed)
   const DIM = 0.22;
   let down = null; // { t, restored }
   const dimLights = [];
   function aftermath(restored) {
     if (down) return;
     down = { t: restored ? 99 : 0 };
+    crystals = st.crystalMats || null;
+    crystalBase = crystals && Object.fromEntries(Object.entries(crystals).map(([k, m]) => [k, m.color.clone()]));
     lock.open(restored);
     shutter.open(restored);
     for (const v of W.virtualLights) if (regionOf(v.position) === 'azure') dimLights.push({ v, base: v.intensity });

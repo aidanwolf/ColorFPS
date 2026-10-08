@@ -285,7 +285,7 @@ export function buildAzure(B) {
   W.box(HX1, SB, HZ2, HX2, 2.4, HZ2 + 0.5, 'metal', zone);
   for (const y of [-6, -22, -38]) W.deco(HX1 - 0.7, y, HZ1 - 0.7, HX2 + 0.7, y + 0.3, HZ2 + 0.7, 'glow3', zone);
   W.deco(HX1 - 0.5, -80, HZ1 - 0.5, HX2 + 0.5, -57, HZ2 + 0.5, 'metal', zone); // the strut's foot, down into the dark
-  B.water([HX1, SB, HZ1], [HX2, 3.6, HZ2], { current: [0, -6, 0] });
+  B.water([HX1, SB, HZ1], [HX2, 3.6, HZ2], { current: [0, -7.5, 0] });
   // the duct at its foot runs north into the sanctum's south wall
   W.box(HX1 - 0.5, -57, -122, HX2 + 0.5, -56, HZ2 + 0.5, 'floor', zone);
   W.box(HX1 - 0.5, -56, -122, HX1, SB, HZ2 + 0.5, 'metal', zone);
@@ -447,8 +447,8 @@ export function buildAzure(B) {
         W.deco(x + 0.1, y + 1.6, z - 0.37, x + 1.1, y + 1.66, z + 0.37, 'glow3', zone);
       }
     }
-    W.box(114.6, y, -162, 115, y + 2.8, -159.5, 'metal', zone); // the index terminal
-    W.deco(114.55, y + 1, -161.8, 114.6, y + 2.5, -159.7, 'trimWhite', zone);
+    W.box(114.6, y, -162, 115, y + 2.8, -159.5, 'metal', zone); // the index terminal: rows of names scrolling by
+    for (let k = 0; k < 7; k++) W.deco(114.55, y + 1.1 + k * 0.2, -161.7, 114.6, y + 1.16 + k * 0.2, -161.7 + 1.2 + ((k * 7) % 5) * 0.18, k % 3 ? 'glow3' : 'trimWhite', zone);
     hint([x1, y, -163], [x2, y + 3, -158], 'Station records. Every sleeper in the cryo vault, indexed.', 3);
     // SECRET (BLUE) — the specimen vault behind it
     new Barrier(W, { min: [111.5, y, zN - 0.45], max: [114.5, y + 3, zN - 0.05], color: BLUE, kind: 'wall', zone });
@@ -528,7 +528,7 @@ export function buildAzure(B) {
   W.box(64, -53.9, -165, 64.5, -47.5, -160, 'metal', zone);
   W.box(59.5, -53.9, -165, 64.5, -47.5, -164.5, 'metal', zone);
   W.box(59.5, -53.9, -160.5, 64.5, -47.5, -160, 'metal', zone);
-  B.water([60, -53.9, -164.5], [64, -44.4, -160.5], { current: [0, -3.4, 0] });
+  B.water([60, -53.9, -164.5], [64, -44.6, -160.5], { current: [0, -3.4, 0] }); // (its surface just under the grate)
   // a RED grate seals the mouth (so nobody tumbles in by accident); once shot it stays open
   new Barrier(W, { min: [60, -44.55, -164.5], max: [64, -44.2, -160.5], color: RED, kind: 'wall', zone });
   spikes(60, -164.5, 64, -160.5, -48.8, YELLOW, 3);
