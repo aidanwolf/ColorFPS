@@ -74,14 +74,27 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   // ================================================================== THE UNDERCROFT (combat)
   // interior x 117..157, z -160..-194, floor y -69, ceiling y -44; flooded to y -56.3. Walkways (y -56)
   // ring it and stepping stones cross it; its way out is an underwater duct in the east wall.
-  const HY = -69, HW = -56.3, HT = -56;
+  // (the walkways stand 1.3 m above the water, 0.8 m clear underneath: surface under one and you can
+  // still breathe; submerged steps lead back up onto each)
+  const HY = -69, HW = -57.3, HT = -56;
   room({ x1: 117, x2: 157, zS: -160, zN: -194, y: HY, h: 25, zone, s: [{ c: 119, w: 3, h: CH, y0: HT - HY }], e: [{ c: -164, w: 3, h: 3, y0: 6 }], wallKind: 'rock' });
   B.water([117, HY, -194], [157, HW, -160]);
   for (const [x1, z1, x2, z2] of [[117, -166, 123, -160], [117, -194, 120, -166], [120, -194, 157, -191], [152.5, -191, 157, -167.5], [123.5, -178.5, 126, -175.5], [130, -182, 142, -172], [146, -178.5, 148.5, -175.5]]) {
-    plat(x1, z1, x2, z2, HT, zone, 0.6);
+    plat(x1, z1, x2, z2, HT, zone, 0.5);
     // pillars hold them up out of the murk
     for (const [x, z] of [[x1 + 0.6, z1 + 0.6], [x2 - 0.6, z2 - 0.6]]) deco(x - 0.3, HY, z - 0.3, x + 0.3, HT - 0.6, z + 0.3, 'metal');
   }
+  // steps up out of the water (0.4 m rises, so you just swim up them): from the walkway edge point (x, z)
+  // out into the water along (dx, dz), from 0.4 m under the walkway down past a floating swimmer's feet
+  const steps = (x, z, dx, dz, w = 2.4, top = HT, n = 6, d = 0.7) => {
+    for (let k = 0; k < n; k++) {
+      const a = d * k, b = d * (k + 1);
+      const px1 = dx ? x + dx * a : x - w / 2, px2 = dx ? x + dx * b : x + w / 2;
+      const pz1 = dz ? z + dz * a : z - w / 2, pz2 = dz ? z + dz * b : z + w / 2;
+      plat(Math.min(px1, px2), Math.min(pz1, pz2), Math.max(px1, px2), Math.max(pz1, pz2), top - 0.4 * (k + 1), zone, 0.3);
+    }
+  };
+  steps(123, -163, 1, 0); steps(120, -184, 1, 0); steps(138, -191, 0, 1); steps(130, -177, -1, 0); steps(142, -177, 1, 0); steps(152.5, -172, -1, 0); steps(136, -172, 0, 1);
   // cover on the island; crates on the floor below
   box(134.5, HT, -177.6, 137.5, HT + 1.3, -176.4, 'metal');
   box(138.6, HT, -179, 139.8, HT + 1.3, -175, 'metal');
@@ -152,19 +165,22 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   const LOCK0 = HW, LOCK1 = -44.6, LOCK2 = -8;
   const sw = B.water([QX1, QY, QZ1], [QX2, LOCK0, QZ2], { surface: false });
   const swSurf = waterSurface(W, QX1, QZ1, QX2, QZ2, LOCK0);
-  B.roboFish([171, -60, -162], { count: 3, color: [BLUE, RED], patrol: 3 }); // they leap at you while you pump
   const sluice = (st.sluice = { level: LOCK0, base: LOCK0, stage: 1, pumpT: 0, rate: 2.4, drain: 1.0 });
-  // ledge 1 (west wall) and its checkpoint
-  plat(QX1, -165.6, 168.2, QZ2, -44.3, zone, 0.5);
-  new Checkpoint(W, game, { pos: [167.1, -44.3, -161], yaw: 0, size: [2.2, 3, 5] });
+  // ledge 1 (west wall) and its checkpoint, with steps down into the water
+  // (every ledge in here stands 0.4 m clear of the water it's meant to be climbed out of, so nobody who
+  // surfaces under one is trapped without air)
+  plat(QX1, -165.6, 168.2, QZ2, -44, zone, 0.2);
+  steps(168.2, -164.6, 1, 0, 2, -44, 5, 0.6); // (at the north end, clear of where you float while pumping)
+  new Checkpoint(W, game, { pos: [167.1, -44, -161], yaw: 0, size: [2.2, 3, 5] });
   // the rack: four ledges on the north wall, notch 0 level with ledge 1, 1.2 m a notch
-  B.platformRack({ pos: [167.4, -44.3, QZ1], face: '+z', columns: 4, notches: 5, step: 1.2, start: [4, 0, 5, 2], colors: [BLUE, GREEN, BLUE, YELLOW], spacing: 3.2, width: 2.4, depth: 1.6, zone });
+  B.platformRack({ pos: [167.4, -44.3, QZ1], face: '+z', columns: 4, notches: 5, step: 1.2, start: [4, 0, 5, 2], colors: [BLUE, GREEN, BLUE, YELLOW], spacing: 3.2, width: 2.4, depth: 1.6, targetGap: 0.6, zone });
   // ledge 2 (east wall) with its checkpoint
   plat(178.4, QZ1, QX2, QZ2, -38.3, zone, 0.5);
   plat(176.2, -161, 178.4, QZ2, -38.3, zone, 0.5);
   new Checkpoint(W, game, { pos: [178.6, -38.3, -159.6], yaw: Math.PI / 2, size: [3, 3, 3] });
   // the exit ledge at the top, under the door to the gallery
-  plat(168, -160.5, 178, QZ2, -7.7, zone, 0.6);
+  plat(168, -160.5, 178, QZ2, -7.35, zone, 0.25);
+  steps(168, -159.25, -1, 0, 2.5, -7.35, 5, 0.4); // (tucked in the south-west corner, away from where you float up)
   // the pumps: pulse switches; each hit feeds the pump half a second
   const feed = (stage) => ({
     activate() {
