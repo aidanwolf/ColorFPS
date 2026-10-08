@@ -49,7 +49,7 @@ above y 14) look out over your world. Put something spectacular in that view.
 
 | port | wall (thickness) | center | floor y | owner of what's beyond |
 |---|---|---|---|---|
-| Red entry | south, z -100 → -99.5 | x 0 | 4 | red.js (corridor already runs z -81.5 → -99.5) |
+| Red entry | south, z -100 → -99.5 | x 0 | 4 | red.js (stairs climb from the Forge's exit at z -90.5, floor 0, to the port) |
 | Solar entry | west, x -25 → -24.5 | z -112 | 4 | solar.js — no color gate |
 | Solar return | west, x -25 → -24.5 | z -136 | 12 | solar.js; Hub balcony inside |
 | Verdant entry | north, z -148.5 → -148 | x -10 | 4 | verdant.js — Hub puts a YELLOW barrier door in the opening |
