@@ -203,7 +203,7 @@ const sealShader = {
 };
 
 export function buildHub(B) {
-  const { W, game, level, hint, zoneTitle, area, light, devStart, onRespawn } = B;
+  const { W, game, level, hint, zoneTitle, area, light, killZone, devStart, onRespawn } = B;
   const zone = 'hub';
   const box = (x1, y1, z1, x2, y2, z2, kind = 'wall') => W.box(x1, y1, z1, x2, y2, z2, kind, zone);
   const deco = (x1, y1, z1, x2, y2, z2, kind = 'trimWhite') => W.deco(x1, y1, z1, x2, y2, z2, kind, zone);
@@ -609,5 +609,8 @@ export function buildHub(B) {
     sunColor: 0xd2e6ff, sunIntensity: 0.9, sunDir: [-0.35, 1, 0.45],
     exposure: 1.0, bloom: 0.5,
   };
+  // the void around the Hub's foundations: anything that falls out of the world beside the Hub or the
+  // court dies here instead of landing on the Prism Core's roof
+  killZone([-32, -9.6, -208], [32, -5, -117]);
   devStart('hub', [0, FLOOR, -103], 0, [RED]);
 }
