@@ -61,7 +61,8 @@ export class World {
 
   updateCulling(camPos, far) {
     const seen = VISIBLE_FROM[regionOf(camPos)];
-    for (const m of this.staticGroup.children) m.visible = seen.has(m.userData.region);
+    // (only our merged meshes: the Bonus Round SDK adds its own objects under this group too)
+    for (const m of this.staticGroup.children) if (m.userData.region) m.visible = seen.has(m.userData.region);
     for (const rec of this.cullList || []) {
       if (!seen.has(rec.region)) {
         rec.culled = true;

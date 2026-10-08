@@ -19,6 +19,7 @@ import { UnlockCutscene } from './cutscene.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
+const REVIVE_AFTER_DEATHS = 3; // the rewarded revive is offered from this many deaths at one checkpoint
 
 // The look of the Crimson Foundry; every atmosphere preset (level.atmospheres) overrides some of these.
 // Sky colors are raw shader RGB [0..1+]; sunDir is the direction the sunlight comes from.
@@ -102,6 +103,19 @@ class Game {
     this.composer = new EffectComposer(renderer, target);
     this.composer.setPixelRatio(Math.min(devicePixelRatio, COARSE ? 1.25 : 1.5));
     this.composer.addPass(new RenderPass(scene, this.camera));
+    // safety net: one NaN/Inf pixel (from any shader) would be smeared across the screen by the bloom
+    // blur as a black blotch, so scrub them before it
+    this.composer.addPass(new ShaderPass({
+      uniforms: { tDiffuse: { value: null } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `
+        uniform sampler2D tDiffuse; varying vec2 vUv;
+        void main(){
+          vec4 c = texture2D(tDiffuse, vUv);
+          if (c.r != c.r || c.g != c.g || c.b != c.b) c = vec4(0.0, 0.0, 0.0, 1.0);
+          gl_FragColor = vec4(clamp(c.rgb, 0.0, 64.0), c.a);
+        }`,
+    }));
     this.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.6, 0.5, 0.82);
     this.composer.addPass(this.bloom);
     // death grade: drains color, tints red and closes a vignette as uAmount goes 0 → 1
@@ -434,6 +448,8 @@ class Game {
 
   setCheckpoint(pos, yaw, ref) {
     this.checkpoint = { pos: pos.clone(), yaw, ref };
+    this.deathsHere = 0;
+    this.revivedHere = false;
     audio.checkpoint();
     this.hud.message('Checkpoint', 1.5);
     this.player.heal(10);
@@ -543,7 +559,12 @@ class Game {
     this.world.fx.burst(eye.clone().setY(eye.y - 0.6), 0xffffff, { count: 50, speed: 4, life: 0.7, size: 0.4, gravity: 2 });
     p.shake = 1;
     const banner = { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED' }[p.deathCause] || 'SHOT DOWN';
-    this.hud.deathBanner(banner, ads.available);
+    // The rewarded revive is a helping hand for a section you're stuck on, not a way to skip every
+    // challenge: it's offered from the 3rd death since your last checkpoint, once per checkpoint.
+    this.deathsHere = (this.deathsHere || 0) + 1;
+    this.reviveTapped = false;
+    this.reviveOffered = ads.available && this.deathsHere >= REVIVE_AFTER_DEATHS && !this.revivedHere;
+    this.hud.deathBanner(banner, this.reviveOffered);
     this.deathPass.enabled = true;
   }
 
@@ -558,7 +579,7 @@ class Game {
     this.deathPass.uniforms.uAmount.value = Math.min(1, t / 0.7);
     this.hud.fade(Math.max(0, Math.min(1, (t - 1.65) / 0.4)));
     this.world.fx.update(dt);
-    if (ads.available && (this.input.hit('KeyR') || this.reviveTapped)) {
+    if (this.reviveOffered && (this.input.hit('KeyR') || this.reviveTapped)) {
       this.reviveTapped = false;
       return this.revive();
     }
@@ -604,6 +625,8 @@ class Game {
   async revive() {
     const p = this.player;
     let rewarded = false;
+    this.revivedHere = true;
+    this.reviveOffered = false;
     this.reviving = true; // rules stay paused from the click until the round ends
     p.dead = false;
     p.spawn(this.revivePos, this.deathYaw);
@@ -638,12 +661,17 @@ class Game {
   onAdStart() {
     if (this.adRound) return;
     this.adRound = true;
+    // a round is ~15 s plus its leaderboard: if the SDK never reports the end, don't leave the game
+    // paused underneath forever (enemies frozen, no damage)
+    clearTimeout(this.adWatchdog);
+    this.adWatchdog = setTimeout(() => this.onAdEnd(), 75000);
     audio.setMusicMuted(true);
     this.hud.bossShow(false);
     for (const pr of this.world.projectiles) pr.alive = false;
   }
 
   onAdEnd() {
+    clearTimeout(this.adWatchdog);
     if (!this.adRound) return;
     this.adRound = false;
     this.player.arenaBounds = null;

@@ -265,6 +265,8 @@ export class Drone {
     // dormant while the player is far off: no flight or collision work (it adds up across every world)
     if (this.dist > Math.max(60, this.range + 30)) {
       this.aggro = false;
+      this.t += dt;
+      this.group.position.copy(this.pos).y += Math.sin(this.t * 1.8) * 0.3; // a cheap hover so it never looks frozen
       this.updateHum(this.humPitch);
       return;
     }

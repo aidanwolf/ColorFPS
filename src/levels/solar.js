@@ -60,7 +60,7 @@ class Sun {
           float cells = fbm(n * 11.0 - vec3(0.0, uTime * 0.07, uTime * 0.03));
           float t = churn * 0.6 + cells * 0.4;
           vec3 c = mix(vec3(1.5, 0.62, 0.12), vec3(1.75, 1.35, 0.72), smoothstep(0.38, 0.72, t));
-          c = mix(vec3(1.1, 0.28, 0.03), c, pow(vMu, 0.4)); // the limb burns deeper orange
+          c = mix(vec3(1.1, 0.28, 0.03), c, pow(max(vMu, 1e-4), 0.4)); // the limb burns deeper orange
           gl_FragColor = vec4(c, uFade);
         }`,
     });
@@ -74,10 +74,10 @@ class Sun {
         uniform float uTime, uFade, uSize; varying vec2 vUv;
         void main(){
           vec2 p = (vUv - 0.5) * uSize; // in sun radii
-          float r = length(p), ang = atan(p.y, p.x);
+          float r = length(p), ang = atan(p.y, p.x + 1e-5); // (atan(0, 0) is undefined: NaN would black out the bloom)
           float glow = exp(-max(r - 1.0, 0.0) * 2.0) * 0.8 + exp(-r * 0.45) * 0.22;
-          float rays = pow(0.5 + 0.5 * sin(ang * 11.0 + sin(ang * 3.0 + uTime * 0.12) * 2.5), 8.0)
-                     + 0.6 * pow(0.5 + 0.5 * sin(ang * 23.0 - uTime * 0.05 + 1.3), 14.0);
+          float rays = pow(max(0.5 + 0.5 * sin(ang * 11.0 + sin(ang * 3.0 + uTime * 0.12) * 2.5), 0.0), 8.0)
+                     + 0.6 * pow(max(0.5 + 0.5 * sin(ang * 23.0 - uTime * 0.05 + 1.3), 0.0), 14.0);
           float down = 0.25 + 0.75 * smoothstep(0.3, -0.9, sin(ang)); // the beams irradiate downward
           rays *= down * exp(-r * 0.2) * smoothstep(0.9, 1.7, r);
           vec3 col = vec3(1.0, 0.6, 0.24) * glow + vec3(1.0, 0.78, 0.42) * rays * 0.4;
@@ -119,7 +119,7 @@ const LANCE_FS = `
   uniform float uI, uTime; varying vec2 vUv; varying float vY;
   void main(){
     float f = fract(vUv.x * 4.0);                 // across each face of the square column
-    float core = pow(sin(f * 3.14159), 12.0);     // a white-hot seam down the middle of each face
+    float core = pow(max(sin(f * 3.14159), 0.0), 12.0);     // a white-hot seam down the middle of each face
     float threads = pow(abs(sin((vUv.x * 12.0 + sin(vY * 3.0 + uTime) * 0.08 + uTime * 0.15) * 3.14159)), 30.0);
     float shimmer = 0.8 + 0.2 * sin(vY * 14.0 - uTime * 13.0 + vUv.x * 40.0);
     float fade = smoothstep(1.0, 0.7, vY) * (1.0 + smoothstep(0.1, 0.0, vY));
