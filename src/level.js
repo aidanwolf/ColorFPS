@@ -10,6 +10,7 @@ import { buildHub } from './levels/hub.js';
 import { buildSolar } from './levels/solar.js';
 import { buildVerdant } from './levels/verdant.js';
 import { buildAzure } from './levels/azure.js';
+import { buildAzureFlooded } from './levels/azureFlooded.js';
 import { buildPrism } from './levels/prism.js';
 import { buildGuide } from './levels/guide.js';
 import { buildTestRange } from './levels/testRange.js';
@@ -35,6 +36,7 @@ export function buildLevel(world, game) {
   buildSolar(B);
   buildVerdant(B);
   buildAzure(B);
+  buildAzureFlooded(B); // the water heart of the Azure world, between its turbine deck and Cryo Lab
   buildPrism(B);
   buildGuide(world, game);
   buildTestRange(B); // ?dev only: the mechanics toolkit showcase, far off the map
