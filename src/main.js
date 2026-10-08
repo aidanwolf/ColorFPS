@@ -291,6 +291,12 @@ class Game {
   bindUi() {
     document.addEventListener('click', (e) => {
       const a = e.target.closest('[data-action]')?.dataset.action;
+      // any first click on the title (browsers hold audio until one) starts its music
+      if (!a && this.state === 'title' && !this.titleMusic) {
+        this.titleMusic = true;
+        audio.unlock();
+        audio.playMusic(audio.musicOr('music_haunt', 'music_title'));
+      }
       if (!a) return;
       audio.unlock();
       audio.uiClick();
