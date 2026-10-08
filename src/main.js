@@ -355,7 +355,8 @@ class Game {
       if (this.resumed) this.hud.message('Welcome back. Resuming from your last checkpoint.', 3);
       else {
         this.enterZone('SECTOR 1', 'CRIMSON FOUNDRY', '#ff3344');
-        setTimeout(() => this.hud.message('Grab the <b>Chroma Blaster</b> from the pedestal.', 5), 1200);
+        const intro = this.level.introMessage; // (empty when the level opens with its own scene: the cell block)
+        if (intro) setTimeout(() => this.hud.message(intro, 5), 1200);
       }
     }
   }
@@ -946,9 +947,12 @@ class Game {
     } else if (this.state === 'dying') {
       this.updateDying(dt);
     } else if (this.state === 'title') {
-      // slow look around the spawn room behind the menu
-      this.camera.position.set(Math.sin(t * 0.1) * 2, 2.2, -1.5);
-      this.camera.rotation.set(-0.05, Math.sin(t * 0.15) * 0.6, 0, 'YXZ');
+      // a slow look around behind the menu: the level's own view (the cell block), else the spawn room
+      if (this.level.titleView) this.level.titleView(this.camera, t, dt);
+      else {
+        this.camera.position.set(Math.sin(t * 0.1) * 2, 2.2, -1.5);
+        this.camera.rotation.set(-0.05, Math.sin(t * 0.15) * 0.6, 0, 'YXZ');
+      }
       this.world.fx.update(dt);
     } else {
       this.world.fx.update(dt);

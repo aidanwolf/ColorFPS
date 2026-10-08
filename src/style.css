@@ -235,3 +235,48 @@ body.touch #boss-bar { width: min(520px, 60vw); }
   h2 { font-size: 28px; margin-bottom: 10px; }
   .controls { margin-top: 10px; font-size: 12px; gap: 4px 14px; }
 }
+
+/* ---------- Audio logs (src/story/recorder.js) ---------- */
+#logcard {
+  position: fixed; left: 50%; bottom: 104px; transform: translateX(-50%); z-index: 11; pointer-events: none;
+  width: min(680px, 86vw); padding: 10px 16px 9px; background: rgba(6, 14, 22, 0.8); border-left: 3px solid #8fe6ff;
+  box-shadow: 0 0 24px rgba(143, 230, 255, 0.12); transition: opacity 0.5s; opacity: 1;
+}
+#logcard.out { opacity: 0; }
+#logcard .log-head { display: flex; align-items: center; gap: 10px; font-size: 11px; letter-spacing: 3px; color: #8fe6ff; text-transform: uppercase; }
+#logcard .log-rec { width: 8px; height: 8px; border-radius: 50%; background: #ff3a3a; box-shadow: 0 0 8px #ff3a3a; animation: log-rec 1.4s steps(1) infinite; }
+@keyframes log-rec { 50% { opacity: 0.15; } }
+#logcard .log-tag { font-weight: 700; }
+#logcard .log-title { color: var(--ink); letter-spacing: 2px; }
+#logcard .log-skip {
+  margin-left: auto; color: var(--dim); letter-spacing: 1px; text-transform: none; font-size: 11px; --hold: 0;
+  background: linear-gradient(90deg, rgba(143, 230, 255, 0.35) calc(var(--hold) * 100%), transparent 0); padding: 1px 4px;
+}
+#logcard .log-skip kbd { font-size: 10px; padding: 0 4px; }
+#logcard .log-x { display: none; pointer-events: auto; min-width: 0; padding: 2px 10px; font-size: 13px; letter-spacing: 0; }
+body.touch #logcard .log-x { display: block; }
+#logcard .log-line { margin-top: 6px; min-height: 2.7em; font-size: 17px; line-height: 1.35; color: #eef8ff; text-shadow: 0 1px 2px #000; }
+#logcard .log-line.in { animation: log-line 0.35s ease-out; }
+@keyframes log-line { from { opacity: 0; transform: translateY(3px); } }
+#logcard .log-bar { margin-top: 6px; height: 2px; background: rgba(143, 230, 255, 0.15); }
+#logcard .log-bar i { display: block; height: 100%; width: 0; background: #8fe6ff; }
+#overlay:not(.clear) ~ #logcard { bottom: 18px; }
+body.log-on #overlay:not(.clear) { padding-bottom: 120px; } /* the menu makes room for the subtitles */
+body.touch #logcard { bottom: 92px; width: min(560px, 70vw); }
+body.touch #logcard .log-line { font-size: 14px; }
+@media (max-height: 600px) { body.log-on #message { top: 17%; } }
+@media (max-height: 480px) {
+  #logcard { bottom: 86px; padding: 6px 12px; }
+  #logcard .log-line { font-size: 13px; min-height: 2.6em; margin-top: 3px; }
+}
+#logs-list { display: flex; flex-direction: column; gap: 4px; margin: 6px auto 10px; width: min(620px, 90vw); max-height: 52vh; overflow-y: auto; }
+.log-row {
+  display: grid; grid-template-columns: 2.4em 1fr auto 4.5em; align-items: baseline; gap: 12px; min-width: 0; width: 100%;
+  padding: 8px 14px; text-align: left; font-size: 14px; letter-spacing: 1px; text-transform: none;
+}
+.log-row .n { color: #8fe6ff; font-weight: 700; letter-spacing: 2px; }
+.log-row .w { color: var(--dim); font-size: 12px; }
+.log-row .d { color: var(--dim); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.log-row.playing { border-color: #8fe6ff; background: rgba(143, 230, 255, 0.12); }
+.log-row.locked { opacity: 0.4; cursor: default; }
+.log-row.locked:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.2); }

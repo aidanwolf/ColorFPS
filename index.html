@@ -71,6 +71,7 @@
       <h2>Paused</h2>
       <div class="buttons">
         <button data-action="resume" class="primary">Resume</button>
+        <button data-action="logs" id="logs-btn">Logs</button>
         <button data-action="settings">Settings</button>
         <button data-action="checkpoint">Restart from checkpoint</button>
         <button data-action="quit">Quit to title</button>
@@ -94,9 +95,23 @@
       <div class="buttons"><button data-action="settings-back" class="primary">Back</button></div>
     </div>
 
+    <div id="screen-logs" class="screen hidden">
+      <h2>Audio Logs</h2>
+      <p class="small" id="logs-count"></p>
+      <div id="logs-list"></div>
+      <div class="buttons"><button data-action="logs-back" class="primary">Back</button></div>
+    </div>
+
     <div id="screen-ad" class="screen hidden">
       <h2>One moment…</h2>
     </div>
+  </div>
+
+  <!-- an audio log playing: title card, subtitles, progress (src/story/recorder.js) -->
+  <div id="logcard" class="hidden">
+    <div class="log-head"><span class="log-rec"></span><span class="log-tag"></span><span class="log-title"></span><span class="log-skip"></span><button type="button" class="log-x" aria-label="Stop log">✕</button></div>
+    <div class="log-line"></div>
+    <div class="log-bar"><i></i></div>
   </div>
 
   <script type="module" src="/src/main.js"></script>

@@ -3,6 +3,8 @@
 import * as THREE from 'three';
 import { Barrier } from '../entities/barrier.js';
 import { Pickup } from '../entities/misc.js';
+import { AudioLog } from '../entities/audiolog.js';
+import { Recorder } from '../story/recorder.js';
 import { Mirror, Glass, TargetPanel, ShotShield, Updraft } from '../entities/puzzle.js';
 import { waterSurface } from '../liquid.js';
 
@@ -205,10 +207,16 @@ export function makeBuilders(W, game, level) {
   const devStart = (name, pos, yaw = 0, colors = [0]) => (level.devStarts[name] = { pos: new THREE.Vector3(...pos), yaw, colors });
   // Called whenever the player respawns at a checkpoint (reset elevators, encounters, ...).
   const onRespawn = (fn) => level.respawnHooks.push(fn);
+  // One of Iris Calder's audio logs ('01'..'16', see tools/audio/logs.json), floating over the floor point
+  // pos. Once picked up it never comes back (story/recorder.js keeps the list).
+  const audioLog = (id, pos) => {
+    const rec = (game.recorder ??= new Recorder(game));
+    return rec.has(id) ? null : new AudioLog(W, game, { id, pos });
+  };
 
   return {
     W, game, level, T, CH, GLOW,
     wallX, wallZ, abs, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy,
-    sideAlcove, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, tree, devStart, onRespawn, water,
+    sideAlcove, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, tree, devStart, onRespawn, water, audioLog,
   };
 }
