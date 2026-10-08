@@ -151,7 +151,17 @@ export function buildVerdant(B) {
   });
   cliffTex.wrapS = cliffTex.wrapT = THREE.RepeatWrapping;
   const cliffMat = new THREE.MeshStandardMaterial({ map: cliffTex, color: 0x9aa890, roughness: 1, flatShading: true });
-  const lists = new Map([[barkMat, []], [cliffMat, []], [leafMat, []], [leafLitMat, []], [stalkMat, []], [capMat, []], [goldMat, []], [boneMat, []], [shaftMat, []], [mistMat, []]]);
+  // interior dressing (the bio-lab the jungle swallowed): moss, fern fronds and giant leaves, lab glass,
+  // specimen fluid, terminal screens, grow lamps, pipes, puddles
+  const mossMat = new THREE.MeshStandardMaterial({ color: 0x2b4c20, roughness: 1, flatShading: true });
+  const frondMat = new THREE.MeshStandardMaterial({ color: 0x3f8a3a, roughness: 0.9, flatShading: true, side: THREE.DoubleSide });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0xbfe8ff, roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide });
+  const jarMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x58ff9a).multiplyScalar(0.9) });
+  const screenMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x6dffa8).multiplyScalar(1.2) });
+  const lampMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffb8ea).multiplyScalar(1.6) });
+  const pipeMat = new THREE.MeshStandardMaterial({ color: 0x5a6660, roughness: 0.45, metalness: 0.7, flatShading: true });
+  const puddleMat = new THREE.MeshStandardMaterial({ color: 0x0e1612, roughness: 0.06, metalness: 0.9 });
+  const lists = new Map([[barkMat, []], [cliffMat, []], [leafMat, []], [leafLitMat, []], [stalkMat, []], [capMat, []], [goldMat, []], [boneMat, []], [mossMat, []], [frondMat, []], [pipeMat, []], [puddleMat, []], [jarMat, []], [screenMat, []], [lampMat, []], [glassMat, []], [shaftMat, []], [mistMat, []]]);
   const put = (m, geo, x, y, z) => {
     const g = geo.index ? geo.toNonIndexed() : geo;
     if (g !== geo) geo.dispose();
@@ -621,7 +631,8 @@ export function buildVerdant(B) {
   const GH = { x1: -98, x2: -64, zS: -263, zN: -299, y: -25, h: 14 };
   corridorX({ xStart: -60.5, xEnd: -64, y: -25, zone, cz: -281 });
   cp([-62, -25, -281], WEST, [3, 3, 3]);
-  room({ x1: GH.x1, x2: GH.x2, zS: GH.zS, zN: GH.zN, y: GH.y, h: GH.h, zone, floor: false, e: [{ c: -281, w: 3, h: 3.2 }], n: [{ c: -83, w: 3, h: 3.2 }], w: [{ c: -270, w: 2.4, h: 3 }] });
+  room({ x1: GH.x1, x2: GH.x2, zS: GH.zS, zN: GH.zN, y: GH.y, h: GH.h, zone, floor: false, ceiling: false, e: [{ c: -281, w: 3, h: 3.2 }], n: [{ c: -83, w: 3, h: 3.2 }], w: [{ c: -270, w: 2.4, h: 3 }] });
+  blocker([GH.x1, GH.y + GH.h - 0.4, GH.zN], [GH.x2, GH.y + GH.h + 0.1, GH.zS]); // the glass roof (dressing below) holds, for bodies
   area([-66, -25, -282.5], [-64, -21, -279.5], MOOD);
   // floor with two sludge troughs across it
   const trough = [[-269.6, -267.6], [-291.4, -289.4]];
@@ -1029,7 +1040,15 @@ export function buildVerdant(B) {
 
   // ================================================================ BACKDROP: the jungle rim around the Hollow
   // (the side wings and the north are solid jungle at the rim's height: nobody walks up here)
-  ground(-110, -380, -60.5, -235, 20, 16);
+  ground(-110, -380, -60.5, -300.5, 20, 16);
+  ground(-110, -262, -60.5, -235, 20, 16);
+  ground(-110, -300.5, -98.5, -262, 20, 16);
+  ground(-63.5, -300.5, -60.5, -262, 20, 16);
+  // the greenhouse's light well: rock walls from its glass roof up to the jungle floor
+  cliff(-98.5, -11, -299.5, -98, 20, -262.5, false);
+  cliff(-64, -11, -299.5, -63.5, 20, -262.5, false);
+  cliff(-98.5, -11, -300, -63.5, 20, -299.5, false);
+  cliff(-98.5, -11, -262.5, -63.5, 20, -262, false);
   ground(-60.5, -380, 60.5, -340.5, 20, 16);
   ground(60.5, -380, 110, -293.5, 12, 6);
   ground(60.5, -246.5, 110, -241, 12, 6);
@@ -1080,7 +1099,7 @@ export function buildVerdant(B) {
   })();
   // fireflies: the jungle's ambient life, wandering in little clouds near the paths
   const flies = (() => {
-    const spots = [[25, 5.5, -164, 5], [-10, 5.5, -168, 6], [-22, 6.5, -190, 5], [3, 7, -188, 4], [0, 6, -209, 8], [-52, -23.5, -281, 6], [-81, -22, -281, 9], [-83, -18, -320, 8], [-55, 16, -329, 4], [0, 28, -286, 10], [0, 22.5, -268, 3], [49, 14, -279, 5]];
+    const spots = [[25, 5.5, -164, 5], [-10, 5.5, -168, 6], [-22, 6.5, -190, 5], [3, 7, -188, 4], [0, 6, -209, 8], [-52, -23.5, -281, 6], [-81, -22, -281, 9], [-83, -18, -320, 8], [-55, 16, -329, 4], [0, 28, -286, 10], [0, 22.5, -268, 3], [49, 14, -279, 5], [-83, -23.5, -302, 2], [-104.5, -23.5, -270, 2], [49, 14, -298, 4]];
     const N = spots.length * 22, base = new Float32Array(N * 3), pos = new Float32Array(N * 3), ph = new Float32Array(N);
     let k = 0;
     for (const [x, y, z, r] of spots)
@@ -1114,6 +1133,386 @@ export function buildVerdant(B) {
     return state;
   })();
 
+  // ================================================================ INTERIOR DRESSING (no collision anywhere)
+  // Every wall of the bio-lab gets a mossy stone skin, ivy, moss caps and root buttresses; the rooms get
+  // their furniture (planters, jars, seed racks, terminals, pipes) and the jungle comes in through the floor.
+  const yawGeo = (g, yaw) => (yaw ? g.rotateY(yaw) : g);
+  function frond(x, y, z, len, yaw, lean = 0.9, w = 0.42) {
+    const g = new THREE.PlaneGeometry(w, len, 1, 2);
+    const pos = g.attributes.position; // taper to a tip and curl it down
+    for (let i = 0; i < pos.count; i++) {
+      const v = (pos.getY(i) + len / 2) / len;
+      pos.setX(i, pos.getX(i) * (1 - v * 0.85));
+      pos.setZ(i, -v * v * len * 0.35);
+    }
+    g.translate(0, len / 2, 0);
+    g.rotateX(-lean);
+    put(frondMat, yawGeo(g, yaw), x, y, z);
+  }
+  function fern(x, y, z, s = 1, n = 7) {
+    const a0 = R(0, 6);
+    for (let i = 0; i < n; i++) frond(x, y, z, R(0.9, 1.5) * s, a0 + (i / n) * PI * 2 + R(-0.2, 0.2), R(0.6, 1.1), 0.42 * s);
+  }
+  function giantLeaf(x, y, z, s, yaw, tilt = 0.5) {
+    const g = new THREE.CircleGeometry(1, 9);
+    g.scale(0.55 * s, 1.15 * s, 1);
+    g.translate(0, 1.15 * s, 0);
+    g.rotateX(-PI / 2 + tilt);
+    put(frondMat, yawGeo(g, yaw), x, y, z);
+    put(stalkMat, yawGeo(new THREE.CylinderGeometry(0.03 * s, 0.05 * s, 0.6 * s, 4).translate(0, 0.3 * s, 0), yaw), x, y, z);
+  }
+  function hangMoss(x, yTop, z, len) {
+    for (const a of [0, PI / 2]) {
+      const g = new THREE.PlaneGeometry(0.35, len, 1, 1);
+      const pos = g.attributes.position;
+      for (let i = 0; i < pos.count; i++) if (pos.getY(i) < 0) pos.setX(i, pos.getX(i) * 0.25);
+      g.translate(0, -len / 2, 0);
+      put(frondMat, g.rotateY(a + R(-0.3, 0.3)), x, yTop, z);
+    }
+  }
+  function root(x, y, z, len, yaw, pitch, r = 0.18) {
+    const g = new THREE.CylinderGeometry(r * 0.45, r, len, 5);
+    g.translate(0, len / 2, 0);
+    g.rotateZ(pitch);
+    put(barkMat, yawGeo(g, yaw), x, y, z);
+  }
+  // roots bursting up through the floor, with the tiles they broke lying tipped round them
+  function rootBurst(x, y, z, s = 1) {
+    const a0 = R(0, 6);
+    for (let i = 0; i < 3; i++) root(x + R(-0.3, 0.3), y - 0.4, z + R(-0.3, 0.3), R(1.2, 2.2) * s, a0 + i * 2.1, R(0.9, 1.3), R(0.12, 0.2) * s);
+    for (let i = 0; i < 5; i++) {
+      const g = boxGeo(R(0.4, 0.8), 0.08, R(0.4, 0.8), 0.5);
+      g.rotateX(R(-0.5, 0.5));
+      g.rotateZ(R(-0.5, 0.5));
+      g.rotateY(R(0, 3));
+      put(cliffMat, g, x + R(-1.1, 1.1), y + 0.06, z + R(-1.1, 1.1));
+    }
+    for (let i = 0; i < 4; i++) shroom(x + R(-0.9, 0.9), y, z + R(-0.9, 0.9), R(0.4, 0.9));
+  }
+  function puddle(x, y, z, r) {
+    const g = new THREE.CircleGeometry(r, 12);
+    g.scale(1, R(0.5, 0.9), 1).rotateZ(R(0, 3)).rotateX(-PI / 2);
+    put(puddleMat, g, x, y + 0.012, z);
+  }
+  function shards(x, y, z, n, spread = 1.5) {
+    for (let i = 0; i < n; i++) {
+      const g = new THREE.CircleGeometry(R(0.08, 0.22), 3);
+      g.rotateX(-PI / 2 + R(-0.4, 0.4)).rotateY(R(0, 6));
+      put(glassMat, g, x + R(-spread, spread), y + 0.03, z + R(-spread, spread));
+    }
+  }
+  function jar(x, y, z, h = 2, r = 0.45) {
+    put(pipeMat, new THREE.CylinderGeometry(r * 1.08, r * 1.15, 0.25, 10), x, y + 0.125, z);
+    put(pipeMat, new THREE.CylinderGeometry(r * 1.05, r * 1.08, 0.2, 10), x, y + h - 0.1, z);
+    put(jarMat, new THREE.CylinderGeometry(r * 0.88, r * 0.88, (h - 0.45) * R(0.55, 0.9), 10), x, y + 0.25 + (h - 0.45) * 0.36, z);
+    put(leafMat, new THREE.IcosahedronGeometry(r * 0.38, 1).scale(1, 1.4, 1), x, y + h * 0.42, z); // the specimen
+    put(glassMat, new THREE.CylinderGeometry(r, r, h - 0.45, 12, 1, true), x, y + 0.25 + (h - 0.45) / 2, z);
+  }
+  // a shallow seed rack against a wall: frame, three shelves of glowing pods
+  function seedRack(x1, z1, x2, z2, y, h = 2.6) {
+    const along = Math.abs(x2 - x1) > Math.abs(z2 - z1), L = along ? Math.abs(x2 - x1) : Math.abs(z2 - z1);
+    const ax = Math.min(x1, x2), az = Math.min(z1, z2), bx = Math.max(x1, x2), bz = Math.max(z1, z2);
+    const n = Math.round(L / 1.6);
+    for (let k = 0; k <= n; k++) {
+      const u = (k / n) * L;
+      const px = along ? ax + u : (ax + bx) / 2, pz = along ? (az + bz) / 2 : az + u;
+      put(pipeMat, boxGeo(along ? 0.08 : bx - ax, h, along ? bz - az : 0.08, 0.5), px, y + h / 2, pz);
+    }
+    for (const sy of [0.5, 1.35, 2.2]) {
+      put(pipeMat, boxGeo(bx - ax, 0.06, bz - az, 0.5), (ax + bx) / 2, y + sy, (az + bz) / 2);
+      for (let i = 0; i < L * 2.2; i++) {
+        const u = R(0.15, L - 0.15);
+        const px = along ? ax + u : R(ax + 0.1, bx - 0.1), pz = along ? R(az + 0.1, bz - 0.1) : az + u;
+        if (rand() < 0.7) put(goldMat, new THREE.IcosahedronGeometry(R(0.06, 0.12), 0), px, y + sy + 0.12, pz);
+        else put(capMat, new THREE.SphereGeometry(R(0.08, 0.13), 6, 3, 0, PI * 2, 0, PI / 2), px, y + sy + 0.03, pz);
+      }
+    }
+  }
+  // a lab console: desk, slanted glowing screen, keys, vines draped over it
+  function terminal(x, y, z, yaw) {
+    put(pipeMat, yawGeo(boxGeo(1.3, 0.9, 0.6, 0.5).translate(0, 0.45, 0), yaw), x, y, z);
+    put(pipeMat, yawGeo(boxGeo(1.2, 0.75, 0.08, 0.5).rotateX(-0.25).translate(0, 1.3, 0.12), yaw), x, y, z);
+    put(screenMat, yawGeo(boxGeo(1.05, 0.6, 0.02, 0.5).rotateX(-0.25).translate(0, 1.3, 0.075), yaw), x, y, z);
+    put(screenMat, yawGeo(boxGeo(0.9, 0.02, 0.2, 0.5).translate(0, 0.91, -0.12), yaw), x, y, z);
+    for (let i = 0; i < 3; i++) vine(x + R(-0.5, 0.5), y + 1.7, z + R(-0.2, 0.2), R(0.4, 1.4));
+  }
+  function pipe(x1, y, z1, x2, z2, r = 0.12) {
+    const along = Math.abs(x2 - x1) > Math.abs(z2 - z1), L = Math.hypot(x2 - x1, z2 - z1);
+    const g = new THREE.CylinderGeometry(r, r, L, 7);
+    g.rotateZ(PI / 2);
+    if (!along) g.rotateY(PI / 2);
+    put(pipeMat, g, (x1 + x2) / 2, y, (z1 + z2) / 2);
+    for (let u = 2; u < L - 1; u += 4) {
+      const px = along ? Math.min(x1, x2) + u : x1, pz = along ? z1 : Math.min(z1, z2) + u;
+      put(pipeMat, new THREE.CylinderGeometry(r * 0.5, r * 0.8, 0.3, 6), px, y - r - 0.12, pz); // a misting nozzle
+      put(mistMat, new THREE.PlaneGeometry(1.6, 1.4).rotateY(along ? 0 : PI / 2), px, y - r - 0.9, pz);
+    }
+  }
+  // overgrow a wall: axis 'x' = the wall runs along x at z = c, its inner face looking toward +n (z);
+  // axis 'z' = along z at x = c. a1..a2 along it, y1..y2 high; holes [{ c, w, h }] (h above y1) stay clear
+  function overgrow(axis, c, n, a1, a2, y1, y2, { holes = [], roots = true, ivy = true, skin = true } = {}) {
+    const P = (a, d, y) => (axis === 'x' ? [a, y, c + n * d] : [c + n * d, y, a]);
+    const B = (a, b, d1, d2, ya, yb, m) => {
+      const [x1, , z1] = P(a, d1, 0), [x2, , z2] = P(b, d2, 0);
+      if (Math.abs(b - a) < 0.01 || yb - ya < 0.01) return;
+      put(m, boxGeo(Math.abs(x2 - x1) || 0.01, yb - ya, Math.abs(z2 - z1) || 0.01, 0.2), (x1 + x2) / 2, (ya + yb) / 2, (z1 + z2) / 2);
+    };
+    const hs = holes.map((o) => ({ a: o.c - o.w / 2 - 0.1, b: o.c + o.w / 2 + 0.1, top: y1 + o.h + 0.05 }));
+    const clear = (a, y = y1) => !hs.some((o) => a > o.a - 0.3 && a < o.b + 0.3 && y < o.top + 0.6);
+    if (skin) {
+      // the stone skin, cut round the openings
+      let a = a1;
+      for (const o of [...hs].sort((p, q) => p.a - q.a)) {
+        B(a, o.a, 0.012, 0.03, y1, y2, cliffMat);
+        B(o.a, o.b, 0.012, 0.03, o.top, y2, cliffMat);
+        a = o.b;
+      }
+      B(a, a2, 0.012, 0.03, y1, y2, cliffMat);
+    }
+    B(a1, a2, 0.02, 0.16, y2 - 0.35, y2, mossMat); // moss cap along the top
+    for (let a = a1; a < a2 - 0.3; ) { // moss creeping up from the floor
+      const w = R(0.8, 3);
+      if (clear(a) && clear(Math.min(a + w, a2))) B(a, Math.min(a + w, a2), 0.02, 0.1, y1, y1 + R(0.15, 0.6), mossMat);
+      a += w + R(0.3, 2);
+    }
+    if (ivy) for (let a = a1 + 0.5; a < a2 - 0.5; a += R(1.2, 3.2)) { // ivy strips down from the top, leaves on them
+      const len = R(1.5, (y2 - y1) * 0.85), w = R(0.25, 0.7);
+      if (!clear(a, y2 - len) || !clear(a + w, y2 - len)) continue;
+      B(a, a + w, 0.03, 0.06, y2 - len, y2, leafMat);
+      for (let k = 0; k < len * 1.6; k++) {
+        const [lx, ly, lz] = P(a + R(-0.2, w + 0.2), 0.1, y2 - R(0, len));
+        put(rand() < 0.5 ? leafMat : leafLitMat, new THREE.IcosahedronGeometry(R(0.12, 0.26), 0).scale(1, 0.5, 1), lx, ly, lz);
+      }
+    }
+    if (roots) for (let a = a1 + R(1, 3); a < a2 - 1; a += R(4, 8)) { // root buttresses, fungi at their feet
+      if (!clear(a - 0.6) || !clear(a + 0.6)) continue;
+      const h = R(1.5, Math.min(4, y2 - y1));
+      B(a - 0.25, a + 0.25, 0.03, 0.33, y1, y1 + h, barkMat);
+      B(a - 0.55, a + 0.55, 0.03, 0.5, y1, y1 + 0.35, barkMat);
+      const [fx, , fz] = P(a, 0.8, 0);
+      for (let k = 0; k < 4; k++) shroom(fx + R(-0.5, 0.5), y1, fz + R(-0.4, 0.4), R(0.4, 0.9));
+    }
+  }
+  // vines hanging across a doorway (thin, no collision)
+  const doorVines = (x1, z1, x2, z2, yTop) => vines(x1, z1, x2, z2, yTop, 7, 1.1);
+  // dripping water / rain through broken panes: falling streaks, only animated near the player
+  function drips(spots, near = 30) {
+    const N = spots.length * 14, pos = new Float32Array(N * 3), info = [];
+    spots.forEach(([x, yTop, z, yBot, r], k) => {
+      for (let i = 0; i < 14; i++) {
+        const j = k * 14 + i;
+        info.push({ top: yTop, bot: yBot, v: R(6, 10) });
+        pos.set([x + R(-r, r), R(yBot, yTop), z + R(-r, r)], j * 3);
+      }
+    });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xd8f4ff, size: 0.06, transparent: true, opacity: 0.6, depthWrite: false }));
+    pts.frustumCulled = false;
+    W.scene.add(pts);
+    const c = new THREE.Vector3(spots[0][0], spots[0][1], spots[0][2]);
+    W.add({
+      update(dt, player) {
+        if (player.pos.distanceTo(c) > near + 30) return;
+        for (let j = 0; j < N; j++) {
+          pos[j * 3 + 1] -= info[j].v * dt;
+          if (pos[j * 3 + 1] < info[j].bot) pos[j * 3 + 1] = info[j].top;
+        }
+        geo.attributes.position.needsUpdate = true;
+      },
+    });
+  }
+
+  // ---- THE GREENHOUSE: a glass roof over the jungle it was built to grow
+  {
+    const top = GH.y + GH.h; // -11
+    overgrow('x', GH.zN, 1, GH.x1, GH.x2, GH.y, top, { holes: [{ c: -83, w: 3, h: 3.2 }] });
+    overgrow('x', GH.zS, -1, GH.x1, GH.x2, GH.y, top);
+    overgrow('z', GH.x2, -1, GH.zN, GH.zS, GH.y, top, { holes: [{ c: -281, w: 3, h: 3.2 }], roots: false });
+    overgrow('z', GH.x1, 1, GH.zN, GH.zS, GH.y, top, { holes: [{ c: -270, w: 2.4, h: 3 }], roots: false });
+    // the roof: ribs across the beams, glass panes between (two smashed), rain running down them
+    for (let z = GH.zN + 3; z < GH.zS; z += 6) put(pipeMat, boxGeo(GH.x2 - GH.x1, 0.22, 0.18, 0.5), (GH.x1 + GH.x2) / 2, top - 0.5, z);
+    const broken = new Set(['-77,-275', '-89,-287']);
+    for (let x = GH.x1 + 1; x < GH.x2; x += 6)
+      for (let z = GH.zN + 3; z < GH.zS; z += 6) {
+        const cx = x + 2, cz = z + 3;
+        if (broken.has(`${cx},${cz}`)) {
+          shards(cx, GH.y, cz, 14, 2);
+          puddle(cx, GH.y, cz, 1.2);
+          continue;
+        }
+        put(glassMat, boxGeo(5.6, 0.02, 5.6, 0.5), cx, top - 0.38, cz);
+        for (let k = 0; k < 3; k++) put(glassMat, boxGeo(0.04, 0.01, R(2, 5), 0.5), cx + R(-2.5, 2.5), top - 0.4, cz); // rain streaks
+      }
+    drips([[-77, top, -275, GH.y, 2], [-89, top, -287, GH.y, 2]]);
+    for (const [x, z] of [[-79, -270], [-90, -279], [-72, -291]]) shaft(x, top, z, GH.h, 2.4, 0.12);
+    // grow lamps on cords from the ribs
+    for (let x = GH.x1 + 4; x < GH.x2 - 2; x += 6)
+      for (const z of [-272, -281, -290]) {
+        put(pipeMat, boxGeo(0.03, 1.6, 0.03, 0.5), x, top - 1.3, z);
+        put(pipeMat, boxGeo(1.6, 0.12, 0.42, 0.5), x, top - 2.1, z);
+        put(lampMat, boxGeo(1.45, 0.03, 0.3, 0.5), x, top - 2.17, z);
+      }
+    // misting pipes along both long walls, moss hanging off the ribs
+    pipe(GH.x1 + 0.5, -14.5, GH.zN + 1, GH.x1 + 0.5, GH.zS - 1);
+    pipe(GH.x2 - 0.5, -14.5, GH.zN + 1, GH.x2 - 0.5, GH.zS - 1);
+    for (let i = 0; i < 40; i++) hangMoss(R(GH.x1 + 1, GH.x2 - 1), top - 0.6, GH.zN + 3 + 6 * Math.floor(R(0, 6)) + R(-0.1, 0.1), R(1, 3.5));
+    // planters overflowing: ferns, giant leaves, vines spilling over the rims; the mother planter's tree
+    for (const [x, z] of [[-90, -275], [-72, -275], [-90, -285], [-72, -285], [-81, -294], [-81, -266]]) {
+      fern(x - 0.5, -23.8, z, 0.9);
+      fern(x + 0.6, -23.8, z + 0.2, 0.7, 5);
+      giantLeaf(x, -23.8, z + 0.5, 0.8, R(0, 6), 0.8);
+      vines(x - 1.2, z - 1.02, x + 1.2, z - 1.0, -23.8, 4, 1.1);
+      put(mossMat, boxGeo(2.5, 0.08, 2.1, 0.5), x, -23.76, z);
+    }
+    for (let i = 0; i < 6; i++) fern(R(-84.5, -77.5), -23.6, R(-284.5, -277.5), R(0.9, 1.3));
+    for (let i = 0; i < 5; i++) giantLeaf(R(-84.5, -77.5), -23.6, R(-284.5, -277.5), R(1.2, 1.8), R(0, 6), R(0.4, 0.9));
+    vines(-85.2, -285.3, -76.8, -285.2, -23.6, 8, 1.1);
+    vines(-85.2, -276.8, -76.8, -276.7, -23.6, 8, 1.1);
+    // ferns and giant leaves crowding the walls; puddles, broken glass, roots through the tiles
+    for (let i = 0; i < 18; i++) {
+      const side = i % 2 ? GH.x1 + R(0.4, 1.2) : GH.x2 - R(0.4, 1.2), z = R(GH.zN + 1, GH.zS - 1);
+      if (Math.abs(z + 281) < 2.5 || Math.abs(z + 270) < 2 || z < -295) continue;
+      if (rand() < 0.5) fern(side, GH.y, z, R(0.9, 1.4));
+      else giantLeaf(side, GH.y, z, R(1, 1.6), R(0, 6), R(0.3, 0.7));
+    }
+    for (const [x, z, r] of [[-86, -272, 1.4], [-75, -287, 1.1], [-92, -293, 0.9], [-69, -268, 1]]) puddle(x, GH.y, z, r);
+    shards(-70, GH.y, -293, 6);
+    for (const [x, z] of [[-93, -279], [-68.5, -283], [-87, -296]]) rootBurst(x, GH.y, z, 1);
+    mist(-81, GH.y + 0.35, -281, 32, 34);
+    doorVines(-84.5, -299.1, -81.5, -299, GH.y + 3.2);
+    doorVines(-64.1, -282.5, -64, -279.5, GH.y + 3.2);
+  }
+  // ---- THE LAB CORRIDOR and the records alcove
+  overgrow('z', -84.5, 1, -305, -299.5, -25, -21.8, { holes: [{ c: -302.25, w: 2, h: 2.6 }], roots: false });
+  overgrow('z', -81.5, -1, -305, -299.5, -25, -21.8, { roots: false });
+  rootBurst(-82, -25, -304, 0.8);
+  overgrow('z', -87.5, 1, -303.75, -300.75, -25, -22.2, { roots: false });
+  overgrow('x', -303.75, 1, -87.5, -85, -25, -22.2, { roots: false, ivy: false });
+  overgrow('x', -300.75, -1, -87.5, -85, -25, -22.2, { roots: false, ivy: false });
+  jar(-86.6, -25, -301.4, 1.8, 0.35);
+  terminal(-86.2, -25, -303.2, PI / 2);
+  for (let i = 0; i < 5; i++) hangMoss(R(-84.3, -81.7), -21.8, R(-305, -299.5), R(0.6, 1.4));
+  drips([[-82.4, -21.9, -301, -25, 0.3]]);
+  puddle(-82.6, -25, -301, 0.6);
+  // ---- THE SEED VAULT: jars, seed racks, terminals, cracked observation glass, roots through the tiles
+  {
+    const top = VA.y + VA.h; // -9
+    overgrow('x', VA.zS, -1, VA.x1, VA.x2, VA.y, top, { holes: [{ c: -83, w: 3, h: 3.2 }] });
+    overgrow('x', VA.zN, 1, VA.x1, VA.x2, -20.5, top);
+    overgrow('z', VA.x2, -1, VA.zN, VA.zS, VA.y, top, { holes: [{ c: -329.5, w: 3.6, h: 15.2 }], roots: false });
+    overgrow('z', VA.x1, 1, -320, VA.zS, VA.y, top, { roots: false, ivy: false }); // the rack wall: skin only
+    overgrow('z', VA.x1, 1, VA.zN, -320, -20.5, top);
+    for (const x of [-95.5, -93, -90.5, -77, -74.5]) jar(x, VA.y, VA.zS - 0.8, R(2, 2.6), 0.48);
+    jar(-97.5, -20.5, -333.8, 2.2, 0.5);
+    seedRack(-70.8, -307, -70.1, -315, VA.y);
+    seedRack(-70.8, -316.5, -70.1, -324.5, VA.y);
+    terminal(-76, -20.5, -334.3, 0);
+    terminal(-89, -20.5, -334.3, 0);
+    terminal(-86, VA.y, -305.7, PI);
+    // a cracked observation window over the balcony
+    put(pipeMat, boxGeo(6.4, 4.4, 0.12, 0.5), -96.5, -16.5, VA.zN + 0.08);
+    put(glassMat, boxGeo(6, 4, 0.04, 0.5), -96.5, -16.5, VA.zN + 0.16);
+    for (let i = 0; i < 9; i++) {
+      const g = boxGeo(R(0.8, 2.2), 0.025, 0.01, 0.5);
+      g.rotateZ(R(0, PI));
+      put(boneMat, g, -96.5 + R(-1.2, 1.2), -16.5 + R(-1, 1), VA.zN + 0.19);
+    }
+    for (const [x, z, s] of [[-78, -315, 1.2], [-75, -309, 0.9], [-88, -318, 0.8]]) rootBurst(x, VA.y, z, s);
+    root(-80, -20.5, -334.6, 7, 0, 0.35, 0.3); // up the north wall toward the leaf's stem
+    root(-86, -20.5, -334.6, 6, 0, -0.3, 0.25);
+    for (let i = 0; i < 26; i++) hangMoss(R(VA.x1 + 1, VA.x2 - 1), top, R(VA.zN + 1, VA.zS - 1), R(1, 4));
+    put(mossMat, boxGeo(8.1, 0.06, 15.1, 0.5), -96, -20.47, -327.5);
+    put(mossMat, boxGeo(22.1, 0.06, 4.1, 0.5), -81, -20.47, -333);
+    vines(-100, -320.05, -92, -320, -20.5, 10, 2.5);
+    vines(-92, -331.05, -73, -331, -20.5, 14, 2.5);
+    drips([[-79, top, -318, VA.y, 0.4], [-91, top, -312, VA.y, 0.4]]);
+    puddle(-79, VA.y, -318, 0.9);
+    puddle(-91, VA.y, -312, 0.7);
+    mist(-85, VA.y + 0.3, -318, 28, 24);
+    doorVines(-84.5, -305.1, -81.5, -305, VA.y + 3.2);
+  }
+  // ---- THE SEED BANK (secret)
+  overgrow('x', -274.5, 1, -108, -101, -25, -21, { roots: false });
+  overgrow('x', -265.5, -1, -108, -101, -25, -21, { roots: false });
+  jar(-102.3, -25, -273.6, 1.8, 0.4);
+  jar(-102.3, -25, -266.4, 1.8, 0.4);
+  // ---- THE CHIMNEY: ivy and fungi on the rock
+  overgrow('x', CH_.z1, 1, CH_.x1, CH_.x2, -13, 21, { skin: false, roots: false });
+  overgrow('x', CH_.z2, -1, CH_.x1, CH_.x2, -13, 21, { skin: false, roots: false });
+  for (const [x, y, z] of [[-63, -4, -333], [-67.7, 5, -325], [-63, 14, -333]]) glowPatch(x - 1.2, z + 0.2, x + 1.2, z + 1.4, y, 5, 0.2);
+  // ---- THE WALKWAY AND THE SLUICE HOUSE
+  overgrow('x', -299.5, 1, SD.x2 + 0.6, 39.4, 12, 15.2, { roots: false });
+  overgrow('x', -296.5, -1, SD.x2 + 0.6, 39.4, 12, 15.2, { roots: false });
+  for (let i = 0; i < 8; i++) hangMoss(R(22, 38), 15.2, R(-299.3, -296.7), R(0.6, 1.3));
+  doorVines(39.3, -299.5, 39.4, -296.5, 15.2);
+  {
+    const top = SL.y + 7;
+    overgrow('x', SL.zN, 1, SL.x1, SL.x2, SL.y, top);
+    overgrow('x', SL.zS, -1, SL.x1, SL.x2, SL.y, top, { holes: [{ c: 46.5, w: 3, h: 3.2 }] });
+    overgrow('z', SL.x1, 1, SL.zN, SL.zS, SL.y, top, { holes: [{ c: -298, w: 3, h: 3.2 }], roots: false });
+    overgrow('z', SL.x2, -1, SL.zN, SL.zS, SL.y, top, { roots: false });
+    pipe(SL.x1 + 0.6, top - 1.5, SL.zN + 1, SL.x1 + 0.6, SL.zS - 1, 0.18);
+    pipe(SL.x2 - 0.6, top - 1.5, SL.zN + 1, SL.x2 - 0.6, SL.zS - 1, 0.18);
+    terminal(55.5, SL.y, -277, PI);
+    terminal(42.5, SL.y, -299.3, 0);
+    for (let i = 0; i < 18; i++) hangMoss(R(SL.x1 + 1, SL.x2 - 1), top, R(SL.zN + 1, SL.zS - 1), R(1, 3));
+    for (const [x, z] of [[41.5, -284], [56.5, -294]]) {
+      root(x, 8.5, z, 5, R(0, 6), 0.5, 0.25);
+      root(x, 8.5, z + 1, 4.5, R(0, 6), 0.7, 0.2);
+    }
+    for (const z of [-296.05, -281.95]) vines(SL.x1, z - 0.02, SL.x2, z, SL.y, 18, 2.6); // vines down the dock edges
+    mist(49, 11.7, -289, 18, 14);
+    drips([[51, top, -287, 11.4, 2.5]]);
+    doorVines(45, -276.1, 48, -276, SL.y + 3.2);
+  }
+  // ---- the gatehouses at the Hub ports (kept low under the Hub's windows)
+  overgrow('z', -11.5, 1, -158.5, -148.5, 4, 7.2, { roots: false, holes: [{ c: -153.5, w: 2.4, h: 3 }] });
+  overgrow('z', -8.5, -1, -158.5, -148.5, 4, 7.2, { roots: false });
+  overgrow('z', 8.5, 1, -158.5, -148.5, 12, 15.2, { roots: false });
+  overgrow('z', 11.5, -1, -158.5, -148.5, 12, 15.2, { roots: false });
+
+  // ---- the floors: moss mats, leaf litter, tufts and tiles the roots have heaved up
+  // (av: rectangles [x1, z1, x2, z2] left bare: sludge troughs, the cage floor, pads)
+  function floorGrowth(x1, z1, x2, z2, y, n, av = []) {
+    const free = (x, z, r) => !av.some(([a, b, c, d]) => x + r > a && x - r < c && z + r > b && z - r < d);
+    for (let i = 0; i < n; i++) {
+      const x = R(x1 + 0.5, x2 - 0.5), z = R(z1 + 0.5, z2 - 0.5), r = R(0.5, 1.6);
+      if (!free(x, z, r)) continue;
+      const k = rand();
+      if (k < 0.45) put(mossMat, boxGeo(r * 2, 0.03, r * R(1, 2), 0.5).rotateY(R(0, 3)), x, y + 0.015, z);
+      else if (k < 0.7) for (let j = 0; j < 6; j++) put(rand() < 0.5 ? leafMat : leafLitMat, new THREE.IcosahedronGeometry(R(0.1, 0.22), 0).scale(1, 0.25, 1), x + R(-r, r), y + 0.03, z + R(-r, r));
+      else if (k < 0.88) fern(x, y, z, R(0.35, 0.6), 5);
+      else {
+        const g = boxGeo(R(0.5, 0.9), 0.07, R(0.5, 0.9), 0.5);
+        g.rotateX(R(-0.25, 0.25));
+        g.rotateZ(R(-0.25, 0.25));
+        put(cliffMat, g, x, y + 0.05, z);
+      }
+    }
+  }
+  floorGrowth(GH.x1, GH.zN, GH.x2, GH.zS, GH.y, 140, [[-94.2, -291.6, -69.8, -289.2], [-94.2, -269.8, -69.8, -267.4], [-93.2, -297.6, -90.8, -295.4], [-71.2, -297.6, -68.8, -295.4], [-85.1, -285.1, -76.9, -276.9]]);
+  floorGrowth(VA.x1 + 2.2, VA.zN + 4, VA.x2, VA.zS, VA.y, 90, [[-73.5, -331.5, -69.5, -327.5]]);
+  floorGrowth(-100, -335, -92, -320, -20.5, 18);
+  floorGrowth(-92, -335, -73.5, -331, -20.5, 14);
+  floorGrowth(-84.5, -305, -81.5, -299.5, -25, 8);
+  floorGrowth(SL.x1, SL.zN, SL.x2, -296.3, SL.y, 22);
+  floorGrowth(SL.x1, -281.7, SL.x2, SL.zS, SL.y, 22);
+  floorGrowth(SD.x2 + 0.6, -299.5, 39.4, -296.5, 12, 18);
+  // the vault's raised walkways and the cage dais were bare tiled blocks: skin them too
+  overgrow('x', -320, 1, -100, -92, VA.y, -20.5, { roots: false, ivy: false });
+  overgrow('z', -92, 1, -331, -320, VA.y, -20.5, { roots: false });
+  overgrow('x', -331, 1, -92, -86, VA.y, -20.5, { roots: false });
+  overgrow('x', -331, 1, -80, -73.6, VA.y, -20.5, { roots: false });
+  overgrow('x', -325, 1, -86, -80, VA.y, -20.5, { roots: false, ivy: false });
+  overgrow('z', -86, -1, -331, -325, VA.y, -20.5, { roots: false, ivy: false });
+  overgrow('z', -80, 1, -331, -325, VA.y, -20.5, { roots: false, ivy: false });
+  // and the greenhouse's mother planter
+  overgrow('x', -285, -1, -85, -77, GH.y, -23.8, { roots: false, ivy: false });
+  overgrow('x', -277, 1, -85, -77, GH.y, -23.8, { roots: false, ivy: false });
+  overgrow('z', -85, -1, -285, -277, GH.y, -23.8, { roots: false, ivy: false });
+  overgrow('z', -77, 1, -285, -277, GH.y, -23.8, { roots: false, ivy: false });
+
   for (const [m, geos] of lists) {
     if (!geos.length) continue;
     const mesh = new THREE.Mesh(mergeGeometries(geos, false), m);
@@ -1121,6 +1520,7 @@ export function buildVerdant(B) {
     mesh.matrixAutoUpdate = false;
     mesh.updateMatrix();
     if (m === shaftMat || m === mistMat) mesh.renderOrder = 4;
+    if (m === glassMat) mesh.renderOrder = 2;
     W.scene.add(mesh);
   }
 
@@ -1134,6 +1534,8 @@ export function buildVerdant(B) {
     [glow2.color, new THREE.Color(0x26302a)], [capMat.color, new THREE.Color(0x3a4440)], [goldMat.color, new THREE.Color(0x4a4434)],
     [grass.color, new THREE.Color(0x5b4a2e)], [leafMat.color, new THREE.Color(0x4f4426)], [leafLitMat.color, new THREE.Color(0x6b5a32)],
     [stalkMat.color, new THREE.Color(0x3a3a30)], [shaftMat.color, new THREE.Color(0x8fa4b8)], [spores.m.color, new THREE.Color(0x707a80)],
+    [mossMat.color, new THREE.Color(0x58482c)], [frondMat.color, new THREE.Color(0x6a5a32)], [jarMat.color, new THREE.Color(0x1e2a22)],
+    [screenMat.color, new THREE.Color(0x101612)], [lampMat.color, new THREE.Color(0x221c20)],
   ].map(([c, to]) => ({ c, from: c.clone(), to }));
   const lightFrom = lights.map((l) => ({ l, i: l.intensity, c: l.color.clone() }));
   const COLD = new THREE.Color(0x8a9cb0);
