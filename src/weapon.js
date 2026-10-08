@@ -1,14 +1,22 @@
 // The Chroma Blaster: hitscan color shots, fast color switching and an animated view model
-// rendered in its own scene on top of the world (so it never clips into walls).
+// rendered in its own scene on top of the world (so it never clips into walls). Each color has its
+// own gun from its world (src/weapons/*), swapped with a quick dip-and-rise.
 import * as THREE from 'three';
 import { COLORS } from './colors.js';
 import { Drone, Orb } from './entities/drone.js';
 import { audio } from './audio.js';
+import { buildCrimson } from './weapons/crimson.js';
+import { buildSolar } from './weapons/solar.js';
+import { buildVerdant } from './weapons/verdant.js';
+import { buildAzure } from './weapons/azure.js';
 
 const FIRE_INTERVAL = 0.13;
 const MAX_BOUNCES = 6;
+const SWITCH_TIME = 0.18; // the whole dip-and-rise
+const MUZZLE_DEPTH = 0.9; // how far in front of the eye a tracer starts
 const _dir = new THREE.Vector3();
 const _muzzle = new THREE.Vector3();
+const _v = new THREE.Vector3();
 
 export class Blaster {
   constructor(game) {
@@ -17,9 +25,16 @@ export class Blaster {
     this.has = false;
     this.color = 0;
     this.cooldown = 0;
-    this.switchAnim = 0;
-    this.recoil = 0;
     this.lastColor = 0;
+    this.time = 0;
+    this.flash = 0; // muzzle light flash on top of the model's own glow
+    // recoil spring (displacement / velocity); each model has its own stiffness, damping and kick
+    this.recoil = 0;
+    this.recoilVel = 0;
+    // switching: the shown gun dips out of view, the new one rises. 1 = settled.
+    this.shown = 0;
+    this.switchT = 1;
+    this.compiled = false;
 
     // ---- view model ----
     this.vmScene = new THREE.Scene();
@@ -28,36 +43,21 @@ export class Blaster {
     const key = new THREE.DirectionalLight(0xffffff, 2.2);
     key.position.set(1, 2, 1);
     this.vmScene.add(key);
+    // the world's soft room reflections, so polished metal and ice read as such
+    this.vmScene.environment = game.scene.environment;
+    this.vmScene.environmentIntensity = 0.7;
     this.muzzleLight = new THREE.PointLight(0xffffff, 0, 3);
     this.vmScene.add(this.muzzleLight);
 
+    // one gun per color, each from its world
     this.gun = new THREE.Group();
-    const body = new THREE.MeshStandardMaterial({ color: 0x555b70, metalness: 0.6, roughness: 0.4 });
-    const trim = new THREE.MeshStandardMaterial({ color: 0xb4bacd, metalness: 0.7, roughness: 0.3 });
-    this.glowMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const add = (geo, m, x, y, z, rx = 0) => {
-      const mesh = new THREE.Mesh(geo, m);
-      mesh.position.set(x, y, z);
-      mesh.rotation.x = rx;
-      this.gun.add(mesh);
-      return mesh;
-    };
-    add(new THREE.BoxGeometry(0.12, 0.14, 0.46), body, 0, 0, 0);
-    add(new THREE.BoxGeometry(0.08, 0.2, 0.1), body, 0, -0.14, 0.1, 0.25);
-    add(new THREE.CylinderGeometry(0.035, 0.045, 0.34, 12), trim, 0, 0.02, -0.36, Math.PI / 2);
-    add(new THREE.BoxGeometry(0.15, 0.05, 0.3), trim, 0, 0.09, -0.02);
-    // the color cell: four chambers, the active one glows
-    this.cells = [];
-    for (let i = 0; i < 4; i++) {
-      const m = new THREE.MeshBasicMaterial({ color: COLORS[i].hex });
-      const c = add(new THREE.CylinderGeometry(0.022, 0.022, 0.08, 8), m, -0.07 + 0, 0.0, -0.12 + i * 0.07, 0);
-      c.rotation.z = Math.PI / 2;
-      c.position.x = 0.07;
-      this.cells.push(c);
-    }
-    this.core = add(new THREE.SphereGeometry(0.05, 16, 12), this.glowMat, 0, 0.02, -0.55);
-    this.ring = add(new THREE.TorusGeometry(0.06, 0.012, 8, 20), this.glowMat, 0, 0.02, -0.5);
-    this.gun.position.set(0.25, -0.25, -0.68);
+    this.models = [buildCrimson, buildSolar, buildVerdant, buildAzure].map((build, i) => {
+      const m = build(COLORS[i].hex);
+      m.root.visible = false;
+      this.gun.add(m.root);
+      return m;
+    });
+    this.gun.position.set(0.26, -0.245, -0.8);
     this.gun.rotation.order = 'YXZ';
     this.gun.scale.setScalar(0.85);
     this.base = this.gun.position.clone();
@@ -71,23 +71,49 @@ export class Blaster {
     this.has = true;
     this.unlocked[color] = true;
     this.gun.visible = true;
+    if (!this.compiled) this.compile();
     this.setColor(color, true);
+    // the hand-off: the new gun rises into view from below
+    this.show(color);
+    this.switchT = 0.5;
     this.game.hud.buildColors(this);
+  }
+
+  // compile all four guns up front so the first switch to each doesn't hitch
+  compile() {
+    this.compiled = true;
+    const renderer = this.game.renderer;
+    if (!renderer) return;
+    this.models.forEach((m) => (m.root.visible = true));
+    renderer.compile(this.vmScene, this.vmCamera);
+    this.models.forEach((m, i) => (m.root.visible = i === this.shown));
+  }
+
+  // put a model in hand right away (no animation)
+  show(i) {
+    if (this.shown === i && this.models[i].root.visible) return;
+    this.models[this.shown].root.visible = false;
+    this.shown = i;
+    this.models[i].root.visible = true;
+    this.recoil = 0;
+    this.recoilVel = 0;
   }
 
   setColor(i, silent = false) {
     if (!this.unlocked[i] && this.has) return;
-    if (i !== this.color) this.lastColor = this.color;
+    const changed = i !== this.color;
+    if (changed) this.lastColor = this.color;
     this.color = i;
-    const c = new THREE.Color(COLORS[i].hex).multiplyScalar(2.5);
-    this.glowMat.color.copy(c);
-    this.muzzleLight.color.set(COLORS[i].hex);
-    this.cells.forEach((m, k) => {
-      m.scale.setScalar(k === i ? 1.35 : 0.8);
-      m.material.color.set(this.unlocked[k] ? COLORS[k].hex : 0x111111).multiplyScalar(k === i ? 2.5 : 0.5);
-    });
-    this.switchAnim = 1;
-    if (!silent) audio.switchColor(i);
+    if (!this.has) this.show(i);
+    else if (i !== this.shown) {
+      // start dipping the shown gun; one already rising turns back down from where it is
+      if (this.switchT >= 1) this.switchT = 0;
+      else if (this.switchT >= 0.5) this.switchT = 1 - this.switchT;
+    } else if (this.switchT < 0.5) {
+      // changed your mind mid-dip: the same gun comes straight back up
+      this.switchT = 1 - this.switchT;
+    }
+    if (!silent && changed) audio.switchColor(i);
     this.game.hud.setColor(i, this);
   }
 
@@ -116,11 +142,24 @@ export class Blaster {
     const game = this.game;
     const cam = game.camera;
     cam.getWorldDirection(_dir);
-    // the tracer starts at the on-screen muzzle, projected into the world
-    _muzzle.set(0.22, -0.16, -0.9).applyQuaternion(cam.quaternion).add(cam.position);
+    // firing mid-switch brings the new gun straight up, so the shot comes out of it
+    if (this.switchT < 1) {
+      this.show(this.color);
+      this.switchT = Math.max(this.switchT, 0.8);
+    }
+    const model = this.models[this.shown];
+    this.pose();
+    // the tracer starts at the on-screen emitter: take it from view-model space to the same screen
+    // point in the world camera (the two cameras share an aspect but not a field of view)
+    model.muzzle.getWorldPosition(_v);
+    const k = Math.tan((cam.fov * Math.PI) / 360) / Math.tan((this.vmCamera.fov * Math.PI) / 360);
+    const d = MUZZLE_DEPTH / Math.max(0.2, -_v.z);
+    _muzzle.set(_v.x * k * d, _v.y * k * d, _v.z * d).applyQuaternion(cam.quaternion).add(cam.position);
     audio.shoot(this.color);
-    this.recoil = 1;
-    this.muzzleLight.intensity = 6;
+    model.fire();
+    const { omega } = model.spring;
+    this.recoilVel += omega * 2.4;
+    this.flash = 6;
     game.world.fx.muzzle(_muzzle, _dir, COLORS[this.color].hex, game.player.vel);
     const outcome = this.trace(cam.position.clone(), _dir.clone(), _muzzle.clone(), 0);
     if (outcome.hit) {
@@ -174,20 +213,56 @@ export class Blaster {
   }
 
   animate(dt) {
+    this.time += dt;
+    if (!this.has || !this.gun.visible) {
+      this.muzzleLight.intensity = 0;
+      return;
+    }
+    // switch: swap guns at the bottom of the dip
+    if (this.switchT < 1) {
+      this.switchT = Math.min(1, this.switchT + dt / SWITCH_TIME);
+      if (this.switchT >= 0.5 && this.shown !== this.color) this.show(this.color);
+    }
+    const model = this.models[this.shown];
+    // recoil spring, sub-stepped so the stiff ones stay stable at low frame rates
+    const { omega, zeta } = model.spring;
+    const n = Math.min(12, Math.max(1, Math.ceil(dt * 240)));
+    for (let i = 0; i < n; i++) {
+      const h = dt / n;
+      this.recoilVel += (-omega * omega * this.recoil - 2 * zeta * omega * this.recoilVel) * h;
+      this.recoil += this.recoilVel * h;
+    }
+    if (!Number.isFinite(this.recoil) || !Number.isFinite(this.recoilVel)) this.recoil = this.recoilVel = 0;
+    this.recoil = THREE.MathUtils.clamp(this.recoil, -1, 1.8);
+    const glowLevel = model.update(dt, this.time, this.recoil);
+    this.pose();
+    this.flash = Math.max(0, this.flash - dt * 60);
+    const out = switchDepth(this.switchT);
+    model.muzzle.getWorldPosition(this.muzzleLight.position);
+    this.muzzleLight.color.set(model.light);
+    this.muzzleLight.intensity = (Number.isFinite(glowLevel) ? glowLevel : 0) * (1 - out) + this.flash;
+  }
+
+  // place the gun: walk bob, landing kick, crouch, recoil and the switch dip
+  pose() {
     const p = this.game.player;
-    this.switchAnim = Math.max(0, this.switchAnim - dt * 6);
-    this.recoil = Math.max(0, this.recoil - dt * 9);
-    this.muzzleLight.intensity = Math.max(0, this.muzzleLight.intensity - dt * 60);
+    const k = this.models[this.shown].kick;
+    const r = this.recoil;
+    const out = switchDepth(this.switchT);
     const s = Math.min(1, p.speed2d / 7.6) * (p.grounded ? 1 : 0.3);
     const t = p.bob;
     this.gun.position.set(
-      this.base.x + Math.sin(t * 0.5) * 0.012 * s,
-      this.base.y - Math.abs(Math.cos(t * 0.5)) * 0.012 * s - this.switchAnim * 0.08 - p.landKick * 0.2 + (p.crouching ? -0.02 : 0),
-      this.base.z + this.recoil * 0.06,
+      this.base.x + Math.sin(t * 0.5) * 0.012 * s + out * 0.05,
+      this.base.y - Math.abs(Math.cos(t * 0.5)) * 0.012 * s - out * 0.42 - p.landKick * 0.2 + (p.crouching ? -0.02 : 0),
+      this.base.z + r * k.z + out * 0.04,
     );
-    this.gun.rotation.set(this.recoil * 0.12 + this.switchAnim * 0.5, 0.05, -this.switchAnim * 0.6);
-    this.ring.rotation.z += dt * (4 + this.recoil * 20);
-    this.core.scale.setScalar(1 + this.recoil * 0.6);
-    this.muzzleLight.position.set(this.gun.position.x, this.gun.position.y, this.gun.position.z - 0.6);
+    this.gun.rotation.set(0.02 + r * k.pitch - out * 0.55, 0.32 + r * k.yaw + out * 0.15, r * k.roll - out * 0.45);
   }
+}
+
+// how far the gun is dipped out of view (0 in hand, 1 gone): it accelerates away and decelerates
+// back into place, and is symmetric so a switch can turn around mid-way without a jump
+function switchDepth(t) {
+  const u = t < 0.5 ? t * 2 : (1 - t) * 2;
+  return u * u;
 }
