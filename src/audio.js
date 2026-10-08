@@ -24,7 +24,7 @@ const MUSIC_BUS = 0.32;
 // Per-track loudness trims (linear), from ffmpeg's EBU R128 meter: the action tracks sit level with
 // music_red (≈ -10 LUFS, trim 1), the calm hub / title / antechamber about 3 dB under it.
 const MUSIC_TRIM = {
-  music_title: 1.3, music_red: 1, music_hub: 1.35, music_solar: 1.05, music_yellow: 1.25, music_green: 1.25,
+  music_title: 1.3, music_haunt: 1.3, music_red: 1, music_hub: 1.35, music_solar: 1.05, music_yellow: 1.25, music_green: 1.25,
   music_blue: 1.03, music_ascent: 1.35, music_antechamber: 1.25, music_boss: 0.97, music_boss_final: 0.97,
   music_victory: 1.05,
 };
@@ -287,6 +287,11 @@ class Audio {
         // the opening track and the hub (which every world returns to) are worth having early
         for (const n of new Set([this.wantTrack, 'music_red', 'music_hub'])) if (n) this.musicFile(n);
       });
+  }
+
+  // name if its file is listed in the manifest (or the manifest hasn't loaded yet), else fallback
+  musicOr(name, fallback) {
+    return !this.available || this.available.has(name) ? name : fallback;
   }
 
   // the sample-based track currently playing (or fading in)

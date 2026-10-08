@@ -294,7 +294,8 @@ class Game {
       if (!a) return;
       audio.unlock();
       audio.uiClick();
-      if (this.state === 'title' && a !== 'play') audio.playMusic('music_title');
+      // the title plays the haunting intro track (the cell block's too), or the old title theme without it
+      if (this.state === 'title' && a !== 'play') audio.playMusic(audio.musicOr('music_haunt', 'music_title'));
       if (a === 'play') this.play();
       else if (a === 'resume') this.resume();
       else if (a === 'settings') this.openSettings();
