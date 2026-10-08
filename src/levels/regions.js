@@ -10,11 +10,14 @@ export function regionOf(p) {
   return 'hub';
 }
 
+// The outdoor worlds can see over their walls into their neighbours (the Foundry's outer walls from
+// Solar's mesas, Solar and Azure from Verdant's canopy), so they keep them; only areas that are truly
+// enclosed drop the rest. The Foundry is all indoors; the Prism Core is underground.
 export const VISIBLE_FROM = {
   red: new Set(['red', 'hub']),
   hub: new Set(['red', 'hub', 'solar', 'verdant', 'azure', 'prism']),
-  solar: new Set(['solar', 'hub']),
-  verdant: new Set(['verdant', 'hub']),
-  azure: new Set(['azure', 'hub']),
+  solar: new Set(['solar', 'hub', 'red', 'verdant']),
+  verdant: new Set(['verdant', 'hub', 'solar', 'azure']),
+  azure: new Set(['azure', 'hub', 'red', 'verdant']),
   prism: new Set(['prism', 'hub']),
 };
