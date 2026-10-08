@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { COLORS } from '../colors.js';
 import { audio } from '../audio.js';
+import { director } from '../combat/director.js';
 
 const _v = new THREE.Vector3();
 const _eye = new THREE.Vector3();
@@ -364,9 +365,11 @@ export class Drone {
 
     if (this.sees && this.stagger <= 0) {
       this.fireTimer -= dt;
-      if (this.fireTimer <= 0) {
+      // (only fires while it holds one of the director's attack tokens; first shot from off screen misses)
+      if (this.fireTimer <= 0 && !director.request(this, 0.7)) this.fireTimer = 0.25 + Math.random() * 0.3;
+      else if (this.fireTimer <= 0) {
         this.fireTimer = this.fireInterval * (0.8 + Math.random() * 0.4);
-        const dir = _v.subVectors(_eye, this.pos).normalize();
+        const dir = _v.subVectors(director.aim(this, this.pos, _eye), this.pos).normalize();
         const start = this.pos.clone().addScaledVector(dir, 1.0);
         new Orb(this.world, start, dir.multiplyScalar(11), this.color, { damage: 10 });
         audio.enemyShoot();
