@@ -507,7 +507,6 @@ export function buildAzureFlooded(B) {
   plat(126, -151, 128, -141, -47.6, zone, 2.4);
   stairs(128, -145, 129.5, -141, -48.0, -48.8, 3, 'x', 0.5);
   new Checkpoint(W, game, { pos: [127.3, -47.6, -147], yaw: -Math.PI / 2, size: [2.4, 2.4, 6] });
-  light(130, -44, -146, 0xbfe8ff, 26, 22);
   hint([126, -47.6, -151], [128, -44, -141], 'The <b>ballast valve</b> lies sealed under glass on the lab floor below. Dive in and drop a <b>GREEN</b> shot into the lit gap beside it: the <b>mirror</b> banks it onto the valve and floods the shaft.', 8);
   // water-level marks up the walls, and the exit lit at the top
   for (let y = -44; y < -26; y += 4) {

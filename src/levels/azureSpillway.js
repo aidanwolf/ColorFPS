@@ -188,8 +188,8 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
       sluice.pumpT = 0.5;
     },
   });
-  B.colorSwitch({ pos: [173, -47.5, QZ2], face: '-z', color: BLUE, mode: 'pulse', size: 1.5, links: [feed(1)], zone });
-  B.colorSwitch({ pos: [173, -3.5, -163], face: 'down', color: BLUE, mode: 'pulse', size: 1.9, links: [feed(3)], zone });
+  B.colorSwitch({ pos: [173, -47.5, QZ2], face: '-z', color: BLUE, mode: 'pulse', size: 1.5, links: [feed(1)], zone, light: false });
+  B.colorSwitch({ pos: [173, -3.5, -163], face: 'down', color: BLUE, mode: 'pulse', size: 1.9, links: [feed(3)], zone, light: false });
   // gauges up the walls: a mark every 4 m, the two locks in gold
   for (let y = -52; y < -8; y += 4) deco(QX1, y, QZ1, QX1 + 0.05, y + 0.06, QZ2);
   for (const y of [LOCK1, LOCK2]) {
@@ -197,7 +197,6 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     deco(QX2 - 0.06, y + 0.3, QZ1, QX2, y + 0.4, QZ2, 'glow1');
   }
   deco(170.5, -4.4, QZ2 - 0.06, 175.5, -4.3, QZ2, 'trimWhite');
-  light(173, -26, -163, 0xbfe8ff, 28, 30);
   hint([QX1, QY, QZ1], [QX2, LOCK0 + 2, QZ2], 'The <b>Sluice</b>. Keep firing <b style="color:#3a8bff">blue</b> into the pump valve high on the south wall to flood the shaft — stop and it drains.', 7);
   hint([QX1, -44.5, -165.6], [168.2, -41, QZ2], 'Shoot the <b>arrows</b> above and below each ledge on the north wall to set them into a <b>staircase</b> up to the east ledge.', 6);
   hint([176.2, -38.3, QZ1], [QX2, -35, QZ2], 'The last valve is in the <b>roof</b>. Flood the shaft and ride the water up — <b>hold Space</b> to float, keep firing.', 6);
@@ -256,8 +255,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   B.guideStrip([[173, GY, GZ + 0.6], [160.6, GY, GZ + 0.6], [160.6, GY, GZ - 1.4]], COLORS[BLUE].hex);
   const homeStrip = B.guideStrip([[159.4, GY, GZ - 1.4], [159.4, GY, GZ], [113, GY, GZ]], 0xdfe6ff, { near: 90 });
   homeStrip.visible = false;
-  // windows in the gallery's south wall look down on the Flooded Depths' sinkhole rim
-  for (const x of [128, 140]) deco(x, GY + 0.9, GZ + 1.45, x + 6, GY + 2.3, GZ + 1.5, 'glow3');
+  // (its windows onto the sea are set dressing: azureDressing.js)
 
   // ================================================================== THE DROWNED CISTERN (the guardian)
   // Charybdis and the Azure Engine (entities/leviathan.js, levels/leviathanArena.js): a 50x50 m tank,
@@ -420,6 +418,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     crystals = st.crystalMats || null;
     crystalBase = crystals && Object.fromEntries(Object.entries(crystals).map(([k, m]) => [k, m.color.clone()]));
     lock.open(restored);
+    st.dress?.dimOnShutdown(restored);
     homeStrip.visible = true;
     shutter.open(restored);
     for (const v of W.virtualLights) if (regionOf(v.position) === 'azure') dimLights.push({ v, base: v.intensity });

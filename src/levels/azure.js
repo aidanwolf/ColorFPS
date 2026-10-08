@@ -24,6 +24,7 @@ import { Glass, TargetPanel, SlidingDoor } from '../entities/puzzle.js';
 import { ShaftSpikes } from '../entities/spikeShield.js';
 import { boxGeo } from '../materials.js';
 import { buildAzureSpillway } from './azureSpillway.js';
+import { dressAzure } from './azureDressing.js';
 
 // tiny seeded RNG so the crystal fields and cliffs come out the same every load
 function mulberry32(a) {
@@ -261,7 +262,6 @@ export function buildAzure(B) {
   W.deco(56.5, 12.5, -119.5, 57.2, 12.9, -118.8, 'glow3', zone);
   new Checkpoint(W, game, { pos: [47, 4, -112], yaw: -Math.PI / 2, size: [3, 3, 7] });
   hint([44, 4, -116], [48, 7, -108], 'The station sinks into the abyss. <b>Hop down, ledge to ledge</b> — the dark below is bottomless.', 5);
-  light(51, 9.5, -112, 0xa8dcff, 40, 34);
   new Drone(W, { pos: [64, 8, -114], color: GREEN, range: 24 });
   keepOut.push([[25, 2, -121], [59, 14, -103]]);
   // (invisible) over the west, north and south rails: hop them and you'd land on the low west rim, cut
@@ -712,7 +712,6 @@ export function buildAzure(B) {
   ], (pl) => pl.pos.x > 25 && pl.pos.y > 0);
   // the sanctum's way out: once you hold blue, a trail from the pedestal to the blue door
   guideTrail(W, BLUE_HEX, [[[71.6, -56, -138], [76, -56, -146], [79.6, -56, -146]]], (pl) => pl.pos.y < -50 && pl.pos.x < 81 && pl.pos.z > -151 && game.blaster.unlocked[BLUE]);
-  light(57, -33, -170, 0xa8dcff, 30, 26); // the Well: light the pillars from the middle
   // ...and band each pillar's lip with light, so the ledges read against the gloom from the catwalk
   for (const [x1, z1, x2, z2, top] of [[60, -181, 64, -177, -28.5], [52, -181, 56, -177, -32], [51, -172, 54.5, -168, -35.5], [51, -163, 55, -159, -39], [57, -166.5, 66, -158, -44.2]]) {
     const y1 = top - 0.5, y2 = top - 0.3, o = 0.04;
@@ -721,6 +720,9 @@ export function buildAzure(B) {
     W.deco(x1 - o, y1, z1, x1, y2, z2, 'glow3', zone);
     W.deco(x2, y1, z1, x2 + o, y2, z2, 'glow3', zone);
   }
+
+  // ---- set dressing: pipes, signage, windows onto the sea, caustics, mist, machine halls (azureDressing.js)
+  dressAzure(B, { zone });
 
   const RYG = [RED, YELLOW, GREEN];
   devStart('azure', [27, 4, -112], -Math.PI / 2, RYG);
