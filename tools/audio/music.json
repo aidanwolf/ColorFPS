@@ -38,5 +38,17 @@
  "music_victory": {
   "prompt": "Triumphant victory theme after defeating a giant robot, soaring orchestral sci-fi anthem with bright synth arpeggios, celebratory and emotional, instrumental",
   "ms": 45000
+ },
+ "music_hub": {
+  "prompt": "Relaxing spacious meditative sci-fi ambient interlude, warm evolving synth pads, soft gentle arpeggios, slow gentle pulse, sense of safety, calm and wonder, low intensity, no drums, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_solar": {
+  "prompt": "Hot sun-scorched outdoor sci-fi action soundtrack, driving desert synthwave with heat-haze atmosphere, shimmering twangy guitars, punchy drums and pulsing bass, big open sun-drenched sound, energetic, instrumental, seamless loop",
+  "ms": 90000
+ },
+ "music_ascent": {
+  "prompt": "Urgent escalating relentless climb, rising synth ostinato, pounding drums and driving bass, tension building constantly, intense sci-fi action, instrumental, seamless loop",
+  "ms": 75000
  }
 }
