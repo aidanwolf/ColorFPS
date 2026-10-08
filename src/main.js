@@ -13,18 +13,28 @@ import { Blaster } from './weapon.js';
 import { Hud } from './hud.js';
 import { buildLevel } from './level.js';
 import { ads } from './monetization/bonusround.js';
+import { TouchControls } from './touch.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const DEV = params.has('dev');
+// Phones and tablets get touch controls and a lighter render setup.
+const COARSE = matchMedia('(pointer: coarse)').matches;
 
+// sens uses Quake/Half-Life units (0.022° per mouse count × sens, default 3); fov is Quake-style:
+// horizontal degrees on a 4:3 screen (default 90), widened for wider screens.
 function loadSettings() {
-  const d = { sensitivity: 1, fov: 90, volume: 0.7, invertY: false };
+  const d = { sens: 3, fov: 90, volume: 0.7, invertY: false };
   try {
-    return { ...d, ...JSON.parse(localStorage.getItem('chroma-settings') || '{}') };
+    return { ...d, ...JSON.parse(localStorage.getItem('chroma-settings-v2') || '{}') };
   } catch {
     return d;
   }
+}
+
+// Vertical FOV (what three.js wants) from a Quake-style horizontal FOV measured at 4:3.
+function verticalFov(fov43) {
+  return (2 * Math.atan(Math.tan((fov43 * Math.PI) / 360) * 0.75) * 180) / Math.PI;
 }
 
 class Game {
@@ -36,7 +46,7 @@ class Game {
 
     // ---- renderer / scene ----
     const renderer = (this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' }));
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(devicePixelRatio, COARSE ? 1.25 : 2));
     renderer.setSize(innerWidth, innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
@@ -54,7 +64,7 @@ class Game {
     sun.position.set(0.5, 1, 0.3);
     scene.add(sun);
 
-    this.camera = new THREE.PerspectiveCamera(this.settings.fov, innerWidth / innerHeight, 0.05, 800);
+    this.camera = new THREE.PerspectiveCamera(verticalFov(this.settings.fov), innerWidth / innerHeight, 0.05, 800);
     scene.add(this.camera);
 
     // ---- game systems ----
@@ -71,9 +81,9 @@ class Game {
     this.checkpoint = { pos: this.level.spawn.clone(), yaw: this.level.spawnYaw, ref: null };
 
     // ---- post processing: world → bloom → view model on top → output ----
-    const target = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: 4 });
+    const target = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: COARSE ? 0 : 4 });
     this.composer = new EffectComposer(renderer, target);
-    this.composer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.composer.setPixelRatio(Math.min(devicePixelRatio, COARSE ? 1.25 : 2));
     this.composer.addPass(new RenderPass(scene, this.camera));
     this.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.6, 0.5, 0.82);
     this.composer.addPass(this.bloom);
@@ -83,18 +93,40 @@ class Game {
     this.composer.addPass(vm);
     this.composer.addPass(new OutputPass());
 
+    // compile every material now so the first sight of anything (the boss included) doesn't hitch
+    const boss = this.level.boss;
+    boss.root.visible = true;
+    renderer.compile(scene, this.camera);
+    renderer.compile(this.blaster.vmScene, this.blaster.vmCamera);
+    boss.root.visible = false;
+
     addEventListener('resize', () => this.resize());
     this.resize();
     this.bindUi();
     this.input.onLockChange = (locked) => this.onLockChange(locked);
+    this.touch = new TouchControls(this.input, { onPause: () => this.pause() });
+    this.hud.onColor = (i) => this.blaster.has && this.blaster.setColor(i);
+    if (COARSE) this.enableTouch();
+    // a touch anywhere (e.g. tapping Play on a touchscreen laptop) switches to touch controls
+    addEventListener('touchstart', () => this.enableTouch(), { once: true, passive: true });
+    document.addEventListener('visibilitychange', () => document.hidden && this.pause());
 
-    // ---- Bonus Round ----
+    // ---- Bonus Round (native mode: the round plays in our world with our own player) ----
+    this.frameCallbacks = [];
+    const player = this.player;
     ads.load();
     ads.attach({
       THREE,
       scene,
       camera: this.camera,
       renderer,
+      worldRoot: this.world.staticGroup, // hidden during the round
+      host: {
+        getPlayerPosition: () => player.pos.clone(),
+        teleport: (v) => player.teleport(v),
+        setBounds: (b) => (player.arenaBounds = b),
+        onFrame: (cb) => this.frameCallbacks.push(cb),
+      },
       onStart: () => this.onAdStart(),
       onEnd: () => this.onAdEnd(),
     });
@@ -186,18 +218,21 @@ class Game {
       el.addEventListener('input', () => {
         this.settings[key] = parse(el);
         try {
-          localStorage.setItem('chroma-settings', JSON.stringify(this.settings));
+          localStorage.setItem('chroma-settings-v2', JSON.stringify(this.settings));
         } catch {
           /* storage unavailable: settings last for this session only */
         }
         after?.();
       });
     };
-    bind('#set-sens', 'sensitivity', (el) => +el.value);
+    bind('#set-sens', 'sens', (el) => +el.value, () => ($('#sens-val').textContent = this.settings.sens.toFixed(1)));
+    $('#sens-val').textContent = this.settings.sens.toFixed(1);
     bind('#set-fov', 'fov', (el) => +el.value, () => {
-      this.camera.fov = this.settings.fov;
+      $('#fov-val').textContent = this.settings.fov;
+      this.camera.fov = verticalFov(this.settings.fov);
       this.camera.updateProjectionMatrix();
     });
+    $('#fov-val').textContent = this.settings.fov;
     bind('#set-vol', 'volume', (el) => +el.value, () => audio.setVolume(this.settings.volume));
     bind('#set-invert', 'invertY', (el) => el.checked);
     audio.setVolume(this.settings.volume);
@@ -221,7 +256,7 @@ class Game {
     this.state = 'playing';
     this.hud.show(true);
     this.showScreen(null);
-    this.input.requestLock();
+    this.capture();
     ads.safe(false);
     if (!this.started) {
       this.started = true;
@@ -230,11 +265,29 @@ class Game {
     }
   }
 
+  enableTouch() {
+    if (this.touchMode) return;
+    this.touchMode = true;
+    this.hud.touchMode = true;
+    document.body.classList.add('touch');
+  }
+
+  // Grab input for gameplay: pointer lock on desktop; fullscreen (where allowed) on touch devices.
+  capture() {
+    if (!this.touchMode) return this.input.requestLock();
+    const el = document.documentElement;
+    if (!document.fullscreenElement && el.requestFullscreen) {
+      el.requestFullscreen({ navigationUI: 'hide' })
+        .then(() => screen.orientation?.lock?.('landscape').catch(() => {}))
+        .catch(() => {});
+    }
+  }
+
   resume() {
     if (this.player.dead) return this.respawn();
     this.state = 'playing';
     this.showScreen(null);
-    this.input.requestLock();
+    this.capture();
     ads.safe(false);
   }
 
@@ -249,7 +302,7 @@ class Game {
 
   onLockChange(locked) {
     if (locked) return;
-    if (this.inBreak || this.state === 'ad') return;
+    if (this.adRound || this.reviving || this.state === 'ad') return;
     if (this.state === 'playing') this.pause();
   }
 
@@ -324,6 +377,8 @@ class Game {
     this.deathYaw = this.player.yaw;
     this.input.exitLock();
     audio.explode();
+    const shot = ['orb', 'sweep', 'ring', 'charge'].includes(this.player.deathCause);
+    $('#screen-dead h2').textContent = shot ? 'Shot Down' : 'Signal Lost';
     $('#screen-dead [data-action="revive"]').classList.toggle('hidden', !ads.available);
     this.showScreen('dead');
     ads.safe(true);
@@ -346,80 +401,66 @@ class Game {
     for (const pr of this.world.projectiles) pr.alive = false;
     this.state = 'playing';
     this.showScreen(null);
-    this.input.requestLock();
+    this.capture();
     ads.safe(false);
   }
 
-  // Rewarded Bonus Round: finish it and you're revived on the spot.
+  // Rewarded Bonus Round: you're dropped into the round right where you fell; finish it and
+  // you're revived there with 60% integrity, otherwise you respawn at the checkpoint.
   async revive() {
-    let rewarded = false;
-    this.inBreak = true;
-    const result = await ads.rewarded(() => (rewarded = true));
-    this.inBreak = false;
-    this.adActive = false;
-    audio.setVolume(this.settings.volume);
-    if (!rewarded) {
-      if (!result.filled) return this.respawn();
-      // they left the round early: back to the death screen
-      this.state = 'dead';
-      this.showScreen('dead');
-      return;
-    }
     const p = this.player;
+    let rewarded = false;
+    this.reviving = true; // rules stay paused from the click until the round ends
     p.dead = false;
     p.spawn(this.deathPos, this.deathYaw);
+    p.health = 1;
+    for (const pr of this.world.projectiles) pr.alive = false;
+    this.state = 'playing';
+    this.showScreen(null);
+    this.capture();
+    const result = await ads.rewarded(() => (rewarded = true));
+    this.reviving = false;
+    this.onAdEnd();
+    if (!rewarded) return this.respawn();
     p.health = Math.ceil(p.maxHealth * 0.6);
     p.invuln = 3;
-    for (const pr of this.world.projectiles) pr.alive = false;
-    this.hud.message('Revived — thanks for playing the Bonus Round!', 3);
-    this.state = 'ad';
-    this.adContinue.classList.remove('hidden');
-    this.showScreen('ad');
-    $('#screen-ad h2').textContent = 'Revived!';
+    this.hud.message(result.filled ? 'Revived — thanks for playing the Bonus Round!' : 'Revived!', 3);
   }
 
-  // Natural break: request an intermission round. Gameplay freezes while the request is out
-  // (breaks only happen at safe moments). If nothing fills, play resumes with no click needed.
-  // break() resolving is the reliable end signal, so we don't depend on the SDK's start/end events.
+  // Natural break: ask for an intermission round and keep playing. The SDK shows its countdown,
+  // then moves the player into the round (native mode) and back. If nothing fills, nothing happens.
   async naturalBreak() {
     if (!ads.enabled) return;
     this.inBreak = true;
     const result = await ads.intermission();
     this.inBreak = false;
     if (import.meta.env.DEV) console.info('[chroma] intermission result', JSON.stringify(result));
-    if (this.adActive) this.onAdEnd();
-    else if (result.filled && this.state !== 'ad') {
-      // a round played but we never saw it start: still hand back control with a Continue click
-      this.onAdStart();
-      this.onAdEnd();
-    }
+    this.onAdEnd(); // break() resolving is the reliable end signal
   }
 
-  // Called on the SDK's start event, or its first impression/viewable event as a fallback. Idempotent.
+  // Round started (the SDK's start event, or its first impression/viewable event). Idempotent.
+  // Gameplay keeps running for the player; enemies, damage and hazards pause.
   onAdStart() {
-    if (this.adActive) return;
-    this.adActive = true;
-    this.prevState = this.state;
-    this.state = 'ad';
-    this.input.exitLock();
-    audio.setVolume(0);
-    this.adContinue.classList.add('hidden');
-    $('#screen-ad h2').textContent = 'Bonus Round';
-    this.showScreen('ad');
+    if (this.adRound) return;
+    this.adRound = true;
+    audio.setMusicMuted(true);
+    this.hud.bossShow(false);
+    for (const pr of this.world.projectiles) pr.alive = false;
   }
 
   onAdEnd() {
-    if (!this.adActive) return;
-    this.adActive = false;
-    audio.setVolume(this.settings.volume);
-    if (this.prevState === 'dead' || this.prevState === 'victory' || this.prevState === 'title') {
-      this.state = this.prevState;
-      this.showScreen(this.prevState);
-      return;
-    }
-    $('#screen-ad h2').textContent = 'Back to the breach';
-    this.adContinue.classList.remove('hidden');
-    this.showScreen('ad');
+    if (!this.adRound) return;
+    this.adRound = false;
+    this.player.arenaBounds = null;
+    audio.setMusicMuted(false);
+    if (this.level.boss.active) this.hud.bossShow(true);
+    // if the round released the mouse, offer a click back in instead of dropping input silently
+    if (this.state === 'playing' && !this.touchMode && !this.input.locked) this.pause();
+  }
+
+  // enemies, damage, triggers and hazards are paused while a round plays or a revive is pending
+  get rulesPaused() {
+    return this.adRound || this.reviving;
   }
 
   // ------------------------------------------------------------------ dev helpers (?dev)
@@ -449,7 +490,8 @@ class Game {
   // One gameplay step. Entities update first so moving platforms publish their delta before the player rides them.
   step(dt) {
     this.stats.time += dt;
-    this.world.update(dt, this.player);
+    if (this.rulesPaused) this.world.fx.update(dt);
+    else this.world.update(dt, this.player);
     this.player.update(dt, this.input, this.settings);
     this.blaster.update(dt, this.input);
     this.hud.setHealth(this.player.health, this.player.maxHealth);
@@ -463,9 +505,10 @@ class Game {
     this.sky.position.copy(this.camera.position);
 
     this.input.active = this.state === 'playing';
+    this.touch.show(this.touchMode && this.state === 'playing');
     if (this.state === 'playing') {
       if (DEV) this.devKeys();
-      if (!this.inBreak) this.step(dt);
+      this.step(dt);
     } else if (this.state === 'title') {
       // slow look around the spawn room behind the menu
       this.camera.position.set(Math.sin(t * 0.1) * 2, 2.2, -1.5);
@@ -474,6 +517,13 @@ class Game {
     } else {
       this.world.fx.update(dt);
     }
+    // a small FOV kick while sprinting
+    const fovTarget = verticalFov(this.settings.fov) + (this.player.sprinting && this.player.speed2d > 8 ? 4 : 0);
+    if (Math.abs(this.camera.fov - fovTarget) > 0.01) {
+      this.camera.fov += (fovTarget - this.camera.fov) * Math.min(1, dt * 8);
+      this.camera.updateProjectionMatrix();
+    }
+    for (const cb of this.frameCallbacks) cb(dt);
     this.hud.update(dt);
     this.composer.render();
     this.input.endFrame();

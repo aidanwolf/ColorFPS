@@ -206,6 +206,9 @@ class Audio {
     s.start(t0, Math.random() * 0.5);
     s.stop(t0 + 0.06);
   }
+  setMusicMuted(m) {
+    if (this.musicBus) this.musicBus.gain.value = m ? 0 : 0.32;
+  }
   setIntensity(i) {
     if (this.music) this.music.intensity = i;
   }

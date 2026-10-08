@@ -108,9 +108,13 @@ export class Boss {
     this.coreRing = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.12, 8, 24), dark);
     this.coreRing.position.copy(this.core.position);
     this.torso.add(this.coreRing);
-    this.coreLight = new THREE.PointLight(0xffffff, 10, 14, 1.5);
-    this.coreLight.position.set(0, 1.05, 1.6);
-    this.torso.add(this.coreLight);
+    // The core light lives in the scene (not under the hidden root) and is dimmed to 0 while the boss
+    // is away, so the visible light count never changes (that would recompile every material).
+    this.coreLight = new THREE.PointLight(0xffffff, 0, 14, 1.5);
+    this.coreLightAnchor = new THREE.Object3D();
+    this.coreLightAnchor.position.set(0, 1.05, 1.6);
+    this.torso.add(this.coreLightAnchor);
+    this.world.scene.add(this.coreLight);
 
     // head
     const hl = makeLimb('head');
@@ -236,6 +240,7 @@ export class Boss {
     this.coreFlash = 0;
     this.barDirty = true;
     this.root.visible = false;
+    this.coreLight.intensity = 0;
     this.root.rotation.set(0, 0, 0);
     this.beam.visible = false;
     for (const r of this.rings) this.world.scene.remove(r.mesh);
@@ -514,6 +519,7 @@ export class Boss {
     this.coreMat.color.copy(cc).multiplyScalar(2.2 + this.coreFlash * 3);
     this.coreLight.color.copy(cc);
     this.coreLight.intensity = s.up ? 4 : 14;
+    this.coreLightAnchor.getWorldPosition(this.coreLight.position);
     this.torsoTimer -= dt;
     if (this.torsoTimer <= 0) {
       this.torsoTimer = 4;
@@ -900,6 +906,7 @@ export class Boss {
       audio.explode(true);
       this.game.player.shake = 1;
       this.root.visible = false;
+      this.coreLight.intensity = 0;
       this.world.removeHittable(this.root);
       this.game.onBossDefeated();
     }

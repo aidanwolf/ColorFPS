@@ -10,6 +10,11 @@ const EYE_DROP = 0.14;
 const GRAVITY = 24;
 const JUMP_V = 8.6;
 const RUN_SPEED = 7.6;
+const SPRINT_SPEED = 10.5;
+// Quake/Half-Life mouse feel: m_yaw = m_pitch = 0.022 degrees per mouse count, times sensitivity.
+const DEG_PER_COUNT = 0.022 * (Math.PI / 180);
+// Enemy fire and boss attacks kill outright; spikes and falls only chip health.
+const LETHAL = new Set(['orb', 'sweep', 'ring', 'charge']);
 const CROUCH_SPEED = 3.6;
 const GROUND_ACCEL = 70;
 const AIR_ACCEL = 22;
@@ -43,7 +48,9 @@ export class Player {
     this.landKick = 0;
     this.shake = 0;
     this.speed2d = 0;
-    this.arenaBounds = null; // set by the ad SDK in native mode; unused in overlay mode
+    this.arenaBounds = null; // set by the Bonus Round SDK during a native round
+    this.floorY = null;
+    this.sprinting = false;
     this._min = new THREE.Vector3();
     this._max = new THREE.Vector3();
   }
@@ -77,7 +84,7 @@ export class Player {
   update(dt, input, settings) {
     const world = this.game.world;
     // ---- look ----
-    const sens = 0.0022 * settings.sensitivity;
+    const sens = DEG_PER_COUNT * settings.sens;
     this.yaw -= input.dx * sens;
     this.pitch -= input.dy * sens * (settings.invertY ? -1 : 1);
     this.pitch = Math.max(-1.55, Math.min(1.55, this.pitch));
@@ -86,7 +93,7 @@ export class Player {
     if (this.ground && this.ground.delta) this.pos.add(this.ground.delta);
 
     // ---- crouch ----
-    const wantCrouch = input.down('KeyC') || input.down('ShiftLeft') || input.down('ShiftRight') || input.down('ControlLeft');
+    const wantCrouch = input.down('KeyC') || input.down('TouchCrouch');
     if (wantCrouch && !this.crouching) {
       this.crouching = true;
       // crouching in mid-air tucks the legs up, which helps clear ledges
@@ -109,16 +116,24 @@ export class Player {
     const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw);
     const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
     let mx = 0, mz = 0;
-    const f = (input.down('KeyW') || input.down('ArrowUp') ? 1 : 0) - (input.down('KeyS') || input.down('ArrowDown') ? 1 : 0);
-    const r = (input.down('KeyD') || input.down('ArrowRight') ? 1 : 0) - (input.down('KeyA') || input.down('ArrowLeft') ? 1 : 0);
+    let f = (input.down('KeyW') || input.down('ArrowUp') ? 1 : 0) - (input.down('KeyS') || input.down('ArrowDown') ? 1 : 0);
+    let r = (input.down('KeyD') || input.down('ArrowRight') ? 1 : 0) - (input.down('KeyA') || input.down('ArrowLeft') ? 1 : 0);
+    // the touch stick is analog: a partial push walks slower
+    if (input.stick) {
+      f += input.stick.f;
+      r += input.stick.r;
+    }
     mx = fx * f + rx * r;
     mz = fz * f + rz * r;
     const ml = Math.hypot(mx, mz);
-    if (ml > 0) {
+    if (ml > 1) {
       mx /= ml;
       mz /= ml;
     }
-    const speed = this.crouching && this.grounded ? CROUCH_SPEED : RUN_SPEED;
+    // Shift sprints (forward-ish only); a fully pushed touch stick sprints too
+    const stickFull = input.stick && Math.hypot(input.stick.f, input.stick.r) > 0.97;
+    this.sprinting = !this.crouching && f > 0 && (input.down('ShiftLeft') || input.down('ShiftRight') || stickFull);
+    const speed = this.crouching && this.grounded ? CROUCH_SPEED : this.sprinting ? SPRINT_SPEED : RUN_SPEED;
     const tx = mx * speed, tz = mz * speed;
     const accel = this.grounded ? GROUND_ACCEL : AIR_ACCEL;
     const dvx = tx - this.vel.x, dvz = tz - this.vel.z;
@@ -158,6 +173,16 @@ export class Player {
       this.launched = false;
     }
     if (this.arenaBounds) this.clampToArena();
+    // during a Bonus Round the arena has no colliders of ours: hold the player at the floor the SDK teleported us to
+    if (this.game.rulesPaused) {
+      if (this.floorY !== null && this.pos.y < this.floorY) {
+        this.pos.y = this.floorY;
+        this.vel.y = 0;
+        this.grounded = true;
+      }
+      this.finishUpdate(dt);
+      return;
+    }
 
     // ---- hazards ----
     const b = this.bounds();
@@ -184,6 +209,10 @@ export class Player {
     }
     if (this.pos.y < -60) this.fallRecover();
 
+    this.finishUpdate(dt);
+  }
+
+  finishUpdate(dt) {
     // ---- safe position tracking for fall recovery ----
     if (this.grounded && this.ground && this.ground.static && !this.ground.hazard) {
       this.safeTimer += dt;
@@ -293,6 +322,7 @@ export class Player {
     return landed;
   }
 
+  // Bonus Round native mode: keep the player inside the arena circle and out of its obstacles.
   clampToArena() {
     const b = this.arenaBounds;
     const dx = this.pos.x - b.center.x, dz = this.pos.z - b.center.z;
@@ -301,11 +331,29 @@ export class Player {
       this.pos.x = b.center.x + (dx / d) * b.radius;
       this.pos.z = b.center.z + (dz / d) * b.radius;
     }
+    for (const o of b.obstacles || []) {
+      const ox = this.pos.x - o.x, oz = this.pos.z - o.z;
+      const od = Math.hypot(ox, oz);
+      const r = o.r + HALF_W;
+      if (od < r && od > 1e-4) {
+        this.pos.x = o.x + (ox / od) * r;
+        this.pos.z = o.z + (oz / od) * r;
+      }
+    }
     if (this.pos.y < b.center.y) {
       this.pos.y = b.center.y;
       this.vel.y = 0;
       this.grounded = true;
     }
+  }
+
+  // Called by the Bonus Round SDK at the start and end of a native round.
+  teleport(v) {
+    this.pos.copy(v);
+    this.vel.set(0, 0, 0);
+    this.ground = null;
+    this.floorY = v.y;
+    this.updateCamera();
   }
 
   launch(vy, push) {
@@ -321,7 +369,9 @@ export class Player {
   }
 
   damage(amount, source) {
-    if (this.dead || this.invuln > 0 || this.game.godMode) return;
+    if (this.dead || this.invuln > 0 || this.game.godMode || this.game.rulesPaused) return;
+    if (LETHAL.has(source)) amount = this.health;
+    this.deathCause = source;
     this.health -= amount;
     this.invuln = source === 'spike' ? 0.6 : 0.25;
     this.shake = Math.min(1, this.shake + amount / 40);

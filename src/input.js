@@ -9,6 +9,7 @@ export class Input {
     this.dx = 0;
     this.dy = 0;
     this.wheel = 0;
+    this.stick = null; // analog move vector { f, r } from the touch stick
     this.locked = false;
     this.lockFailed = false; // pointer lock refused: fall back to plain mouse input while playing
     this.active = false; // set by the game while gameplay is running

@@ -29,13 +29,14 @@ export const ads = {
     this.enabled = true;
   },
 
-  // Overlay mode: the round draws over our canvas, so the game pauses completely while it plays.
-  // onStart/onEnd also fire for interval/offer rounds that our code didn't start.
+  // Native mode: with worldRoot + host the round plays inside our scene with our own player,
+  // controls and physics (https://bonusround.io/docs/attach#host-adapter).
+  // onStart/onEnd also fire for rounds that our code didn't start.
   // SDK 1.0.0 doesn't always emit 'start'/'end', so the first impression/viewable event also counts
   // as a start and 'complete' as an end; for breaks we request, break() resolving is the final word.
-  attach({ THREE, scene, camera, renderer, onStart, onEnd }) {
+  attach({ THREE, scene, camera, renderer, worldRoot, host, onStart, onEnd }) {
     (window.bonusround = window.bonusround || []).push((BR) => {
-      BR.attach({ THREE, scene, camera, renderer });
+      BR.attach({ THREE, scene, camera, renderer, worldRoot, host });
       BR.on('start', onStart);
       BR.on('end', onEnd);
       BR.on('event', (e) => {

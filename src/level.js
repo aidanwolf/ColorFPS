@@ -212,7 +212,7 @@ export function buildLevel(world, game) {
     hint([-1.5, 4, d(3)], [1.5, 7, d(1)], 'Switch colors with <b>1-4</b>, <b>Q</b>/<b>E</b> or the <b>mouse wheel</b>. <b>F</b> swaps to your last color.');
     [[4, YELLOW], [7, RED], [10, YELLOW], [13, YELLOW], [16, RED], [22, RED], [24, YELLOW], [26, RED], [28, YELLOW]].forEach(([k, c]) => barrierWall(d(k), 4, c, zone));
     new Drone(W, { pos: [0, 6.2, d(19.5)], color: [RED, YELLOW], orbit: 0.4, range: 16, cycle: 2 });
-    hint([-1.5, 4, d(26)], [1.5, 7, d(24)], 'Low passage ahead — hold <b>C</b> (or <b>Shift</b>) to crouch.');
+    hint([-1.5, 4, d(26)], [1.5, 7, d(24)], 'Low passage ahead — hold <b>C</b> to crouch.');
 
     // SECRET 3 — green door (come back after Sector 3)
     new Barrier(W, { min: [-2, 4, d(13.2)], max: [-1.5, 7, d(10.8)], color: GREEN, kind: 'door', zone });

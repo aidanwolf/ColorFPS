@@ -3,6 +3,16 @@ import { COLORS } from './colors.js';
 
 const $ = (s) => document.querySelector(s);
 
+// Keyboard/mouse wording in hints, rewritten for touch controls.
+const TOUCH_TEXT = [
+  [/Switch colors with .*?last color\./, 'Tap the <b>color buttons</b> to switch colors fast.'],
+  [/Hold <b>LMB<\/b> to fire\./, 'Hold <b>FIRE</b> to shoot. Drag on it to aim while firing.'],
+  [/<b>LMB<\/b> to fire\./, 'Hold <b>FIRE</b> to shoot.'],
+  [/<b>Space<\/b> to jump/, 'Tap <b>JUMP</b>'],
+  [/hold <b>C<\/b> to crouch/, 'tap <b>CROUCH</b> to duck'],
+  [/press <b>\d<\/b>/, 'tap its color button'],
+];
+
 export class Hud {
   constructor() {
     this.root = $('#hud');
@@ -36,6 +46,10 @@ export class Hud {
       el.className = 'cslot';
       el.style.setProperty('--c', c.css);
       el.innerHTML = `<div class="sw"></div><div class="k">${i + 1}</div>`;
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        this.onColor?.(i);
+      });
       this.colorsEl.appendChild(el);
       return el;
     });
@@ -60,6 +74,7 @@ export class Hud {
   }
 
   message(html, time = 4) {
+    if (this.touchMode) for (const [re, txt] of TOUCH_TEXT) html = html.replace(re, txt);
     this.msg.innerHTML = html;
     this.msg.classList.add('show');
     this.msgTimer = time;

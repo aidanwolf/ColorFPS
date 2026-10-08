@@ -30,7 +30,6 @@ export class Pickup {
       this.rings.add(r1, r2);
       this.group.add(this.spin, this.rings);
       this.light = new THREE.PointLight(c, 6, 9, 1.6);
-      this.group.add(this.light);
     } else if (type === 'health') {
       const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x6dffb0).multiplyScalar(1.8) });
       this.spin = new THREE.Group();
@@ -46,9 +45,15 @@ export class Pickup {
       this.rings = halo;
       this.group.add(this.spin, halo);
       this.light = new THREE.PointLight(0xffcc55, 4, 6, 1.6);
-      this.group.add(this.light);
     }
     world.scene.add(this.group);
+    // Lights live in the scene, not the pickup group, and are dimmed instead of hidden:
+    // changing the number of visible lights makes three.js recompile every material (a big hitch).
+    if (this.light) {
+      this.light.position.copy(this.pos);
+      this.lightIntensity = this.light.intensity;
+      world.scene.add(this.light);
+    }
     world.add(this);
   }
 
@@ -60,6 +65,7 @@ export class Pickup {
         if (this.timer <= 0) {
           this.active = true;
           this.group.visible = true;
+          if (this.light) this.light.intensity = this.lightIntensity;
         }
       }
       return;
@@ -88,6 +94,7 @@ export class Pickup {
     }
     this.active = false;
     this.group.visible = false;
+    if (this.light) this.light.intensity = 0;
     this.timer = this.respawn;
     this.world.fx.burst(this.pos, this.type === 'color' ? COLORS[this.color].hex : this.type === 'health' ? 0x6dffb0 : 0xffcc55, { count: 40, speed: 6, life: 0.8, size: 0.3, gravity: 2 });
     this.onCollect?.(this, player);
@@ -194,25 +201,50 @@ export class JumpPad {
 }
 
 export class Checkpoint {
+  // A light beacon you run through. It turns bright cyan when it becomes your respawn point.
   constructor(world, game, { pos, yaw = 0, size = [3, 3, 2] }) {
     this.world = world;
     this.pos = new THREE.Vector3(...pos);
-    this.on = false;
-    // a small beacon on the floor that lights up when reached
+    this.t = Math.random() * 10;
     this.group = new THREE.Group();
     this.group.position.copy(this.pos);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0x333a55 });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.06, 6, 32), ringMat);
+    this.ringMat = new THREE.MeshBasicMaterial({ color: 0x4a5070 });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.07, 6, 32), this.ringMat);
     ring.rotation.x = Math.PI / 2;
-    ring.position.y = 0.03;
-    this.group.add(ring);
-    this.ringMat = ringMat;
+    ring.position.y = 0.04;
+    this.beamMat = new THREE.MeshBasicMaterial({ color: 0x6a7090, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.7, 3.2, 24, 1, true), this.beamMat);
+    beam.position.y = 1.6;
+    this.gemMat = new THREE.MeshBasicMaterial({ color: 0x6a7090 });
+    this.gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.18, 0), this.gemMat);
+    this.gem.position.y = 2.3;
+    this.group.add(ring, beam, this.gem);
     world.scene.add(this.group);
+    world.add(this);
     const [w, h, d] = size;
     world.trigger([this.pos.x - w / 2, this.pos.y, this.pos.z - d / 2], [this.pos.x + w / 2, this.pos.y + h, this.pos.z + d / 2], () => {
       if (game.checkpoint?.ref === this) return;
-      this.ringMat.color.set(0x9bf6ff).multiplyScalar(2);
+      game.checkpoint?.ref?.setActive(false);
+      this.setActive(true);
+      this.world.fx.burst(this.pos.clone().setY(this.pos.y + 1.2), 0x9bf6ff, { count: 40, speed: 4, life: 0.8, size: 0.25, gravity: -3 });
       game.setCheckpoint(this.pos, yaw, this);
     }, { once: false });
+  }
+
+  setActive(on) {
+    this.active = on;
+    this.used = true;
+    const c = on ? new THREE.Color(0x9bf6ff).multiplyScalar(2) : new THREE.Color(0x5fd3a0);
+    this.ringMat.color.copy(c);
+    this.gemMat.color.copy(c);
+    this.beamMat.color.set(on ? 0x9bf6ff : 0x5fd3a0);
+    this.beamMat.opacity = on ? 0.28 : 0.08;
+  }
+
+  update(dt) {
+    this.t += dt;
+    this.gem.rotation.y += dt * (this.active ? 3 : 1);
+    this.gem.position.y = 2.3 + Math.sin(this.t * 2) * 0.1;
+    if (this.active) this.beamMat.opacity = 0.22 + Math.sin(this.t * 4) * 0.06;
   }
 }
