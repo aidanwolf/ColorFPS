@@ -356,8 +356,13 @@ class Game {
     this.inBreak = true;
     const result = await ads.rewarded(() => (rewarded = true));
     this.inBreak = false;
+    this.adActive = false;
+    audio.setVolume(this.settings.volume);
     if (!rewarded) {
-      if (!result.filled) this.respawn();
+      if (!result.filled) return this.respawn();
+      // they left the round early: back to the death screen
+      this.state = 'dead';
+      this.showScreen('dead');
       return;
     }
     const p = this.player;
@@ -373,16 +378,28 @@ class Game {
     $('#screen-ad h2').textContent = 'Revived!';
   }
 
-  // Natural break: request an intermission round. If nothing fills, play simply continues.
+  // Natural break: request an intermission round. Gameplay freezes while the request is out
+  // (breaks only happen at safe moments). If nothing fills, play resumes with no click needed.
+  // break() resolving is the reliable end signal, so we don't depend on the SDK's start/end events.
   async naturalBreak() {
     if (!ads.enabled) return;
     this.inBreak = true;
-    await ads.intermission();
+    const result = await ads.intermission();
     this.inBreak = false;
+    if (import.meta.env.DEV) console.info('[chroma] intermission result', JSON.stringify(result));
+    if (this.adActive) this.onAdEnd();
+    else if (result.filled && this.state !== 'ad') {
+      // a round played but we never saw it start: still hand back control with a Continue click
+      this.onAdStart();
+      this.onAdEnd();
+    }
   }
 
+  // Called on the SDK's start event, or its first impression/viewable event as a fallback. Idempotent.
   onAdStart() {
-    this.prevState = this.state === 'ad' ? this.prevState : this.state;
+    if (this.adActive) return;
+    this.adActive = true;
+    this.prevState = this.state;
     this.state = 'ad';
     this.input.exitLock();
     audio.setVolume(0);
@@ -392,6 +409,8 @@ class Game {
   }
 
   onAdEnd() {
+    if (!this.adActive) return;
+    this.adActive = false;
     audio.setVolume(this.settings.volume);
     if (this.prevState === 'dead' || this.prevState === 'victory' || this.prevState === 'title') {
       this.state = this.prevState;
@@ -445,7 +464,7 @@ class Game {
 
     if (this.state === 'playing') {
       if (DEV) this.devKeys();
-      this.step(dt);
+      if (!this.inBreak) this.step(dt);
     } else if (this.state === 'title') {
       // slow look around the spawn room behind the menu
       this.camera.position.set(Math.sin(t * 0.1) * 2, 2.2, -1.5);
