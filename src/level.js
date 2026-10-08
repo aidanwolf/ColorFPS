@@ -11,6 +11,7 @@ import { buildVerdant } from './levels/verdant.js';
 import { buildAzure } from './levels/azure.js';
 import { buildPrism } from './levels/prism.js';
 import { buildGuide } from './levels/guide.js';
+import { buildVerdantBossRange } from './levels/verdantBossRange.js';
 
 export function buildLevel(world, game) {
   const level = {
@@ -31,5 +32,6 @@ export function buildLevel(world, game) {
   buildAzure(B);
   buildPrism(B);
   buildGuide(world, game);
+  buildVerdantBossRange(B); // dev-only (?dev&start=hydra)
   return level;
 }
