@@ -12,29 +12,166 @@ const SFX_FILES = [
   'heartbeat', 'spike_hit', 'acid', 'crouch', 'respawn', 'maxhp', 'ui_click', 'game_start', 'glass_hit', 'mirror_hit',
   'barrier_reform', 'orb_pop', 'drone_alert', 'boss_land', 'boss_orbs', 'boss_charge', 'boss_limb_break', 'boss_phase',
   'boss_core_hit', 'combo_tick', 'combo_fail', 'ring_wave',
+  'drone_hum', 'drone_hit', 'drone_crash', 'elevator_start', 'elevator_loop', 'elevator_stop', 'alarm', 'sun_hum',
+  'amb_hub', 'amb_solar', 'amb_abyss',
 ];
 const SHOT_NAMES = ['shoot_red', 'shoot_yellow', 'shoot_green', 'shoot_blue'];
 const MUSIC_GAIN = 1.7;
+const MUSIC_BUS = 0.32;
+// Per-track loudness trims (linear), from ffmpeg's EBU R128 meter: the action tracks sit level with
+// music_red (≈ -10 LUFS, trim 1), the calm hub / title / antechamber about 3 dB under it.
+const MUSIC_TRIM = {
+  music_title: 1.3, music_red: 1, music_hub: 1.35, music_solar: 1.05, music_yellow: 1.25, music_green: 1.25,
+  music_blue: 1.03, music_ascent: 1.35, music_antechamber: 1.25, music_boss: 0.97, music_boss_final: 0.97,
+  music_victory: 1.05,
+};
+const XFADE = 3.5; // seconds for a full equal-power music crossfade
+const XFADE_HUB = 5; // into or out of the hub: a slower, more deliberate breath
+const XFADE_FIRST = 2.5; // fading in from silence
+const MUSIC_KEEP = 4; // decoded music buffers kept (~30 MB each); older ones are re-decoded from their mp3
+const AMB_GAIN = 0.35;
+// The generated beds came out at very different loudness (-10 .. -39 LUFS); these even them out.
+const AMB_TRIM = { amb_foundry: 1, amb_hub: 0.33, amb_solar: 2.2, amb_jungle: 2.2, amb_abyss: 2.4, amb_wind: 4, amb_core: 0.4 };
+const AMB_XFADE = 3;
+
+// Cancel a param's pending automation, holding it at its current value (no jump back).
+function hold(param, t) {
+  if (param.cancelAndHoldAtTime) return param.cancelAndHoldAtTime(t);
+  const v = param.value;
+  param.cancelScheduledValues(t);
+  param.setValueAtTime(v, t);
+}
+
+// A looping bed (a music track or an ambience). Its loudness follows an equal-power fade position
+// p (0 silent .. 1 full, gain = level·sin(p·π/2)), so two beds crossing keep constant power, and a fade
+// can be reversed at any moment (doorway bouncing) from exactly where it is, with no click or jump.
+class Bed {
+  constructor(ctx, name, buf, out, level, offset = 0) {
+    this.ctx = ctx;
+    this.name = name;
+    this.level = level;
+    this.src = ctx.createBufferSource();
+    this.src.buffer = buf;
+    this.src.loop = true;
+    this.out = ctx.createGain();
+    this.out.gain.value = 0;
+    this.src.connect(this.out).connect(out);
+    this.src.start(ctx.currentTime, offset % buf.duration);
+    this.p0 = this.p1 = 0;
+    this.t0 = ctx.currentTime;
+    this.dur = 0;
+    this.timer = 0;
+  }
+
+  pos(t = this.ctx.currentTime) {
+    const u = this.dur > 0 ? Math.min(1, Math.max(0, (t - this.t0) / this.dur)) : 1;
+    return this.p0 + (this.p1 - this.p0) * u;
+  }
+
+  remaining() {
+    return Math.max(0, this.t0 + this.dur - this.ctx.currentTime);
+  }
+
+  // Fade towards p1 (0 or 1); `full` is how long a complete 0↔1 fade takes. onSilent runs once a fade
+  // to 0 has landed (and wasn't reversed in the meantime).
+  fadeTo(p1, full, onSilent) {
+    const t = this.ctx.currentTime;
+    const p0 = this.pos(t);
+    const dur = Math.abs(p1 - p0) * full;
+    const g = this.out.gain;
+    const at = (p) => this.level * Math.sin((p * Math.PI) / 2);
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(at(p0), t);
+    // short linear segments trace the sine closely and, unlike a value curve, can be cut off anywhere
+    const n = Math.max(1, Math.ceil(dur * 10));
+    for (let i = 1; i <= n; i++) g.linearRampToValueAtTime(at(p0 + ((p1 - p0) * i) / n), t + (dur * i) / n);
+    Object.assign(this, { p0, p1, t0: t, dur });
+    clearTimeout(this.timer);
+    if (p1 === 0 && onSilent) {
+      const check = () => {
+        if (this.p1 !== 0) return;
+        if (this.pos() > 0) this.timer = setTimeout(check, (this.remaining() + 0.1) * 1000); // clock paused
+        else onSilent();
+      };
+      this.timer = setTimeout(check, (dur + 0.1) * 1000);
+    }
+  }
+
+  stop() {
+    clearTimeout(this.timer);
+    try {
+      this.src.stop();
+    } catch {
+      /* never started */
+    }
+    this.src.disconnect();
+    this.out.disconnect();
+  }
+}
+
+// A set of beds of which exactly one (cur) is wanted: switching fades the new one in and the rest out.
+// Every name has at most one bed, so bouncing between two areas just reverses the same two fades.
+class Layer {
+  constructor() {
+    this.cur = null;
+    this.beds = new Map(); // name -> Bed
+  }
+
+  // make() builds the bed if this name isn't already playing (e.g. still fading out).
+  to(name, make, full) {
+    const prev = this.cur;
+    let bed = name && this.beds.get(name);
+    if (name && !bed) {
+      bed = make();
+      this.beds.set(name, bed);
+    }
+    for (const b of this.beds.values()) {
+      if (b === bed) continue;
+      const done = () => {
+        b.stop();
+        if (this.beds.get(b.name) === b) this.beds.delete(b.name);
+      };
+      // the bed we're leaving takes the full crossfade; anything older still on its way out is
+      // hurried along so a quick A→B→C never leaves three tracks audible for long
+      if (b === prev) b.fadeTo(0, full, done);
+      else if (b.remaining() > 1.2 * b.pos()) b.fadeTo(0, 1.2, done);
+    }
+    if (bed) bed.fadeTo(1, full);
+    this.cur = bed || null;
+  }
+}
 
 class Audio {
   constructor() {
     this.ctx = null;
     this.master = null;
     this.volume = 0.7;
-    this.music = null;
+    this.music = null; // the synth sequencer (fallback music)
     this.raw = new Map(); // name -> ArrayBuffer (prefetched before the AudioContext exists)
-    this.buffers = new Map(); // name -> AudioBuffer
-    this.track = null; // { name, src, gain } for the sample-based music
+    this.buffers = new Map(); // name -> AudioBuffer (sound effects and ambient beds)
+    this.musicBytes = new Map(); // name -> Promise<ArrayBuffer|null>, the compressed track (kept)
+    this.musicBufs = new Map(); // name -> AudioBuffer, decoded tracks, least recently used first
+    this.musicLoads = new Map(); // name -> Promise<AudioBuffer|null> while decoding
+    this.musicLayer = new Layer();
+    this.ambLayer = new Layer();
+    this.loops = new Set(); // live createLoop handles
     this.wantTrack = null;
+    this.wantAmbient = null;
     this.available = null; // names listed in audio/manifest.json; null until it loads
-    fetch(AUDIO_URL + 'manifest.json')
+    this.manifest = fetch(AUDIO_URL + 'manifest.json')
       .then((r) => (r.ok ? r.json() : []))
       .catch(() => [])
       .then((names) => {
         this.available = new Set(names);
         this.prefetch(SFX_FILES);
-        if (this.wantTrack) this.prefetch([this.wantTrack]);
+        // the opening track and the hub (which every world returns to) are worth having early
+        for (const n of new Set([this.wantTrack, 'music_red', 'music_hub'])) if (n) this.musicFile(n);
       });
+  }
+
+  // the sample-based track currently playing (or fading in)
+  get track() {
+    return this.musicLayer.cur;
   }
 
   // Fetch sample files early; missing files are simply skipped (synth fallback).
@@ -61,12 +198,55 @@ class Audio {
     this.ctx.decodeAudioData(ab).then(
       (buf) => {
         this.buffers.set(n, buf);
-        if (this.wantTrack === n) this.playMusic(n);
         if (this.wantAmbient === n) this.playAmbient(n);
         if (n === 'heartbeat' && this.heartbeatOn) this.setHeartbeat(true, true);
+        for (const h of this.loops) if (h.name === n) this._loopSync(h);
       },
       () => {},
     );
+  }
+
+  // ---- music files: fetched on demand; a 90 s track decodes to ~30 MB, so only the few most recent
+  // stay decoded and the compressed bytes are kept to re-decode one quickly when its area comes back ----
+  musicFile(name) {
+    let p = this.musicBytes.get(name);
+    if (!p) {
+      p = this.manifest
+        .then(() => (this.available.has(name) ? fetch(AUDIO_URL + name + '.mp3') : null))
+        .then((r) => (r?.ok && (r.headers.get('content-type') || '').includes('audio') ? r.arrayBuffer() : null))
+        .catch(() => null);
+      p.then((ab) => ab || this.musicBytes.delete(name)); // let a failed fetch be retried later
+      this.musicBytes.set(name, p);
+    }
+    return p;
+  }
+
+  loadMusic(name) {
+    if (this.musicBufs.has(name)) return Promise.resolve(this.musicBufs.get(name));
+    let p = this.musicLoads.get(name);
+    if (p) return p;
+    p = this.musicFile(name)
+      .then((ab) => (ab && this.ctx ? this.ctx.decodeAudioData(ab.slice(0)) : null))
+      .then(
+        (buf) => {
+          this.musicLoads.delete(name);
+          if (buf) {
+            this.musicBufs.set(name, buf);
+            this.evictMusic();
+          }
+          return buf;
+        },
+        () => (this.musicLoads.delete(name), null),
+      );
+    this.musicLoads.set(name, p);
+    return p;
+  }
+
+  evictMusic() {
+    for (const n of [...this.musicBufs.keys()]) {
+      if (this.musicBufs.size <= MUSIC_KEEP) return;
+      if (n !== this.wantTrack && !this.musicLayer.beds.has(n)) this.musicBufs.delete(n);
+    }
   }
 
   // Play a loaded sample. Returns false if it isn't available so callers can fall back to synth.
@@ -88,55 +268,43 @@ class Audio {
     return ok.length ? ok[Math.floor(Math.random() * ok.length)] : null;
   }
 
-  // ---- music: per-section tracks, crossfaded; synth sequencer when a track isn't available ----
+  // ---- music: per-area tracks, equal-power crossfaded; synth sequencer when a track isn't available ----
+  // Moving through a doorway and straight back just reverses the two fades from where they are, so
+  // tracks never stack or restart, and nothing is ever cut hard.
   playMusic(name) {
     this.wantTrack = name;
-    if (!this.ctx) return;
-    if (this.track?.name === name) return;
-    const buf = this.buffers.get(name);
+    if (!this.ctx) return void this.musicFile(name);
+    const layer = this.musicLayer;
+    if (layer.cur?.name === name) return;
+    const buf = this.musicBufs.get(name) || (layer.beds.get(name) && layer.beds.get(name).src.buffer);
     if (!buf) {
-      if (!this.raw.has(name)) this.prefetch([name]);
-      if (!this.track) this.startMusic(); // synth until the file arrives
+      this.loadMusic(name).then((b) => b && this.wantTrack === name && this.playMusic(name));
+      if (!layer.cur && !this.music) this.startMusic(); // synth until the file arrives
       return;
     }
-    this.stopMusic();
-    const t = this.t;
-    if (this.track) {
-      const old = this.track;
-      old.gain.gain.setTargetAtTime(0, t, 0.4);
-      old.src.stop(t + 2.5);
-    }
-    const src = this.ctx.createBufferSource();
-    src.buffer = buf;
-    src.loop = true;
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(MUSIC_GAIN, t + 1.2);
-    src.connect(g).connect(this.musicBus);
-    src.start(t);
-    this.track = { name, src, gain: g };
+    // mark it most recently used
+    this.musicBufs.delete(name);
+    this.musicBufs.set(name, buf);
+    const from = layer.cur?.name;
+    const full = !from && !this.music ? XFADE_FIRST : from === 'music_hub' || name === 'music_hub' ? XFADE_HUB : XFADE;
+    this.stopMusic(full / 2);
+    layer.to(name, () => new Bed(this.ctx, name, buf, this.musicDuck, MUSIC_GAIN * (MUSIC_TRIM[name] ?? 1)), full);
+    this.evictMusic();
   }
 
-  // ---- ambience: one looping bed per area, crossfaded ----
+  // ---- ambience: one looping bed per area, crossfaded the same way (null fades it out) ----
   playAmbient(name) {
     this.wantAmbient = name;
-    if (!this.ctx || this.amb?.name === name) return;
-    const buf = this.buffers.get(name);
-    if (!buf) return;
-    const t = this.t;
-    if (this.amb) {
-      this.amb.gain.gain.setTargetAtTime(0, t, 0.6);
-      this.amb.src.stop(t + 3);
+    if (!this.ctx || (this.ambLayer.cur?.name ?? null) === (name || null)) return;
+    const buf = name && this.buffers.get(name);
+    if (!buf) {
+      // still loading: keep the old bed until decode() calls back; doesn't exist: fade to silence
+      if (name) this.prefetch([name]);
+      if (name && this.available && !this.available.has(name)) this.ambLayer.to(null, null, AMB_XFADE);
+      return;
     }
-    const src = this.ctx.createBufferSource();
-    src.buffer = buf;
-    src.loop = true;
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.35, t + 2);
-    src.connect(g).connect(this.sfxBus);
-    src.start(t, Math.random() * buf.duration);
-    this.amb = { name, src, gain: g };
+    const level = AMB_GAIN * (AMB_TRIM[name] ?? 1);
+    this.ambLayer.to(name, () => new Bed(this.ctx, name, buf, this.sfxBus, level, Math.random() * buf.duration), AMB_XFADE);
   }
 
   // Low-health heartbeat loop.
@@ -173,12 +341,11 @@ class Audio {
     g.gain.value = gain;
     src.connect(g).connect(this.master);
     src.start(this.t);
-    if (this.track) {
-      const tg = this.track.gain.gain;
-      tg.cancelScheduledValues(this.t);
-      tg.setTargetAtTime(MUSIC_GAIN * 0.15, this.t, 0.15);
-      tg.setTargetAtTime(MUSIC_GAIN, this.t + buf.duration - 0.5, 0.8);
-    }
+    // the duck sits after the crossfade, so a stinger mid-crossfade doesn't disturb it
+    const dg = this.musicDuck.gain;
+    hold(dg, this.t);
+    dg.setTargetAtTime(0.15, this.t, 0.15);
+    dg.setTargetAtTime(1, this.t + buf.duration - 0.5, 0.8);
     return true;
   }
 
@@ -196,9 +363,14 @@ class Audio {
       this.master.connect(comp).connect(this.ctx.destination);
       this.sfxBus = this.ctx.createGain();
       this.sfxBus.connect(this.master);
+      // music: tracks → duck (stingers) → bus (mute) → master; the synth fallback has its own fader
       this.musicBus = this.ctx.createGain();
-      this.musicBus.gain.value = 0.32;
+      this.musicBus.gain.value = MUSIC_BUS;
       this.musicBus.connect(this.master);
+      this.musicDuck = this.ctx.createGain();
+      this.musicDuck.connect(this.musicBus);
+      this.synthBus = this.ctx.createGain();
+      this.synthBus.connect(this.musicDuck);
       this.noiseBuf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
       const d = this.noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -206,6 +378,7 @@ class Audio {
     if (this.ctx.state === 'suspended') this.ctx.resume();
     for (const n of [...this.raw.keys()]) this.decode(n);
     if (this.wantTrack) this.playMusic(this.wantTrack);
+    if (this.wantAmbient) this.playAmbient(this.wantAmbient);
   }
 
   setVolume(v) {
@@ -426,42 +599,63 @@ class Audio {
   droneAlert() {
     this.sample('drone_alert', { gain: 0.5, vary: 0.1 });
   }
-  // ---- API used by drones / elevators (the audio agent fills these in with real samples) ----
+  // ---- drones / elevators ----
   // A drone took a correct-color hit. gain 0..1 (distance falloff is the caller's job).
   droneHit(gain = 1) {
-    if (!this.sample('drone_hit', { gain: 0.9 * gain, vary: 0.12 })) this.hit();
+    if (!this.ctx || gain <= 0.01) return;
+    // rapid fire on one drone would stack a wall of identical clangs: keep the hits ≥ 45 ms apart
+    if (this.t - (this.lastDroneHit || 0) < 0.045) return;
+    this.lastDroneHit = this.t;
+    if (this.sample('drone_hit', { gain: 0.95 * gain, vary: 0.1 })) {
+      // a short sub thump under the clang gives the hit weight
+      this.tone({ type: 'sine', f: 150, f2: 55, dur: 0.11, gain: 0.3 * gain });
+      return;
+    }
+    this.hit();
+    this.tone({ type: 'square', f: 320, f2: 120, dur: 0.08, gain: 0.12 * gain });
+    this.noise({ dur: 0.07, gain: 0.25 * gain, freq: 2500, q: 0.9 });
   }
   // A drone's been killed and is spinning out of the sky.
   droneCrash(gain = 1) {
-    this.sample('drone_crash', { gain: 0.8 * gain, vary: 0.08 });
+    if (!this.ctx || gain <= 0.01) return;
+    if (this.sample('drone_crash', { gain: 0.85 * gain, vary: 0.08 })) return;
+    this.tone({ type: 'sawtooth', f: 900, f2: 110, dur: 1.4, gain: 0.09 * gain, attack: 0.02 });
+    this.noise({ dur: 1.2, gain: 0.12 * gain, freq: 3500, f2: 900, q: 2 });
   }
   // The crashing drone hits the ground (or times out) and blows up.
   droneExplode(gain = 1) {
-    if (!this.sample('drone_explode', { gain: 0.9 * gain, vary: 0.1 })) this.explode();
+    if (!this.ctx || gain <= 0.01) return;
+    if (this.sample('drone_explode', { gain: 0.95 * gain, vary: 0.1 })) {
+      this.tone({ type: 'sine', f: 95, f2: 32, dur: 0.6, gain: 0.45 * gain, attack: 0.006 });
+      return;
+    }
+    this.noise({ dur: 0.7, gain: 0.45 * gain, freq: 1000, f2: 80, q: 0.5, type: 'lowpass' });
+    this.tone({ type: 'sine', f: 140, f2: 30, dur: 0.5, gain: 0.5 * gain });
   }
   // A looping positional-ish sound (drone hum, elevator motor, sun hum...). Returns a handle whose
-  // gain/rate the caller updates every frame; stop() fades it out. Safe to call before audio unlocks:
-  // the handle starts playing once the sample is decoded.
+  // gain/rate the caller updates (typically every frame); stop() fades it out. Safe to call before audio
+  // unlocks or the sample decodes: the loop starts as soon as it can, at the last gain/rate set.
+  // A loop that's been silent for a couple of seconds releases its voice, so far-off drones cost nothing.
   createLoop(name, { gain = 0, rate = 1 } = {}) {
-    const h = { name, gain, rate, src: null, g: null, dead: false };
-    const self = this;
+    const h = { name, gain, rate, src: null, g: null, dead: false, quiet: 0, setG: -1 };
     h.setGain = (v) => {
-      h.gain = v;
-      self._loopSync(h);
+      h.gain = Math.max(0, v);
+      this._loopSync(h);
     };
     h.setRate = (v) => {
+      if (Math.abs(v - h.rate) < 1e-3) return;
       h.rate = v;
-      if (h.src) h.src.playbackRate.setTargetAtTime(v, self.t, 0.1);
+      if (h.src) h.src.playbackRate.setTargetAtTime(v, this.t, 0.1);
     };
     h.stop = () => {
+      if (h.dead) return;
       h.dead = true;
-      if (h.src) {
-        h.g.gain.setTargetAtTime(0, self.t, 0.15);
-        h.src.stop(self.t + 1);
-        h.src = null;
-      }
+      this.loops.delete(h);
+      this._loopRelease(h, 0.15);
     };
+    this.loops.add(h);
     this.prefetch([name]);
+    this._loopSync(h);
     return h;
   }
   _loopSync(h) {
@@ -476,10 +670,25 @@ class Audio {
       h.src.playbackRate.value = h.rate;
       h.g = this.ctx.createGain();
       h.g.gain.value = 0;
+      h.setG = 0;
       h.src.connect(h.g).connect(this.sfxBus);
+      // a random point in the loop, so several drones humming together don't phase
       h.src.start(this.t, Math.random() * buf.duration);
     }
+    if (h.gain <= 0.001) {
+      if (!h.quiet) h.quiet = this.t;
+      else if (this.t - h.quiet > 2) return this._loopRelease(h, 0.05);
+    } else h.quiet = 0;
+    if (Math.abs(h.gain - h.setG) < 0.002) return;
+    h.setG = h.gain;
     h.g.gain.setTargetAtTime(h.gain, this.t, 0.08);
+  }
+  _loopRelease(h, tc) {
+    if (!h.src) return;
+    h.g.gain.setTargetAtTime(0, this.t, tc);
+    h.src.stop(this.t + tc * 8);
+    h.src = null;
+    h.quiet = 0;
   }
   bossLand() {
     if (!this.sample('boss_land', { gain: 1, vary: 0 })) this.slam();
@@ -515,7 +724,15 @@ class Audio {
 
   // ---- music: a simple bass/arp sequencer whose intensity can be raised ----
   startMusic() {
-    if (!this.ctx || this.music) return;
+    if (!this.ctx) return;
+    const sg = this.synthBus.gain;
+    hold(sg, this.t);
+    sg.setTargetAtTime(1, this.t, 0.3);
+    if (this.music) {
+      // it was fading out: keep it
+      clearTimeout(this.music.stopTimer);
+      return;
+    }
     const ctx = this.ctx;
     const m = { step: 0, next: ctx.currentTime + 0.1, intensity: 0, timer: null, root: 0 };
     const bass = [0, 0, 12, 0, 0, 10, 0, 7, 0, 0, 12, 0, 3, 0, 5, 7];
@@ -527,13 +744,13 @@ class Audio {
         const t = m.next - ctx.currentTime;
         const root = 55 * 2 ** (m.root / 12);
         if (bass[s] !== undefined && (s % 2 === 0 || m.intensity >= 1)) {
-          this.tone({ type: 'sawtooth', f: root * 2 ** (bass[s] / 12), dur: 0.2, gain: 0.18, bus: this.musicBus, delay: t });
+          this.tone({ type: 'sawtooth', f: root * 2 ** (bass[s] / 12), dur: 0.2, gain: 0.18, bus: this.synthBus, delay: t });
         }
         if (m.intensity >= 1 && s % 2 === 1) {
-          this.tone({ type: 'square', f: root * 4 * 2 ** (arp[(m.step >> 1) % 8] / 12), dur: 0.09, gain: 0.05, bus: this.musicBus, delay: t });
+          this.tone({ type: 'square', f: root * 4 * 2 ** (arp[(m.step >> 1) % 8] / 12), dur: 0.09, gain: 0.05, bus: this.synthBus, delay: t });
         }
-        if (s % 4 === 0) this.tone({ type: 'sine', f: 110, f2: 40, dur: 0.18, gain: 0.35, bus: this.musicBus, delay: t });
-        if (m.intensity >= 2 && s % 4 === 2) this.tone({ type: 'sine', f: 110, f2: 40, dur: 0.12, gain: 0.25, bus: this.musicBus, delay: t });
+        if (s % 4 === 0) this.tone({ type: 'sine', f: 110, f2: 40, dur: 0.18, gain: 0.35, bus: this.synthBus, delay: t });
+        if (m.intensity >= 2 && s % 4 === 2) this.tone({ type: 'sine', f: 110, f2: 40, dur: 0.12, gain: 0.25, bus: this.synthBus, delay: t });
         if (s % 2 === 1 && this.noiseBuf) this.hat(t, m.intensity >= 1 ? 0.05 : 0.025);
         m.step++;
         if (m.step % 64 === 0) m.root = [0, -2, 3, -4][(m.step / 64) % 4];
@@ -553,19 +770,30 @@ class Audio {
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(gain, t0);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.04);
-    s.connect(f).connect(g).connect(this.musicBus);
+    s.connect(f).connect(g).connect(this.synthBus);
     s.start(t0, Math.random() * 0.5);
     s.stop(t0 + 0.06);
   }
   setMusicMuted(m) {
-    if (this.musicBus) this.musicBus.gain.setTargetAtTime(m ? 0 : 0.32, this.t, 0.2);
+    if (this.musicBus) this.musicBus.gain.setTargetAtTime(m ? 0 : MUSIC_BUS, this.t, 0.2);
   }
   setIntensity(i) {
     if (this.music) this.music.intensity = i;
   }
-  stopMusic() {
-    if (this.music) clearInterval(this.music.timer);
-    this.music = null;
+  // Stop the synth, fading it out over `fade` seconds (it keeps sequencing until then).
+  stopMusic(fade = 0) {
+    const m = this.music;
+    if (!m) return;
+    const end = () => {
+      clearInterval(m.timer);
+      if (this.music === m) this.music = null;
+    };
+    clearTimeout(m.stopTimer);
+    if (fade <= 0) return end();
+    const sg = this.synthBus.gain;
+    hold(sg, this.t);
+    sg.setTargetAtTime(0, this.t, fade / 4);
+    m.stopTimer = setTimeout(end, fade * 1000);
   }
 }
 

@@ -16,8 +16,9 @@
   "dur": 0.5
  },
  "drone_explode": {
-  "text": "Small hovering robot drone exploding, electrical crackle, pop and metallic debris",
-  "dur": 1.5
+  "text": "Big satisfying metallic explosion of an armored flying robot drone, deep punchy boom with a sharp crack, shrapnel and metal debris clattering, crackling electrical fire tail",
+  "dur": 1.8,
+  "influence": 0.6
  },
  "enemy_shot": {
   "text": "Plasma orb launched from a hovering robot drone, warbly sci-fi pew",
@@ -257,5 +258,67 @@
  "ring_wave": {
   "text": "Expanding energy shockwave rolling across the ground, low whoomp and crackling sweep",
   "dur": 1.5
+ },
+ "drone_hum": {
+  "text": "Menacing robotic hover drone hum, steady electric whine over a low pulsing throb of rotors, constant mechanical drone loop",
+  "dur": 4,
+  "loop": true,
+  "influence": 0.6
+ },
+ "drone_hit": {
+  "text": "Really strong crunchy metallic impact on an armored robot drone, heavy punchy clang with a crisp electric crack, satisfying hit, very short",
+  "dur": 0.5,
+  "influence": 0.7
+ },
+ "drone_crash": {
+  "text": "Damaged robot drone spinning out of the sky, sparking and crackling, failing motor whine pitching down, engine sputtering and choking",
+  "dur": 1.8,
+  "influence": 0.6
+ },
+ "elevator_start": {
+  "text": "Heavy industrial sci-fi elevator platform starting up, deep mechanical clunk, hydraulic hiss and a rising motor whine",
+  "dur": 2,
+  "influence": 0.6
+ },
+ "elevator_loop": {
+  "text": "Large industrial elevator platform rising steadily, constant deep motor hum, rattling cables and steady mechanical rumble",
+  "dur": 5,
+  "loop": true,
+  "influence": 0.5
+ },
+ "elevator_stop": {
+  "text": "Heavy sci-fi elevator platform grinding to a stop, motor whine winding down, big metallic clank and hydraulic hiss",
+  "dur": 2,
+  "influence": 0.6
+ },
+ "alarm": {
+  "text": "Urgent sci-fi facility alarm klaxon, two loud blaring siren pulses, warning",
+  "dur": 2,
+  "loop": true,
+  "influence": 0.6
+ },
+ "sun_hum": {
+  "text": "Deep oppressive heat drone, radiant humming of an enormous burning sun, low rumbling roar with a shimmering high overtone",
+  "dur": 6,
+  "loop": true,
+  "influence": 0.5
+ },
+ "amb_hub": {
+  "text": "Continuous calm sci-fi space station atrium ambience: a constant soft warm synth drone hum, steady gentle air flow, faint distant machinery, and soft glassy wind chimes ringing, relaxing, full and present",
+  "dur": 20,
+  "loop": true,
+  "influence": 0.55
+ },
+ "amb_solar": {
+  "text": "Hot desert wind ambience, dry gusting wind over sand and rock, faint heat shimmer hiss, vast open space",
+  "dur": 20,
+  "loop": true,
+  "influence": 0.4
+ },
+ "amb_abyss": {
+  "text": "Deep cold underwater station ambience, distant whale-like groans, water dripping, metal hull pressure creaks, low muffled rumble",
+  "dur": 20,
+  "loop": true,
+  "influence": 0.4
  }
 }
