@@ -255,11 +255,12 @@ export class Player {
     // footsteps: one per stride, louder and longer-strided when sprinting, quiet when crouched
     if (this.grounded && this.speed2d > 1.2) {
       this.stride += this.speed2d * dt;
-      const len = this.sprinting ? 2.6 : this.crouching ? 1.5 : 2.1;
+      // a brisk running cadence (~5 steps a second at run speed); the remainder carries over, so the
+      // rhythm stays even whatever the frame rate
+      const len = this.sprinting ? 1.9 : this.crouching ? 1.1 : 1.55;
       if (this.stride > len) {
-        this.stride = 0;
-        const k = this.ground?.kind;
-        if (!this.crouching) audio.footstep(k === 'grass' || k === 'rock' ? 'grass' : 'metal', this.sprinting);
+        this.stride = Math.min(this.stride - len, len);
+        if (!this.crouching) audio.footstep(this.ground, this.pos, this.sprinting);
       }
     }
     this.landKick = Math.max(0, this.landKick - dt * 1.4);
