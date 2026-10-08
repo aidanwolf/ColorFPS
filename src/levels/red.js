@@ -466,6 +466,8 @@ export function buildRed(B) {
   B.shieldedShaft({ x1: QX1, x2: QX2, z1: QZ1, z2: QZ2, floor: 0, capY: 10, zone, cap: { x1: QX1, x2: QX2, z1: QZ1, z2: -37.5 }, layers: [{ color: RED }, { color: RED }] });
   hint([13.6, 10, GN], [17.5, 13, -34], 'A <b>spike drop</b>. The shields swallow shots: fire through each one\'s <b>glowing open end</b> — the first from here, the next as you fall.', 7);
   new Checkpoint(W, game, { pos: [15.5, 10, -35], yaw: 0, size: [3.5, 3, 3.5] });
+  // and one out of its foot, so a death on the Smelting Floor doesn't mean the spike drop again every time
+  new Checkpoint(W, game, { pos: [11, 0, -40.5], yaw: Math.PI / 2, size: [2.4, 3, 3] });
 
   // ===================================================================== 7. THE SMELTING FLOOR (arena)
   const AX1 = -19.5, AX2 = 19.5, AS = -38.5, AN = -55.5, AH = 10;
