@@ -911,11 +911,11 @@ export function buildSolar(B) {
   // wall (fire over the glass and the mirrors carry the shot down), one on the back of the pillar in the
   // mirror bay (bank a shot off the wall mirror behind it).
   corridor({ zStart: -124, zEnd: -130, y: -20, zone, cx: -172 });
-  room({ x1: -190, x2: -154, zS: -130, zN: -158, y: -20, h: 16, zone, ceiling: false, s: [{ c: -172, w: 3, h: CH }], n: [{ c: -172, w: 3.2, h: 4 }], e: [{ c: -153, w: 5, y0: 11, h: 5 }] }); // (the east notch: the pad's way out)
+  room({ x1: -190, x2: -154, zS: -130, zN: -158, y: -20, h: 16, zone, ceiling: false, s: [{ c: -172, w: 3, h: CH }], n: [{ c: -172, w: 3.2, h: 4 }], e: [{ c: -153, w: 5, y0: 11, h: 5 }], wallKind: 'rock' }); // (the east notch: the pad's way out)
   area([-173.5, -20, -133], [-170.5, -16.8, -130], mood);
   ck([-172, -20, -133], 0, [6, 3, 3]);
   devStart('solar7', [-172, -20, -133], 0, [RED, YELLOW]);
-  light(-172, -12, -146, 0xffd080, 18, 26); // (light 4/4)
+  light(-172, -10, -146, 0xffc070, 8, 22); // (light 4/4)
   const receivers = { glass: false, bank: false };
   let pad = null;
   const deadPad = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.15, 0.2, 24), new THREE.MeshStandardMaterial({ color: 0x2a2620, metalness: 0.8, roughness: 0.4 }));
