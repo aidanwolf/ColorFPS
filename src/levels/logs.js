@@ -3,9 +3,7 @@
 // is first heard in the Prism Atrium: no log goes in the cell block or the Crimson Foundry (or its annex).
 //   world: which area it belongs to · pos: the floor point the recorder hovers over (1.15 m up)
 //   yaw: which way the recorder faces at first (it slowly turns) · provisional: a placeholder spot
-// The Hub and the Prism Core aren't being rebuilt, so their spots are final. Every color world is being rebuilt from scratch:
-// the spots marked provisional point into the OLD layouts (where they were reachable) and must be moved
-// to a natural spot in the new level, off the main path but reachable, then the flag dropped.
+// Every spot is final: the color worlds' were picked by their rebuilds to match each script.
 const LOGS = [
   // THE PRISM ATRIUM (final): wonder, on the first visit
   { id: '01', world: 'hub', pos: [-4.3, 4.4, -105.6], yaw: Math.PI / 4 }, // the dais's lower step, south-west corner, under the reactor heart: in view as you walk in from the red door
@@ -15,10 +13,10 @@ const LOGS = [
   { id: '04', world: 'solar', pos: [-59.5, 4, -121.5], yaw: Math.PI / 2 }, // the lookout balcony off the overlook's north-west corner, facing the captive sun
   { id: '05', world: 'solar', pos: [-150.5, -4, -126.5], yaw: Math.PI }, // the Glass Terrace's south end, facing the cliff of fused sand-glass bands
   { id: '06', world: 'solar', pos: [-128, 12, -164], yaw: -Math.PI / 2 }, // the ring of standing stones on the Gnomon Summit, shadows burned into the rock
-  // VERDANT (provisional): lonely, then frightened
-  { id: '07', world: 'verdant', pos: [26, 4, -161.5], yaw: 0, provisional: true }, // old: the Root Court's south terrace (wants: early, lush and quiet)
-  { id: '08', world: 'verdant', pos: [27.5, 4.5, -205.5], yaw: 0, provisional: true }, // old: the north bank over the Great Hollow (wants: roots by water)
-  { id: '09', world: 'verdant', pos: [12, -25, -250], yaw: 0, provisional: true }, // old: the root island behind the Great Tree (wants: late, hidden, before the way east)
+  // VERDANT (final, the rebuilt world): lonely, then frightened
+  { id: '07', world: 'verdant', pos: [25.5, 4, -163.5], yaw: Math.PI / 2 }, // the Rain Court, east end of the south terrace: moss, gold light, drizzle
+  { id: '08', world: 'verdant', pos: [27, 4.5, -212.2], yaw: Math.PI / 2 }, // the Ruin Bank's east rim over the sludge lake, roots grown through two skeletons
+  { id: '09', world: 'verdant', pos: [-2.4, 21, -268.4], yaw: 0 }, // the hidden nest under the crown deck's south edge (drop through the rail gap; a pad brings you back)
   // AZURE (final, the rebuilt world): homesick, then the truth
   { id: '10', world: 'azure', pos: [55.5, 4, -117.5], yaw: 2.36 }, // the Rim Deck by the antenna mast, first view of the cold sea
   { id: '11', world: 'azure', pos: [107.2, -4.5, -82.3], yaw: 1.08 }, // inside the warm pump hut, by the boiler
