@@ -47,6 +47,54 @@ function solarAfter(p, st) {
   return '';
 }
 
+// ---- Azure (azure.js / azureFlooded.js / azureSpillway.js): name the next step for the stretch you're in
+function azureBefore(p, game) {
+  const st = game.level.azure || {};
+  if (inBox(p, 108, 162, -153, -100, -63, 8)) {
+    if (inBox(p, 108, 147, -127, -100, -31.5)) return `Swim out along the buoys and dive by the marker: blast the ${tag(RED, 'red grate')} over the pipe.`;
+    if (inBox(p, 125.5, 152, -152, -136, -61, -17)) return `Drop a ${tag(GREEN, 'green')} shot into the lit gap beside the glass case: the mirror banks it onto the ballast valve. Then ride the water up.`;
+    return 'Follow the <b>cyan lights</b> through the flood; surface in the <b>gold-lit air pockets</b> to breathe.';
+  }
+  if (inBox(p, 125, 147, -152, -141, -48, -16)) return 'Ride the water up the Ballast Shaft to the way out.';
+  if (inBox(p, 107, 126, -149, -145, -26, -21)) return 'Out of the deep: on to the <b>Cryo Lab</b>.';
+  if (p.y > 2) return `Hop down the ice ledges east: clear the ${tag(GREEN, 'green spikes')} from the deck first; the first ledge crumbles under you.`;
+  if (inBox(p, 58, 99, -107, -80, -4.6)) return `Ride the crane trolley across: keep shooting it ${tag(YELLOW, 'yellow')}.`;
+  if (inBox(p, 98, 123, -97, -77, -6, 1)) return `Shoot the freight lift ${tag(GREEN, 'green')} to work it down to the turbine deck.`;
+  if (inBox(p, 95, 109, -123, -98, -23, -5)) return 'Clear the turbine deck\'s sentries; the hatch in its <b>east</b> edge opens into the Flooded Depths.';
+  if (inBox(p, 88, 116, -176, -142, -26, -16)) return 'Survive the Cryo Lab lockdown, then go <b>west</b> through the three-color gauntlet.';
+  if (inBox(p, 66, 88, -172, -168, -26, -21)) return 'Three colors, one corridor: <b>keep switching</b>.';
+  if (inBox(p, 50, 66, -182, -158, -47, -17)) return `Work down the ice pillars to the hole and drop into the flooded pipe: shoot ${tag(RED, 'red')}, then ${tag(YELLOW, 'yellow')}, as you sink.`;
+  if (p.y < -50 && p.z < -157.5 && !(st.vaultDoor && st.vaultDoor.openT >= 0)) return `Free the vault door: fire ${tag(YELLOW, 'yellow')} over the glass in the west alcove; the azure panels carry it to the target.`;
+  if (p.y < -50) return `Take the ${tag(BLUE, 'AZURE core')} from the sanctum's dais.`;
+  return 'Make your way down through the station.';
+}
+function azureAfter(p, game) {
+  const st = game.level.azure || {};
+  if (p.y > 10 && p.x < 47) return 'Walk out onto the Nexus balcony.';
+  if (game.isWorldDown?.('azure')) {
+    if (p.x < 113 && p.y > -9) return 'Ride the pads up across the chasm: <b>clear each landing\'s spikes</b> before you launch.';
+    if (inBox(p, 112, 181, -158, -153, -9, -3)) return 'The pressure lock is open: follow the gallery <b>west</b>, out onto the Spillway.';
+    if (inBox(p, 133, 187, -222, -157, -32, 12)) return 'The engine is dead. Swim back out to the shore ledge and take the gallery <b>west</b>.';
+    return 'Climb back up through the station: the Undercroft, the Sluice, then the Spillway home.';
+  }
+  if (inBox(p, 52, 80.5, -150, -122, -57, -41)) return `Break the ${tag(BLUE, 'blue door')} in the sanctum's <b>east</b> wall.`;
+  if (inBox(p, 80, 113, -152, -140, -60, -48)) return `Cross the Blue Span: stay set to ${tag(BLUE, 'blue')} on the light stones, and shoot the blue switch for the bridge.`;
+  if (inBox(p, 112, 158, -195, -144, -70, -43)) return 'Clear the Undercroft, then dive for the <b>gold-lit duct</b> in its east wall.';
+  if (inBox(p, 157, 181, -169, -157, -65, -3)) {
+    const s = st.sluice;
+    if (!s || s.stage === 1) return `Keep firing ${tag(BLUE, 'blue')} into the pump valve on the south wall to flood the Sluice.`;
+    if (s.stage === 2) return 'Shoot the <b>arrows</b> on the north wall\'s ledges to set them into a staircase up to the east ledge.';
+    if (s.stage === 3) return `Fire ${tag(BLUE, 'blue')} into the valve in the roof and ride the water up — hold <b>Space</b>.`;
+    return 'Climb out at the top, through the door in the south wall.';
+  }
+  if (inBox(p, 112, 181, -158, -153, -9, -3)) return 'The cistern\'s door is in the gallery\'s <b>north</b> wall.';
+  if (inBox(p, 133, 187, -222, -157, -32, 12)) {
+    if (st.arena?.defeated) return `Shoot the <b>Azure Engine's</b> core with ${tag(BLUE, 'blue')} to shut it down.`;
+    return `Charybdis guards the engine. Kill it, then shut the engine down with ${tag(BLUE, 'blue')}.`;
+  }
+  return 'Climb on through the station to its engine.';
+}
+
 export function currentObjective(game) {
   const b = game.blaster, has = (c) => b.has && b.unlocked[c];
   const where = regionOf(game.player.pos);
@@ -83,25 +131,13 @@ export function currentObjective(game) {
       if (p.y < -20) return { html: 'The tree is open: go inside and ride the lifts up the trunk.' };
       return { html: `${tag(GREEN, 'Verdant')} restored. Head back to the Nexus.` };
     }
-    if (where === 'azure') {
-      const p = game.player.pos;
-      if (p.y < -50 && p.z < -157.5) return { html: `Free the vault door: fire ${tag(YELLOW, 'yellow')} over the glass in the west alcove; the azure panels carry it to the target.` };
-      if (p.y < -50) return { html: `Take the ${tag(BLUE, 'AZURE core')}.` };
-      if (p.x < 66.5 && p.y < -24) return { html: 'Work down the ice pillars to the hole, then drop through the spike shaft: <b>each layer opens to its own color</b>.' };
-      if (p.y < -23.5) return { html: 'Cross the Cryo Lab and run the three-color gauntlet <b>west</b> to the Well.' };
-      if (p.y < -6 || p.x > 98) return { html: 'Ride the freight lift down, then cross the frozen pipes to the <b>Cryo Lab</b>.' };
-      return { html: 'Hop down the ice ledges to the <b>Pump Station</b>. Clear spikes with their own color before you land.' };
-    }
+    if (where === 'azure') return { html: azureBefore(game.player.pos, game) };
     return { html: `Blast open the ${tag(BLUE, 'AZURE gate')} on the <b>east</b> wall with ${tag(GREEN, 'green')}.`, door: 'azure' };
   }
   const boss = game.level.boss;
   if (game.state === 'victory' || boss?.dead || boss?.state === 'dead') return { html: '' };
-  if (where === 'azure') {
-    const p = game.player.pos, lift = game.level.azure?.lift;
-    if (p.y > 10) return { html: 'Walk out onto the Nexus balcony.' };
-    if (lift && (lift.state === 'armed' || lift.state === 'moving')) return { html: 'Shoot every hatch above you before the lift carries you into it!' };
-    return { html: `Head <b>west</b> through the ${tag(BLUE, 'blue lock')} and ride the station lift up to the Nexus.` };
-  }
+  if (where === 'azure') return { html: azureAfter(game.player.pos, game) };
+  if (!game.isWorldDown?.('azure') && game.level.azure) return { html: `The ${tag(BLUE, 'Azure')} engine still runs: go back in by the <b>east</b> door and shut it down.`, door: 'azure' };
   // (no objective during the fight: the boss bar and its hints own the top of the screen)
   if (where === 'prism') return { html: boss?.active ? '' : 'Follow the light down the corridor into the arena. <b>The Warden waits.</b>' };
   if (game.level.prismElevator?.enabled) return { html: 'The Prism Core is open: step onto the lift in the middle of the dais and ride it down.', door: 'dais' };

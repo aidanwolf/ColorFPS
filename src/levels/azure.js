@@ -608,7 +608,7 @@ export function buildAzure(B) {
   hint([74, -56, -149], [80, -53, -143], 'The way on is sealed with <b style="color:#3a8bff">AZURE</b> light.', 4);
 
   // ------------------------------------------------------------------ the second half
-  buildAzureSpillway(B, { zone, MOOD, DEEP, cluster, keepOut });
+  buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut });
 
   // ------------------------------------------------------------------ crystals of the chasm
   // keep the big structures clear of them

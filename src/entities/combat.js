@@ -9,6 +9,7 @@ import { boxGeo, mat } from '../materials.js';
 import { boxOverlap } from '../world.js';
 import { Drone } from './drone.js';
 import { SubDrone } from './subdrone.js';
+import { FishSchool, RoboSquid } from './azureEnemies.js';
 import { Turret } from './turret.js';
 import { Swarm } from './swarmer.js';
 import { Warden } from './warden.js';
@@ -27,6 +28,7 @@ const firstColor = (c) => (Array.isArray(c) ? c[0] : c);
 // spec: { type, pos: [x, y, z], color, ...options of that enemy's constructor }
 //  'drone'  { color | [colors], hp, range, orbit, fireInterval }
 //  'subdrone' { color, hp, range, orbit, leash, standoff } (in water only)
+//  'squid' { color, hp, range, fireInterval, orbit }, 'fish' { count, color, range, patrol } (in water)
 //  'swarm'  { color | colors: [..], count (4-8), divers }
 //  'turret' { color | colors: [..], mount: 'floor' | 'ceiling' | [nx, ny, nz] (wall normal), burst, charge, cooldown }
 //  'warden' { shield, core (or color: [shield, core]), shieldHp, coreHp, regen }
@@ -46,6 +48,14 @@ export function spawnEnemy(world, spec) {
       const d = new SubDrone(world, o);
       if (o.aggro) d.aggro = true;
       return d;
+    }
+    case 'squid':
+    case 'fish': {
+      // (Azure) a robo-squid / a robo-fish school: pos inside a B.water volume
+      const e = type === 'squid' ? new RoboSquid(world, o) : new FishSchool(world, o);
+      e.despawn ??= () => e.dispose();
+      if (o.aggro) e.aggro = e.alert = true;
+      return e;
     }
     case 'swarm':
       return new Swarm(world, o);
