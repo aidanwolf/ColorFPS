@@ -90,6 +90,17 @@ html, body {
 .cslot.active { border-color: var(--c); transform: skewX(-12deg) translateY(-8px) scale(1.12); box-shadow: 0 0 18px var(--c); }
 
 #stats { position: absolute; right: 28px; bottom: 26px; font-size: 12px; letter-spacing: 2px; color: var(--dim); }
+#objective {
+  position: absolute; left: 24px; top: 22px; max-width: min(360px, 40vw); padding: 8px 14px;
+  background: var(--panel); border-left: 3px solid var(--cur); transition: opacity 0.4s;
+}
+#objective:empty, #objective.none { opacity: 0; }
+#objective .obj-label { font-size: 10px; letter-spacing: 3px; color: var(--dim); margin-bottom: 3px; }
+#objective .obj-text { font-size: 14px; line-height: 1.35; }
+#objective .obj-text b { color: var(--oc, var(--cur)); }
+#objective.new { animation: obj-new 1.6s ease-out; }
+@keyframes obj-new { 0%, 30% { background: rgba(155, 246, 255, 0.35); transform: scale(1.06); } 100% { transform: scale(1); } }
+#hud.cinematic #objective { opacity: 0; }
 
 #message {
   position: absolute; left: 50%; top: 66%; transform: translateX(-50%); text-align: center;
@@ -197,6 +208,8 @@ body.touch .desk-only { display: none; }
 /* HUD rearranged so nothing sits under the thumbs */
 body.touch #health { left: max(16px, env(safe-area-inset-left)); top: calc(14px + env(safe-area-inset-top, 0px)); bottom: auto; width: 180px; }
 body.touch #stats { display: none; }
+body.touch #objective { left: calc(14px + env(safe-area-inset-left, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); max-width: 45vw; padding: 6px 10px; }
+body.touch #objective .obj-text { font-size: 12px; }
 body.touch #colors {
   left: auto; transform: none; gap: 8px; pointer-events: auto;
   right: calc(24px + env(safe-area-inset-right, 0px)); bottom: calc(140px + env(safe-area-inset-bottom, 0px));

@@ -55,6 +55,19 @@ export class Hud {
     this.root.classList.toggle('hidden', !v);
   }
 
+  // The current goal, top-left. Flashes when it changes.
+  setObjective(html, color = null) {
+    if (html === this.objectiveHtml) return;
+    this.objectiveHtml = html;
+    const el = (this.objEl ??= $('#objective'));
+    el.classList.toggle('none', !html);
+    el.querySelector('.obj-text').innerHTML = html || '';
+    el.style.setProperty('--oc', color || '');
+    el.classList.remove('new');
+    void el.offsetWidth; // restart the flash animation
+    if (html) el.classList.add('new');
+  }
+
   buildColors(blaster) {
     this.colorsEl.innerHTML = '';
     this.slots = COLORS.map((c, i) => {

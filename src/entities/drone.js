@@ -264,7 +264,6 @@ export class Drone {
     if (this.dead) return;
     // dormant while the player is far off: no flight or collision work (it adds up across every world)
     if (this.dist > Math.max(60, this.range + 30)) {
-      this.aggro = false;
       this.t += dt;
       this.group.position.copy(this.pos).y += Math.sin(this.t * 1.8) * 0.3; // a cheap hover so it never looks frozen
       this.updateHum(this.humPitch);
@@ -302,7 +301,8 @@ export class Drone {
     }
     // figure-8 weave around home, wider when engaged. The pull toward it goes slack while the drone
     // reels from a hit (so the shove carries) and eases back in as it recovers.
-    const o = this.aggro ? this.orbit + 1 : this.orbit * 0.4;
+    // (idle drones still patrol a visible loop, so they never read as frozen)
+    const o = this.aggro ? this.orbit + 1 : Math.max(1.2, this.orbit * 0.6);
     const target = _v.set(
       this.home.x + Math.sin(this.t * 0.9) * o,
       this.home.y + Math.sin(this.t * 1.8) * 0.45 + Math.sin(this.t * 3.1) * 0.12,

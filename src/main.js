@@ -13,6 +13,7 @@ import { Player } from './player.js';
 import { Blaster } from './weapon.js';
 import { Hud } from './hud.js';
 import { buildLevel } from './level.js';
+import { currentObjective } from './levels/guide.js';
 import { ads } from './monetization/bonusround.js';
 import { TouchControls } from './touch.js';
 import { UnlockCutscene } from './cutscene.js';
@@ -639,7 +640,7 @@ class Game {
     const result = await ads.rewarded(() => (rewarded = true));
     this.reviving = false;
     this.onAdEnd();
-    if (!rewarded) return this.respawn();
+    if (!rewarded || this.unsafeSpot()) return this.respawn();
     p.health = Math.ceil(p.maxHealth * 0.6);
     p.invuln = 3;
     this.hud.message(result.filled ? 'Revived — thanks for playing the Bonus Round!' : 'Revived!', 3);
@@ -675,10 +676,26 @@ class Game {
     if (!this.adRound) return;
     this.adRound = false;
     this.player.arenaBounds = null;
+    this.input.keys.clear();
     audio.setMusicMuted(false);
     if (this.level.boss.active) this.hud.bossShow(true);
+    // never hand control back somewhere deadly or stuck (inside acid, spikes, a wall): checkpoint instead
+    if (this.state === 'playing' && !this.reviving && this.unsafeSpot()) this.respawn();
     // if the round released the mouse, offer a click back in instead of dropping input silently
     if (this.state === 'playing' && !this.touchMode && !this.input.locked) this.pause();
+  }
+
+  // Is the player overlapping a hazard or embedded in a solid?
+  unsafeSpot() {
+    const b = this.player.bounds();
+    for (const s of this.world.solids) {
+      if (!s.enabled || s.noCollide) continue;
+      const pad = s.hazard ? 0.06 : -0.05;
+      if (b.min.x < s.max.x + pad && b.max.x > s.min.x - pad && b.min.y < s.max.y + pad && b.max.y > s.min.y - pad && b.min.z < s.max.z + pad && b.max.z > s.min.z - pad) {
+        if (s.hazard || !s.delta) return true;
+      }
+    }
+    return this.player.pos.y < -90;
   }
 
   // enemies, damage, triggers and hazards are paused while a round plays or a revive is pending
@@ -718,9 +735,14 @@ class Game {
     this.stats.time += dt;
     if (this.rulesPaused) this.world.fx.update(dt);
     else this.world.update(dt, this.player);
-    this.player.update(dt, this.input, this.settings);
+    // A Bonus Round that plays as an overlay (the SDK didn't move us into a native arena) takes the
+    // keyboard: hold our player still underneath it, or WASD would walk you into the acid meanwhile.
+    if (this.rulesPaused && !this.player.arenaBounds) this.player.updateCamera();
+    else this.player.update(dt, this.input, this.settings);
     this.blaster.update(dt, this.input);
     this.hud.setHealth(this.player.health, this.player.maxHealth);
+    const goal = currentObjective(this);
+    this.hud.setObjective(goal.html, goal.color);
     audio.setHeartbeat(this.player.health > 0 && this.player.health < this.player.maxHealth * 0.3);
   }
 

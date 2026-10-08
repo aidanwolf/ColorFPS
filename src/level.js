@@ -9,6 +9,7 @@ import { buildSolar } from './levels/solar.js';
 import { buildVerdant } from './levels/verdant.js';
 import { buildAzure } from './levels/azure.js';
 import { buildPrism } from './levels/prism.js';
+import { buildGuide } from './levels/guide.js';
 
 export function buildLevel(world, game) {
   const level = {
@@ -26,5 +27,6 @@ export function buildLevel(world, game) {
   buildVerdant(B);
   buildAzure(B);
   buildPrism(B);
+  buildGuide(world, game);
   return level;
 }
