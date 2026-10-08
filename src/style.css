@@ -109,7 +109,7 @@ html, body {
 #objective .obj-text b { color: var(--oc, var(--cur)); }
 #objective.new { animation: obj-new 1.6s ease-out; }
 @keyframes obj-new { 0%, 30% { background: rgba(155, 246, 255, 0.35); transform: scale(1.06); } 100% { transform: scale(1); } }
-#hud.cinematic #objective { opacity: 0; }
+#hud.cinematic #objective, #hud.boss-on #objective { opacity: 0; }
 
 #message {
   position: absolute; left: 50%; top: 66%; transform: translateX(-50%); text-align: center;
