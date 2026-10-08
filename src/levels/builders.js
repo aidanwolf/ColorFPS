@@ -192,6 +192,73 @@ export function makeBuilders(W, game, level) {
     W.scene.add(canopy);
     return canopy;
   };
+  // A glowing floor path: chevrons laid along the points ([x, y, z], y = the floor top under that point;
+  // keep each run on one surface) with a pulse that runs toward the last point. One draw per path.
+  const chevronGeo = (() => {
+    const s = new THREE.Shape();
+    s.moveTo(-0.5, -0.22);
+    s.lineTo(0, 0.26);
+    s.lineTo(0.5, -0.22);
+    s.lineTo(0.5, 0.06);
+    s.lineTo(0, 0.54);
+    s.lineTo(-0.5, 0.06);
+    s.closePath();
+    return new THREE.ShapeGeometry(s).rotateX(-Math.PI / 2);
+  })();
+  function guideStrip(points, color, { spacing = 1.5, scale = 1, near = 70 } = {}) {
+    const marks = [];
+    let s = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      const [ax, ay, az] = points[i], [bx, by, bz] = points[i + 1], len = Math.hypot(bx - ax, bz - az);
+      if (len < 0.01) continue;
+      const yaw = Math.atan2(-(bx - ax), -(bz - az));
+      for (let d = s ? 0 : 0.6; d < len; d += spacing) marks.push({ x: ax + ((bx - ax) * d) / len, y: ay + ((by - ay) * d) / len, z: az + ((bz - az) * d) / len, yaw, s: s + d });
+      s += len;
+    }
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+    const mesh = new THREE.InstancedMesh(chevronGeo, mat, marks.length);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), sc = new THREE.Vector3(scale, 1, scale);
+    const base = new THREE.Color(color), col = new THREE.Color();
+    const centre = new THREE.Vector3();
+    marks.forEach((k, i) => {
+      q.setFromAxisAngle(up, k.yaw);
+      mesh.setMatrixAt(i, m4.compose(new THREE.Vector3(k.x, k.y + 0.03, k.z), q, sc));
+      mesh.setColorAt(i, col.copy(base).multiplyScalar(0.5));
+      centre.add(new THREE.Vector3(k.x, k.y, k.z));
+    });
+    centre.divideScalar(Math.max(1, marks.length));
+    W.scene.add(mesh);
+    let t = Math.random() * 10;
+    W.add({
+      update(dt, player) {
+        if (player.pos.distanceTo(centre) > near) return;
+        t += dt;
+        marks.forEach((k, i) => {
+          const wave = Math.pow(Math.max(0, Math.sin((k.s / 6 - t * 1.6) * Math.PI)), 6); // pulses run toward the end
+          mesh.setColorAt(i, col.copy(base).multiplyScalar(0.75 + 1.6 * wave));
+        });
+        mesh.instanceColor.needsUpdate = true;
+      },
+    });
+    return mesh;
+  }
+  // Glowing outline round the top of a box (a ledge, a step, a drop-off) so its edges read from afar.
+  function glowEdge(x1, z1, x2, z2, top, kind, zone, t = 0.08) {
+    const y1 = top - 0.1, y2 = top + 0.02;
+    W.deco(x1, y1, z1, x2, y2, z1 + t, kind, zone);
+    W.deco(x1, y1, z2 - t, x2, y2, z2, kind, zone);
+    W.deco(x1, y1, z1, x1 + t, y2, z2, kind, zone);
+    W.deco(x2 - t, y1, z1, x2, y2, z2, kind, zone);
+  }
+  // A repeating hint that waits `every` seconds before it can show again (for spots players keep returning to).
+  const hintEvery = (min, max, html, every = 20, time = 5, when = () => true) => {
+    let at = -1e9;
+    W.trigger(min, max, () => {
+      if (W.time - at < every || !when()) return;
+      at = W.time;
+      game.hud.message(html, time);
+    }, { once: false });
+  };
   // ?dev&start=<name> drops you here with the given colors (see main.js devSkip).
   const devStart = (name, pos, yaw = 0, colors = [0]) => (level.devStarts[name] = { pos: new THREE.Vector3(...pos), yaw, colors });
   // Called whenever the player respawns at a checkpoint (reset elevators, encounters, ...).
@@ -201,5 +268,6 @@ export function makeBuilders(W, game, level) {
     W, game, level, T, CH, GLOW,
     wallX, wallZ, abs, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy,
     sideAlcove, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, tree, devStart, onRespawn,
+    guideStrip, glowEdge, hintEvery,
   };
 }

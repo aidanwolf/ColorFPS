@@ -575,7 +575,7 @@ export function buildSolar(B) {
   lance({ min: [-102, 10.4, -166.5], max: [-98, 16, -162], period: 3.0, on: 1.2, warn: 0.6 });
   R(-95, -24.4, -166, -88, 11.6, -154);
   new JumpPad(W, { pos: [-91.5, 11.6, -158], power: 24, push: [-7, 0, 0], color: 0xffd23a });
-  hint([-95, 11.6, -166], [-88, 15, -154], 'Jump pad: ride it up to the <b>summit</b>.', 3);
+  hint([-95, 11.6, -166], [-88, 15, -154], 'Jump pad: it throws you back <b>west</b>, up onto the summit. <b>Let go of the keys</b> as it launches you.', 5);
   new Drone(W, { pos: [-108, 15, -173], color: [RED, YELLOW], range: 22, cycle: 2.6 });
   // the summit (y 20.8): the gnomon obelisk and its dial
   M(-110, 20.8, -152, -106, 50, -148);
@@ -671,4 +671,66 @@ export function buildSolar(B) {
   strata(-190, -46.3, -150, -46, [-14, -2]);
   strata(-196.3, -206, -196, -104, [-2, 10, 22]); // horizon mesas
   strata(-199.5, -206.3, -36, -206, [-4, 6, 18]);
+
+  // ---- wayfinding (playtest pass)
+  // Players arrived on the Sunward Overlook, admired the sun and found no way on: the way down (rubble
+  // steps off the deck's south-east corner, then a red gate on the ledge) was the same sandstone as
+  // everything else and out of view. Light it up, lead to it, and say so where people actually stall.
+  const { guideStrip, glowEdge, hintEvery } = B;
+  const amber = 0xffc23a, red = 0xff4433;
+  // the deck: arrows from the port round to the corner, the corner's lip glows, hazard paint at the drop
+  guideStrip([[-38.4, 4, -112], [-43, 4, -110.6], [-43, 4, -103.6], [-40, 4, -100.5]], amber); // in view as you walk in
+  W.deco(-46, 3.9, -100.12, -38, 4.04, -100, glow, zone);
+  W.deco(-46, 3.6, -100.04, -40, 3.95, -99.96, 'hazard', zone);
+  // the rubble steps down, each edged, with arrows across them and along the ledge to the gate
+  glowEdge(-40, -100, -38, -98, 3.3, glow, zone);
+  glowEdge(-42.5, -99.5, -40.5, -97.5, 2.3, glow, zone);
+  glowEdge(-45, -98, -43, -96, 1.1, glow, zone);
+  for (const [x1, y, z1, x2, z2] of [[-38.6, 3.3, -99.4, -40.2, -98.6], [-40.9, 2.3, -98.8, -42.3, -98.2], [-43.3, 1.1, -97.4, -44.7, -96.6]])
+    guideStrip([[x1, y, z1], [x2, y, z2]], amber, { spacing: 2 });
+  guideStrip([[-43.6, 0, -95.4], [-42, 0, -93.5], [-41.5, 0, -91]], red, { spacing: 1.2 });
+  W.deco(-45, -0.1, -100, -44.92, 0.02, -86, glow, zone); // the ledge's canyon-side edge
+  light(-41.5, 3.6, -92.5, 0xff6a3a, 16, 14); // the red gate glows from the deck
+  ck([-41.5, 0, -94], Math.PI, [6, 3, 4]); // no climbing back up to retry the canyon hops
+  hint([-56, 4, -124], [-45.5, 8, -100],
+    'The way on is <b>down</b>: follow the glowing arrows to the deck\'s far corner, step down the rubble and blast the <b style="color:#ff3344">RED</b> gate.', 7);
+  hintEvery([-50.5, 4, -124], [-43.5, 7, -120.5],
+    'Sealed with <b style="color:#46ff7a">GREEN</b> energy — come back later. For now, follow the glowing arrows <b>down</b> off the deck.', 25, 5);
+  hintEvery([-56, 4, -103], [-46, 7, -100],
+    'Too far to drop here. The rubble steps down are at the <b>other end</b> of this edge — follow the arrows.', 25, 4);
+  // canyon hops: the pillar top and the landing under the panel read as targets
+  glowEdge(-43.5, -82, -39, -78, -1.5, glow, zone);
+  guideStrip([[-41.5, 0, -88.4], [-41.5, 0, -86.4]], red, { spacing: 1 });
+  // the yard: arrows from the landing into the gauntlet, then on to the Shade Slot gate
+  guideStrip([[-48, -8, -64], [-52, -8, -56], [-56.5, -8, -52]], amber);
+  guideStrip([[-79, -8, -52], [-86.6, -8, -52]], red, { spacing: 1.2 });
+  light(-86, -4.5, -52, 0xff6a3a, 12, 12);
+  // the Sun Well: a checkpoint halfway down the spiral, edges on the ledges
+  ck([-177, -14, -51], 0.65, [5, 3, 5]);
+  for (const [x1, z1, x2, z2, top] of [[-162, -52, -157, -47, -10], [-180, -54, -174, -48, -14], [-186, -62, -181, -57, -15.5], [-184, -71, -179, -66, -17], [-176.5, -74, -173.5, -71, -18.5]])
+    glowEdge(x1, z1, x2, z2, top, glow, zone);
+  // after the core: arrows north along the causeway to the yellow door
+  guideStrip([[-166, -20, -84.5], [-166, -20, -100.6]], amber, { spacing: 1.8 });
+  // Heliostat Hall: arrows to the lift corner (they only matter once it runs, but they say where it is)
+  guideStrip([[-160, -20, -131], [-152.5, -20, -136], [-151.6, -20, -137.5]], amber);
+  // the jump pad throws you WEST onto the summit — players walk onto it heading east and kept holding
+  // forward, which steered them off the far side into the void. A backstop wall catches that (you drop
+  // back onto the pad's platform), and the arrows on the platform point the way you'll fly.
+  R(-88, 11.6, -166, -87.4, 27, -154);
+  strata(-88.3, -166, -88, -154, [15, 21]);
+  W.deco(-88.06, 26.6, -166, -88, 26.8, -154, glow, zone);
+  guideStrip([[-89, 11.6, -158], [-94.6, 11.6, -158]], amber, { spacing: 1.3, scale: 1.3 });
+  hintEvery([-89.4, 11.6, -166], [-88, 13, -154],
+    'Don\'t hold <b>forward</b> through the launch: the pad throws you <b>west</b>, onto the summit behind you.', 12, 5);
+  // the spike drop: walking in at a run floated you over the 4 m shaft (the updraft holds you up) onto
+  // the hall roof beyond. A stone chimney round three sides keeps you in the column.
+  M(-93.45, 15.2, -139, -92.85, 24, -133); // overhangs the hall's roof edge, so there's no lip to land on
+  M(-98, 12, -139, -92.85, 24, -138.6);
+  M(-98, 12, -133.4, -92.85, 24, -133);
+  W.deco(-98.05, 23.8, -139.05, -92.15, 24.05, -138.55, glow, zone);
+  W.deco(-98.05, 23.8, -133.45, -92.15, 24.05, -132.95, glow, zone);
+  W.deco(-93.5, 23.8, -139, -92.8, 24.05, -133, glow, zone);
+  guideStrip([[-104, 20.8, -141], [-99.2, 20.8, -136]], amber);
+  // the guide's per-area objective reads these
+  level.solarState = { lift1, lift2, deckLance };
 }

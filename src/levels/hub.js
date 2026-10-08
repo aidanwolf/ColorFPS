@@ -585,7 +585,7 @@ export function buildHub(B) {
   // coming home from each world: point at the next door
   const back = (min, max, c, html) => W.trigger(min, max, () => game.blaster.unlocked[c] && game.hud.message(html, 6));
   back([-24.5, GAL, -137.5], [-21.5, GAL + 3, -134.5], YELLOW,
-    `Solar frequency restored. The ${tag(GREEN, 'VERDANT')} gate (north) answers to ${tag(YELLOW, 'yellow')}.`);
+    `Solar frequency restored. Drop through the gap in the railing: the ${tag(GREEN, 'VERDANT')} gate (north) answers to ${tag(YELLOW, 'yellow')}.`);
   back([8.5, GAL, -148], [11.5, GAL + 3, -145], GREEN,
     `Verdant frequency restored. The ${tag(BLUE, 'AZURE')} gate (east) answers to ${tag(GREEN, 'green')}.`);
   back([21.5, GAL, -137.5], [24.5, GAL + 3, -134.5], BLUE,
