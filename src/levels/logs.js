@@ -19,11 +19,11 @@ const LOGS = [
   { id: '07', world: 'verdant', pos: [26, 4, -161.5], yaw: 0, provisional: true }, // old: the Root Court's south terrace (wants: early, lush and quiet)
   { id: '08', world: 'verdant', pos: [27.5, 4.5, -205.5], yaw: 0, provisional: true }, // old: the north bank over the Great Hollow (wants: roots by water)
   { id: '09', world: 'verdant', pos: [12, -25, -250], yaw: 0, provisional: true }, // old: the root island behind the Great Tree (wants: late, hidden, before the way east)
-  // AZURE (provisional): homesick, then the truth
-  { id: '10', world: 'azure', pos: [55.5, 4, -117], yaw: 0, provisional: true }, // old: the Rim Deck by the antenna mast (wants: first view of the ocean)
-  { id: '11', world: 'azure', pos: [107.5, -4.5, -81.5], yaw: 0, provisional: true }, // old: inside the pump hut (wants: a small warm shelter)
-  { id: '12', world: 'azure', pos: [136, -52.3, -120.5], yaw: Math.PI / 2, provisional: true }, // old: the Flooded Depths, the Bell's dry ledge (wants: an air pocket underwater)
-  { id: '13', world: 'azure', pos: [107.4, -25, -166.2], yaw: 0, provisional: true }, // old: the Cryo Lab behind the specimen tanks (wants: a records room / sleeper tanks)
+  // AZURE (final, the rebuilt world): homesick, then the truth
+  { id: '10', world: 'azure', pos: [55.5, 4, -117.5], yaw: 2.36 }, // the Rim Deck by the antenna mast, first view of the cold sea
+  { id: '11', world: 'azure', pos: [107.2, -4.5, -82.3], yaw: 1.08 }, // inside the warm pump hut, by the boiler
+  { id: '12', world: 'azure', pos: [136, -52.3, -120.5], yaw: -Math.PI / 2 }, // the Flooded Depths: the Bell's dry ledge, an air pocket underwater
+  { id: '13', world: 'azure', pos: [113.4, -25, -160.8], yaw: Math.PI / 2 }, // the records room off the Cryo Lab, in front of the index terminal
   // PRISM CORE (final; prism.js isn't being rebuilt): resolve, and the last note
   { id: '14', world: 'prism', pos: [-7.5, -48, -97.5], yaw: Math.PI / 4 }, // the antechamber, among the crystals, south-west corner
   { id: '15', world: 'prism', pos: [7, -48, -112], yaw: -Math.PI / 4 }, // the antechamber's north-east corner, by the way to the arena

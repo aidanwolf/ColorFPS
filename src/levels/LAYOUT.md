@@ -12,7 +12,7 @@ overlap: each module stays inside its region box below. Everything is built from
             └──────────────┬──────────────┬────────────┘
 SOLAR (west, yellow)  ┌────┴──── THE HUB ───┴────┐  AZURE (east, blue)
  entry z=-112,y=4 ────┤  x -24..24, z -100..-148  ├──── entry z=-112,y=4 (green door)
- return z=-136,y=12 ──┤  floor y=4, balconies y=12├──── return z=-136,y=12 (forced-ascent elevator)
+ return z=-136,y=12 ──┤  floor y=4, balconies y=12├──── return z=-136,y=12 (Spillway jump pads)
                       └────────────┬──────────────┘
                      red entry  x=0,y=4 (south wall)        PRISM CORE: beneath the Hub (elevator, needs all 4 colors)
                                    │
@@ -20,7 +20,7 @@ SOLAR (west, yellow)  ┌────┴──── THE HUB ───┴──�
 ```
 
 Progression: red (spawn) → Hub → **Solar** (get yellow) → Hub → **Verdant** (yellow door; get green) → Hub →
-**Azure** (green door; get blue, ride the forced-ascent elevator back up) → Hub → **Prism Core** (all four
+**Azure** (green door; get blue, shut the engine down, climb the Spillway pads back up) → Hub → **Prism Core** (all four
 colors) → boss. Every color world is a **loop**: you leave the Hub by its entry port on the floor (y 4) and
 come back through its return port onto a Hub balcony (y 12), then drop down to the Hub floor.
 From the Hub you can **see into every world through big windows before you can enter it.**
@@ -55,7 +55,7 @@ above y 14) look out over your world. Put something spectacular in that view.
 | Verdant entry | north, z -148.5 → -148 | x -10 | 4 | verdant.js — Hub puts a YELLOW barrier door in the opening |
 | Verdant return | north, z -148.5 → -148 | x 10 | 12 | verdant.js; Hub balcony inside |
 | Azure entry | east, x 24.5 → 25 | z -112 | 4 | azure.js — Hub puts a GREEN barrier door in the opening |
-| Azure return | east, x 24.5 → 25 | z -136 | 12 | azure.js (the forced-ascent elevator tops out here); Hub balcony inside |
+| Azure return | east, x 24.5 → 25 | z -136 | 12 | azureSpillway.js (the Spillway's jump-pad climb ends here); Hub balcony inside |
 
 A world's corridor must butt exactly against the outside face of the Hub wall (x = -25, x = 25 or
 z = -148.5) with its floor top at the port's y and its 3 m width centered on the port center.
