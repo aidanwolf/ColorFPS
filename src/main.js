@@ -80,6 +80,10 @@ class Game {
     this.state = 'title';
     this.stats = { time: 0, deaths: 0 };
     this.secretsFound = 0;
+    // Each world is an engine feeding the machine; with its chroma in hand you shut its power source down.
+    // World modules call shutDownWorld(name) and listen with onPowerDown(fn) to show the aftermath.
+    this.powerDown = { red: false, solar: false, verdant: false, azure: false };
+    this.powerDownListeners = [];
 
     // ---- renderer / scene ----
     const renderer = (this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' }));
@@ -360,6 +364,25 @@ class Game {
     }
   }
 
+  // ------------------------------------------------------------------ world power
+  isWorldDown(name) {
+    return !!this.powerDown[name];
+  }
+
+  // The player shut a world's power source down: remember it, tell every listener (the world's own
+  // aftermath, the Atrium reactor), save. fn(name, { restored }) also runs for worlds restored from a save.
+  shutDownWorld(name) {
+    if (this.powerDown[name]) return;
+    this.powerDown[name] = true;
+    for (const fn of this.powerDownListeners) fn(name, { restored: false });
+    this.save();
+  }
+
+  onPowerDown(fn) {
+    this.powerDownListeners.push(fn);
+    for (const [name, down] of Object.entries(this.powerDown)) if (down) fn(name, { restored: true });
+  }
+
   // ------------------------------------------------------------------ saving
   save() {
     if (DEV && params.get('start')) return; // dev jumps don't overwrite your real progress
@@ -369,6 +392,7 @@ class Game {
       colors: this.blaster.unlocked.map((u, i) => (u && this.blaster.has ? i : -1)).filter((i) => i >= 0),
       color: this.blaster.color,
       secrets: this.level.secrets.filter((s) => s.trigger.fired).map((s) => s.label),
+      powerDown: Object.keys(this.powerDown).filter((k) => this.powerDown[k]),
       time: Math.floor(this.stats.time),
       deaths: this.stats.deaths,
     });
@@ -395,6 +419,12 @@ class Game {
       this.secretsFound++;
     }
     this.hud.setSecrets(this.secretsFound, this.level.secretsTotal);
+    for (const name of s.powerDown || []) {
+      if (name in this.powerDown && !this.powerDown[name]) {
+        this.powerDown[name] = true;
+        for (const fn of this.powerDownListeners) fn(name, { restored: true });
+      }
+    }
     this.stats.time = s.time || 0;
     this.stats.deaths = s.deaths || 0;
     const pos = new THREE.Vector3(...s.cp.pos);
