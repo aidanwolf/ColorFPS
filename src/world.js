@@ -12,8 +12,9 @@ const _v = new THREE.Vector3();
 const _ray = new THREE.Raycaster();
 const GRID_CELL = 8;
 const GRID_MARGIN = 1;
-const POOL_SIZE = 10;
-const CULL_SIZE = 1 / 45; // objects smaller than this (radius / distance) aren't drawn // real point lights shared by every placed light (see updateLights)
+const POOL_SIZE = 10; // real point lights shared by every placed light (see updateLights)
+const CULL_SIZE = 1 / 45; // objects smaller than this (radius / distance) aren't drawn
+const SHOOT_KEEP = 60; // ...except shootable things nearer than this (m), which stay drawn however small
 
 export class World {
   constructor(game) {
@@ -60,8 +61,8 @@ export class World {
     if (box.isEmpty()) return;
     box.getBoundingSphere(sphere);
     // bounds relative to the object's position, so moving things (drones, lifts) stay correct
-    // shootable things (targets, orbs, enemies) are never dropped for being small on screen: a switch you
-    // can see and aim at mustn't vanish at 25 m
+    // shootable things (targets, orbs, enemies) within SHOOT_KEEP aren't dropped for being small on screen:
+    // a switch you can see and aim at mustn't vanish at 25 m
     let shootable = false;
     o.traverse((c) => { if (c.userData.hit) shootable = true; });
     const rec = { o, off: sphere.center.clone().sub(o.position), r: sphere.radius, region: regionOf(sphere.center), culled: false, shootable };
@@ -82,7 +83,7 @@ export class World {
         rec.culled = true;
         continue;
       }
-      rec.culled = d > far || (!rec.shootable && d > 0 && rec.r / (d + rec.r) < CULL_SIZE);
+      rec.culled = d > far || (d > 0 && rec.r / (d + rec.r) < CULL_SIZE && !(rec.shootable && d < SHOOT_KEEP));
     }
   }
 
