@@ -13,6 +13,7 @@ import { COLORS } from '../colors.js';
 import { audio } from '../audio.js';
 import { Orb } from './drone.js';
 import { liquidMaterial } from '../liquid.js';
+import { director } from '../combat/director.js';
 
 const NAME = 'THE THORNMAW';
 const MAX_HP = 1000;
@@ -946,7 +947,8 @@ export class Thornmaw {
     const target = new THREE.Vector3();
     if (k === 0) {
       // the first lands where you're heading, the rest scatter around you
-      target.copy(player.pos).addScaledVector(player.vel, 0.45).setY(player.pos.y);
+      // (a volley lobbed from off screen opens ~2 m wide: the combat director's fair warning)
+      target.copy(director.aim(this, mouth, _v.copy(player.pos).addScaledVector(player.vel, 0.45).setY(player.pos.y)));
     } else {
       const a = Math.random() * Math.PI * 2, r = rnd(2.6, 5.5);
       target.copy(player.pos).add(_v.set(Math.cos(a) * r, 0, Math.sin(a) * r));
