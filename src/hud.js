@@ -219,11 +219,42 @@ export class Hud {
     setTimeout(() => (this.vignette.style.background = ''), 250);
   }
 
-  hitmarker(immune) {
-    this.hit.classList.remove('show', 'immune');
+  // crit: a weak-point hit (bigger, orange, with a punch)
+  hitmarker(immune, crit = false) {
+    this.hit.classList.remove('show', 'immune', 'crit');
     void this.hit.offsetWidth; // restart the CSS animation
     this.hit.classList.add('show');
     if (immune) this.hit.classList.add('immune');
+    else if (crit) this.hit.classList.add('crit');
+  }
+
+  // A boss took a CRITICAL weak-point hit: the bar flares orange and a CRITICAL pops by the crosshair.
+  bossCrit(pop = true) {
+    this.bossPulse('crit');
+    if (!pop) return;
+    const now = performance.now();
+    if (now - (this.lastPop || 0) < 110) return;
+    this.lastPop = now;
+    const el = document.createElement('div');
+    el.className = 'crit-pop';
+    el.textContent = 'CRITICAL';
+    el.style.left = `calc(50% + ${(Math.random() * 2 - 1) * 46 + 28}px)`;
+    el.style.top = `calc(50% - ${26 + Math.random() * 34}px)`;
+    el.style.setProperty('--tilt', `${(Math.random() * 2 - 1) * 9}deg`);
+    this.root.appendChild(el);
+    setTimeout(() => el.remove(), 650);
+  }
+
+  // restart the boss bar's flash ('hurt' on any damage, 'crit' on a weak-point hit)
+  bossPulse(kind) {
+    const el = this.bossEl;
+    if (!el || el.classList.contains('hidden')) return;
+    const now = performance.now();
+    if (kind === 'hurt' && (el.classList.contains('crit') && now - (this.critAt || 0) < 300)) return;
+    if (kind === 'crit') this.critAt = now;
+    el.classList.remove('hurt', 'crit');
+    void el.offsetWidth;
+    el.classList.add(kind);
   }
 
   bossShow(v) {
@@ -232,6 +263,9 @@ export class Hud {
   }
 
   bossBar(frac) {
+    // any drop flashes the bar (the white ghost trails behind it)
+    if (frac < (this.bossFrac ?? 1) - 1e-4 && frac > 0) this.bossPulse('hurt');
+    this.bossFrac = frac;
     this.bossFill.style.width = `${frac * 100}%`;
     this.bossGhost.style.width = `${frac * 100}%`;
   }

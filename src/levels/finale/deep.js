@@ -248,7 +248,8 @@ export function buildDeep({ B, W, game, level, H, boss }) {
     orbSpeed: 0.75,
     armor: 2.5,
     kneelTime: 4.5,
-    dmg: { vent: 9, kneel: 7, limb: 4, head: 6, broken: 2, torso: 2 },
+    // (the kneel is THE window: one carries about a third of the chunk; leg armor and broken limbs are chip)
+    dmg: { vent: 9, kneel: 15, limb: 2, head: 4, broken: 1, torso: 1 },
     attacks: (b) => (flooded() ? { volley: 1 } : { sweep: 2, slam: 2, volley: 1, icespikes: 3 }),
     specials,
     env: 0.2, // image-based light (main's default 0.35)

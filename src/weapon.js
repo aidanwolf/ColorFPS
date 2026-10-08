@@ -163,7 +163,7 @@ export class Blaster {
     game.world.fx.muzzle(_muzzle, _dir, COLORS[this.color].hex, game.player.vel);
     const outcome = this.trace(cam.position.clone(), _dir.clone(), _muzzle.clone(), 0);
     if (outcome.hit) {
-      game.hud.hitmarker(false);
+      game.hud.hitmarker(false, outcome.crit); // (a boss's weak point marks its hit as a crit)
       if (!outcome.quiet) audio.hit(); // drones play their own, heavier impact
     } else if (outcome.bounced) {
       game.hud.hitmarker(true);
@@ -196,6 +196,7 @@ export class Blaster {
       return outcome;
     }
     if (result === 'hit' || result === 'kill') outcome.hit = true;
+    if (hit.crit && outcome.hit) outcome.crit = true;
 
     const reflects = result === 'mirror' || result === 'immune';
     if (reflects && depth < MAX_BOUNCES) {

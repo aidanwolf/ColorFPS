@@ -14,12 +14,13 @@ import { audio } from '../audio.js';
 import { Orb } from './drone.js';
 import { liquidMaterial } from '../liquid.js';
 import { director } from '../combat/director.js';
+import { critHit, PainVoice, Malfunction, WeakMarker, prefetchFeel } from '../bossFeel.js';
 
 const NAME = 'THE THORNMAW';
-const MAX_HP = 1000;
-const HEAD_HITS = 20; // correct-color hits to sever a head
-const HEAD_DMG = 2; // boss damage per head hit (a full head is 4% of the bar)
-const HEART_DMG = 8.5;
+const MAX_HP = 1150;
+const HEAD_HITS = 22; // correct-color hits to sever a head
+const HEAD_DMG = 2; // boss damage per head hit (a full head is ~4% of the bar)
+const HEART_DMG = 11; // the bloomed heart: the decisive window (a good bloom takes most of a phase)
 const REGROW = [0, 16, 14, 12]; // seconds a severed head stays down (per phase)
 const HEART_OPEN = [0, 7.5, 7, 6.5]; // seconds the heart stays exposed
 const HEART_SHIFT = [0, 1.9, 1.5, 1.2]; // seconds between heart color shifts
@@ -49,7 +50,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const ease = (k) => k * k * (3 - 2 * k);
 // sounds: a generated sample when it exists, else a stock one (see the report for the new prompts)
 const sfx = (name, opts, fallback) => audio.sample(name, opts) || fallback?.();
-export const THORNMAW_SOUNDS = ['hydra_roar', 'hydra_hiss', 'hydra_snap', 'hydra_spit', 'pod_burst', 'vine_whip', 'root_rumble', 'thorn_erupt', 'spore_puff', 'hydra_sever', 'hydra_bloom', 'hydra_death'];
+export const THORNMAW_SOUNDS = ['hydra_pain', 'hydra_roar', 'hydra_hiss', 'hydra_snap', 'hydra_spit', 'pod_burst', 'vine_whip', 'root_rumble', 'thorn_erupt', 'spore_puff', 'hydra_sever', 'hydra_bloom', 'hydra_death'];
 
 // Organic lumps: push vertices in and out by a smooth function of their position (seams stay closed).
 function gnarl(geo, amt, seed = 1) {
@@ -180,6 +181,17 @@ export class Thornmaw {
     this.build();
     this.buildSweeper();
     this.buildFx();
+    // pain (a wet, shrieking hiss), sap spurting from its neck roots and petals while it's bloomed open,
+    // a target on the open heart
+    this.pain = new PainVoice(world, { name: 'hydra_pain', fallback: 'hydra_roar', rate: 1.35, gain: 0.6, big: 'hydra_roar', bigRate: 1.05, gap: 1.5 });
+    this.neckRoots = this.heads.map(() => {
+      const o = new THREE.Object3D();
+      this.root.add(o);
+      return o;
+    });
+    this.bleed = new Malfunction(game, [...this.neckRoots, ...this.petals], { scale: 1.6, spark: 0xb0ff60, smoke: 0x9ab84a, rate: 12, organic: true, servo: false });
+    this.heartMarker = new WeakMarker(world, game, { color: 0xffffff, size: 1.7 });
+    this.flinch = 0;
     world.addHittable(this.root);
     this.reset();
     world.add(this);
@@ -430,6 +442,8 @@ export class Thornmaw {
 
   // ------------------------------------------------------------------ state
   reset() {
+    this.heartMarker?.update(1, null);
+    this.bleed?.update(1, false);
     this.state = 'dormant';
     this.stateT = 0;
     this.t = 0;
@@ -512,6 +526,7 @@ export class Thornmaw {
     this.stateT = 0;
     this.introStep = 0;
     audio.prefetch(THORNMAW_SOUNDS);
+    prefetchFeel();
     const hud = this.game.hud;
     this.nameEl ??= document.querySelector('#boss-bar .boss-name');
     if (this.nameEl) {
@@ -608,6 +623,8 @@ export class Thornmaw {
       }
       h.hp--;
       h.flash = 1;
+      h.flinch = 1;
+      if (hit.point) this.world.fx.sparks(hit.point, hit.normal || UP, 0xc8ff70, { count: 5, speed: 6, spread: 0.9, life: 0.35 });
       this.damage(HEAD_DMG);
       const left = Math.ceil((h.hp / HEAD_HITS) * 6);
       h.leaves.forEach((l, k) => {
@@ -622,7 +639,14 @@ export class Thornmaw {
     if (part === 'heart' && this.heartOpen) {
       if (color !== this.heartColor) return 'immune';
       this.heartFlash = 1;
+      this.flinch = 1;
+      critHit(this.game, hit, { color: COLORS[color].hex, spark: 0xf0ffc0, scale: 1.4 });
       audio.bossCoreHit();
+      // sap and petal shreds burst out of the bud
+      const p = this.heart.getWorldPosition(_v);
+      this.world.fx.burst(p, 0xa8ff60, { count: 6, speed: 7, life: 0.7, size: 0.3, gravity: 9 });
+      if (Math.random() < 0.3) this.world.fx.burst(p, 0x7a2a66, { count: 3, speed: 5, life: 1, size: 0.5, gravity: 5, mode: 'shard' });
+      this.pain.hurt();
       this.damage(HEART_DMG);
       return 'hit';
     }
@@ -648,6 +672,8 @@ export class Thornmaw {
     this.world.fx.burst(p, 0x7a2a66, { count: 30, speed: 6, life: 1.4, size: 0.7, gravity: 4, mode: 'shard' });
     this.world.fx.burst(p, 0xa8d070, { count: 16, speed: 3, life: 1.2, size: 1.4, gravity: 0, mode: 'puff' });
     sfx('hydra_sever', { gain: 1 }, () => audio.bossLimbBreak());
+    this.pain.hurt(1.4);
+    this.game.hud.bossCrit(false);
     this.game.player.shake = Math.max(this.game.player.shake, 0.35);
     const left = this.heads.filter((o) => ['idle', 'snap', 'spit', 'rise'].includes(o.state)).length;
     if (left === 0 && this.heads.every((o) => o.state === 'down' || o.state === 'sunk')) this.openHeart();
@@ -664,7 +690,8 @@ export class Thornmaw {
     for (const h of this.heads) h.regrowT = Infinity;
     this.heartLight.intensity = 16;
     sfx('hydra_bloom', { gain: 1 }, () => audio.shieldBreak());
-    this.game.hud.bossHint('IT BLOOMS — shoot the core in its shifting color!', true);
+    this.pain.roar();
+    this.game.hud.bossHint('IT BLOOMS — SHOOT THE CORE IN ITS COLOR!', true);
     const p = this.heart.getWorldPosition(_v);
     this.world.fx.burst(p, 0xff9ad8, { count: 60, speed: 8, life: 1.2, size: 0.5, gravity: 3, mode: 'shard' });
     this.world.fx.ring(p, UP, 0xffffff, { size: 1, end: 9, life: 0.6, k: 1.5 });
@@ -691,6 +718,7 @@ export class Thornmaw {
     }
     if (this.sweep && this.sweep.state !== 'sink') this.sinkSweep();
     sfx('hydra_roar', { gain: 1, rate: 1.08 }, () => audio.bossPhase());
+    this.pain.roar();
     this.game.player.shake = Math.max(this.game.player.shake, 0.8);
     this.thrash = 1.6;
     this.game.hud.bossHint(p === 2 ? 'THE THORNMAW ENRAGES — its spores hide drifting mines!' : 'FINAL PHASE — thorns erupt from the ground beneath you!', true);
@@ -799,6 +827,7 @@ export class Thornmaw {
     this.updateHeads(dt, player);
     this.updateNecks();
     this.updateBud(dt);
+    this.updateFeel(dt);
     this.updateSweep(dt, player);
     this.updateSpores(dt, player);
     this.updateErupts(dt, player);
@@ -1223,6 +1252,24 @@ export class Thornmaw {
     }
     this.necks.instanceMatrix.needsUpdate = true;
     this.neckThorns.instanceMatrix.needsUpdate = true;
+  }
+
+  // bloomed open (its vulnerable window): sap spurts from its neck roots and petals, the heart wears a
+  // target; hits make the whole bulb flinch and the struck head recoil
+  updateFeel(dt) {
+    const fight = this.state === 'fight';
+    this.heads.forEach((h, i) => {
+      const a = Math.atan2(h.pos.z, h.pos.x);
+      this.neckRoots[i].position.set(Math.cos(a) * 2.4, 3.3, Math.sin(a) * 2.4);
+      h.flinch = Math.max(0, (h.flinch || 0) - dt * 7);
+      if (h.flinch > 0) h.g.position.addScaledVector(h.fwd, -h.flinch * 0.45);
+    });
+    this.bleed.update(dt, fight && this.heartOpen);
+    if (this.heartOpen) this.heartMarker.tint(COLORS[this.heartColor].hex);
+    this.heartMarker.update(dt, fight && this.heartOpen && this.bloom > 0.6 ? this.heart.getWorldPosition(_v) : null, 1.4);
+    this.flinch = Math.max(0, this.flinch - dt * 6);
+    if (fight && (this.flinch > 0 || this.flinching)) this.body.scale.set(1 + this.flinch * 0.035, 1 - this.flinch * 0.05, 1 + this.flinch * 0.035);
+    this.flinching = this.flinch > 0;
   }
 
   updateBud(dt) {

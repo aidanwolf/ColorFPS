@@ -357,7 +357,8 @@ export function buildSunscorch({ B, W, game, level, H, boss }) {
     orbPalette: [0, 1, 2, 3],
     armor: 2.5,
     kneelTime: 4.5,
-    dmg: { vent: 10, kneel: 7, limb: 4, head: 6, broken: 2, torso: 2 },
+    // (the kneel is THE window: one carries about a third of the chunk; leg armor and broken limbs are chip)
+    dmg: { vent: 10, kneel: 15, limb: 2, head: 4, broken: 1, torso: 1 },
     attacks: { sweep: 1, slam: 2, volley: 2, charge: 2, lances: 3, beam: 2 },
     specials,
     env: 0.3, // image-based light (main's default 0.35)
