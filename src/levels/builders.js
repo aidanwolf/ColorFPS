@@ -5,6 +5,10 @@ import { Barrier } from '../entities/barrier.js';
 import { Pickup } from '../entities/misc.js';
 import { Mirror, Glass, TargetPanel, ShotShield, Updraft } from '../entities/puzzle.js';
 import { waterSurface } from '../liquid.js';
+import {
+  ColorSwitch, PhasePlatform, ChromaPlatform, TimedGate, CrumblePlatform, Trapdoor, SpikeBed,
+  ShotMover, RiserBlock, SinkerBlock, ShotRotor, PlatformRack,
+} from '../entities/mechanics.js';
 
 export const T = 0.5; // wall thickness
 export const CH = 3.2; // corridor height
@@ -206,9 +210,33 @@ export function makeBuilders(W, game, level) {
   // Called whenever the player respawns at a checkpoint (reset elevators, encounters, ...).
   const onRespawn = (fn) => level.respawnHooks.push(fn);
 
+  // ---------- mechanics toolkit: one line per piece (options: see the top of entities/mechanics.js) ----------
+  // Each wrapper takes the entity's options (zone defaults to 'red'), returns the entity and resets it on
+  // every checkpoint respawn.
+  const mech = (e) => (onRespawn(() => e.reset()), e);
+  const colorSwitch = (o) => mech(new ColorSwitch(W, o));
+  const phasePlatform = (o) => mech(new PhasePlatform(W, o));
+  const chromaPlatform = (o) => mech(new ChromaPlatform(W, o));
+  const crumble = (o) => mech(new CrumblePlatform(W, o));
+  const trapdoor = (o) => mech(new Trapdoor(W, o));
+  const spikes = (min, max, o = {}) => new SpikeBed(W, { min, max, ...o });
+  const shotMover = (o) => mech(new ShotMover(W, o));
+  const riser = (o) => mech(new RiserBlock(W, o));
+  const sinker = (o) => mech(new SinkerBlock(W, o));
+  const shotRotor = (o) => mech(new ShotRotor(W, o));
+  const platformRack = (o) => mech(new PlatformRack(W, o));
+  // A race door. switch: { pos, face, style, ... } adds a pulse switch of the gate's color that opens it,
+  // with the gate's countdown on its ring (gate.switch).
+  const timedGate = ({ switch: sw = null, ...o }) => {
+    const g = mech(new TimedGate(W, o));
+    if (sw) g.switch = colorSwitch({ color: o.color, zone: o.zone, ...sw, mode: 'pulse', links: [g], timerSource: g });
+    return g;
+  };
+
   return {
     W, game, level, T, CH, GLOW,
     wallX, wallZ, abs, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy,
     sideAlcove, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, tree, devStart, onRespawn, water,
+    colorSwitch, phasePlatform, chromaPlatform, crumble, trapdoor, spikes, shotMover, riser, sinker, shotRotor, platformRack, timedGate,
   };
 }
