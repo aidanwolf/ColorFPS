@@ -853,7 +853,10 @@ class Game {
     this.sky.material.uniforms.uTime.value = t;
     this.sky.position.copy(this.camera.position);
     this.updateAtmosphere(dt);
-    if (this.started && this.state !== 'title') this.updateMix();
+    if (this.started && this.state !== 'title') {
+      this.updateMix();
+      audio.updateSpace?.(this.world, this.camera.position, dt); // room-size reverb (audio.js)
+    }
     this.world.updateLights(this.camera.position, dt);
     this.world.updateCulling(this.camera.position, this.camera.far);
 
