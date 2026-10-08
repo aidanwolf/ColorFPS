@@ -27,6 +27,7 @@ import { Glass, TargetPanel } from '../entities/puzzle.js';
 import { mat } from '../materials.js';
 import { buildForgeArena } from './forgeArena.js';
 import { dressFoundry } from './redDressing.js';
+import { regionOf } from './regions.js';
 
 // A red spike layer covering a Crucible platform. Its regrowth timer holds while you stand on (or hover
 // over) the platform, so it never reforms under you or mid-hop; for its last second the spikes visibly
@@ -622,9 +623,10 @@ export function buildRed(B) {
     quiet();
     if (restored) {
       apply(0);
-      // (a save restore picks its atmosphere from the area table after this runs)
+      // (a save restore picks its atmosphere from the area table after this runs; Solar and Azure reach
+      // north past the Hub's south wall too, so ask the region table, not just z)
       let once = false;
-      W.add({ update(dt, player) { if (!once) { once = true; if (player.pos.z > -99.5 && player.pos.z < 100) game.setAtmosphere('foundryCold'); } } });
+      W.add({ update(dt, player) { if (!once) { once = true; if (regionOf(player.pos) === 'red') game.setAtmosphere('foundryCold'); } } });
     } else {
       fade = { t: 0 };
       game.setAtmosphere('foundryCold');
