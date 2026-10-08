@@ -60,9 +60,14 @@ export class World {
     if (box.isEmpty()) return;
     box.getBoundingSphere(sphere);
     // bounds relative to the object's position, so moving things (drones, lifts) stay correct
-    const rec = { o, off: sphere.center.clone().sub(o.position), r: sphere.radius, region: regionOf(sphere.center), culled: false };
+    // shootable things (targets, orbs, enemies) are never dropped for being small on screen: a switch you
+    // can see and aim at mustn't vanish at 25 m
+    let shootable = false;
+    o.traverse((c) => { if (c.userData.hit) shootable = true; });
+    const rec = { o, off: sphere.center.clone().sub(o.position), r: sphere.radius, region: regionOf(sphere.center), culled: false, shootable };
     let want = o.visible;
     Object.defineProperty(o, 'visible', { get: () => want && !rec.culled, set: (v) => (want = v), configurable: true });
+    o.userData.wantVisible = () => want; // visibility as the game set it, ignoring culling (for raycasts)
     this.cullList.push(rec);
   }
 
@@ -77,7 +82,7 @@ export class World {
         rec.culled = true;
         continue;
       }
-      rec.culled = d > far || (d > 0 && rec.r / (d + rec.r) < CULL_SIZE);
+      rec.culled = d > far || (!rec.shootable && d > 0 && rec.r / (d + rec.r) < CULL_SIZE);
     }
   }
 
@@ -230,7 +235,8 @@ export class World {
       for (const h of hits) {
         // three's raycaster ignores visibility, so skip anything hidden (e.g. a broken shield)
         let hidden = false;
-        for (let a = h.object; a; a = a.parent) if (!a.visible) hidden = true;
+        // (culling doesn't count: a shot still hits something the camera merely isn't drawing)
+        for (let a = h.object; a; a = a.parent) if (!(a.userData.wantVisible ? a.userData.wantVisible() : a.visible)) hidden = true;
         if (hidden) continue;
         let o = h.object;
         while (o && !o.userData.hit) o = o.parent;
