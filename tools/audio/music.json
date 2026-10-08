@@ -3,6 +3,10 @@
   "prompt": "Atmospheric dark sci-fi main menu theme, slow pulsing synth pads, deep sub bass, distant metallic echoes, mysterious and grand, instrumental, seamless loop",
   "ms": 60000
  },
+ "music_haunt": {
+  "prompt": "Haunting alien planet exploration ambience in the style of late-90s sci-fi adventure game soundtracks, lonely and eerie, slow evolving glassy synth pads, distant metallic chimes and wordless female choir, deep sub drones, sparse reverberant piano notes, mysterious and melancholic, desolate derelict alien facility, no drums, instrumental, seamless loop",
+  "ms": 120000
+ },
  "music_red": {
   "prompt": "Driving industrial metal soundtrack for a fast 1990s-style sci-fi shooter, heavy distorted guitar riffs, pounding double-kick drums, gritty industrial synths, aggressive and relentless, instrumental, seamless loop",
   "ms": 90000
