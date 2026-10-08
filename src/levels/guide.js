@@ -9,11 +9,11 @@ const tag = (c, text) => `<b style="color:${COLORS[c].css}">${text}</b>`;
 const FLOOR = 4;
 
 // Floor paths in the Hub (x, z), skirting the raised dais at x -5..5, z -105..-115.
-const PATHS = {
-  solar: [[0, -103], [-6.5, -103.6], [-23, -112]],
-  verdant: [[0, -103], [-6.5, -104], [-10, -112], [-10, -146.5]],
-  azure: [[0, -103], [6.5, -103.6], [23, -112]],
-};
+// Where the floor path ends for each goal (just inside its doorway), the raised dais to route around,
+// and the Hub's return gallery (y 12): from up there the path leads to the edge nearest the goal.
+const TARGETS = { solar: [-23, -112], verdant: [-10, -146.5], azure: [23, -112], dais: [0, -104.6] };
+const DAIS = { x1: -6.4, x2: 6.4, z1: -116.4, z2: -103.6 };
+const GALLERY_Y = 12;
 const DOORS = {
   solar: { pos: [-24.6, -112], color: YELLOW },
   verdant: { pos: [-10, -148.2], color: GREEN },
@@ -48,7 +48,7 @@ export function currentObjective(game) {
 }
 
 export function buildGuide(W, game) {
-  // chevrons: one instanced draw for every path, brightened by a pulse that runs toward the door
+  // chevrons along a path recomputed from wherever you stand to the goal, pulsing toward it
   const shape = new THREE.Shape();
   shape.moveTo(-0.55, -0.25);
   shape.lineTo(0, 0.3);
@@ -58,60 +58,112 @@ export function buildGuide(W, game) {
   shape.lineTo(-0.55, 0.05);
   shape.closePath();
   const geo = new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
-  const chevrons = {};
-  const group = new THREE.Group();
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1);
-  for (const [name, pts] of Object.entries(PATHS)) {
-    const marks = [];
-    let s = 0;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const [ax, az] = pts[i], [bx, bz] = pts[i + 1], len = Math.hypot(bx - ax, bz - az);
-      const yaw = Math.atan2(-(bx - ax), -(bz - az)); // point the chevron along the segment
-      for (let d = i ? 0 : 1.2; d < len; d += 1.6) marks.push({ x: ax + ((bx - ax) * d) / len, z: az + ((bz - az) * d) / len, yaw, s: s + d });
-      s += len;
-    }
-    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
-    const mesh = new THREE.InstancedMesh(geo, mat, marks.length);
-    marks.forEach((k, i) => {
-      q.setFromAxisAngle(up, k.yaw);
-      mesh.setMatrixAt(i, m4.compose(new THREE.Vector3(k.x, FLOOR + 0.03, k.z), q, one));
-      mesh.setColorAt(i, new THREE.Color(0));
-    });
-    mesh.visible = false;
-    group.add(mesh);
-    chevrons[name] = { mesh, marks, total: s, color: new THREE.Color(COLORS[DOORS[name].color].hex) };
-  }
-  // a light column in the target doorway (or over the dais)
+  const MAXN = 64;
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+  const mesh = new THREE.InstancedMesh(geo, mat, MAXN);
+  mesh.frustumCulled = false;
+  mesh.count = 0;
+  for (let i = 0; i < MAXN; i++) mesh.setColorAt(i, new THREE.Color(0));
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.4, 14, 20, 1, true), beamMat);
   beam.visible = false;
-  group.add(beam);
+  const group = new THREE.Group();
+  group.add(mesh, beam);
+  group.userData.noCull = true; // it follows the player around the Hub
   W.scene.add(group);
 
-  const col = new THREE.Color();
-  let t = 0;
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1);
+  const col = new THREE.Color(), base = new THREE.Color(), down = new THREE.Vector3(0, -1, 0), probe = new THREE.Vector3();
+  let marks = [], t = 0, rebuildT = 0, lastGoal = null;
+  // does the segment a→b cross the dais (with margin)?
+  const crossesDais = (a, b) => {
+    for (let k = 0; k <= 20; k++) {
+      const x = a[0] + ((b[0] - a[0]) * k) / 20, z = a[1] + ((b[1] - a[1]) * k) / 20;
+      if (x > DAIS.x1 && x < DAIS.x2 && z > DAIS.z1 && z < DAIS.z2) return true;
+    }
+    return false;
+  };
+  const len = (pts) => pts.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0), 0);
+  // a floor route from a to b that skirts the dais through one or two of its corners
+  const route = (a, b) => {
+    if (!crossesDais(a, b)) return [a, b];
+    const C = [[DAIS.x1, DAIS.z1], [DAIS.x2, DAIS.z1], [DAIS.x1, DAIS.z2], [DAIS.x2, DAIS.z2]];
+    let best = null;
+    for (const c of C) {
+      if (crossesDais(a, c) || crossesDais(c, b)) continue;
+      const p = [a, c, b];
+      if (!best || len(p) < len(best)) best = p;
+    }
+    for (const c of C)
+      for (const d of C) {
+        if (c === d || crossesDais(a, c) || crossesDais(c, d) || crossesDais(d, b)) continue;
+        const p = [a, c, d, b];
+        if (!best || len(p) < len(best)) best = p;
+      }
+    return best || [a, b];
+  };
+  const rebuild = (player, goal) => {
+    const onGallery = player.pos.y > GALLERY_Y - 1.5;
+    const tgt = TARGETS[goal];
+    let pts, y0;
+    if (onGallery) {
+      // up on the gallery: lead to its inner edge nearest the goal, then hop down
+      const gx = player.pos.x, gz = player.pos.z;
+      let e = gx < -19 ? [-19.4, Math.min(-125, Math.max(-147, tgt[1]))] : gx > 19 ? [19.4, Math.min(-125, Math.max(-147, tgt[1]))] : [Math.min(19, Math.max(-19, tgt[0])), -143.4];
+      pts = [[gx, gz], e];
+      y0 = player.pos.y;
+    } else {
+      pts = route([player.pos.x, player.pos.z], tgt);
+      y0 = player.pos.y;
+    }
+    marks = [];
+    let s = 0;
+    for (let i = 0; i < pts.length - 1 && marks.length < MAXN; i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[i + 1], L = Math.hypot(bx - ax, bz - az);
+      const yaw = Math.atan2(-(bx - ax), -(bz - az));
+      for (let d = i ? 0 : 1.6; d < L && marks.length < MAXN; d += 1.6) {
+        const x = ax + ((bx - ax) * d) / L, z = az + ((bz - az) * d) / L;
+        // sit on whatever floor is there (the sunken plaza, steps)
+        const hit = W.raycast(probe.set(x, y0 + 1.2, z), down, 4, { meshes: false });
+        marks.push({ x, z, y: hit ? hit.point.y : y0, yaw, s: s + d });
+      }
+      s += L;
+    }
+    marks.forEach((k, i) => {
+      q.setFromAxisAngle(up, k.yaw);
+      mesh.setMatrixAt(i, m4.compose(probe.set(k.x, k.y + 0.04, k.z), q, one));
+    });
+    mesh.count = marks.length;
+    mesh.instanceMatrix.needsUpdate = true;
+  };
+
   W.add({
     update(dt, player) {
       t += dt;
-      const inHub = regionOf(player.pos) === 'hub' && player.pos.y < FLOOR + 6;
-      const goal = currentObjective(game).door;
-      for (const [name, c] of Object.entries(chevrons)) {
-        const on = inHub && goal === name;
-        c.mesh.visible = on;
-        if (!on) continue;
-        c.marks.forEach((k, i) => {
-          const wave = Math.pow(Math.max(0, Math.sin((k.s / 6 - t * 1.6) * Math.PI)), 6); // pulses run toward the door
-          c.mesh.setColorAt(i, col.copy(c.color).multiplyScalar(0.35 + 1.4 * wave));
-        });
-        c.mesh.instanceColor.needsUpdate = true;
-      }
+      const inHub = regionOf(player.pos) === 'hub' && player.pos.y > FLOOR - 1;
+      const goal = inHub ? currentObjective(game).door : null;
       const door = goal && DOORS[goal];
-      beam.visible = !!(inHub && door);
-      if (beam.visible) {
-        beam.position.set(door.pos[0], FLOOR + 7, door.pos[1]);
-        beamMat.color.set(door.color === null ? 0xffffff : COLORS[door.color].hex);
-        beamMat.opacity = 0.16 + Math.sin(t * 3) * 0.06;
+      mesh.visible = !!door;
+      beam.visible = !!door;
+      if (!door) {
+        lastGoal = null;
+        return;
       }
+      rebuildT -= dt;
+      if (rebuildT <= 0 || goal !== lastGoal) {
+        rebuildT = 0.35;
+        lastGoal = goal;
+        rebuild(player, goal);
+      }
+      base.set(door.color === null ? 0xffffff : COLORS[door.color].hex);
+      marks.forEach((k, i) => {
+        const wave = Math.pow(Math.max(0, Math.sin((k.s / 6 - t * 1.6) * Math.PI)), 6); // pulses run toward the goal
+        mesh.setColorAt(i, col.copy(base).multiplyScalar(0.35 + 1.4 * wave));
+      });
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      beam.position.set(door.pos[0], FLOOR + 7, door.pos[1]);
+      beamMat.color.copy(base);
+      beamMat.opacity = 0.16 + Math.sin(t * 3) * 0.06;
     },
   });
 }

@@ -160,11 +160,22 @@ class SunLance {
     plate.rotation.x = -Math.PI / 2;
     plate.position.set(center.x, this.min.y + 0.03, center.z);
     W.scene.add(plate);
-    // a soft halo of light around the column, so the rays read from across the canyon
-    this.haloMat = new THREE.MeshBasicMaterial({ color: 0xff9a40, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-    this.halo = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 16, 1, true), this.haloMat);
+    // a soft glow of scattered light around the column (a camera-facing sheet that fades to nothing at
+    // its edges), so the rays read from across the canyon without a visible tube
+    this.haloMat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+      uniforms: { uI: { value: 0 } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `uniform float uI; varying vec2 vUv;
+        void main(){
+          float x = (vUv.x - 0.5) * 2.0;
+          float g = exp(-x * x * 7.0) * smoothstep(1.0, 0.75, vUv.y) * smoothstep(0.0, 0.08, vUv.y);
+          gl_FragColor = vec4(vec3(1.0, 0.55, 0.18) * g * uI * 0.55, 1.0);
+        }`,
+    });
+    this.halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.haloMat);
     this.halo.position.copy(center);
-    this.halo.scale.set(Math.max(size.x, size.z) * 1.9, size.y, Math.max(size.x, size.z) * 1.9);
+    this.halo.scale.set(Math.min(size.x, size.z) * 2.6, size.y, 1);
     W.scene.add(this.halo);
     this.size = size;
     this.world = W;
@@ -205,8 +216,13 @@ class SunLance {
     this.mat.uniforms.uTime.value += dt;
     this.mesh.visible = I > 0.001;
     this.plateMat.color.setRGB(1, 0.36, 0.08).multiplyScalar(this.enabled ? 0.12 + 0.75 * heat : 0.04);
-    this.haloMat.opacity = I * 0.22;
+    this.haloMat.uniforms.uI.value = I;
     this.halo.visible = I > 0.01;
+    if (this.halo.visible) {
+      // turn the glow sheet to face the camera around the vertical axis
+      const cam = this.world.game.camera.position;
+      this.halo.rotation.y = Math.atan2(cam.x - this.halo.position.x, cam.z - this.halo.position.z);
+    }
     // the roar of each incinerator, by distance; a blast as it ignites
     const dx = player.pos.x - (this.min.x + this.max.x) / 2, dz = player.pos.z - (this.min.z + this.max.z) / 2;
     const near = Math.max(0, 1 - Math.hypot(dx, dz) / 38);
