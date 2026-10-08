@@ -13,7 +13,7 @@ const SFX_FILES = [
   'barrier_reform', 'orb_pop', 'drone_alert', 'boss_land', 'boss_orbs', 'boss_charge', 'boss_limb_break', 'boss_phase',
   'boss_core_hit', 'combo_tick', 'combo_fail', 'ring_wave',
   'drone_hum', 'drone_hit', 'drone_crash', 'elevator_start', 'elevator_loop', 'elevator_stop', 'alarm', 'sun_hum',
-  'amb_hub', 'amb_solar', 'amb_abyss',
+  'amb_hub', 'amb_solar', 'amb_abyss', 'fall_wind', 'land_hard', 'impact_death',
 ];
 const SHOT_NAMES = ['shoot_red', 'shoot_yellow', 'shoot_green', 'shoot_blue'];
 const MUSIC_GAIN = 1.7;

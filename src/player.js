@@ -17,6 +17,9 @@ const CROUCH_SPEED = 3.6;
 const GROUND_ACCEL = 70;
 const AIR_ACCEL = 22;
 const STEP = 0.45;
+const HARD_FALL = 17; // m/s landing speed: a heavy, shaking landing (~6 m drop)
+const LETHAL_FALL = 29.5; // m/s: fatal (~18 m drop)
+const VOID_DROP = 30; // m below the last ground: you've fallen off the world
 const COYOTE = 0.12;
 const BUFFER = 0.14;
 const EPS = 0.001;
@@ -180,8 +183,21 @@ export class Player {
     const cx = rode ? 0 : this.carry.x * dt, cz = rode ? 0 : this.carry.z * dt;
     this.move(this.vel.x * dt + cx, this.vel.y * dt, this.vel.z * dt + cz);
     if (this.grounded && !this.ground?.delta) this.carry.set(0, 0, 0);
+    // fall tracking: the highest point since you last stood on something
+    if (this.grounded) this.fallTop = this.pos.y;
+    else this.fallTop = Math.max(this.fallTop ?? this.pos.y, this.pos.y);
+    this.fallSpeed = this.grounded ? 0 : Math.max(0, -this.vel.y);
     if (this.grounded && !wasGrounded) {
-      if (fallSpeed > 6) {
+      if (fallSpeed > LETHAL_FALL && !this.game.rulesPaused) {
+        // fall damage: a long drop (about 18 m) is fatal
+        audio.sample('impact_death', { gain: 1, vary: 0.05 }) || audio.land(2);
+        this.damage(1, 'impact');
+        if (this.dead) return;
+      } else if (fallSpeed > HARD_FALL) {
+        this.landKick = 0.3;
+        this.shake = Math.max(this.shake, 0.35 + (fallSpeed - HARD_FALL) * 0.04);
+        audio.sample('land_hard', { gain: 0.9, vary: 0.08 }) || audio.land(2);
+      } else if (fallSpeed > 6) {
         this.landKick = Math.min(0.25, fallSpeed * 0.012);
         audio.land(Math.min(2, fallSpeed / 10));
       }
@@ -216,7 +232,8 @@ export class Player {
         }
       }
     }
-    if (this.pos.y < -60) this.damage(1, 'fall');
+    // off the edge of the world: falling this far below where you last stood never ends well
+    if (this.pos.y < -95 || (!this.grounded && this.fallTop - this.pos.y > VOID_DROP)) this.damage(1, 'fall');
 
     this.finishUpdate(dt);
   }

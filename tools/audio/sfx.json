@@ -320,5 +320,21 @@
   "dur": 20,
   "loop": true,
   "influence": 0.4
+ },
+ "fall_wind": {
+  "text": "Intense rushing wind while free-falling at high speed, roaring air blasting past the ears, turbulent buffeting, continuous, no music",
+  "dur": 5,
+  "loop": true,
+  "influence": 0.6
+ },
+ "land_hard": {
+  "text": "Heavy armored boots slamming onto a metal floor after a long fall, deep thud with a crunch and short metallic rattle",
+  "dur": 0.8,
+  "influence": 0.6
+ },
+ "impact_death": {
+  "text": "Brutal bone-crunching impact of a body slamming into the ground from a great height, heavy deep thud with crack and debris",
+  "dur": 1.2,
+  "influence": 0.6
  }
 }

@@ -533,7 +533,7 @@ class Game {
     // where a revive puts you: on the spot if you were shot, but never back inside the acid, spikes or
     // pit that killed you: then it's the last solid ground you stood on, or the checkpoint
     this.revivePos = this.deathPos.clone();
-    if (['spike', 'acid', 'fall', 'burn'].includes(p.deathCause)) {
+    if (['spike', 'acid', 'fall', 'burn', 'impact'].includes(p.deathCause)) {
       const safe = p.safePos.clone();
       const ok = safe.distanceToSquared(this.deathPos) < 40 * 40 && [0.3, 1.2].every((h) => !this.world.pointInSolid(safe.clone().setY(safe.y + h), 0.3));
       this.revivePos = ok ? safe : this.checkpoint.pos.clone();
@@ -558,7 +558,7 @@ class Game {
     this.world.fx.burst(eye.clone().setY(eye.y - 0.4), hex, { count: 140, speed: 7, life: 1.4, size: 0.3, gravity: 6 });
     this.world.fx.burst(eye.clone().setY(eye.y - 0.6), 0xffffff, { count: 50, speed: 4, life: 0.7, size: 0.4, gravity: 2 });
     p.shake = 1;
-    const banner = { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED' }[p.deathCause] || 'SHOT DOWN';
+    const banner = { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED', impact: 'CRATERED' }[p.deathCause] || 'SHOT DOWN';
     // The rewarded revive is a helping hand for a section you're stuck on, not a way to skip every
     // challenge: it's offered from the 3rd death since your last checkpoint, once per checkpoint.
     this.deathsHere = (this.deathsHere || 0) + 1;
@@ -754,8 +754,13 @@ class Game {
     } else {
       this.world.fx.update(dt);
     }
-    // a small FOV kick while sprinting
-    const fovTarget = verticalFov(this.settings.fov) + (this.player.sprinting && this.player.speed2d > 8 ? 4 : 0);
+    // a small FOV kick while sprinting; falling fast pulls the view wide and the wind roars in
+    const fall = this.state === 'playing' ? Math.min(1, Math.max(0, ((this.player.fallSpeed || 0) - 11) / 18)) : 0;
+    this.fallWind ??= audio.createLoop('fall_wind');
+    this.fallWind.setGain(fall * fall * 0.9);
+    this.fallWind.setRate(0.85 + fall * 0.4);
+    if (fall > 0.3) this.player.shake = Math.max(this.player.shake, (fall - 0.3) * 0.25);
+    const fovTarget = verticalFov(this.settings.fov) + (this.player.sprinting && this.player.speed2d > 8 ? 4 : 0) + fall * 22;
     if (Math.abs(this.camera.fov - fovTarget) > 0.01) {
       this.camera.fov += (fovTarget - this.camera.fov) * Math.min(1, dt * 8);
       this.camera.updateProjectionMatrix();
