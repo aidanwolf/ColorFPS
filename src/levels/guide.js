@@ -299,7 +299,7 @@ export function buildGuide(W, game) {
   W.add({
     update(dt, player) {
       t += dt;
-      const inHub = regionOf(player.pos) === 'hub' && player.pos.y > FLOOR - 1;
+      const inHub = regionOf(player.pos) === 'hub' && player.pos.y > FLOOR - 1.5; // (the sunken plaza's floor is 1.2 m down)
       const goal = inHub ? currentObjective(game).door : null;
       const door = goal && DOORS[goal];
       mesh.visible = !!door;
