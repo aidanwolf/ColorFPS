@@ -35,6 +35,7 @@ From the Hub you can **see into every world through big windows before you can e
 | Prism Core (boss) | `prism.js` | -31 → 31 | -60 → -6 | -88 → -175 |
 | Solar | `solar.js` | -32 → -200 | -30 → 80 | -40 → -230 |
 | Azure | `azure.js` | 32 → 200 | -80 → 40 | -40 → -230 |
+| Azure's Flooded Depths (inside Azure's box, behind the chasm's east cliff) | `azureFlooded.js` | 108 → 161 | -62 → 8 | -100 → -153 |
 | Verdant | `verdant.js` | -31 → 31 (wider, -110 → 110, once z < -235) | -5 → 60 (may go down to -40 once z < -178) | -148.5 → -380 |
 
 Corridors that join a world to the Hub cross the gap between the Hub wall and the region (x ±25 → ±32);

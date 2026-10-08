@@ -1,8 +1,9 @@
 // AZURE — THE COLD DEEP. A drowned, frozen research station clinging to the walls of a vast crystal
 // chasm east of the Hub (the Hub's east windows look straight down into it). The route spirals DOWN:
 //   entry skybridge (y 4) → Rim Deck → the Shelf (ice ledges, a crane) → Pump Station (vent secret)
-//   → frozen Machinery (freight lift, pipes) → Cryo Lab (y -25) → three-color Gauntlet → the Well
-//   (ledges over lethal cryo-brine, then a shielded spike drop) → Vault antechamber (ricochet lock off
+//   → frozen Machinery (freight lift, turbine deck) → THE FLOODED DEPTHS (the water wing, azureFlooded.js)
+//   → Cryo Lab (y -25) → three-color Gauntlet → the Well (ledges over lethal cryo-brine, then a shielded
+//   spike drop) → Vault antechamber (ricochet lock off
 //   azure panels) → Core Sanctum (the BLUE core, y -56) → blue lock → the station lift:
 //   THE FORCED ASCENT, a 68 m ride up a glass shaft through colored spike hatches, to the Hub's east
 //   balcony port (x 25, y 12, z -136).
@@ -115,7 +116,20 @@ export function buildAzure(B) {
   // ------------------------------------------------------------------ the chasm
   // The cliffs are custom meshes (merged into one, with a glassy-ice material); solid adds a collider.
   const cliffGeos = [];
+  // FLOODED DEPTHS (azureFlooded.js): its entry and exit tunnels pass through the east cliff, so their
+  // doorways [y1, y2, z1, z2] are cut out of every cliff box (collider and ice columns) on that face.
+  const FLOODED_DOORS = [[-22, -17.3, -116.6, -112.6], [-26, -21.3, -149, -145]];
   function cliff(x1, y1, z1, x2, y2, z2, solid = false) {
+    for (const [dy1, dy2, dz1, dz2] of FLOODED_DOORS) {
+      if (x2 > 108 && x1 < 116 && y1 < dy2 && y2 > dy1 && z1 < dz2 && z2 > dz1) {
+        if (y1 < dy1) cliff(x1, y1, z1, x2, dy1, z2, solid);
+        if (y2 > dy2) cliff(x1, dy2, z1, x2, y2, z2, solid);
+        const a = Math.max(y1, dy1), b = Math.min(y2, dy2);
+        if (z1 < dz1) cliff(x1, a, z1, x2, b, dz1, solid);
+        if (z2 > dz2) cliff(x1, a, dz2, x2, b, z2, solid);
+        return;
+      }
+    }
     cliffGeos.push(new THREE.BoxGeometry(x2 - x1, y2 - y1, z2 - z1).translate((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2));
     if (solid) W.addSolid(V(x1, y1, z1), V(x2, y2, z2), { static: true, kind: 'rock' });
   }
@@ -249,18 +263,18 @@ export function buildAzure(B) {
   W.deco(103.9, -18.8, -121.1, 107.6, -18.5, -115.9, 'glow3', zone);
   cluster(107, -16, -120.5, 2.4, 'ice', 0.2, -0.2);
   new Drone(W, { pos: [100.5, -16.5, -119], color: [RED, YELLOW, GREEN], range: 20, cycle: 2.2 });
-  // frozen pipe runs
-  ledge(98, -124.5, 101, -127.5, -21.8, 1.5);
-  ledge(102.5, -130, 105.5, -133, -22.6, 1.5);
-  spikes(102.5, -130, 105.5, -133, -22.6, YELLOW);
-  ledge(98, -135.5, 101, -138.5, -23.4, 1.5);
+  // (the frozen pipe runs that hopped on down to the Cryo Lab porch are gone: the way down is now through
+  // THE FLOODED DEPTHS, azureFlooded.js, whose entry tunnel leaves the turbine deck's east edge at z -114.6
+  // and whose exit tunnel comes back out onto the porch's east side)
   new Drone(W, { pos: [94.5, -18, -131], color: GREEN, range: 22 });
   keepOut.push([[95, -23, -123], [109, -15, -98]]);
+  keepOut.push([[107, -23, -118], [117, -16, -111]], [[107, -27, -150.5], [117, -20, -143.5]]); // the Flooded Depths' tunnels
 
   // ------------------------------------------------------------------ Cryo Lab (y -25)
   W.box(92, -26, -152.5, 108, -25, -142, 'floor', zone); // porch
   W.deco(94, -60, -150, 106, -26, -144, 'metal', zone);
-  for (const [x1, x2] of [[92, 92.3], [107.7, 108]]) W.box(x1, -25, -152.5, x2, -23.9, -142, 'metal', zone);
+  // rails (the east one is open at z -148.5..-145.5, where the Flooded Depths' exit tunnel arrives)
+  for (const [x1, x2, z1, z2] of [[92, 92.3, -152.5, -142], [107.7, 108, -152.5, -148.5], [107.7, 108, -145.5, -142]]) W.box(x1, -25, z1, x2, -23.9, z2, 'metal', zone);
   new Checkpoint(W, game, { pos: [100, -25, -146], yaw: 0, size: [6, 3, 4] });
   area([92, -25, -152.5], [108, -21, -148], DEEP);
   room({ x1: 88, x2: 108, zS: -153, zN: -175, y: -25, h: 8, zone, s: [{ c: 100, w: 3, h: CH }], w: [{ c: -170, w: 3, h: CH }] });
