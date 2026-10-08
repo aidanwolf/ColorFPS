@@ -137,7 +137,7 @@ export function currentObjective(game) {
   const boss = game.level.boss;
   if (game.state === 'victory' || boss?.dead || boss?.state === 'dead') return { html: '' };
   if (where === 'azure') return { html: azureAfter(game.player.pos, game) };
-  if (!game.isWorldDown?.('azure') && game.level.azure) return { html: `The ${tag(BLUE, 'Azure')} engine still runs: go back in by the <b>east</b> door and shut it down.`, door: 'azure' };
+  if (where === 'hub' && !game.isWorldDown?.('azure') && game.level.azure) return { html: `The ${tag(BLUE, 'Azure')} engine still runs: go back in by the <b>east</b> door and shut it down.`, door: 'azure' };
   // (no objective during the fight: the boss bar and its hints own the top of the screen)
   if (where === 'prism') return { html: boss?.active ? '' : 'Follow the light down the corridor into the arena. <b>The Warden waits.</b>' };
   if (game.level.prismElevator?.enabled) return { html: 'The Prism Core is open: step onto the lift in the middle of the dais and ride it down.', door: 'dais' };

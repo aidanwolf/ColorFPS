@@ -69,6 +69,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   box(120.5, SY, SZ - 1.5, 121, SY + CH, SZ + 1.5);
   corridor({ zStart: -147.5, zEnd: -159.5, y: SY, zone, cx: 119 });
   area([117.5, SY, -150], [120.5, SY + 3, -147.5], DEEP);
+  new Checkpoint(W, game, { pos: [119, SY, -155], yaw: 0, size: [3, 3, 2] }); // before the Undercroft
 
   // ================================================================== THE UNDERCROFT (combat)
   // interior x 117..157, z -160..-194, floor y -69, ceiling y -44; flooded to y -56.3. Walkways (y -56)
@@ -251,6 +252,10 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   for (const z of [GZ - 1.55, GZ + 1.45]) deco(152.3, GY, z, 152.4, GY + CH, z + 0.1, 'hazard');
   hint([152.3, GY, GZ - 1.5], [158, GY + 3, GZ + 1.5], 'A <b>pressure lock</b>: the engine\'s weight of water holds it shut. The cistern is through the door to the north.', 5);
   area([150, GY, GZ - 1.5], [154, GY + 3, GZ + 1.5], DEEP);
+  // floor arrows: from the Sluice's door to the cistern's; once the engine is down, on west to the Spillway
+  B.guideStrip([[173, GY, GZ + 0.6], [160.6, GY, GZ + 0.6], [160.6, GY, GZ - 1.4]], COLORS[BLUE].hex);
+  const homeStrip = B.guideStrip([[159.4, GY, GZ - 1.4], [159.4, GY, GZ], [113, GY, GZ]], 0xdfe6ff, { near: 90 });
+  homeStrip.visible = false;
   // windows in the gallery's south wall look down on the Flooded Depths' sinkhole rim
   for (const x of [128, 140]) deco(x, GY + 0.9, GZ + 1.45, x + 6, GY + 2.3, GZ + 1.5, 'glow3');
 
@@ -415,6 +420,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     crystals = st.crystalMats || null;
     crystalBase = crystals && Object.fromEntries(Object.entries(crystals).map(([k, m]) => [k, m.color.clone()]));
     lock.open(restored);
+    homeStrip.visible = true;
     shutter.open(restored);
     for (const v of W.virtualLights) if (regionOf(v.position) === 'azure') dimLights.push({ v, base: v.intensity });
     for (const e of W.entities) if (e instanceof VortexTunnel && regionOf(e.from) === 'azure') e.setActive(false);
