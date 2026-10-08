@@ -44,7 +44,7 @@ function hexMaterial({ inside = false, cols = 28, rows = 9 } = {}) {
         float shimmer = 0.5 + 0.5 * sin(uTime * 2.4 + cellNoise * 6.2831 - vDir.y * 4.0);
         ${inside
           ? `float c = dot(normalize(vView), vec3(0.0, 0.0, -1.0));
-        float vis = smoothstep(0.93, 0.62, c);`
+        float vis = pow(smoothstep(0.9, 0.62, c), 1.6);`
           : `float vis = 0.35 + 0.65 * pow(1.0 - abs(dot(normalize(vN), normalize(-vView))), 1.6);`}
         float a1 = line * (0.55 + 0.45 * shimmer) + (0.03 + 0.06 * shimmer * shimmer) * (1.0 - line);
         vec3 col = uColor * (1.4 + 1.6 * line) + vec3(1.0) * uFlash;
@@ -153,20 +153,17 @@ export class ArmorPickup {
 const SHARDS = 48;
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _sc = new THREE.Vector3();
 export class ShieldFx {
-  constructor(scene) {
-    this.mat = hexMaterial({ inside: true, cols: 26, rows: 8 });
+  // scene: the world (for the shards); viewCam: the view-model camera, so the bubble draws over the gun
+  constructor(scene, viewCam) {
+    this.mat = hexMaterial({ inside: true, cols: 110, rows: 34 });
     this.bubble = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 5), this.mat);
     this.bubble.frustumCulled = false;
     this.bubble.renderOrder = 999;
     this.bubble.visible = false;
     this.bubble.userData.noBatch = this.bubble.userData.noCull = true;
     this.bubble.raycast = () => {};
-    // stick to the camera at draw time (after it has moved for the frame)
-    this.bubble.onBeforeRender = (r, s, cam) => {
-      this.bubble.position.copy(cam.position);
-      this.bubble.updateMatrixWorld();
-    };
-    scene.add(this.bubble);
+    // it rides the view-model camera, drawn after (and over) the gun
+    viewCam.add(this.bubble);
     this.shardMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(ARMOR_COLOR).multiplyScalar(2.2), transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
     const hex = new THREE.RingGeometry(0.035, 0.05, 6).rotateZ(Math.PI / 6);
     this.shards = new THREE.InstancedMesh(hex, this.shardMat, SHARDS);

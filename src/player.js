@@ -502,7 +502,7 @@ export class Player {
   setArmor(n) {
     this.armor = n;
     this.game.hud.setArmor?.(n);
-    if (n || this.shieldFx) (this.shieldFx ??= new ShieldFx(this.game.scene)).set(n > 0);
+    if (n || this.shieldFx) (this.shieldFx ??= new ShieldFx(this.game.scene, this.game.blaster.vmCamera)).set(n > 0);
   }
 
   damage(amount, source) {
