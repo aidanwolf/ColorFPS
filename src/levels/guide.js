@@ -63,7 +63,7 @@ function azureBefore(p, game) {
   if (inBox(p, 95, 109, -123, -98, -23, -5)) return 'Clear the turbine deck\'s sentries; the hatch in its <b>east</b> edge opens into the Flooded Depths.';
   if (inBox(p, 88, 116, -176, -142, -26, -16)) return 'Survive the Cryo Lab lockdown, then go <b>west</b> through the three-color gauntlet.';
   if (inBox(p, 66, 88, -172, -168, -26, -21)) return 'Three colors, one corridor: <b>keep switching</b>.';
-  if (inBox(p, 50, 66, -182, -158, -47, -17)) return `Work down the ice pillars to the hole and drop into the flooded pipe: shoot ${tag(RED, 'red')}, then ${tag(YELLOW, 'yellow')}, as you sink.`;
+  if (inBox(p, 50, 66, -182, -158, -47, -17)) return `Work down the ice pillars to the hole, blast its ${tag(RED, 'red')} grate and sink down the flooded pipe: shoot ${tag(YELLOW, 'yellow')}, then ${tag(GREEN, 'green')}.`;
   if (p.y < -50 && p.z < -157.5 && !(st.vaultDoor && st.vaultDoor.openT >= 0)) return `Free the vault door: fire ${tag(YELLOW, 'yellow')} over the glass in the west alcove; the azure panels carry it to the target.`;
   if (p.y < -50) return `Take the ${tag(BLUE, 'AZURE core')} from the sanctum's dais.`;
   return 'Make your way down through the station.';

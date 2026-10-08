@@ -250,6 +250,8 @@ export function buildAzureFlooded(B) {
   lightShaft(PCX, SURF + 0.4, PCZ, 8, 1.2, 1.8, color(0x6fe6ff).multiplyScalar(0.8));
   // a sub-drone patrols the sinkhole (you can always surface here to fight it)
   new SubDrone(W, { pos: [134, -26.5, -109], color: YELLOW, orbit: 4, leash: 10, range: 20 });
+  // and a school of robo-piranhas works the kelp on the far side (they leap at you on the pier, too)
+  B.roboFish([129, -27.5, -121], { count: 4, color: [RED, YELLOW], patrol: 4 });
   // what's down there: a toppled pump housing, a sunken crane arm, crates, the old intake pipes
   box(126, -30, -109, 131.5, -27.2, -105, 'metal');
   deco(125.9, -28.8, -109.1, 131.6, -28.6, -104.9);
@@ -357,6 +359,9 @@ export function buildAzureFlooded(B) {
   kelpBed(140, -125.5, 147.5, -123.5, -58, 7, 1, 2.6);
   kelpBed(142, -114.5, 147.5, -112.5, -58, 7, 1, 2.6);
   vent(146.5, -57.9, -113.5, 0.35, 1);
+  // a robo-squid haunts the pool: meet it here, where there's air overhead and a ledge to fight from
+  // (it jets off in a cloud of ink when you aim at it; its ink torpedoes can be shot down)
+  B.roboSquid([145, -55.8, -116], { color: YELLOW, hp: 4, orbit: 2.5 });
   // splash and spray where the pipe pours out
   vent(PCX, BELL - 0.4, PCZ, 0.12, 2, 1.2);
   // the way on: cyan beacons from under the pipe's outlet, down and east into the tunnel
@@ -399,6 +404,7 @@ export function buildAzureFlooded(B) {
   // the first barrier: GREEN, across the whole gallery
   new Barrier(W, { min: [152, -60, -124.2], max: [160, GC, -123.8], color: GREEN, kind: 'wall', zone });
   new SubDrone(W, { pos: [156, -56, -138.5], color: RED, orbit: 2.5, leash: 7, range: 18 });
+  B.roboFish([156, -57.5, -114], { count: 3, color: GREEN, patrol: 3 }); // in the kelp, before the green barrier
   // vortex tubes: one shoots you up into G1 just past the barrier; from under G2 a second dives to the
   // lab doorway, where a third flings you across the lab to the Ballast Shaft
   vortex(B, { from: [157.5, -58.4, -127.4], to: [157.5, -53.2, -130.6], radius: 1, speed: 13, exitSpeed: 5.5 });

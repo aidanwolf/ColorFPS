@@ -370,7 +370,7 @@ export function buildAzure(B) {
     waves: [
       [
         { type: 'drone', pos: [100, -17, -119], color: RED },
-        { type: 'turret', pos: [105.75, -16, -118.5], color: GREEN, mount: 'floor', delay: 0.6 },
+        { type: 'turret', pos: [103.95, -18.2, -118.5], color: GREEN, mount: [-1, 0, 0], delay: 0.6 }, // on the turbine housing's west face
         { type: 'drone', pos: [98, -16, -116], color: YELLOW, delay: 1.2 },
       ],
       [
@@ -515,33 +515,35 @@ export function buildAzure(B) {
   spikes(51, -168, 54.5, -172, -35.5, GREEN);
   pillar(51, -159, 55, -163, -39);
   spikes(51, -159, 55, -163, -39, RED);
-  new Drone(W, { pos: [58.5, -33, -171], color: YELLOW, range: 22 });
+  new Drone(W, { pos: [57, -27.5, -174], color: YELLOW, range: 22 }); // (level with the catwalk, where you can see it)
   keepOut.push([[58, -47, -167], [66, -40, -158], [60, -26, -173], [66, -20, -167]]);
   for (const [x, z, tx, tz] of [[50.6, -181.4, 0.3, 0.3], [65.4, -181.4, -0.3, 0.3], [50.6, -158.6, 0.3, -0.3], [56, -181.6, 0, 0.35]]) cluster(x, -46.2, z, 3 + rng() * 3, 'ice', tx, tz);
   for (let i = 0; i < 10; i++) cluster(50.3, -44 + rng() * 22, -160 - rng() * 21, 1.5 + rng() * 2, 'ice', 1.2, 0, 4);
   for (let i = 0; i < 10; i++) cluster(51 + rng() * 14, -44 + rng() * 22, -181.7, 1.5 + rng() * 2, 'ice', 0, 1.2, 4);
 
   // The drop: a FLOODED pipe under the hole with a downward current (a slow fall) through two spike
-  // layers: shoot each one as you sink toward it (the first can be shot from the rim, down through the
-  // water). The water's underside hangs in the pipe's mouth, 2 m above the antechamber floor.
+  // layers under a red grate: shoot each one as you sink toward it (the first can be shot from the rim,
+  // down through the water). The water's underside hangs in the pipe's mouth, 2 m above the antechamber floor.
   W.box(59.5, -53.9, -165, 60, -47.5, -160, 'metal', zone);
   W.box(64, -53.9, -165, 64.5, -47.5, -160, 'metal', zone);
   W.box(59.5, -53.9, -165, 64.5, -47.5, -164.5, 'metal', zone);
   W.box(59.5, -53.9, -160.5, 64.5, -47.5, -160, 'metal', zone);
   B.water([60, -53.9, -164.5], [64, -44.4, -160.5], { current: [0, -3.4, 0] });
-  spikes(60, -164.5, 64, -160.5, -49.4, RED, 3);
-  spikes(60, -164.5, 64, -160.5, -52.6, YELLOW, 3);
-  for (const y of [-48.2, -51.4]) {
+  // a RED grate seals the mouth (so nobody tumbles in by accident); once shot it stays open
+  new Barrier(W, { min: [60, -44.55, -164.5], max: [64, -44.2, -160.5], color: RED, kind: 'wall', zone });
+  spikes(60, -164.5, 64, -160.5, -48.8, YELLOW, 3);
+  spikes(60, -164.5, 64, -160.5, -52.4, GREEN, 3);
+  for (const y of [-47.6, -51.2]) {
     W.deco(60, y, -164.5, 60.05, y + 0.08, -160.5, 'glow3', zone);
     W.deco(63.95, y, -164.5, 64, y + 0.08, -160.5, 'glow3', zone);
   }
-  hint([59, -44.2, -166], [65, -41, -159], 'A flooded drop pipe: the current lets you down slowly. <b>Shoot each spike layer</b> before you sink onto it — <b style="color:#ff3344">red</b>, then <b style="color:#ffd23a">yellow</b>.', 6);
+  hint([59, -44.2, -166], [65, -41, -159], 'A flooded drop pipe under a <b style="color:#ff3344">red</b> grate: the current lets you down slowly. <b>Shoot each spike layer</b> before you sink onto it — <b style="color:#ffd23a">yellow</b>, then <b style="color:#3dff7a">green</b>.', 6);
 
   // ------------------------------------------------------------------ Vault antechamber (y -56): the ricochet lock
   // PUZZLE: the vault door's lock sits behind glass in an alcove whose ceiling and walls are AZURE energy
   // panels; every color you hold ricochets off them, so a yellow shot over the glass lands on the target.
   room({ x1: 50, x2: 66, zS: -158, zN: -182, y: -56, h: 9, zone, ceiling: false, s: [{ c: 54, w: 3, h: CH }], w: [{ c: -172, w: 3, h: 4 }] });
-  new Checkpoint(W, game, { pos: [62, -56, -167.5], yaw: Math.PI / 2, size: [4, 3, 2] });
+  new Checkpoint(W, game, { pos: [62, -56, -163.5], yaw: Math.PI / 2, size: [5, 3, 6] }); // (where the drop pipe lets you out)
   const vaultDoor = new SlidingDoor(W, { min: [52.5, -56, -158], max: [55.5, -52.8, -157.5], color: YELLOW, zone });
   {
     const ay = -56, z1 = -173.5, z2 = -170.5, top = ay + 4, glassTop = ay + 2.6;
@@ -571,8 +573,9 @@ export function buildAzure(B) {
     level.azure.vaultDoor = vaultDoor;
   }
   hint([50, -56, -176], [56, -53, -168], 'The vault lock sits <b>behind the glass</b>. Azure panels deflect every other color…', 6);
-  new Drone(W, { pos: [57, -51.5, -177], color: RED, range: 18 });
+  new Drone(W, { pos: [52.5, -52, -178.5], color: RED, range: 12 }); // (kept well clear of the drop pipe's mouth)
   corridor({ zStart: -157.5, zEnd: -150.5, y: -56, zone, cx: 54 });
+  new Checkpoint(W, game, { pos: [54, -56, -153], yaw: Math.PI, size: [3, 3, 2] });
 
   // ------------------------------------------------------------------ Core Sanctum (y -56): the BLUE core
   // n: from the vault; s: the Strut Drop's duct (the shortcut from the Rim Deck); e: the BLUE door out onto

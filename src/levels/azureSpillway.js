@@ -152,6 +152,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   const LOCK0 = HW, LOCK1 = -44.6, LOCK2 = -8;
   const sw = B.water([QX1, QY, QZ1], [QX2, LOCK0, QZ2], { surface: false });
   const swSurf = waterSurface(W, QX1, QZ1, QX2, QZ2, LOCK0);
+  B.roboFish([171, -60, -162], { count: 3, color: [BLUE, RED], patrol: 3 }); // they leap at you while you pump
   const sluice = (st.sluice = { level: LOCK0, base: LOCK0, stage: 1, pumpT: 0, rate: 2.4, drain: 1.0 });
   // ledge 1 (west wall) and its checkpoint
   plat(QX1, -165.6, 168.2, QZ2, -44.3, zone, 0.5);

@@ -88,7 +88,8 @@ function despawn(e) {
   if (e instanceof Drone) {
     if (!e.debris) e.world.fx.burst(e.pos, COLORS[e.color].hex, { count: 16, speed: 3, life: 0.4, size: 0.3, gravity: 0 });
     e.dispose();
-  } else e.despawn?.();
+  } else if (e.despawn) e.despawn();
+  else if (e.critter && !e.dead) e.dispose?.(); // the world creatures (critters.js) have no despawn of their own
 }
 
 // ---------- spawn portal ----------
