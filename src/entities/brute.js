@@ -1,0 +1,258 @@
+// Brute: a slow, armored ram that hovers just off the floor and stalks you. Every few seconds it plants
+// itself, roars, opens the shutters over its glowing weak point and paints a danger lane on the floor,
+// then charges down that lane: strafe or jump aside. Slamming into a wall leaves it dazed with the weak
+// point still open. Body shots of its color hurt it; the open weak point takes triple damage.
+import * as THREE from 'three';
+import { audio } from '../audio.js';
+import { Enemy, Parts, Beam, MAT, moveSafe, floorBelow, falloff, hexOf, sfx, DANGER } from './enemyKit.js';
+
+const _v = new THREE.Vector3();
+const _d = new THREE.Vector3();
+const _a = new THREE.Vector3();
+const HOVER = 1.25; // body center above the floor
+const PAD = 1.0;
+
+export class Brute extends Enemy {
+  constructor(world, { pos, color = 0, hp = 9, range = 40, speed = 2.6, chargeSpeed = 22, windup = 1.15, cooldown = 2.6, stun = 1.8, aggro = false, onDeath = null }) {
+    super(world, { pos, color, hp, range, aggro, onDeath });
+    this.speed = speed;
+    this.chargeSpeed = chargeSpeed;
+    this.windupTime = windup;
+    this.cooldown = cooldown;
+    this.stunTime = stun;
+    this.state = 'stalk';
+    this.timer = 1.5 + Math.random();
+    this.yaw = Math.random() * 6.28;
+    this.open = 0; // shutters over the weak point: 0 closed, 1 open
+    this.dir = new THREE.Vector3();
+    this.knock = new THREE.Vector3();
+    this.floorY = floorBelow(world, this.pos, 20) ?? this.pos.y - HOVER;
+    this.pos.y = this.floorY + HOVER;
+    this.floorT = 0;
+
+    this.body = new THREE.Group();
+    this.group.add(this.body);
+    const p = new Parts()
+      // hull: a broad armored wedge
+      .add(this.armor, new THREE.BoxGeometry(2.1, 1.1, 1.9), [0, 0, -0.1])
+      .add(this.armor, new THREE.BoxGeometry(1.7, 0.5, 1.5), [0, 0.7, -0.25])
+      .add(MAT.dark, new THREE.BoxGeometry(2.4, 0.35, 2.2), [0, -0.6, -0.1])
+      // the ram: a sloped prow with horns
+      .add(MAT.dark, new THREE.BoxGeometry(2.3, 1.3, 0.45), [0, 0.05, 0.95], [-0.35, 0, 0])
+      .add(MAT.dark, new THREE.ConeGeometry(0.17, 0.9, 6), [-0.85, 0.35, 1.35], [Math.PI / 2 - 0.2, 0, 0])
+      .add(MAT.dark, new THREE.ConeGeometry(0.17, 0.9, 6), [0.85, 0.35, 1.35], [Math.PI / 2 - 0.2, 0, 0])
+      // side armor pods and rear thruster housings
+      .add(this.armor, new THREE.BoxGeometry(0.45, 0.9, 1.6), [-1.25, -0.05, -0.1])
+      .add(this.armor, new THREE.BoxGeometry(0.45, 0.9, 1.6), [1.25, -0.05, -0.1])
+      .add(MAT.shell, new THREE.CylinderGeometry(0.32, 0.38, 0.5, 8), [-0.6, 0, -1.2], [Math.PI / 2, 0, 0])
+      .add(MAT.shell, new THREE.CylinderGeometry(0.32, 0.38, 0.5, 8), [0.6, 0, -1.2], [Math.PI / 2, 0, 0])
+      // color trims: brow slits, flank stripes
+      .add(this.glow, new THREE.BoxGeometry(1.5, 0.08, 0.08), [0, 0.55, 0.62])
+      .add(this.glow, new THREE.BoxGeometry(0.05, 0.16, 1.5), [-1.48, 0.1, -0.1])
+      .add(this.glow, new THREE.BoxGeometry(0.05, 0.16, 1.5), [1.48, 0.1, -0.1])
+      // a glowing band around the top hull, and eyes either side of the prow
+      .add(this.glow, new THREE.BoxGeometry(1.74, 0.07, 1.54), [0, 0.5, -0.25])
+      .add(this.glow, new THREE.BoxGeometry(0.22, 0.1, 0.1), [-0.75, 0.72, 0.5])
+      .add(this.glow, new THREE.BoxGeometry(0.22, 0.1, 0.1), [0.75, 0.72, 0.5]);
+    p.build(this.body);
+    // rear thruster flames
+    this.thrustMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false });
+    this.mats.push(this.thrustMat);
+    const tp = new Parts();
+    for (const sx of [-0.6, 0.6]) tp.add(this.thrustMat, new THREE.ConeGeometry(0.26, 0.9, 10, 1, true), [sx, 0, -1.85], [-Math.PI / 2, 0, 0]);
+    tp.add(this.thrustMat, new THREE.ConeGeometry(0.5, 0.5, 10, 1, true), [0, -0.95, 0], [Math.PI, 0, 0]);
+    this.thrust = tp.build(this.body)[0];
+    // the weak point: a glowing grill in the prow behind two sliding shutters
+    this.weakMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    this.mats.push(this.weakMat);
+    this.weak = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.5, 0.12), this.weakMat);
+    this.weak.position.set(0, 0.08, 1.25);
+    this.weak.rotation.x = -0.35;
+    this.body.add(this.weak);
+    this.shutters = [];
+    for (const sx of [-1, 1]) {
+      const s = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.64, 0.1), MAT.shell);
+      s.userData.x = sx * 0.3;
+      s.position.set(sx * 0.3, 0.08, 1.34);
+      s.rotation.x = -0.35;
+      this.body.add(s);
+      this.shutters.push(s);
+    }
+    this.lane = new Beam(world.scene, DANGER);
+    this.hum = audio.createLoop('drone_hum', { rate: 0.4 });
+    this.register();
+    this.group.rotation.y = this.yaw;
+  }
+
+  sightFrom() {
+    return _a.copy(this.pos).setY(this.pos.y + 0.6);
+  }
+
+  // turn toward the player at `rate` rad/s; returns the remaining angle
+  face(dt, rate) {
+    const want = Math.atan2(this.eye.x - this.pos.x, this.eye.z - this.pos.z);
+    let d = want - this.yaw;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    this.yaw += THREE.MathUtils.clamp(d, -rate * dt, rate * dt);
+    return Math.abs(d);
+  }
+
+  forward(out) {
+    return out.set(Math.sin(this.yaw), 0, Math.cos(this.yaw));
+  }
+
+  // horizontal move that won't hover off a ledge; returns true if something stopped it
+  step(d) {
+    const len = Math.hypot(d.x, d.z);
+    if (len > 1e-5) {
+      // floor must continue just ahead (a cheap grid lookup, not a ray)
+      const probe = _v.set(this.pos.x + (d.x / len) * 1.3, this.floorY - 0.2, this.pos.z + (d.z / len) * 1.3);
+      if (!this.world.pointInSolid(probe)) return true;
+    }
+    const blocked = moveSafe(this.world, this.pos, d, PAD);
+    return blocked.x || blocked.z;
+  }
+
+  update(dt, player) {
+    if (!this.tick(dt, player)) return this.updateHum(0.4);
+    const fx = this.world.fx;
+    this.timer -= dt;
+    // keep hovering at a steady height over whatever floor is below
+    this.floorT -= dt;
+    if (this.floorT <= 0) {
+      this.floorT = 0.2;
+      const f = floorBelow(this.world, this.pos, HOVER + 4);
+      if (f !== null) this.floorY = f;
+    }
+    this.pos.y += (this.floorY + HOVER + Math.sin(this.t * 2.2) * 0.08 - this.pos.y) * Math.min(1, dt * 6);
+    let wantOpen = 0;
+    if (!this.ready) {
+      this.face(dt, 3);
+    } else if (this.state === 'stalk') {
+      // lumber toward the player (not too close), turning to face them
+      this.face(dt, 1.8);
+      if (this.aggro && this.dist > 5.5) {
+        _d.subVectors(this.eye, this.pos).setY(0).normalize().multiplyScalar(this.speed * dt);
+        this.step(_d);
+      }
+      if (this.timer <= 0 && this.sees && this.dist > 4 && this.dist < 32) {
+        this.state = 'windup';
+        this.timer = this.windupTime;
+        const g = Math.max(0.4, falloff(this.dist, 6, 45));
+        sfx('brute_roar', { gain: 0.8 * g }, 'boss_charge', { gain: 0.7 * g, rate: 1.3 });
+      }
+    } else if (this.state === 'windup') {
+      // plant, open up, and paint the lane; the aim locks for the last 0.3 s
+      wantOpen = 1;
+      if (this.timer > 0.3) this.face(dt, 4);
+      this.forward(this.dir);
+      const from = _a.copy(this.pos).setY(this.floorY + 0.06);
+      // (the lane's length only needs a fresh ray now and then)
+      if ((this.laneT = (this.laneT ?? 0) - dt) <= 0) {
+        this.laneT = 0.1;
+        const hit = this.world.raycast(_v.copy(this.pos), this.dir, 40, { meshes: false });
+        this.laneLen = hit ? hit.t : 40;
+      }
+      const len = this.laneLen;
+      const locked = this.timer <= 0.3;
+      this.lane.set(from, _v.copy(from).addScaledVector(this.dir, len), 1, locked ? 0.32 : 0.14 + 0.1 * Math.sin(this.t * 25), locked ? 0xff9a6a : DANGER);
+      this.lane.mesh.scale.set(2.2, 0.02, len);
+      this.body.position.set((Math.random() - 0.5) * 0.06, 0, (Math.random() - 0.5) * 0.06);
+      if (Math.random() < dt * 20) fx.burst(_v.copy(this.pos).addScaledVector(this.dir, -1.9), 0xffa040, { count: 3, speed: 3, life: 0.3, size: 0.3, gravity: 0 });
+      this.game.player.shake = Math.max(this.game.player.shake, 0.06 * falloff(this.dist, 4, 20));
+      if (this.timer <= 0) {
+        this.state = 'charge';
+        this.travel = 0;
+        this.body.position.set(0, 0, 0);
+        this.lane.hide();
+      }
+    } else if (this.state === 'charge') {
+      wantOpen = 1;
+      const v = this.chargeSpeed * Math.min(1, 0.35 + this.travel / 3);
+      _d.copy(this.dir).multiplyScalar(v * dt);
+      this.travel += v * dt;
+      if (Math.random() < dt * 30) fx.burst(_v.copy(this.pos).setY(this.floorY + 0.1), 0xb8c0d0, { count: 2, speed: 2, life: 0.5, size: 0.4, gravity: -0.5, mode: 'puff' });
+      if (this.step(_d)) this.slam();
+      else if (this.travel > 34) {
+        this.state = 'recover';
+        this.timer = 0.9;
+      }
+      // getting rammed is fatal
+      const b = player.bounds();
+      const dx = player.pos.x - this.pos.x, dz = player.pos.z - this.pos.z;
+      if (Math.hypot(dx, dz) < 1.75 && b.max.y > this.pos.y - 1.1 && b.min.y < this.pos.y + 1) player.damage(1, 'ram');
+    } else if (this.state === 'stunned' || this.state === 'recover') {
+      // dazed: weak point still open, sparks crackling round it
+      wantOpen = 1;
+      if (this.state === 'stunned') {
+        this.body.rotation.z = Math.sin(this.t * 9) * 0.06 * Math.min(1, this.timer);
+        if (Math.random() < dt * 12) fx.sparks(_v.copy(this.pos).setY(this.pos.y + 1), _a.randomDirection().setY(0.8), 0xffe080, { count: 4, speed: 5, spread: 0.6, life: 0.3 });
+      }
+      if (this.timer <= 0) {
+        this.state = 'stalk';
+        this.timer = this.cooldown * (0.85 + Math.random() * 0.3);
+        this.body.rotation.z = 0;
+      }
+    }
+    // shoves (a light push back from hits) and the player bumping into it
+    if (this.knock.lengthSq() > 0.01) {
+      _d.copy(this.knock).multiplyScalar(dt);
+      this.step(_d);
+      this.knock.multiplyScalar(Math.exp(-5 * dt));
+    }
+    if (this.state !== 'charge') {
+      const dx = player.pos.x - this.pos.x, dz = player.pos.z - this.pos.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 1.9 && d > 1e-3 && player.pos.y < this.pos.y + 1 && player.pos.y + 1.6 > this.pos.y - 1.2) {
+        player.vel.x += (dx / d) * 30 * dt;
+        player.vel.z += (dz / d) * 30 * dt;
+      }
+    }
+    this.group.position.copy(this.pos);
+    this.group.rotation.y = this.yaw;
+    // shutters slide open; the weak point blazes while exposed
+    this.open += (wantOpen - this.open) * Math.min(1, dt * (wantOpen ? 9 : 4));
+    for (const s of this.shutters) s.position.x = s.userData.x + Math.sign(s.userData.x) * this.open * 0.62;
+    const pulse = 0.5 + 0.5 * Math.sin(this.t * 18);
+    if (this.flash > 0) this.weakMat.color.setRGB(3, 3, 3);
+    else this.weakMat.color.set(hexOf(this.color)).multiplyScalar(0.5 + this.open * (1.4 + 0.7 * pulse));
+    this.glowFlash();
+    this.thrustMat.color.set(hexOf(this.color)).multiplyScalar(this.state === 'charge' ? 2.4 : 1.2);
+    this.thrust.scale.set(1, 1, this.state === 'charge' ? 1.8 + Math.random() * 0.5 : 0.8 + Math.random() * 0.3);
+    this.updateHum(0.4 + (this.state === 'charge' ? 0.5 : this.state === 'windup' ? 0.25 : 0), 0.45, 4, 34);
+  }
+
+  slam() {
+    this.state = 'stunned';
+    this.timer = this.stunTime;
+    const p = _v.copy(this.pos).addScaledVector(this.dir, 1.4);
+    const fx = this.world.fx;
+    fx.flash(p, 0xffe0b0, { size: 2, life: 0.15 });
+    fx.ring(p, this.dir.clone().negate(), 0xffffff, { size: 0.5, end: 4, life: 0.35, thick: 0.1 });
+    fx.sparks(p, _a.copy(this.dir).negate().setY(0.5), 0xffc070, { count: 30, speed: 12, spread: 1.2, life: 0.5 });
+    fx.burst(p, 0xb8c0d0, { count: 14, speed: 3, life: 1, size: 0.7, gravity: -0.5, mode: 'puff' });
+    const g = Math.max(0.3, falloff(this.dist, 6, 50));
+    sfx('brute_slam', { gain: g }, 'boss_slam', { gain: 0.8 * g });
+    const pl = this.game.player;
+    pl.shake = Math.max(pl.shake, 0.5 * falloff(this.dist, 4, 30));
+  }
+
+  hitDamage(hit) {
+    return hit?.object === this.weak && this.open > 0.5 ? 3 : 1;
+  }
+
+  onDamage(hit, dir, amount) {
+    this.knock.addScaledVector(_a.copy(dir).setY(0), amount > 1 ? 2.5 : 0.8);
+    if (amount > 1) this.world.fx.ring(hit?.point ?? this.pos, null, 0xffffff, { size: 0.2, end: 1.5, life: 0.25, thick: 0.15 });
+  }
+
+  die(hit, dir) {
+    this.dead = true;
+    this.lane.hide();
+    this.explode({ scale: 2, chunks: 12, vel: dir ? dir.clone().multiplyScalar(3) : null, shake: 0.55 });
+  }
+
+  cleanup() {
+    this.lane.dispose();
+  }
+}

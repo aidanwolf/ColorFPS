@@ -14,6 +14,7 @@ import { buildPrism } from './levels/prism.js';
 import { buildGuide } from './levels/guide.js';
 import { buildTestRange } from './levels/testRange.js';
 import { placeLogs } from './levels/logs.js';
+import { buildCombatRange } from './levels/combatRange.js';
 
 export function buildLevel(world, game) {
   const level = {
@@ -38,5 +39,7 @@ export function buildLevel(world, game) {
   buildGuide(world, game);
   buildTestRange(B); // ?dev only: the mechanics toolkit showcase, far off the map
   placeLogs(B); // Iris Calder's audio logs, all over the worlds
+  // dev-only test arena, far off the map (?dev&start=arena)
+  if (new URLSearchParams(location.search).has('dev')) buildCombatRange(B);
   return level;
 }

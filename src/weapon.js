@@ -184,7 +184,9 @@ export class Blaster {
     let result = 'world';
     hit.dir = dir; // the shot's direction (after any bounces), e.g. for drone knockback
     if (hit.entity && hit.entity.onHit) result = hit.entity.onHit(this.color, hit) || 'hit';
-    if (hit.entity instanceof Drone && (result === 'hit' || result === 'kill')) outcome.quiet = true;
+    // (enemies with quietHits, like the combat kit's, also play their own)
+    const quiet = hit.entity instanceof Drone || hit.entity?.quietHits;
+    if (quiet && (result === 'hit' || result === 'kill')) outcome.quiet = true;
     else if (hit.solid?.mirror) result = 'mirror';
     else if (hit.solid?.glass) result = 'glass';
     const p = hit.point.clone().addScaledVector(n, 0.02);
@@ -207,7 +209,7 @@ export class Blaster {
     }
     if (result === 'glass') audio.glassHit();
     // drones play their own hit and death effects; obstacles their own shatter
-    if (outcome.quiet && hit.entity instanceof Drone) return outcome;
+    if (outcome.quiet && quiet) return outcome;
     else world.fx.impact(p, n, hex, result === 'glass' ? 'glass' : result === 'world' ? 'wall' : result === 'immune' ? 'ricochet' : 'hit', dir);
     return outcome;
   }
