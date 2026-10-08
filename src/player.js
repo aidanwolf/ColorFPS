@@ -19,7 +19,10 @@ const AIR_ACCEL = 22;
 const STEP = 0.45;
 const HARD_FALL = 17; // m/s landing speed: a heavy, shaking landing (~6 m drop)
 const LETHAL_FALL = 29.5; // m/s: fatal (~18 m drop)
-const VOID_DROP = 30; // m below the last ground: you've fallen off the world
+const VOID_DROP = 30;
+const SWIM_SPEED = 4.4;
+export const AIR_MAX = 14; // seconds of breath
+const _swimF = new THREE.Vector3(), _swimT = new THREE.Vector3(); // m below the last ground: you've fallen off the world
 const COYOTE = 0.12;
 const BUFFER = 0.14;
 const EPS = 0.001;
@@ -29,6 +32,7 @@ export class Player {
     this.game = game;
     this.camera = game.camera;
     this.pos = new THREE.Vector3();
+    this.air = AIR_MAX;
     this.vel = new THREE.Vector3();
     this.yaw = 0;
     this.pitch = 0;
@@ -69,6 +73,7 @@ export class Player {
     this.dead = false;
     this.ground = null;
     this.carry.set(0, 0, 0);
+    this.air = AIR_MAX;
   }
 
   bounds(h = this.height) {
@@ -83,6 +88,63 @@ export class Player {
 
   forward(out = new THREE.Vector3()) {
     return out.set(0, 0, -1).applyEuler(new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ'));
+  }
+
+  waterAt(world) {
+    const p = this.pos, cy = p.y + this.height * 0.5;
+    for (const w of world.waters || []) {
+      if (p.x > w.min.x && p.x < w.max.x && p.z > w.min.z && p.z < w.max.z && cy > w.min.y && cy < w.max.y) return w;
+    }
+    return null;
+  }
+
+  swim(dt, input, water) {
+    if (this.crouching && this.fits(this.pos.x, this.pos.y, this.pos.z, STAND_H)) {
+      this.crouching = false;
+      this.height = STAND_H;
+    }
+    const fw = this.forward(_swimF);
+    const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
+    let f = (input.down('KeyW') || input.down('ArrowUp') ? 1 : 0) - (input.down('KeyS') || input.down('ArrowDown') ? 1 : 0);
+    let r = (input.down('KeyD') || input.down('ArrowRight') ? 1 : 0) - (input.down('KeyA') || input.down('ArrowLeft') ? 1 : 0);
+    if (input.stick) {
+      f += input.stick.f;
+      r += input.stick.r;
+    }
+    const up = input.down('Space') ? 1 : 0;
+    const down = input.down('KeyC') || input.down('ControlLeft') || input.down('ControlRight') || input.down('TouchCrouch') ? 1 : 0;
+    const speed = SWIM_SPEED * (input.down('ShiftLeft') || input.down('ShiftRight') ? 1.45 : 1);
+    const t = _swimT.set(fw.x * f + rx * r, fw.y * f, fw.z * f + rz * r);
+    if (t.lengthSq() > 1) t.normalize();
+    t.multiplyScalar(speed);
+    t.y += (up - down) * SWIM_SPEED * 0.8;
+    const eyeOut = this.pos.y + this.eye - water.max.y; // > 0: head above the surface
+    if (!up && !down && Math.abs(f) + Math.abs(r) < 0.01) t.y = -0.6; // idle: drift slowly down
+    // float at the surface: you can't swim up out of the water, only leap out with Space at the edge
+    if (eyeOut > -0.15 && t.y > 0) t.y = Math.min(t.y, (0.25 - eyeOut) * 4);
+    this.vel.lerp(t, Math.min(1, dt * 3.2)); // water drag
+    if (up && eyeOut > -0.3 && input.hit('Space')) {
+      this.vel.y = JUMP_V * 0.85; // climb/leap out over a ledge
+      audio.jump();
+    }
+    if (water.current) this.vel.addScaledVector(water.current, Math.min(1, dt * 2.5));
+    this.sprinting = false;
+    this.launched = false;
+    this.fallTop = this.pos.y; // no fall damage carried through water
+  }
+
+  updateAir(dt) {
+    if (this.headUnder) {
+      this.air = Math.max(0, this.air - dt);
+      this.bubbleT = (this.bubbleT || 0) - dt;
+      if (this.bubbleT <= 0) {
+        this.bubbleT = 0.5 + Math.random() * 0.6;
+        this.game.world.fx.bubbles?.(_swimT.copy(this.pos).setY(this.pos.y + this.eye - 0.1), 3);
+      }
+      if (this.air <= 0 && !this.game.rulesPaused) this.damage(1, 'drown');
+    } else {
+      this.air = Math.min(AIR_MAX, this.air + dt * 5);
+    }
   }
 
   update(dt, input, settings) {
@@ -105,7 +167,7 @@ export class Player {
     }
 
     // ---- crouch ----
-    const wantCrouch = input.down('KeyC') || input.down('ControlLeft') || input.down('ControlRight') || input.down('TouchCrouch');
+    const wantCrouch = !this.swimming && (input.down('KeyC') || input.down('ControlLeft') || input.down('ControlRight') || input.down('TouchCrouch'));
     if (wantCrouch && !this.crouching) {
       this.crouching = true;
       audio.crouch();
@@ -125,6 +187,16 @@ export class Player {
     const targetEye = this.height - EYE_DROP;
     this.eye += (targetEye - this.eye) * Math.min(1, dt * 14);
 
+    // ---- swimming ----
+    // In water you swim where you look (Space up, C/Ctrl down), sink slowly when idle, float with your
+    // head out at the surface, and a current can carry you. Air only runs out with your head under.
+    const water = this.waterAt(world);
+    const wasSwimming = this.swimming;
+    this.swimming = !!water;
+    this.headUnder = !!water && this.pos.y + this.eye < water.max.y;
+    if (water && !wasSwimming && this.vel.y < -5) this.game.world.fx.splash?.(this.pos.clone().setY(water.max.y), -this.vel.y);
+    if (water) this.swim(dt, input, water);
+    else {
     // ---- horizontal movement ----
     const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw);
     const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
@@ -175,6 +247,8 @@ export class Player {
     // updraft columns slow the fall through shielded spike drops
     for (const u of world.updrafts || []) if (u.contains(this.pos) && this.vel.y < -u.cap) this.vel.y = -u.cap;
     if (this.vel.y < -40) this.vel.y = -40;
+    }
+    this.updateAir(dt);
 
     // ---- integrate with collision ----
     const wasGrounded = this.grounded;

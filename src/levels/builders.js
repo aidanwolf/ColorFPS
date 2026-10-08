@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { Barrier } from '../entities/barrier.js';
 import { Pickup } from '../entities/misc.js';
 import { Mirror, Glass, TargetPanel, ShotShield, Updraft } from '../entities/puzzle.js';
+import { waterSurface } from '../liquid.js';
 
 export const T = 0.5; // wall thickness
 export const CH = 3.2; // corridor height
@@ -192,6 +193,14 @@ export function makeBuilders(W, game, level) {
     W.scene.add(canopy);
     return canopy;
   };
+  // Swimmable water: a box you can swim in (air runs out with your head under), with a surface sheet on
+  // top. current: [x, y, z] m/s pushes swimmers along (e.g. a downward flow in a flooded pipe).
+  const water = (min, max, { current = null, surface = true } = {}) => {
+    const v = { min: new THREE.Vector3(...min), max: new THREE.Vector3(...max), current: current ? new THREE.Vector3(...current) : null };
+    (W.waters ??= []).push(v);
+    if (surface) waterSurface(W, min[0], min[2], max[0], max[2], max[1]);
+    return v;
+  };
   // ?dev&start=<name> drops you here with the given colors (see main.js devSkip).
   const devStart = (name, pos, yaw = 0, colors = [0]) => (level.devStarts[name] = { pos: new THREE.Vector3(...pos), yaw, colors });
   // Called whenever the player respawns at a checkpoint (reset elevators, encounters, ...).
@@ -200,6 +209,6 @@ export function makeBuilders(W, game, level) {
   return {
     W, game, level, T, CH, GLOW,
     wallX, wallZ, abs, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy,
-    sideAlcove, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, tree, devStart, onRespawn,
+    sideAlcove, shieldedShaft, hint, zoneTitle, area, light, barrierWall, barrierWallX, tree, devStart, onRespawn, water,
   };
 }

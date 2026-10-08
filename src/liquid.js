@@ -15,13 +15,13 @@ const NOISE = /* glsl */ `
 `;
 
 function waves(style) {
-  // vertical motion in metres: lava heaves, quicksand barely breathes, sludge and brine ripple
-  return [0.12, 0.03, 0.09, 0.07][style];
+  // vertical motion in metres: lava heaves, quicksand barely breathes, sludge, brine and water ripple
+  return [0.12, 0.03, 0.09, 0.07, 0.08][style];
 }
 
 const cache = new Map();
-export function liquidMaterial(zone, surface) {
-  const style = LIQUID_STYLE[zone] ?? 0;
+export function liquidMaterial(zone, surface, styleOverride = null) {
+  const style = styleOverride ?? LIQUID_STYLE[zone] ?? 0;
   const key = style + (surface ? 's' : 'b');
   if (cache.has(key)) return cache.get(key);
   const m = new THREE.ShaderMaterial({
@@ -77,6 +77,11 @@ export function liquidMaterial(zone, surface) {
           float glow = smoothstep(0.55, 0.85, lfbm(p * 0.8 - t * 0.12));
           c = mix(vec3(0.05, 0.25, 0.06), vec3(0.25, 1.4, 0.35), s);
           c += vec3(0.6, 2.0, 0.5) * glow * (0.6 + 0.4 * sin(t * 3.0 + p.y));
+        #elif STYLE == 4
+          // swimmable water: clear blue-green, glinting ripples (seen from above and below)
+          float k = lfbm(p * 0.5 + vec2(t * 0.07, t * 0.05));
+          float glint = pow(max(0.0, 1.0 - abs(sin(k * 11.0 - t * 1.4))), 8.0);
+          c = mix(vec3(0.03, 0.22, 0.32), vec3(0.1, 0.5, 0.65), k) + vec3(0.6, 0.9, 1.0) * glint * 0.5;
         #else
           // brine: deep cold blue with drifting caustic light
           float k = lfbm(p * 0.4 + vec2(t * 0.06, -t * 0.05));
@@ -84,10 +89,13 @@ export function liquidMaterial(zone, surface) {
           c = mix(vec3(0.02, 0.1, 0.25), vec3(0.15, 0.55, 1.2), k);
           c += vec3(0.5, 1.2, 1.8) * caustic * 0.6;
         #endif
-        gl_FragColor = vec4(clamp(c, 0.0, 3.0), 1.0);
+        gl_FragColor = vec4(clamp(c, 0.0, 3.0), STYLE == 4 ? 0.62 : 1.0);
         #include <fog_fragment>
       }`,
     defines: { STYLE: style },
+    transparent: style === 4,
+    depthWrite: style !== 4,
+    side: style === 4 ? THREE.DoubleSide : THREE.FrontSide,
   });
   m.uniforms.uTime = time;
   cache.set(key, m);
@@ -103,6 +111,17 @@ export function liquidSurface(world, x1, z1, x2, z2, y, zone) {
   mesh.matrixAutoUpdate = false;
   world.scene.add(mesh);
   (world.liquids ??= []).push({ min: new THREE.Vector3(x1, y, z1), max: new THREE.Vector3(x2, y, z2), zone, style: LIQUID_STYLE[zone] ?? 0 });
+  return mesh;
+}
+
+// The surface sheet of a swimmable water volume.
+export function waterSurface(world, x1, z1, x2, z2, y) {
+  const w = x2 - x1, d = z2 - z1;
+  const geo = new THREE.PlaneGeometry(w, d, Math.min(48, Math.max(1, Math.round(w / 1.5))), Math.min(48, Math.max(1, Math.round(d / 1.5))));
+  geo.rotateX(-Math.PI / 2).translate((x1 + x2) / 2, y, (z1 + z2) / 2);
+  const mesh = new THREE.Mesh(geo, liquidMaterial('blue', true, 4));
+  mesh.matrixAutoUpdate = false;
+  world.scene.add(mesh);
   return mesh;
 }
 

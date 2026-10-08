@@ -115,6 +115,8 @@ const fragmentShader = `
     gl_FragColor = vec4(clamp(vCol, 0.0, 3.0) * 1.6 * a, a);
   }`;
 
+const _bp = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
+
 export class Fx {
   constructor(scene) {
     this.scene = scene;
@@ -337,6 +339,29 @@ export class Fx {
     this.drag[i] = 0.7;
     this.fadeOut[i] = 3;
     return i;
+  }
+
+  // rising air bubbles (underwater): wobbling dots that drift up and fade
+  bubbles(p, count = 3) {
+    for (let i = 0; i < count; i++) {
+      const b = this.spawn(DOT, _bp.set(p.x + (Math.random() - 0.5) * 0.2, p.y, p.z + (Math.random() - 0.5) * 0.2),
+        (Math.random() - 0.5) * 0.3, 1.2 + Math.random() * 0.8, (Math.random() - 0.5) * 0.3, this._c.set(0xcfefff), 0.9, 1.6 + Math.random(), 0.05 + Math.random() * 0.05);
+      this.grav[b] = -1.5;
+      this.drag[b] = 1.5;
+      this.fadeOut[b] = 1;
+    }
+  }
+
+  // hitting water: a ring on the surface and a burst of droplets, bigger the faster you came in
+  splash(p, speed = 8) {
+    const k = Math.min(1, speed / 20);
+    this.ring(p, _up, 0xbfe8ff, { size: 0.3, end: 2 + 3 * k, life: 0.6, k: 1 });
+    for (let i = 0; i < 10 + 20 * k; i++) {
+      const a = Math.random() * Math.PI * 2, s = 1.5 + Math.random() * 4 * k;
+      const d = this.spawn(DOT, p, Math.cos(a) * s, 3 + Math.random() * 6 * k, Math.sin(a) * s, this._c.set(0xdff4ff), 1, 0.7, 0.06);
+      this.grav[d] = 14;
+      this.fadeOut[d] = 1;
+    }
   }
 
   // ---------- shots ----------

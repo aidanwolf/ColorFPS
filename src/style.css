@@ -90,6 +90,12 @@ html, body {
 .cslot.active { border-color: var(--c); transform: skewX(-12deg) translateY(-8px) scale(1.12); box-shadow: 0 0 18px var(--c); }
 
 #stats { position: absolute; right: 28px; bottom: 26px; font-size: 12px; letter-spacing: 2px; color: var(--dim); }
+#air { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); width: 180px; text-align: center; }
+#air .air-label { font-size: 10px; letter-spacing: 4px; color: #bfe8ff; margin-bottom: 4px; }
+#air .air-track { height: 8px; background: rgba(0, 20, 40, 0.6); border: 1px solid rgba(191, 232, 255, 0.5); }
+#air .air-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #2a8bff, #9be7ff); transition: width 0.15s; }
+#air.low .air-fill { background: #ff3344; animation: air-low 0.5s infinite alternate; }
+@keyframes air-low { to { opacity: 0.35; } }
 #objective {
   position: absolute; left: 24px; top: 22px; max-width: min(360px, 40vw); padding: 8px 14px;
   background: var(--panel); border-left: 3px solid var(--cur); transition: opacity 0.4s;

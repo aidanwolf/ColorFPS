@@ -9,7 +9,7 @@ import { COLORS, RED, YELLOW, GREEN, BLUE } from './colors.js';
 import { Input } from './input.js';
 import { audio } from './audio.js';
 import { World } from './world.js';
-import { Player } from './player.js';
+import { Player, AIR_MAX } from './player.js';
 import { Blaster } from './weapon.js';
 import { Hud } from './hud.js';
 import { buildLevel } from './level.js';
@@ -507,6 +507,12 @@ class Game {
     this.sunLight.position.lerp(a.sunDir, k);
     this.renderer.toneMappingExposure += (a.exposure - this.renderer.toneMappingExposure) * k;
     if (this.bloom) this.bloom.strength += (a.bloom - this.bloom.strength) * k;
+    // underwater: a thick blue-green murk close around you (eases back out as you surface)
+    if (this.player.headUnder) {
+      f.color.set(0x0a3a4a);
+      f.near = 0;
+      f.far = 26;
+    }
     // nothing past the fog can be seen, so don't draw it: the far plane follows the fog (all the
     // worlds share one scene). A Bonus Round brings its own scenery, so it gets the full range.
     const far = this.adRound ? 800 : Math.max(200, f.far + 30);
@@ -677,7 +683,7 @@ class Game {
     const liquid = p.deathCause === 'quicksand' ? 'sand' : p.deathCause === 'acid' ? { verdant: 'toxic', azure: 'brine', solar: 'sand' }[where] || 'lava' : null;
     this.sink = liquid && { ...SINK[liquid], surface: this.deathPos.y };
     if (this.sink) audio.sample(this.sink.sound, { gain: 1, vary: 0.05 });
-    const banner = this.sink?.banner || { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED', impact: 'CRATERED' }[p.deathCause] || 'SHOT DOWN';
+    const banner = this.sink?.banner || { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED', impact: 'CRATERED', drown: 'DROWNED' }[p.deathCause] || 'SHOT DOWN';
     // The rewarded revive is a helping hand for a section you're stuck on, not a way to skip every
     // challenge: it's offered from the 3rd death since your last checkpoint, once per checkpoint.
     this.deathsHere = (this.deathsHere || 0) + 1;
@@ -884,6 +890,8 @@ class Game {
     else this.player.update(dt, this.input, this.settings);
     this.blaster.update(dt, this.input);
     this.hud.setHealth(this.player.health, this.player.maxHealth);
+    const air = this.player.air / AIR_MAX;
+    this.hud.setAir(air, this.player.headUnder || air < 0.999);
     const goal = currentObjective(this);
     this.hud.setObjective(goal.html, goal.color);
     audio.setHeartbeat(this.player.health > 0 && this.player.health < this.player.maxHealth * 0.3);

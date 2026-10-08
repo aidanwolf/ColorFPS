@@ -55,6 +55,15 @@ export class Hud {
     this.root.classList.toggle('hidden', !v);
   }
 
+  // Breath while underwater (frac 0..1); hidden at full air above water.
+  setAir(frac, show) {
+    const el = (this.airEl ??= $('#air'));
+    el.classList.toggle('hidden', !show);
+    if (!show) return;
+    (this.airFill ??= el.querySelector('.air-fill')).style.width = `${(frac * 100).toFixed(1)}%`;
+    el.classList.toggle('low', frac < 0.3);
+  }
+
   // The current goal, top-left. Flashes when it changes.
   setObjective(html, color = null) {
     if (html === this.objectiveHtml) return;
