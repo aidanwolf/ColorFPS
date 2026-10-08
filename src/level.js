@@ -17,6 +17,7 @@ import { buildTestRange } from './levels/testRange.js';
 import { placeLogs } from './levels/logs.js';
 import { buildCombatRange } from './levels/combatRange.js';
 import { buildVerdantBossRange } from './levels/verdantBossRange.js';
+import { buildBossRange } from './levels/bossRange.js';
 
 export function buildLevel(world, game) {
   const level = {
@@ -45,5 +46,6 @@ export function buildLevel(world, game) {
   // dev-only test arena, far off the map (?dev&start=arena)
   if (new URLSearchParams(location.search).has('dev')) buildCombatRange(B);
   buildVerdantBossRange(B); // dev-only (?dev&start=hydra)
+  buildBossRange(B); // ?dev only: mini-bosses off the map
   return level;
 }
