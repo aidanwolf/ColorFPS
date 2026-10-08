@@ -13,6 +13,7 @@ import { Player, AIR_MAX } from './player.js';
 import { Blaster } from './weapon.js';
 import { Hud } from './hud.js';
 import { buildLevel } from './level.js';
+import { Batcher } from './batch.js';
 import { currentObjective } from './levels/guide.js';
 import { regionOf, PORTALS, PORTAL_BLEND } from './levels/regions.js';
 import { updateLiquids } from './liquid.js';
@@ -129,6 +130,7 @@ class Game {
     this.level = buildLevel(this.world, this);
     this.world.finalize();
     if (COARSE) this.world.fx.quality = 0.6; // lighter particle effects on phones
+    new Batcher(this.world).build([this.sky]); // meshes added straight to the scene: one draw per material (batch.js)
     this.world.setupCulling([this.sky]);
     this.restock = new Restock(this.world);
     director.attach(this);
