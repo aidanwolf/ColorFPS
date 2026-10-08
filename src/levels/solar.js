@@ -754,9 +754,11 @@ export function buildSolar(B) {
   hint([-114, -1, -59], [-110, 3, -55], 'Each <b style="color:#ff3344">red</b> hit turns a sun disc a quarter turn. Turn each <b>notch down</b> onto the bridge.', 6);
   hint([-128, -1, -60], [-126, 3, -54], 'Shoot the <b>door</b> on the ledge down into the rock, then stand on the <b>riser</b> and keep shooting it to climb. Quick — the door comes back up.', 7);
   // GREEN stairs up to the ledge along the south wall: a shortcut for later (it skips the race)
-  for (let i = 0; i < 10; i++) R(-128 - 0.7 * (i + 1), -1, -51, -128 - 0.7 * i, -1 + 0.45 * (i + 1), -49);
-  R(-132, -1, -51.4, -128, 4.4, -51); // a wall between the stairs and the floor
-  new Barrier(W, { min: [-128.4, -1, -51], max: [-128, 2.6, -49], color: GREEN, kind: 'wall', zone });
+  R(-130, -1, -51, -128, -0.59, -49); // (the bottom step is the width of the barrier)
+  for (let i = 1; i <= 10; i++) R(-130 - 0.6 * i, -1, -51, -130 - 0.6 * (i - 1), -1 + 0.41 * (i + 1), -49);
+  R(-132, -1, -51.4, -130, 4.4, -51); // a wall between the stairs and the floor, the barrier at its foot
+  new Barrier(W, { min: [-130, -1, -51.3], max: [-128, 2.6, -50.9], color: GREEN, kind: 'wall', zone });
+  blocker([-128, -1, -51], [-127.8, SKY, -49]); // no jumping onto the stairs from over the pool
   blocker([-138, 9, -72], [-106, SKY, -47]);
 
   // ================================================================ S4 THE SHADE SLOT (platforming)
@@ -1159,12 +1161,14 @@ export function buildSolar(B) {
   M(-81.7, 12, -165.5, -81.5, 13, -134.3); // rails
   M(-78.5, 12, -165.5, -78.3, 13, -137.5);
   M(-78.5, 12, -137.7, -38, 13, -137.5);
-  M(-78.3, 12, -134.5, -38, 13, -134.3);
+  M(-78.3, 12, -134.5, -64.2, 13, -134.3); // (a gap for the Eclipse Vault's door)
+  M(-61.8, 12, -134.5, -38, 13, -134.3);
   M(-81.7, 12, -134.5, -78.5, 13, -134.3);
   blocker([-81.9, 12, -165.5], [-81.5, SKY, -134.3]);
   blocker([-78.5, 12, -165.5], [-78.1, SKY, -137.5]);
   blocker([-78.5, 12, -137.9], [-38, SKY, -137.5]);
-  blocker([-81.9, 12, -134.5], [-38, SKY, -134.1]);
+  blocker([-81.9, 12, -134.5], [-64.2, SKY, -134.1]);
+  blocker([-61.8, 12, -134.5], [-38, SKY, -134.1]);
   area([-81.5, 12, -165.5], [-78.5, 15, -160], mood);
   ck([-80, 12, -160], Math.PI, [3, 3, 4]);
   devStart('solar12', [-80, 12, -160], Math.PI, [RED, YELLOW]);
