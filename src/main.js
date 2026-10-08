@@ -264,7 +264,7 @@ class Game {
   unlockColor(c) {
     const first = !this.blaster.has;
     this.blaster.give(c);
-    audio.unlock(c);
+    audio.colorUnlocked(c);
     const name = `<b>${COLORS[c].name}</b>`;
     if (first) this.hud.message(`${name} blaster online. <b>LMB</b> to fire.`, 4);
     else this.hud.message(`${name} unlocked — press <b>${c + 1}</b>. Remember those ${name}-marked doors?`, 6);
@@ -462,6 +462,7 @@ class Game {
     this.sky.material.uniforms.uTime.value = t;
     this.sky.position.copy(this.camera.position);
 
+    this.input.active = this.state === 'playing';
     if (this.state === 'playing') {
       if (DEV) this.devKeys();
       if (!this.inBreak) this.step(dt);

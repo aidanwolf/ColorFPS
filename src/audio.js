@@ -121,7 +121,7 @@ class Audio {
   pickup() {
     [0, 4, 7, 12].forEach((n, i) => this.tone({ type: 'triangle', f: 523 * 2 ** (n / 12), dur: 0.18, gain: 0.12, delay: i * 0.06 }));
   }
-  unlock(color) {
+  colorUnlocked(color) {
     const base = COLORS[color].freq;
     [0, 7, 12, 16, 19, 24].forEach((n, i) =>
       this.tone({ type: 'square', f: base * 2 ** (n / 12), dur: 0.35, gain: 0.07, delay: i * 0.08 }),

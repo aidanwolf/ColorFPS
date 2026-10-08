@@ -10,6 +10,8 @@ export class Input {
     this.dy = 0;
     this.wheel = 0;
     this.locked = false;
+    this.lockFailed = false; // pointer lock refused: fall back to plain mouse input while playing
+    this.active = false; // set by the game while gameplay is running
     this.onLockChange = null;
 
     addEventListener('keydown', (e) => {
@@ -23,7 +25,7 @@ export class Input {
       this.mouseDown = false;
     });
     addEventListener('mousedown', (e) => {
-      if (!this.locked) return;
+      if (!this.capturing) return;
       if (e.button === 0) {
         this.mouseDown = true;
         this.mousePressed = true;
@@ -33,14 +35,14 @@ export class Input {
       if (e.button === 0) this.mouseDown = false;
     });
     addEventListener('mousemove', (e) => {
-      if (!this.locked) return;
+      if (!this.capturing) return;
       this.dx += e.movementX;
       this.dy += e.movementY;
     });
     addEventListener(
       'wheel',
       (e) => {
-        if (!this.locked) return;
+        if (!this.capturing) return;
         this.wheel += Math.sign(e.deltaY);
       },
       { passive: true },
@@ -55,10 +57,28 @@ export class Input {
     });
   }
 
+  get capturing() {
+    return this.locked || (this.active && this.lockFailed);
+  }
+
   requestLock() {
-    const p = this.dom.requestPointerLock?.({ unadjustedMovement: true });
-    // Some browsers reject unadjustedMovement; fall back to a plain lock.
-    if (p && p.catch) p.catch(() => this.dom.requestPointerLock());
+    const fail = () => (this.lockFailed = true);
+    try {
+      const p = this.dom.requestPointerLock?.({ unadjustedMovement: true });
+      // Some browsers reject unadjustedMovement; retry with a plain lock before giving up.
+      if (p && p.catch) {
+        p.catch(() => {
+          try {
+            const q = this.dom.requestPointerLock();
+            if (q && q.catch) q.catch(fail);
+          } catch {
+            fail();
+          }
+        });
+      } else if (!this.dom.requestPointerLock) fail();
+    } catch {
+      fail();
+    }
   }
 
   exitLock() {
