@@ -45,6 +45,8 @@ export function buildOvergrowth({ B, W, game, level, H, boss }) {
     pool(c - CW, -R, c + CW, R);
     for (const [a, b] of [[-R, CH[0] - CW], [CH[0] + CW, CH[1] - CW], [CH[1] + CW, R]]) pool(a, c - CW, b, c + CW);
   }
+  // ARMOR: over the far (north-west) crossing of the channels: reach it from a slab's corner, or jump it.
+  B.armor([X(-9), 0, Z(-9)], { base: false, respawn: 45 });
   // a low parapet round the court, so nobody backs into the moat by accident
   for (const [x1, z1, x2, z2] of [[-R, -R, R, -R + 0.4], [-R, R - 0.4, R, R], [-R, -R, -R + 0.4, R], [R - 0.4, -R, R, R]]) W.box(X(x1), 0, Z(z1), X(x2), 0.7, Z(z2), 'rock', zone);
   glowEdge(X(-R), Z(-R), X(R), Z(R), 0.7, 'glow2', zone, 0.05);

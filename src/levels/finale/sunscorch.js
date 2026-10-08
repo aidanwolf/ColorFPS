@@ -129,6 +129,8 @@ export function buildSunscorch({ B, W, game, level, H, boss }) {
     sinks.push({ x1: X(x1) + 0.15, x2: X(x2) - 0.15, z1: Z(z1) + 0.15, z2: Z(z2) - 0.15 });
     glowEdge(X(x1), Z(z1), X(x2), Z(z2), 0.05, 'glow1', zone, 0.06); // a warning rim of sunstone
   }
+  // ARMOR: over the north-east pool's south lip (lean out over the quicksand).
+  B.armor([X(18.5), 0, Z(-18.7)], { base: false, respawn: 45 });
   // obelisks: cover from its orbs
   const obelisks = [[-12, -9], [12, -9], [-12, 9], [12, 9]];
   for (const [x, z] of obelisks) {

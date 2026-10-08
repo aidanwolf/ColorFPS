@@ -158,6 +158,9 @@ export class Hud {
     this.armorEl.classList.remove('gain');
     void this.armorEl.offsetWidth;
     this.armorEl.classList.add('gain');
+    // the line explains it once a session; after that the badge pop says it
+    if (this.armorTold) return;
+    this.armorTold = true;
     this.message('<b style="color:#7ff6ff">SHIELD</b> up: it takes the next hit for you.', 2.2);
   }
 
