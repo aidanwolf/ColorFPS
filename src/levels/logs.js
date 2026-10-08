@@ -11,10 +11,10 @@ const LOGS = [
   { id: '01', world: 'hub', pos: [-4.3, 4.4, -105.6], yaw: Math.PI / 4 }, // the dais's lower step, south-west corner, under the reactor heart: in view as you walk in from the red door
   { id: '02', world: 'hub', pos: [0, 2.8, -134], yaw: 0 }, // the sunken plaza's compass, where all four conduits can be seen
   { id: '03', world: 'hub', pos: [23.2, 12, -128], yaw: -Math.PI / 2 }, // the east gallery, just off the lift, by Azure's glass conduit
-  // SOLAR (provisional): her nine seconds; she dims the captive star
-  { id: '04', world: 'solar', pos: [-54.5, 4, -122.5], yaw: 0, provisional: true }, // old: the back corner of the Sunward Overlook (wants: a lookout facing the sun)
-  { id: '05', world: 'solar', pos: [-125, -3, -129.8], yaw: 0, provisional: true }, // old: the array terrace ledge's dead end (wants: sand / glass layers)
-  { id: '06', world: 'solar', pos: [-116, 20.8, -134.5], yaw: 0, provisional: true }, // old: the Gnomon summit (wants: a high point with burned shadows)
+  // SOLAR (final, the rebuilt world): her nine seconds; she dims the captive star
+  { id: '04', world: 'solar', pos: [-59.5, 4, -121.5], yaw: Math.PI / 2 }, // the lookout balcony off the overlook's north-west corner, facing the captive sun
+  { id: '05', world: 'solar', pos: [-150.5, -4, -126.5], yaw: Math.PI }, // the Glass Terrace's south end, facing the cliff of fused sand-glass bands
+  { id: '06', world: 'solar', pos: [-128, 12, -164], yaw: -Math.PI / 2 }, // the ring of standing stones on the Gnomon Summit, shadows burned into the rock
   // VERDANT (provisional): lonely, then frightened
   { id: '07', world: 'verdant', pos: [26, 4, -161.5], yaw: 0, provisional: true }, // old: the Root Court's south terrace (wants: early, lush and quiet)
   { id: '08', world: 'verdant', pos: [27.5, 4.5, -205.5], yaw: 0, provisional: true }, // old: the north bank over the Great Hollow (wants: roots by water)

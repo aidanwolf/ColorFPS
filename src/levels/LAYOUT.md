@@ -30,7 +30,7 @@ From the Hub you can **see into every world through big windows before you can e
 | module | file | x | y | z |
 |---|---|---|---|---|
 | Crimson Foundry | `red.js` | -20 → 20 | -7 → 15 | 2 → -99.5 |
-| Cell block (the opening; door in the spawn room's east wall at z -3.8) | `cellblock.js` | 6.5 → 22.5 | -1 → 3.9 | 0.5 → -5.5 |
+| Cell block (the opening; door in the spawn room's east wall at z -3.8) | `cellblock.js` | 6.5 → 22.5 | -1 → 3.9 | 0.5 → -5.5 (north row of cells: to -7.8 for x 6.5 → 19.15; red.js's Maintenance Vent room sits behind it at z -7.8 → -14.8) |
 | Foundry annex (color-locked challenge rooms off the spawn room) | `redAnnex.js` | -45 → 45 | -25 → 30 | 100 → -38 (keep clear of red.js's rooms) |
 | The Hub | `hub.js` | -25 → 25 | 2 → 45 | -99.5 → -148.5 |
 | Prism Core (boss) | `prism.js` | -31 → 31 | -60 → -6 | -88 → -175 |
@@ -38,6 +38,7 @@ From the Hub you can **see into every world through big windows before you can e
 | Azure | `azure.js` | 32 → 200 | -80 → 40 | -40 → -230 |
 | Azure's Flooded Depths (inside Azure's box, behind the chasm's east cliff) | `azureFlooded.js` | 108 → 161 | -62 → 8 | -100 → -153 |
 | Verdant | `verdant.js` | -31 → 31 (wider, -110 → 110, once z < -235) | -5 → 60 (may go down to -40 once z < -178) | -148.5 → -380 |
+| Final battle stages (off-map; regions `fin_*` in regions.js, each sees only itself) | `finale/*.js` | 700 → 1000 | -10 → 40 | -40 → -450 |
 
 Corridors that join a world to the Hub cross the gap between the Hub wall and the region (x ±25 → ±32);
 the world module owns its connecting corridor in that gap. Near the Hub (within 10 m of its walls) keep
@@ -48,7 +49,7 @@ above y 14) look out over your world. Put something spectacular in that view.
 
 | port | wall (thickness) | center | floor y | owner of what's beyond |
 |---|---|---|---|---|
-| Red entry | south, z -100 → -99.5 | x 0 | 4 | red.js (corridor already runs z -81.5 → -99.5) |
+| Red entry | south, z -100 → -99.5 | x 0 | 4 | red.js (stairs climb from the Forge's exit at z -90.5, floor 0, to the port) |
 | Solar entry | west, x -25 → -24.5 | z -112 | 4 | solar.js — no color gate |
 | Solar return | west, x -25 → -24.5 | z -136 | 12 | solar.js; Hub balcony inside |
 | Verdant entry | north, z -148.5 → -148 | x -10 | 4 | verdant.js — Hub puts a YELLOW barrier door in the opening |

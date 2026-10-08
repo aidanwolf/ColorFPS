@@ -21,29 +21,49 @@ export const DOORS = {
   dais: { pos: [0, -110], color: null },
 };
 
-// ---- wayfinding (playtest pass): Solar is one long loop, so name the next step for the stretch you're in
-const inBox = (p, x1, x2, z1, z2, y1 = -99, y2 = 99) => p.x >= x1 && p.x <= x2 && p.z >= z1 && p.z <= z2 && p.y >= y1 && p.y <= y2;
-function solarBefore(p) {
-  if (inBox(p, -38, -25, -114, -110)) return `Head through to the ${tag(YELLOW, 'Sunward Overlook')}.`;
-  if (inBox(p, -56.5, -37.5, -124, -100, 3.5)) return `Follow the glowing arrows to the deck's far corner, step down the rubble and blast the ${tag(RED, 'red gate')}.`;
-  if (inBox(p, -46, -37.5, -100, -89.4, -1)) return `Blast the ${tag(RED, 'red gate')} across the ledge, then hop down the canyon.`;
-  if (inBox(p, -60, -34, -100, -66, -6)) return 'Hop down the canyon — the pillar, then the fallen panel — to the <b>Collector Yard</b>.';
-  if (inBox(p, -90, -34, -66, -40, -10, 2)) return `Slip west past the <b>sun lances</b> while they cool, then blast the ${tag(RED, 'red gate')} into the Shade Slot.`;
-  if (inBox(p, -146, -86, -59, -45, -10, 2)) return 'Run west through the <b>Shade Slot</b>, between the waves of sunlight.';
-  if (inBox(p, -194, -146, -100, -42)) return `Hop down the ledges of the <b>Sun Well</b> to the ${tag(YELLOW, 'SOLAR core')} on the pillar.`;
-  return '';
-}
-function solarAfter(p, st) {
-  if (inBox(p, -194, -146, -102, -42)) return `Blast the ${tag(YELLOW, 'yellow door')} at the end of the causeway behind the core.`;
-  if (inBox(p, -168, -164, -124, -102)) return `Break the barriers with their own colors: ${tag(RED, 'red')} and ${tag(YELLOW, 'yellow')} (<b>1</b>/<b>2</b> to switch).`;
-  if (inBox(p, -184, -148, -150, -124, -21, -5))
-    return st && !st.lift1.active ? `Power the lift: fire ${tag(YELLOW, 'yellow')} <b>over the glass</b> at the receiver in the north wall.` : 'Ride the lift in the east corner up to the terrace.';
-  if (inBox(p, -148, -118, -170, -124, -5, 2))
-    return st && !st.lift2.active ? `Shoot the ${tag(YELLOW, 'yellow solar panel')} on the mesa wall to power the lift.` : 'Ride the lift up the <b>Gnomon Mesa</b>.';
-  if (inBox(p, -122, -86, -170, -152, 2, 20)) return 'Climb the ledges to the <b>jump pad</b>: it throws you west, onto the summit — let go of the keys as it fires.';
-  if (inBox(p, -118, -98, -162, -132, 20)) return `Drop down the stone chimney at the summit's east edge — shoot ${tag(RED, 'red')}, then ${tag(YELLOW, 'yellow')}, as you fall.`;
-  if (inBox(p, -98, -93, -140, -132, 11, 20)) return `Fall through the chimney: shoot each spike layer once you're past its shield — ${tag(RED, 'red')}, then ${tag(YELLOW, 'yellow')}.`;
-  if (inBox(p, -93, -25, -141, -131, 11, 20)) return `Cross the <b>Sunset Causeway</b> back to the Nexus.`;
+// ---- Solar names the next step for the stretch you're in: solar.js publishes level.solar.objective(pos)
+// (it knows its own puzzles' state), so the Solar branches below just ask it.
+const solarObjective = (game) => game.level.solar?.objective?.(game.player.pos) || '';
+
+// ---- the Crimson Foundry (red.js): the next step for the stretch you're in, while red is all you have
+function foundryObjective(game) {
+  const p = game.player.pos, f = game.level.foundry || {};
+  const inBox = (q, x1, x2, z1, z2, y1 = -99, y2 = 99) => q.x >= x1 && q.x <= x2 && q.z >= z1 && q.z <= z2 && q.y >= y1 && q.y <= y2;
+  const R = (t) => tag(RED, t);
+  if (game.isWorldDown?.('red')) return p.z < -55 ? 'The Foundry is cold. <b>North</b>, up the stairs, to the Atrium.' : 'The Foundry is dead. Head <b>north</b> to the Atrium.';
+  if (p.z > 0.5) return 'This annex wing needs colors you don\'t have yet. Head back <b>north</b>.';
+  if (inBox(p, -6, 6, -12.2, 0)) return `Shoot the ${R('red barrier')} in the north door.`;
+  if (inBox(p, -7, 7, -30.5, -12.2)) {
+    if (f.innerGate && f.innerGate.state !== 'open' && p.z > -20.5) return `Shoot the ${R('red switch')} above the gate.`;
+    if (f.westGate && f.westGate.state !== 'open') return `The lock is behind the glass: bank a ${R('red')} shot off the <b>yellow</b> panels onto it.`;
+    return 'Through the <b>west</b> door to the Crucible.';
+  }
+  if (inBox(p, -44, -9.5, -37, -13)) {
+    if (p.x > -16 && p.y < 2) return `Shoot the ${R('spikes')} off the first slab, then hop across the lava.`;
+    if (inBox(p, -40, -16, -24, -19)) return `Jump on the raft and <b>keep shooting it</b> to push it west.`;
+    if (p.x < -40 && p.z > -24.5) return `Shoot the ${R('orb')} to raise the stepping stones, then run north.`;
+    if (p.x < -36) return 'Step on the <b>jump pad</b>: it throws you east.';
+    if (p.x < -16) return `Clear the far slab's ${R('spikes')} first, then sprint over the trapdoor.`;
+    return 'East, through the door into the <b>Slag Run</b>.';
+  }
+  if (inBox(p, -10, 9.6, -37.3, -34.2, 2)) return p.x < 4 ? `Spam shots into the ${R('riser')} to raise it, and ride it over the lava.` : `Shoot the ${R('sinker door')} down and walk over it.`;
+  if (inBox(p, 9.5, 44, -37.5, -13)) {
+    if (p.y > 8.5 && p.z < -33) return 'Through the gate and <b>down the spike shaft</b>.';
+    if (p.y > 8.5) return `Shoot the ${R('switch')} on the wall, then race along the catwalk to the exit gate.`;
+    if (p.x > 31) return `Shoot the rack's ${R('arrows')} to stair the ledges up to the west landing.`;
+    return `Shoot the two ${R('bridge slabs')} until they line up, then cross east.`;
+  }
+  if (inBox(p, 12.5, 17.5, -43, -38)) return `Shoot each spike layer through its shield's <b>glowing open end</b> as you fall.`;
+  if (inBox(p, -20, 20, -55.5, -38)) {
+    const st = f.smelting?.state;
+    if (st === 'armed') return 'Down onto the <b>Smelting Floor</b>. The Forge is through the north door.';
+    return st && st !== 'cleared' ? 'Survive the <b>Smelting Floor</b>: keep moving, shoot everything.' : '<b>North</b>, into the Forge.';
+  }
+  if (inBox(p, -17.5, 17.5, -90.5, -55.5)) {
+    const core = f.forge?.core, titan = f.forge?.titan;
+    if (core?.state === 'exposed' || core?.state === 'overload') return `Shoot the ${R('Geothermal Core')} until it overloads.`;
+    if (titan && titan.state !== 'dead') return `Defeat the ${R('Forge Titan')}: shoot its glowing weak points.`;
+  }
   return '';
 }
 
@@ -104,12 +124,12 @@ export function currentObjective(game) {
     return { html: 'Grab the <b>Chroma Blaster</b> from the pedestal.', color: COLORS[RED].css };
   }
   if (!has(YELLOW)) {
-    if (where === 'red') return { html: `Fight north through the ${tag(RED, 'Crimson Foundry')} to the Nexus.`, color: COLORS[RED].css };
-    if (where === 'solar') return { html: solarBefore(game.player.pos) || `Find the ${tag(YELLOW, 'SOLAR core')} somewhere below the mesas.`, door: null };
+    if (where === 'red') return { html: foundryObjective(game) || `Fight north through the ${tag(RED, 'Crimson Foundry')} to the Nexus.`, color: COLORS[RED].css };
+    if (where === 'solar') return { html: solarObjective(game) || `Find the ${tag(YELLOW, 'SOLAR core')} somewhere below the mesas.`, door: null };
     return { html: `Enter the ${tag(YELLOW, 'SOLAR wing')}: the open yellow door on the <b>west</b> side of the Nexus.`, door: 'solar' };
   }
   if (!has(GREEN)) {
-    if (where === 'solar') return { html: solarAfter(game.player.pos, game.level.solarState) || `${tag(YELLOW, 'Solar')} restored. Climb back up to the Nexus.` };
+    if (where === 'solar') return { html: solarObjective(game) || `${tag(YELLOW, 'Solar')} restored. Head back to the Nexus.` };
     if (where === 'verdant') {
       const p = game.player.pos, v = game.level.verdant;
       if (p.y > 11 && p.z > -158.5) return { html: `A dead end from this side. Drop to the Nexus floor and take the ${tag(YELLOW, 'yellow gate')} in the north wall.` };
@@ -136,6 +156,7 @@ export function currentObjective(game) {
   }
   const boss = game.level.boss;
   if (game.state === 'victory' || boss?.dead || boss?.state === 'dead') return { html: '' };
+  if (boss?.active) return { html: '' }; // (the final battle crosses every world: its bar and hints lead)
   if (where === 'azure') return { html: azureAfter(game.player.pos, game) };
   if (where === 'hub' && !game.isWorldDown?.('azure') && game.level.azure) return { html: `The ${tag(BLUE, 'Azure')} engine still runs: go back in by the <b>east</b> door and shut it down.`, door: 'azure' };
   // (no objective during the fight: the boss bar and its hints own the top of the screen)

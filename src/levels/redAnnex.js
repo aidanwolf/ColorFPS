@@ -187,6 +187,7 @@ export function buildRedAnnex(B) {
   new Checkpoint(W, game, { pos: [-36, 3.2, 38.5], yaw: Math.PI, size: [5, 3, 3] });
   new Drone(W, { pos: [-28, 4.5, 26], color: [RED, YELLOW, GREEN], range: 22, cycle: 2.2 });
   new Drone(W, { pos: [-38, 6.5, 14], color: GREEN, range: 22 });
+  B.blastCrab([-33, 3.2, 38.5], { color: YELLOW, count: 2, spread: 0.9, patrol: 0.5 }); // on the far landing: shoot them before you jump
   light(-30, 8.5, 22, 0xff5533, 55, 40);
 
   // the drop: a four-layer shielded shaft down beneath the pit
@@ -249,7 +250,7 @@ export function buildRedAnnex(B) {
   // the Slag Works vault, and the service lift straight back up to the Quench Line
   room({ x1: -25.5, x2: -16, zS: 17, zN: 8, y: -12.5, h: 4, zone, w: [{ c: 14, w: 3, h: CH }], e: [{ c: 10, w: 3, h: CH }] });
   trophy(-21, -11.5, 12.5);
-  light(-21, -9.2, 12.5, 0x3dff7a, 10, 10);
+  W.deco(-23, -9.05, 11.5, -19, -8.95, 13.5, 'glow2', zone); // (a glow panel, not a light: the Foundry's light budget)
   secretRoom([-25.5, -12.5, 8], [-16, -9, 17], 'Slag Works Vault');
   area([-25.5, -12.5, 8], [-16, -9, 17], mood);
   W.box(-16, -8, 8, -15.5, CH, 12, 'wall', zone);
@@ -335,6 +336,9 @@ export function buildRedAnnex(B) {
   hint([16, 0, 5], [19, 3, 8], `<b>Spectrum Lock</b>: light all four lenses within <b>${LENS_TIME} seconds</b> of each other.`, 5);
   hint([19, 0, 3], [27, 3, 12], `The ${tag(GREEN, 'green')} lens faces the ceiling. <b>Bank a shot off the mirror.</b>`, 4);
   new Drone(W, { pos: [23, 4.6, 11.5], color: [BLUE, GREEN], orbit: 1, range: 16, cycle: 2.6 });
+  // a welder guards the lock (only blue hurts him): crates to duck behind while you work the lenses
+  for (const [x, z] of [[19, 11], [27, 4], [27.5, 11.5]]) W.box(x - 0.7, 0, z - 0.7, x + 0.7, 1.2, z + 0.7, 'metal', zone);
+  B.welder([25, 0, 9], { color: BLUE, range: 18 });
 
   // the Slag Conveyor: a spiked shuttle east, two spiked slabs, a lift up to a curtained gantry heading
   // back west, and a shielded drop at its end
@@ -361,7 +365,7 @@ export function buildRedAnnex(B) {
   barrierWallX(22, 6.6, GREEN, zone, 46);
   new Drone(W, { pos: [30, 5, 31], color: [RED, YELLOW, GREEN, BLUE], range: 22, cycle: 2 });
   new Drone(W, { pos: [25, 10, 41], color: [BLUE, YELLOW], range: 20, cycle: 2.4 });
-  light(28, 10, 32, 0xff5533, 55, 40);
+  for (const x of [14, 42]) W.deco(x, 3, 15.05, x + 0.04, 6, 47.95, 'glow0', zone); // lit seams instead of a light
   // the drop: a tube in the south-west corner, out through the west wall into the Smelter
   W.box(11.5, -5.6, 43.5, 16.5, 6.2, 44, 'wall', zone);
   W.box(16, -5.6, 44, 16.5, 6.2, 48, 'wall', zone);
