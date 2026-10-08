@@ -36,6 +36,17 @@ export const ads = {
   // as a start and 'complete' as an end ('viewable' can arrive after 'complete', so it's ignored);
   // for breaks we request, break() resolving is the final word.
   attach({ THREE, scene, camera, renderer, worldRoot, host, onStart, onEnd }) {
+    // The SDK now renders with its own three.js (r186), whose renderer asks every object
+    // intersectsFrustum(); objects from our three (r185) predate that method, and every round frame
+    // threw. Same behavior as r186's own implementations.
+    const viaObject = function (frustum) {
+      return frustum.intersectsObject(this);
+    };
+    for (const C of [THREE.Mesh, THREE.Line, THREE.Points]) C.prototype.intersectsFrustum ??= viaObject;
+    THREE.Sprite.prototype.intersectsFrustum ??= function (frustum) {
+      return frustum.intersectsSprite(this);
+    };
+    THREE.Object3D.prototype.intersectsFrustum ??= function () {};
     (window.bonusround = window.bonusround || []).push((BR) => {
       BR.attach({ THREE, scene, camera, renderer, worldRoot, host });
       BR.on('start', onStart);
