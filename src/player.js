@@ -221,7 +221,8 @@ export class Player {
     this.sprinting = !this.crouching && f > 0 && (input.down('ShiftLeft') || input.down('ShiftRight') || stickFull);
     const speed = this.crouching && this.grounded ? CROUCH_SPEED : this.sprinting ? SPRINT_SPEED : RUN_SPEED;
     const tx = mx * speed, tz = mz * speed;
-    const accel = this.grounded ? GROUND_ACCEL : AIR_ACCEL;
+    // (after a jump pad, steering is weaker so holding a key can't cancel the pad's throw)
+    const accel = this.grounded ? GROUND_ACCEL : AIR_ACCEL * (this.launched ? 0.3 : 1);
     const dvx = tx - this.vel.x, dvz = tz - this.vel.z;
     const dvl = Math.hypot(dvx, dvz);
     // in the air, don't brake momentum from jump pads unless the player steers

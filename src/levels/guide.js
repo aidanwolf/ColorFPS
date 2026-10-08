@@ -21,17 +21,43 @@ const DOORS = {
   dais: { pos: [0, -110], color: null },
 };
 
+// ---- wayfinding (playtest pass): Solar is one long loop, so name the next step for the stretch you're in
+const inBox = (p, x1, x2, z1, z2, y1 = -99, y2 = 99) => p.x >= x1 && p.x <= x2 && p.z >= z1 && p.z <= z2 && p.y >= y1 && p.y <= y2;
+function solarBefore(p) {
+  if (inBox(p, -38, -25, -114, -110)) return `Head through to the ${tag(YELLOW, 'Sunward Overlook')}.`;
+  if (inBox(p, -56.5, -37.5, -124, -100, 3.5)) return `Follow the glowing arrows to the deck's far corner, step down the rubble and blast the ${tag(RED, 'red gate')}.`;
+  if (inBox(p, -46, -37.5, -100, -89.4, -1)) return `Blast the ${tag(RED, 'red gate')} across the ledge, then hop down the canyon.`;
+  if (inBox(p, -60, -34, -100, -66, -6)) return 'Hop down the canyon — the pillar, then the fallen panel — to the <b>Collector Yard</b>.';
+  if (inBox(p, -90, -34, -66, -40, -10, 2)) return `Slip west past the <b>sun lances</b> while they cool, then blast the ${tag(RED, 'red gate')} into the Shade Slot.`;
+  if (inBox(p, -146, -86, -59, -45, -10, 2)) return 'Run west through the <b>Shade Slot</b>, between the waves of sunlight.';
+  if (inBox(p, -194, -146, -100, -42)) return `Hop down the ledges of the <b>Sun Well</b> to the ${tag(YELLOW, 'SOLAR core')} on the pillar.`;
+  return '';
+}
+function solarAfter(p, st) {
+  if (inBox(p, -194, -146, -102, -42)) return `Blast the ${tag(YELLOW, 'yellow door')} at the end of the causeway behind the core.`;
+  if (inBox(p, -168, -164, -124, -102)) return `Break the barriers with their own colors: ${tag(RED, 'red')} and ${tag(YELLOW, 'yellow')} (<b>1</b>/<b>2</b> to switch).`;
+  if (inBox(p, -184, -148, -150, -124, -21, -5))
+    return st && !st.lift1.active ? `Power the lift: fire ${tag(YELLOW, 'yellow')} <b>over the glass</b> at the receiver in the north wall.` : 'Ride the lift in the east corner up to the terrace.';
+  if (inBox(p, -148, -118, -170, -124, -5, 2))
+    return st && !st.lift2.active ? `Shoot the ${tag(YELLOW, 'yellow solar panel')} on the mesa wall to power the lift.` : 'Ride the lift up the <b>Gnomon Mesa</b>.';
+  if (inBox(p, -122, -86, -170, -152, 2, 20)) return 'Climb the ledges to the <b>jump pad</b>: it throws you west, onto the summit — let go of the keys as it fires.';
+  if (inBox(p, -118, -98, -162, -132, 20)) return `Drop down the stone chimney at the summit's east edge — shoot ${tag(RED, 'red')}, then ${tag(YELLOW, 'yellow')}, as you fall.`;
+  if (inBox(p, -98, -93, -140, -132, 11, 20)) return `Fall through the chimney: shoot each spike layer once you're past its shield — ${tag(RED, 'red')}, then ${tag(YELLOW, 'yellow')}.`;
+  if (inBox(p, -93, -25, -141, -131, 11, 20)) return `Cross the <b>Sunset Causeway</b> back to the Nexus.`;
+  return '';
+}
+
 export function currentObjective(game) {
   const b = game.blaster, has = (c) => b.has && b.unlocked[c];
   const where = regionOf(game.player.pos);
   if (!b.has) return { html: 'Grab the <b>Chroma Blaster</b> from the pedestal.', color: COLORS[RED].css };
   if (!has(YELLOW)) {
     if (where === 'red') return { html: `Fight north through the ${tag(RED, 'Crimson Foundry')} to the Nexus.`, color: COLORS[RED].css };
-    if (where === 'solar') return { html: `Find the ${tag(YELLOW, 'SOLAR core')} somewhere below the mesas.`, door: null };
+    if (where === 'solar') return { html: solarBefore(game.player.pos) || `Find the ${tag(YELLOW, 'SOLAR core')} somewhere below the mesas.`, door: null };
     return { html: `Enter the ${tag(YELLOW, 'SOLAR wing')}: the open yellow door on the <b>west</b> side of the Nexus.`, door: 'solar' };
   }
   if (!has(GREEN)) {
-    if (where === 'solar') return { html: `${tag(YELLOW, 'Solar')} restored. Climb back up to the Nexus.` };
+    if (where === 'solar') return { html: solarAfter(game.player.pos, game.level.solarState) || `${tag(YELLOW, 'Solar')} restored. Climb back up to the Nexus.` };
     if (where === 'verdant') {
       const p = game.player.pos, v = game.level.verdant;
       if (p.y > 11 && p.z > -158.5) return { html: `A dead end from this side. Drop to the Nexus floor and take the ${tag(YELLOW, 'yellow gate')} in the north wall.` };

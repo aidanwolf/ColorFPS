@@ -172,6 +172,11 @@ export function buildRed(B) {
 
   area([-6, 0, -12], [6, 6, 0], { ambient: 'amb_foundry', atmosphere: 'foundry' });
   area([-1.5, 4, -99.5], [1.5, 7, -95], { music: 'music_red', ambient: 'amb_foundry', atmosphere: 'foundry' });
+  // ---- wayfinding (playtest pass)
+  // A drone shot in the last corridor sent you back to the mid-Crucible checkpoint, three spiked hops
+  // and the curtain away. Save on the far ledge once the platforming is done.
+  new Checkpoint(W, game, { pos: [0, 4, -78.5], yaw: 0, size: [12, 3, 5] });
+
   devStart('red', [0, 0, -2], 0, []);
   devStart('crucible', [0, 0, -38], 0, [RED]);
 }
