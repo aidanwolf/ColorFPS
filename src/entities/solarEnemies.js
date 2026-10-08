@@ -5,13 +5,14 @@ import * as THREE from 'three';
 import { COLORS, YELLOW, RED } from '../colors.js';
 import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
-import { GroundEnemy, Trooper, RigDef, Bolt, sfx, falloff, rnd } from './groundKit.js';
+import { GroundEnemy, Trooper, RigDef, Bolt, sfx, falloff, rnd, esfx, barks } from './groundKit.js';
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
 const _u = new THREE.Vector3();
 const _c = new THREE.Color();
 const UP = new THREE.Vector3(0, 1, 0);
+const smooth01 = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 const SAND = 0xc9a26a;
 const DUST = 0xa88758;
 
@@ -328,6 +329,12 @@ export class Scarab extends GroundEnemy {
       leg.rotation.y = base + Math.sin(ph) * (flipped ? 0.6 : 0.35 * k);
       leg.rotation.z = Math.max(0, Math.cos(ph)) * 0.4 * (flipped ? 1 : k) + air * 0.5 + crouch * 0.3 + (flipped ? 0.5 : 0);
     });
+    // a servo tick for each tripod of legs swinging through (rate-limited across every scarab)
+    const tick = Math.sin(this.legPhase) >= 0 ? 1 : -1;
+    if (tick !== this.tickSign) {
+      this.tickSign = tick;
+      if ((k > 0.1 || flipped) && this.dist < 14) esfx('servo_tick', this.pos, flipped ? 1 : 0.4 + 0.6 * k, rnd(0.8, 1.0));
+    }
     // body: rears up to pounce, pitches along the arc, flips on its back when stunned
     const pitch = air ? -Math.atan2(this.vel.y, Math.hypot(this.vel.x, this.vel.z) + 0.01) * 0.6 : s === 'emerge' ? -0.5 : s === 'dig' ? n.body.rotation.x : -crouch * 0.45;
     n.body.rotation.x = THREE.MathUtils.lerp(n.body.rotation.x, pitch, Math.min(1, dt * 12));
@@ -366,9 +373,11 @@ export class Scarab extends GroundEnemy {
     audio.droneHit(Math.max(0.5, falloff(this.dist, 6, 40)));
     if (this.hp > 0) {
       this.flash = 1;
+      esfx('robot_pain_light', this.pos, 0.8, 1.6);
       return 'hit';
     }
     this.die(hit);
+    barks.died(this);
     return 'kill';
   }
 
@@ -568,6 +577,11 @@ export class Mummy extends Trooper {
     this.shieldUp = false;
     this.stride = 0.55;
     this.crouchDrop = 0.3;
+    this.strideLen = 0.9;
+    this.rollRadius = 0.5;
+    this.barkPersona = 'solar'; // combat/barks.js
+    this.painSound = 'robot_pain_light';
+    this.voicePitch = 0.8;
     this.m = {
       wrap: this.mat(new THREE.MeshStandardMaterial({ color: 0xbfae86, roughness: 0.95, metalness: 0, flatShading: true })),
       wrap2: this.mat(new THREE.MeshStandardMaterial({ color: 0x9a8a66, roughness: 1, metalness: 0, flatShading: true })),
@@ -633,14 +647,18 @@ export class Mummy extends Trooper {
     } });
   }
 
-  onStep() {
+  onStep(amp = 1) {
     if (this.dist < 14 && Math.random() < 0.6) sandPuff(this.world.fx, this.pos, 0.3, 0.3, 0.25, 0.6);
+    // old joints: a dry creak most strides, a thin servo whir under it
+    if (Math.random() < 0.7) esfx('mummy_creak', this.pos, 0.5 + 0.5 * amp, rnd(0.85, 1.15));
+    esfx('servo_light', this.pos, 0.3 + 0.4 * amp, 0.75 + 0.3 * amp);
   }
 
   onRoll(kind) {
     sandPuff(this.world.fx, this.pos, 0.6, 0.5, 0.4, 0.8);
     const g = 0.35 * falloff(this.dist, 3, 26);
     sfx('mummy_dodge', g, { synth: (gg) => audio.noise({ dur: kind === 'step' ? 0.15 : 0.35, gain: 0.18 * gg, freq: 1800, f2: 700, q: 0.8 }) });
+    esfx('hydraulic_hiss', this.pos, kind === 'step' ? 0.45 : 0.8, 1.2);
   }
 
   // three in five dodges are quick sidesteps, the rest rolls
@@ -678,6 +696,7 @@ export class Mummy extends Trooper {
         _u.set(Math.cos(a) * 0.9, rnd(-0.4, 0.4), Math.sin(a) * 0.9);
         this.world.fx.puff(_v.copy(hand).add(_u), -_u.x * 2.4, -_u.y * 2.4, -_u.z * 2.4, _c.set(0xd9b070), 0.6, 0.35, 0.18, 0.6);
       }
+      if (this.stateT < dt * 1.5) barks.say(this, 'reload'); // "The sands gather."
       if (this.stateT < dt * 1.5) sfx('mummy_cast', 0.5 * falloff(this.dist, 4, 34), { alt: 'charge_up', altRate: 1.5, altGain: 0.6, synth: (g) => audio.tone({ type: 'triangle', f: 300, f2: 900, dur: 0.6, gain: 0.06 * g }) });
       if (this.stateT >= CAST_T) {
         this.castVolley(player);
@@ -692,6 +711,8 @@ export class Mummy extends Trooper {
       this.move.set(0, 0, 0);
       if (this.stateT < dt * 1.5) {
         this.world.fx.ring(_w.copy(this.pos).setY(this.pos.y + 0.1), UP, COLORS[this.shieldColor ?? this.color].hex, { size: 1.6, end: 0.4, life: WARD_T, thick: 0.2, k: 1.2 });
+        barks.say(this, 'reload');
+        esfx('servo_light', this.pos, 0.8, 0.8); // the arms cross with a dry whir
         sfx('mummy_shield', 0.5 * falloff(this.dist, 4, 30), { alt: 'barrier_reform', altRate: 1.2, synth: (g) => audio.noise({ dur: 0.5, gain: 0.2 * g, freq: 400, f2: 1600, q: 1 }) });
       }
       if (Math.random() < dt * 40) {
@@ -729,6 +750,8 @@ export class Mummy extends Trooper {
       new Bolt(this.world, from, dir.normalize().multiplyScalar(9.5), this.color, { radius: 0.24, style: 'sand', turn: a ? 1.5 : 0.4, turnTime: warning ? 0 : 1.1, life: 5 });
       this.world.fx.flash(from, COLORS[this.color].hex, { size: 0.5, life: 0.1, k: 1.6 });
     });
+    this.pS.kick(3.5); // follow-through: it throws its weight after the volley
+    esfx('servo_light', this.pos, 0.8, 1.2);
     sfx('mummy_bolt', 0.6 * falloff(this.dist, 4, 40), { alt: 'enemy_shot', altRate: 1.25, synth: () => audio.enemyShoot() });
   }
 
@@ -753,7 +776,9 @@ export class Mummy extends Trooper {
       fx.ring(c, null, COLORS[this.shieldColor].hex, { size: 0.5, end: 3, life: 0.35, thick: 0.15, k: 1.5 });
       sfx('mummy_shield_break', 0.8 * Math.max(0.4, falloff(this.dist, 4, 40)), { alt: 'shield_break', altRate: 1.3, synth: () => audio.shieldBreak() });
       this.stagger = 0.8;
-      this.lean = 1;
+      this.pS.kick(-5);
+      this.hS.kick(-8);
+      this.sqS.kick(-0.8);
       this.castCool = Math.max(this.castCool, 1.2);
     }
     if (this.state === 'shield') this.setState('engage');
@@ -766,22 +791,38 @@ export class Mummy extends Trooper {
   }
 
   animate(dt, player) {
-    this.poseBase(dt);
     const n = this.n;
     const s = this.state;
-    const d = Math.max(1, Math.hypot(player.pos.x - this.pos.x, player.pos.z - this.pos.z));
-    const pitch = Math.atan2(player.pos.y + player.eye * 0.6 - (this.pos.y + 1.7), d);
-    // arms: raised forward to cast, crossed over the chest to ward, thrown out while shielded
-    let lx = this.armSwing * 0.7 - 0.1, rx = -this.armSwing * 0.7 - 0.1, ly = 0, ry = 0, lz = 0.12, rz = -0.12, fl = -0.25, fr = -0.25;
+    const u = this.stateT;
+    // body language: it leans back and lifts its arms high gathering the sand (anticipation), throws
+    // itself forward with the volley (castVolley kicks the follow-through), hunches over its crossed arms
+    // to ward, and sways behind the shield
+    let ap = 0, ar = 0, at = 0;
+    const draw = s === 'cast' ? smooth01(u / (CAST_T * 0.6)) * (1 - smooth01((u - CAST_T * 0.7) / (CAST_T * 0.3))) : 0;
     if (s === 'cast') {
-      const k = Math.min(1, this.stateT / 0.25);
+      ap = -0.2 * draw + 0.1 * smooth01((u - CAST_T * 0.7) / (CAST_T * 0.3));
+      at = this.aimErr * 0.4;
+    } else if (s === 'release') ap = 0.14 * (1 - u / 0.3);
+    else if (s === 'ward') ap = 0.22;
+    else if (s === 'shield') ar = Math.sin(this.t * 2.2) * 0.06;
+    this.actPitch = ap;
+    this.actRoll = ar;
+    this.actTwist = at;
+    this.headNod = s === 'ward' ? 0.25 : 0;
+    this.poseBase(dt);
+    const aimX = this.aimPitch(player, 1.7);
+    // arms: raised (high, then forward) to cast, crossed over the chest to ward, thrown out while shielded
+    const br = this.breath * 1.5;
+    let lx = this.armSwing * 0.7 - 0.1, rx = -this.armSwing * 0.7 - 0.1, ly = 0, ry = 0, lz = 0.12 + br, rz = -0.12 - br, fl = -0.25, fr = -0.25;
+    if (s === 'cast') {
+      const k = Math.min(1, u / 0.25);
       const shake = Math.sin(this.t * 40) * 0.03;
-      lx = rx = THREE.MathUtils.lerp(lx, -Math.PI / 2 - pitch - 0.35, k) + shake;
-      ly = -0.2 * k;
-      ry = 0.2 * k;
-      fl = fr = -0.15 * k;
+      lx = rx = THREE.MathUtils.lerp(lx, aimX - 0.35 - draw * 0.7, k) + shake;
+      ly = -0.2 * k + (this.aimErr - this.bodyTwist) * 0.6 * k;
+      ry = 0.2 * k + (this.aimErr - this.bodyTwist) * 0.6 * k;
+      fl = fr = -0.15 * k - draw * 0.5;
     } else if (s === 'release') {
-      lx = rx = -Math.PI / 2 - pitch + 0.2;
+      lx = rx = aimX + 0.2;
       ly = -0.35;
       ry = 0.35;
       fl = fr = 0;
@@ -801,8 +842,7 @@ export class Mummy extends Trooper {
     n.armR.rotation.set(THREE.MathUtils.lerp(n.armR.rotation.x, rx - this.tuck * 1.2, sm), THREE.MathUtils.lerp(n.armR.rotation.y, ry, sm), THREE.MathUtils.lerp(n.armR.rotation.z, rz, sm));
     n.foreL.rotation.x = THREE.MathUtils.lerp(n.foreL.rotation.x, fl - this.tuck * 1.4, sm);
     n.foreR.rotation.x = THREE.MathUtils.lerp(n.foreR.rotation.x, fr - this.tuck * 1.4, sm);
-    n.head.rotation.x = -pitch * 0.5 * (this.aggro ? 1 : 0);
-    n.head.rotation.z = Math.sin(this.t * 0.8) * 0.06; // an eerie tilt
+    n.head.rotation.z += Math.sin(this.t * 0.8) * 0.06; // an eerie tilt
     // the eye and palms burn brighter as it casts
     const charge = s === 'cast' ? this.stateT / CAST_T : 0;
     if (this.flash > 0) this.m.glow.color.setRGB(3, 3, 3);

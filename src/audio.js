@@ -83,6 +83,7 @@ const SPANS = [[0, 1], [2, 3], [4, 7], [5, 6]]; // opposite horizontal pairs
 const DOWN = { x: 0, y: -1, z: 0 };
 const LOOP_SEND = 0.25; // drone hums and motors: a hint of the room, not a wash
 const DRY_LOOPS = new Set(['fall_wind']); // wind in your ears has no room
+const AT_MAX = 14; // positional enemy one-shots ringing at once (see at())
 
 const smooth = (a, b, x) => {
   const u = Math.min(1, Math.max(0, (x - a) / (b - a)));
@@ -278,7 +279,10 @@ class Audio {
     this.wantTrack = null;
     this.wantAmbient = null;
     this.available = null; // names listed in audio/manifest.json; null until it loads
-    this.manifest = fetch(AUDIO_URL + 'manifest.json')
+    this.lis = { x: 0, y: 0, z: 0, rx: 1, ry: 0, rz: 0 }; // the listener (the camera), for at()
+    this.atLast = new Map(); // at()'s rate limit: key -> { t, g }
+    this.atVoices = 0;
+    this.manifest =fetch(AUDIO_URL + 'manifest.json')
       .then((r) => (r.ok ? r.json() : []))
       .catch(() => [])
       .then((names) => {
@@ -396,6 +400,79 @@ class Audio {
       g.gain.setTargetAtTime(0, this.t + delay + cut, 0.025);
       src.stop(this.t + delay + cut + 0.2);
     }
+    return true;
+  }
+
+  // ---- positional one-shots (enemy sounds) ----
+  // The game sets the listener (the camera) once a frame; at() plays a sample from a world point with a
+  // distance falloff, a stereo pan from the camera's right vector, a per-key rate limit (a quieter repeat
+  // inside `gap` seconds is dropped, a much louder one gets through) and a cap on how many of these ring
+  // at once, so a crowd of enemies reads as a crowd and not as a wall of identical clicks.
+  setListener(pos, q) {
+    const L = this.lis;
+    L.x = pos.x;
+    L.y = pos.y;
+    L.z = pos.z;
+    // the camera's local +x (its right), from its quaternion
+    L.rx = 1 - 2 * (q.y * q.y + q.z * q.z);
+    L.ry = 2 * (q.x * q.y + q.w * q.z);
+    L.rz = 2 * (q.x * q.z - q.w * q.y);
+  }
+
+  // distance from the listener to p
+  distTo(p) {
+    const L = this.lis;
+    return Math.hypot(p.x - L.x, p.y - L.y, p.z - L.z);
+  }
+
+  // stereo position of p for the listener, -1 (left) .. 1 (right), narrowed when it's right on top of us
+  panOf(p) {
+    const L = this.lis;
+    const dx = p.x - L.x, dy = p.y - L.y, dz = p.z - L.z;
+    const d = Math.hypot(dx, dy, dz);
+    if (d < 0.01) return 0;
+    return ((dx * L.rx + dy * L.ry + dz * L.rz) / d) * 0.8 * Math.min(1, d / 2.5);
+  }
+
+  // o: { gain, rate, vary, near, far, delay, cut, gap, key }. Returns false if it didn't play.
+  at(name, p, o) {
+    if (!this.ctx) return false;
+    const buf = this.buffers.get(name);
+    if (!buf) return false;
+    const d = this.distTo(p);
+    const near = o.near ?? 4, far = o.far ?? 40;
+    let k = d <= near ? 1 : d >= far ? 0 : 1 - (d - near) / (far - near);
+    k *= k;
+    const gain = (o.gain ?? 1) * k;
+    if (gain < 0.008) return false;
+    const now = this.t;
+    const key = o.key || name;
+    let last = this.atLast.get(key);
+    if (!last) this.atLast.set(key, (last = { t: -1e9, g: 0 }));
+    if (now - last.t < (o.gap ?? 0.05) && gain <= last.g * 1.6) return false;
+    if (this.atVoices >= AT_MAX) return false;
+    last.t = now;
+    last.g = gain;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const vary = o.vary ?? 0.06;
+    src.playbackRate.value = (o.rate ?? 1) * (1 + (Math.random() * 2 - 1) * vary);
+    const g = this.ctx.createGain();
+    g.gain.value = gain;
+    const pan = this.ctx.createStereoPanner();
+    pan.pan.value = this.panOf(p);
+    src.connect(g).connect(pan).connect(this.sfxBus);
+    const t0 = now + (o.delay ?? 0);
+    src.start(t0);
+    if (o.cut) {
+      g.gain.setTargetAtTime(0, t0 + o.cut, 0.03);
+      src.stop(t0 + o.cut + 0.25);
+    }
+    this.atVoices++;
+    src.onended = () => {
+      this.atVoices--;
+      pan.disconnect();
+    };
     return true;
   }
 

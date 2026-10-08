@@ -7,6 +7,8 @@ import { Orb } from './drone.js';
 import { audio } from '../audio.js';
 import { COLORS } from '../colors.js';
 import { Enemy, Parts, MAT, moveSafe, converge, falloff, hexOf, sfx } from './enemyKit.js';
+import { esfx } from './enemySfx.js';
+import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
 const _d = new THREE.Vector3();
@@ -142,6 +144,7 @@ export class Warden extends Enemy {
       this.shieldDown -= dt;
       if (before > REFORM && this.shieldDown <= REFORM) {
         sfx('warden_shield_up', { gain: 0.6 }, 'barrier_reform', { gain: 0.6, rate: 0.8 });
+        barks.say(this, 'reload'); // "Shield regenerating."
       }
       if (this.shieldDown <= REFORM && Math.random() < dt * 40) converge(fx, this.pos, hexOf(this.shieldColor), { count: 3, radius: R * 1.8, time: 0.4, size: 0.06 });
       if (this.shieldDown <= 0) this.raiseShield();
@@ -168,6 +171,7 @@ export class Warden extends Enemy {
       if (this.fireTimer <= 0.75 && !this.windup) {
         this.windup = 1;
         sfx('turret_charge', { gain: 0.45, rate: 0.8 }, 'charge_up', { gain: 0.35, rate: 0.9 });
+        barks.say(this, 'suppress');
       }
       if (this.fireTimer <= 0) {
         this.fireTimer = this.fireInterval * (0.85 + Math.random() * 0.3);
@@ -244,6 +248,8 @@ export class Warden extends Enemy {
     fx.ring(this.pos, null, hexOf(this.shieldColor), { size: R, end: R * 3, life: 0.4, thick: 0.1, k: 1.6 });
     fx.flash(this.pos, hexOf(this.shieldColor), { size: R * 2, life: 0.15 });
     sfx('warden_shield_break', { gain: 0.9 }, 'shield_break', { gain: 0.9 });
+    esfx('robot_pain_light', this.pos, 1, 0.7);
+    barks.say(this, 'hit'); // (its own shield: "Structural integrity falling.")
     // the first time, spell out what to do
     if (!Warden.taught) {
       Warden.taught = true;

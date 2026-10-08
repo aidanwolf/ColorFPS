@@ -7,6 +7,8 @@ import {
   floorGlowTexture, Glob, Debris, blast, hitSparks, tint, shortRay,
 } from './critters.js';
 import { director } from '../combat/director.js';
+import { esfx } from './enemySfx.js';
+import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
 const _a = new THREE.Vector3();
@@ -113,6 +115,7 @@ export class Slime {
     const { pos, color = GREEN, core = RED, slimeHp = 1, range = 16, leapRange = 8.5, regrow = 4.5, wander = 3, size = 1, onDeath = null } = opts;
     this.spawnOpts = opts; // so the area can restock it (see restock.js)
     this.critter = true;
+    this.barkPersona = 'verdant'; // the robot core inside speaks for the swarm (combat/barks.js)
     this.world = world;
     this.slimeColor = color;
     this.coreColor = core === color ? (color + 2) % 4 : core;
@@ -228,7 +231,10 @@ export class Slime {
     if (this.sightTimer <= 0) {
       this.sightTimer = 0.25;
       this.sees = this.dist < this.range && this.world.lineOfSight(this.pos, _eye);
-      if (this.sees && !this.aggro) sfx('slime_squelch', 0.5 * falloff(this.dist, 4, 25));
+      if (this.sees && !this.aggro) {
+        sfx('slime_squelch', 0.5 * falloff(this.dist, 4, 25));
+        barks.say(this, 'spot');
+      }
       if (this.sees) this.aggro = true;
     }
     this.lostT = this.sees ? 0 : this.lostT + dt;
@@ -469,6 +475,8 @@ export class Slime {
     fx.ring(_a.copy(p).setY(this.groundY + 0.05), UP, hex, { size: 0.4, end: 3, life: 0.45, k: 1.4 });
     for (let i = 0; i < 10; i++) fx.shard(p, rnd(-5, 5), rnd(2, 7), rnd(-5, 5), _c.set(hex), 1.4, rnd(0.5, 0.9), rnd(0.06, 0.12), 1.4);
     sfx('slime_splat', 0.9 * falloff(this.dist, 4, 40), { rate: 0.85 });
+    esfx('core_squeal', this.pos, 1, 1); // the bare core shrieks
+    barks.say(this, 'hit');
     this.puddle?.dispose();
     this.puddle = new Puddle(this.world, _a.copy(p).setY(this.groundY + 0.03), this.slimeColor, this.R * 2.6);
     // the core pops out, away from the shot
@@ -510,6 +518,7 @@ export class Slime {
     this.dead = true;
     this.world.removeHittable(this.group);
     blast(this.world, this.pos, this.coreColor, 0.55);
+    barks.died(this);
     sfx('critter_die', 0.8 * falloff(this.dist, 6, 50));
     this.group.updateMatrixWorld(true);
     this.coreGlow.color.setRGB(0.5, 0.15, 0.1);
@@ -687,6 +696,7 @@ export class SpiderBot {
     const { pos, color = [GREEN, RED], hp = 5, range = 30, fireInterval = 1.8, cycle = 3.5, leash = 14, ceiling = false, onDeath = null } = opts;
     this.spawnOpts = opts;
     this.critter = true;
+    this.barkPersona = 'verdant'; // combat/barks.js
     this.world = world;
     this.palette = Array.isArray(color) ? color : [color];
     this.cycle = cycle;
@@ -887,7 +897,15 @@ export class SpiderBot {
     if (this.sightTimer <= 0) {
       this.sightTimer = 0.25;
       this.sees = this.dist < this.range && this.world.lineOfSight(this.pos, _eye);
-      if (this.sees && !this.aggro) sfx('spider_hiss', 0.6 * falloff(this.dist, 4, 30));
+      if (this.sees && !this.aggro) {
+        sfx('spider_hiss', 0.6 * falloff(this.dist, 4, 30));
+        barks.say(this, 'spot');
+      }
+      if (this.sees) this.lostSaid = false;
+      else if (this.aggro && this.lostT >= 1.5 && !this.lostSaid) {
+        this.lostSaid = true;
+        barks.say(this, 'lost');
+      }
       if (this.sees) this.aggro = true;
     }
     this.lostT = this.sees ? 0 : this.lostT + dt;
@@ -1047,6 +1065,9 @@ export class SpiderBot {
     } else this.airborne = false;
     if (this.thread.visible) this.thread.visible = false;
     sfx('spider_leap', 0.7 * falloff(this.dist, 4, 30));
+    esfx('hydraulic_hiss', this.pos, 0.6, 1.5); // the legs kick off
+    esfx('robot_effort', this.pos, 0.5, 1.6);
+    barks.say(this, 'roll');
   }
 
   updateRoll(dt) {
@@ -1079,6 +1100,7 @@ export class SpiderBot {
     this.vel.set(0, 0, 0);
     this.strafe = -this.strafe;
     sfx('spider_land', 0.4 * falloff(this.dist, 3, 20));
+    esfx('hydraulic_land', this.pos, 0.35, 1.6);
   }
 
   // knocked off a wall or ceiling (or off its thread): drop to the floor
@@ -1192,8 +1214,11 @@ export class SpiderBot {
     sfx('critter_hit', Math.max(0.5, falloff(this.dist, 6, 40)));
     if (this.hp <= 0) {
       this.die();
+      barks.died(this);
       return 'kill';
     }
+    esfx('robot_pain_light', this.pos, 0.8, 1.4);
+    barks.say(this, 'hit');
     // a hit can knock it off a wall, the ceiling or its thread
     if (this.state === 'hang' || this.state === 'drop' || this.state === 'climbUp' || (!this.onFloor && this.state !== 'fall' && Math.random() < 0.3)) this.startFall();
     return 'hit';
@@ -1235,6 +1260,7 @@ export class SpiderBot {
     const engaged = this.aggro && (this.state === 'engage' || this.state === 'windup' || this.state === 'hang' || this.state === 'drop');
     const up = this.state === 'fall' || this.state === 'drop' || this.state === 'hang' || this.state === 'climbUp' || (this.state === 'roll' && this.airborne) ? UP : this.n;
     if (engaged) _v.subVectors(this.world.game.player.pos, this.pos);
+    else if (this.state === 'roll') _v.copy(this.face); // hold its facing through a roll, so the tumble reads sideways
     else _v.copy(this.heading);
     _v.addScaledVector(up, -_v.dot(up));
     if (_v.lengthSq() < 1e-4) _v.copy(this.face);
@@ -1277,6 +1303,12 @@ export class SpiderBot {
       this.setSeg(i * 2 + 1, knee, foot);
     }
     this.legs.instanceMatrix.needsUpdate = true;
+    // a servo tick per leg set swinging through (rate-limited across every spider)
+    const tick = Math.sin(gait) >= 0 ? 1 : -1;
+    if (tick !== this.tickSign) {
+      this.tickSign = tick;
+      if (!air && move > 0.15 && this.dist < 14) esfx('servo_tick', this.pos, 0.4 + 0.6 * move, 1.1 + Math.random() * 0.2);
+    }
     // dodge roll / tumble around its long axis, a jolt when hit
     this.body.rotation.z = this.roll;
     this.body.rotation.x = this.stagger > 0 ? Math.sin(this.t * 50) * 0.08 : 0;

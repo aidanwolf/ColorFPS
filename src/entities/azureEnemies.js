@@ -8,6 +8,8 @@ import {
   Glob, InkCloud, Debris, blast, hitSparks, tint,
 } from './critters.js';
 import { director } from '../combat/director.js';
+import { esfx } from './enemySfx.js';
+import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
 const _a = new THREE.Vector3();
@@ -190,6 +192,8 @@ export class FishSchool {
     this.dead = false;
     this.water = null;
     this.center = new THREE.Vector3();
+    this.pos = this.center; // (where the school is, for its voice)
+    this.barkPersona = 'azure'; // combat/barks.js
     this.metalMat = new THREE.MeshStandardMaterial({ color: 0x8796a8, metalness: 0.85, roughness: 0.3, flatShading: true });
     this.finMat = new THREE.MeshStandardMaterial({ color: 0x1e2430, metalness: 0.7, roughness: 0.4, flatShading: true, side: THREE.DoubleSide });
     this.toothMat = new THREE.MeshStandardMaterial({ color: 0xe8eef5, metalness: 1, roughness: 0.15, emissive: 0x30343a });
@@ -258,7 +262,10 @@ export class FishSchool {
     if (this.sightTimer <= 0) {
       this.sightTimer = 0.3;
       this.sees = (swimmer || bank) && dist < this.range + 6 && this.world.lineOfSight(this.center, _eye);
-      if (this.sees && !this.alert) sfx('fish_alert', 0.6 * falloff(dist, 4, 30));
+      if (this.sees && !this.alert) {
+        sfx('fish_alert', 0.6 * falloff(dist, 4, 30));
+        barks.say(this, 'spot');
+      }
       if (this.sees) this.alert = true;
     }
     // one fish at a time breaks off to attack
@@ -526,6 +533,7 @@ export class RoboSquid {
     const { pos, color = YELLOW, hp = 5, range = 26, fireInterval = 2.6, orbit = 4, onDeath = null } = opts;
     this.spawnOpts = opts;
     this.critter = true;
+    this.barkPersona = 'azure'; // combat/barks.js
     this.world = world;
     this.palette = Array.isArray(color) ? color : [color];
     this.maxHp = hp;
@@ -638,7 +646,15 @@ export class RoboSquid {
     if (this.sightTimer <= 0) {
       this.sightTimer = 0.25;
       this.sees = this.dist < this.range && this.world.lineOfSight(this.pos, _eye);
-      if (this.sees && !this.aggro) sfx('squid_pulse', 0.7 * falloff(this.dist, 4, 30));
+      if (this.sees && !this.aggro) {
+        sfx('squid_pulse', 0.7 * falloff(this.dist, 4, 30));
+        barks.say(this, 'spot');
+      }
+      if (this.sees) this.lostSaid = false;
+      else if (this.aggro && this.lostT >= 1.5 && !this.lostSaid) {
+        this.lostSaid = true;
+        barks.say(this, 'lost');
+      }
       if (this.sees) this.aggro = true;
     }
     this.lostT = this.sees ? 0 : this.lostT + dt;
@@ -678,6 +694,7 @@ export class RoboSquid {
       if (this.pulseT <= 0) {
         this.pulseT = this.aggro ? 0.9 : 1.5;
         this.pulse = 1;
+        if (this.dist < 20) esfx('squid_servo', this.pos, 0.6, rnd(0.9, 1.1)); // the arms' servos as it strokes
         _d.subVectors(this.goal, this.pos);
         const l = _d.length();
         if (l > 0.3) this.vel.addScaledVector(_d.divideScalar(l), Math.min(4.5, 1.5 + l * 0.6));
@@ -741,6 +758,8 @@ export class RoboSquid {
     this.vel.copy(_b).multiplyScalar(SQUID.jet);
     this.pulse = 1;
     sfx('squid_jet', 0.9 * falloff(this.dist, 4, 35));
+    esfx('hydraulic_hiss', this.pos, 0.7, 0.7); // the mantle vents
+    barks.say(this, 'roll');
   }
 
   onHit(color, hit) {
@@ -767,6 +786,10 @@ export class RoboSquid {
     hitSparks(this.world, hit, p, this.color);
     if (tip) this.world.fx.ring(p, null, COLORS[this.color].hex, { size: 0.1, end: 0.9, life: 0.25, k: 1.8 });
     sfx('critter_hit', Math.max(0.5, falloff(this.dist, 6, 40)), { rate: tip ? 1.25 : 1 });
+    if (this.hp > 0) {
+      esfx('robot_pain_light', this.pos, 0.8, 0.7);
+      barks.say(this, 'hit');
+    } else barks.died(this);
     if (this.hp <= 0) {
       this.die();
       return 'kill';

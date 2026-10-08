@@ -10,6 +10,10 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COLORS } from '../colors.js';
 import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
+import { barks } from '../combat/barks.js';
+import { esfx } from './enemySfx.js';
+
+export { esfx, barks };
 
 export const GRAVITY = 22;
 const STEP_UP = 0.47; // the tallest ledge a walker steps straight onto
@@ -22,6 +26,8 @@ const _c = new THREE.Vector3();
 const _a = new THREE.Vector3();
 const _l = new THREE.Vector3();
 const _d = new THREE.Vector3();
+
+const _lf = { f: 0, s: 0 };
 
 // the ground enemies currently awake (near the player), so they can keep from walking into each other
 const AWAKE = new Set();
@@ -526,12 +532,14 @@ export class GroundEnemy {
       if (!this.aggro) {
         this.aggro = true;
         this.onAlert?.(player);
+        barks.say(this, 'spot');
       }
       this.lastSeen.copy(player.pos);
       this.lostT = 0;
     } else if (this.aggro) {
       // lose interest once you've been gone (and far off) for a while
       this.lostT += 0.25;
+      if (this.lostT === 1.5) barks.say(this, 'lost'); // "Where'd it go?"
       if (this.lostT > 8 && this.dist > this.range * 0.8) {
         this.aggro = false;
         this.onCalm?.();
@@ -762,6 +770,37 @@ const ROLL_DIST = 3.4;
 const ROLL_T = 0.55;
 const STEP_DIST = 1.6;
 const STEP_T = 0.28;
+const TAU = Math.PI * 2;
+const smooth = (a, b, x) => {
+  const u = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1);
+  return u * u * (3 - 2 * u);
+};
+
+// A damped spring for secondary motion (lean, flinch, squash): step() eases x toward a target with a little
+// overshoot; kick() adds velocity (a hit, a recoil, a landing). Allocation-free.
+export class Spring {
+  constructor(k = 90, c = 11) {
+    this.k = k;
+    this.c = c;
+    this.x = 0;
+    this.v = 0;
+  }
+
+  step(target, dt) {
+    const h = Math.min(dt, 1 / 30);
+    this.v += ((target - this.x) * this.k - this.v * this.c) * h;
+    this.x += this.v * h;
+    return this.x;
+  }
+
+  kick(v) {
+    this.v += v;
+  }
+
+  zero() {
+    this.x = this.v = 0;
+  }
+}
 
 export class Trooper extends GroundEnemy {
   constructor(world, opts, cfg) {
@@ -778,10 +817,47 @@ export class Trooper extends GroundEnemy {
     this.gaitPhase = Math.random() * 10;
     this.patrolTarget = null;
     this.waitT = rnd(0.5, 2);
-    this.lean = 0;
     this.crouch = 0; // 0 standing → 1 hunkered down (cover, ignition)
     this.tumble = 0; // roll angle
+    this.tuck = 0;
     this.footT = 0;
+    // the procedural body (poseBase): gait amplitude, last walking direction, secondary-motion springs for
+    // torso pitch / roll / twist, a head nod and the hips' squash; subclasses steer act* each frame
+    this.gaitAmp = 0;
+    this.gfk = 1;
+    this.gsk = 0;
+    this.pS = new Spring(90, 11);
+    this.rS = new Spring(90, 11);
+    this.tS = new Spring(70, 10);
+    this.hS = new Spring(140, 12);
+    this.sqS = new Spring(170, 15);
+    this.actPitch = this.actRoll = this.actTwist = this.headNod = 0;
+    this.headYaw = this.headPitch = 0;
+    this.aimErr = 0;
+    this.hunch = 0;
+    this.bodyTwist = 0;
+    this.armSwing = 0;
+    this.seed = Math.random() * 10;
+    this.idleT = rnd(3, 8);
+  }
+
+  // which way (in its own frame) a world direction points: f along its facing, s along its +x (its left)
+  localDir(d) {
+    const c = Math.cos(this.yaw), s = Math.sin(this.yaw);
+    _lf.f = d.x * s + d.z * c;
+    _lf.s = d.x * c - d.z * s;
+    return _lf;
+  }
+
+  // A hit from direction `dir` (the shot's travel): the torso is shoved along it, twists, the head snaps
+  // and the knees give a little.
+  flinch(dir, k = 1) {
+    const L = this.localDir(dir);
+    this.pS.kick(L.f * 7 * k); // a shot from the front (f < 0) rocks it back
+    this.rS.kick(-L.s * 7 * k); // a shot across it tips it the way the shot travels (z < 0 tilts toward +x)
+    this.tS.kick((L.s >= 0 ? 1 : -1) * (L.f <= 0 ? 1 : -1) * 4 * k);
+    this.hS.kick((L.f <= 0 ? -10 : 8) * k);
+    this.sqS.kick(-0.5 * k);
   }
 
   // ---- AI ----
@@ -905,12 +981,17 @@ export class Trooper extends GroundEnemy {
       if (!this.pathClear(this.pos.x + dx * dist, this.pos.z + dz * dist, 0.3)) continue;
       this.rollDir = new THREE.Vector3(dx, 0, dz);
       this.rollSide = s;
+      // which way that is in its own frame: +1 toward its local +x (its left), -1 toward its right. The
+      // tumble turns the body about its forward axis so the head leads in that direction.
+      this.rollLocal = this.localDir(this.rollDir).s >= 0 ? 1 : -1;
       this.rollKind = kind;
       this.rollFrom = this.state;
       director.release(this); // a roll cancels any wind-up
       this.rollCool = kind === 'step' ? rnd(0.7, 1.2) : rnd(1.6, 2.6);
       this.setState('roll');
       this.onRoll?.(kind);
+      esfx('robot_effort', this.pos, kind === 'step' ? 0.5 : 0.9, this.voicePitch ?? 1);
+      barks.say(this, 'roll');
       return true;
     }
     this.rollCool = 0.5;
@@ -925,6 +1006,9 @@ export class Trooper extends GroundEnemy {
       this.tumble = 0;
       this.move.set(0, 0, 0);
       this.vel.set(0, 0, 0);
+      // coming out of it: the hips sink into a crouch and the hydraulics take the weight
+      this.sqS.kick(this.rollKind === 'step' ? -0.35 : -0.7);
+      if (this.rollKind !== 'step') esfx('hydraulic_land', this.pos, 0.6, this.voicePitch ?? 1);
       this.setState(this.rollFrom === 'cover' ? 'cover' : 'engage');
       return;
     }
@@ -933,7 +1017,21 @@ export class Trooper extends GroundEnemy {
     this.move.copy(this.rollDir).multiplyScalar(v);
     this.vel.x = this.move.x;
     this.vel.z = this.move.z;
-    this.tumble = this.rollKind === 'step' ? 0 : -this.rollSide * Math.PI * 2 * (u * u * (3 - 2 * u));
+    // (the tumble itself is posed in poseBase, from rollLocal)
+  }
+
+  // fell (or rolled) off a ledge and landed: squash into the knees, hiss
+  onLand(impact) {
+    this.sqS.kick(-Math.min(1.6, impact * 0.12));
+    if (impact > 3) esfx('hydraulic_land', this.pos, Math.min(1, impact / 9), this.voicePitch ?? 1);
+  }
+
+  // idle hums and relay clicks while it stands about unaware (only close up)
+  idleSounds(dt) {
+    if (this.aggro || this.dist > 16) return;
+    if ((this.idleT -= dt) > 0) return;
+    this.idleT = rnd(4, 9);
+    esfx(Math.random() < 0.6 ? 'robot_idle_click' : 'robot_idle_hum', this.pos, 1, (this.voicePitch ?? 1) * rnd(0.9, 1.1));
   }
 
   // A correct-color hit: knocked back along the shot and staggered (attacks interrupted). Right after a
@@ -949,15 +1047,16 @@ export class Trooper extends GroundEnemy {
       this.knock.add(_l.copy(dir).setY(0).normalize().multiplyScalar(knock));
       this.stagger = stagger;
       this.poise = stagger + 0.45;
-      this.lean = 1;
-      this.leanDir = new THREE.Vector3(dir.x, 0, dir.z);
     }
+    this.flinch(dir, keep ? 0.5 : 1);
     this.hitSparks(hit);
     audio.droneHit(Math.max(0.5, falloff(this.dist, 6, 40)));
     if (this.hp <= 0) {
       this.die(dir);
       return 'kill';
     }
+    esfx(this.painSound ?? 'robot_pain_heavy', this.pos, 1, (this.voicePitch ?? 1) * rnd(0.92, 1.08));
+    barks.say(this, 'hit');
     if (this.state === 'roll' || keep) return 'hit';
     if (this.state !== 'engage' && this.state !== 'cover') this.interrupt?.();
     if (this.state !== 'cover' && this.hp <= Math.ceil(this.maxHp / 2) && !this.seekCover(this.world.game.player) && this.rollCool <= 0) {
@@ -967,62 +1066,134 @@ export class Trooper extends GroundEnemy {
     return 'hit';
   }
 
-  // ---- shared pose: walk cycle, crouch, lean from hits, the roll tumble ----
+  // ---- the shared procedural body ----
+  // Walk: the gait phase advances with distance walked (so feet don't skate), legs swing along the
+  // direction of travel (forward, back or sideways when strafing) with the knee lifting through the swing
+  // and the hips bobbing (lowest at heel strike), swaying over the stance leg, twisting with the stride
+  // while the torso counter-twists. On top: lean into the walk and into the run-up, breathing when still,
+  // the subclass's attack lean (actPitch / actRoll / actTwist: anticipation and follow-through), springy
+  // flinches from hits (flinch), a knee-buckle stagger, a squash when it lands, a head that tracks you
+  // (or looks about when it hasn't seen you), and the action roll: a tucked log roll about its forward axis
+  // whose head leads toward the side it travels (rollLocal), with a sink into a crouch as it comes up.
+  // Writes armSwing / tuck / hunch / bodyTwist / aimErr for the subclass's arms.
   poseBase(dt) {
     const n = this.n;
-    // local velocity: forward (+z) and right (+x) in its own frame
+    const rest = n.body.userData.rest;
+    this.torsoRestX ??= n.torso.rotation.x;
     const c = Math.cos(this.yaw), s = Math.sin(this.yaw);
     const fwd = this.vel.x * s + this.vel.z * c;
-    const side = this.vel.x * c - this.vel.z * s;
+    const side = this.vel.x * c - this.vel.z * s; // along its +x (its left)
     const speed = Math.hypot(fwd, side);
-    const k = Math.min(1, speed / this.speed);
-    this.gaitPhase += dt * (2 + speed * 2.4);
-    const ph = this.gaitPhase;
-    const swing = Math.sin(ph);
-    const fk = speed > 0.05 ? fwd / speed : 0, sk = speed > 0.05 ? side / speed : 0;
-    const stride = this.stride ?? 0.6;
-    const crouch = (this.crouch = THREE.MathUtils.lerp(this.crouch, this.wantCrouch ?? 0, Math.min(1, dt * 10)));
     const rolling = this.state === 'roll' && this.rollKind !== 'step';
-    const tuck = rolling ? Math.sin(Math.min(1, this.stateT / ROLL_T) * Math.PI) : 0;
-    for (const [leg, shin, sgn] of [[n.legL, n.shinL, 1], [n.legR, n.shinR, -1]]) {
-      const w = swing * sgn;
-      leg.rotation.x = -w * stride * k * fk - crouch * 0.9 - tuck * 1.6;
-      leg.rotation.z = -w * stride * 0.6 * k * sk;
-      shin.rotation.x = Math.max(0, -Math.cos(ph) * sgn) * 0.8 * k + crouch * 1.5 + tuck * 2.2; // the knee bends as the leg swings through
+    const stepping = this.state === 'roll' && this.rollKind === 'step';
+    const k = rolling ? 0 : Math.min(1, speed / this.speed);
+    this.gaitAmp += (k - this.gaitAmp) * Math.min(1, dt * 7);
+    const amp = this.gaitAmp;
+    if (!rolling) this.gaitPhase += ((speed * dt) / (this.strideLen ?? 0.95)) * Math.PI;
+    if (speed > 0.2) {
+      this.gfk = fwd / speed;
+      this.gsk = side / speed;
     }
-    // the hips bob with each step and drop into the crouch
-    this.lean = Math.max(0, this.lean - dt * 4);
-    const bob = Math.abs(Math.cos(ph)) * 0.05 * k;
-    n.body.position.y = n.body.userData.rest.y + bob - crouch * (this.crouchDrop ?? 0.35) - tuck * 0.55;
-    // leaning back from hits, into the run, and tumbling through a roll
-    n.body.rotation.set(0, 0, 0);
-    let lx = -fk * k * 0.12 + crouch * 0.25, lz = sk * k * 0.08;
-    if (this.lean > 0 && this.leanDir) {
-      const lf = this.leanDir.x * s + this.leanDir.z * c, ls = this.leanDir.x * c - this.leanDir.z * s;
-      lx -= lf * this.lean * 0.35;
-      lz -= ls * this.lean * 0.35;
-    }
-    n.body.rotation.x = lx;
-    n.body.rotation.z = lz + this.tumble;
-    if (this.stagger > 0) n.body.rotation.y = Math.sin(this.t * 40) * 0.05 * this.stagger * 3;
-    // arms counter-swing (subclasses override them while attacking)
-    this.armSwing = -swing * 0.45 * k;
+    const fk = this.gfk, sk = this.gsk;
+    const p = this.gaitPhase, sp = Math.sin(p), cp = Math.cos(p);
+    const A = (this.stride ?? 0.55) * amp;
+    const stag = this.stagger > 0 ? Math.min(1, this.stagger * 4) : 0;
+    const crouch = (this.crouch = THREE.MathUtils.lerp(this.crouch, (this.wantCrouch ?? 0) + stag * 0.3, Math.min(1, dt * 10)));
+    // the roll: tuck in, a full turn about the forward axis (eased), untuck
+    let tuck = 0, tumble = 0, hop = 0;
+    const u = this.state === 'roll' ? Math.min(1, this.stateT / (stepping ? STEP_T : ROLL_T)) : 0;
+    if (rolling) {
+      tuck = smooth(0, 0.2, u) * (1 - smooth(0.78, 1, u));
+      tumble = -this.rollLocal * TAU * smooth(0.06, 0.86, u); // z < 0 tips the top toward +x
+    } else if (stepping) hop = Math.sin(u * Math.PI);
+    this.tumble = tumble;
     this.tuck = tuck;
-    // footfalls
-    if (k > 0.3 && this.grounded && Math.sign(Math.cos(ph)) !== this.footSign) {
-      this.footSign = Math.sign(Math.cos(ph));
-      this.onStep?.();
+    // squash (landings, roll recoveries, hits): the hips drop, the knees take it
+    const sq = Math.min(0.05, this.sqS.step(0, dt));
+    const bend = -sq * 2.4;
+    // legs (no per-frame allocation: two explicit calls)
+    this.poseLeg(n.legL, n.shinL, sp, cp, 1, A, amp, fk, sk, crouch, tuck, bend);
+    this.poseLeg(n.legR, n.shinR, -sp, -cp, -1, A, amp, fk, sk, crouch, tuck, bend);
+    // hips: bob (high at mid-stance), sway over the stance leg, drop into a crouch / the roll / a squash
+    const bob = (Math.abs(cp) - 0.55) * 0.065 * amp;
+    const sway = -cp * 0.045 * amp; // over the left leg (+x) while it's planted (cos < 0)
+    const rollY = rolling ? tuck * (rest.y - (this.rollRadius ?? 0.6)) : 0;
+    n.body.position.set(rest.x + sway, rest.y + bob - crouch * (this.crouchDrop ?? 0.35) - rollY + sq + hop * 0.12, rest.z);
+    // torso lean: into the walk (and the speed-up), the crouch, the subclass's attack lean, hit flinches
+    const accel = THREE.MathUtils.clamp((speed - (this.lastSpeed ?? speed)) / Math.max(dt, 1e-3), -8, 8);
+    this.lastSpeed = speed;
+    const pitchT = fk * k * 0.13 + crouch * 0.22 + accel * 0.012 + this.actPitch + stag * 0.12;
+    const rollT = -sk * k * 0.09 + this.actRoll + (stepping ? -this.rollLocal * 0.28 * hop : 0);
+    const pitch = this.pS.step(pitchT, dt);
+    const roll = this.rS.step(rollT, dt);
+    const twist = this.tS.step(this.actTwist, dt);
+    const hipTwist = -sp * 0.15 * amp * fk; // the swinging leg's hip comes forward (y < 0 brings +x forward)
+    const hipRoll = -cp * 0.045 * amp; // the stance hip rides up
+    const wob = stag ? Math.sin(this.t * 38) * 0.06 * stag : 0;
+    n.body.rotation.set(pitch * 0.45 + tuck * 0.15, hipTwist + wob, hipRoll * (1 - tuck) + roll * 0.5 + tumble);
+    const breathe = Math.sin(this.t * 1.7 + this.seed) * 0.022 * (1 - amp);
+    n.torso.rotation.set(this.torsoRestX + pitch * 0.55 + breathe + tuck * 0.85, -hipTwist * 1.8 + twist, roll * 0.5);
+    this.breath = breathe;
+    this.hunch = n.body.rotation.x + n.torso.rotation.x;
+    this.bodyTwist = n.body.rotation.y + n.torso.rotation.y;
+    // head: tracks you once it's onto you, else looks about; snaps with hits, nods with headNod
+    const player = this.world.game.player;
+    const dx = player.pos.x - this.pos.x, dz = player.pos.z - this.pos.z;
+    const hd = Math.max(0.5, Math.hypot(dx, dz));
+    this.aimErr = THREE.MathUtils.clamp(angleTo(this.yaw, Math.atan2(dx, dz)), -0.9, 0.9);
+    let hy, hp;
+    if (this.aggro) {
+      hy = THREE.MathUtils.clamp(this.aimErr - this.bodyTwist, -1, 1);
+      hp = -Math.atan2(player.pos.y + player.eye - (this.pos.y + this.height * 0.9), hd) - this.hunch * 0.7;
+    } else {
+      // a slow look round now and then
+      const scan = Math.sin(this.t * 0.37 + this.seed) + Math.sin(this.t * 0.83 + this.seed * 2) * 0.5;
+      hy = Math.abs(scan) > 0.6 ? scan * 0.55 : 0;
+      hp = 0.05 + Math.sin(this.t * 0.5 + this.seed) * 0.05 - this.hunch * 0.5;
     }
+    const hk = Math.min(1, dt * (this.aggro ? 7 : 3));
+    this.headYaw += (hy - this.headYaw) * hk;
+    this.headPitch += (THREE.MathUtils.clamp(hp, -0.7, 0.6) - this.headPitch) * hk;
+    const nod = this.hS.step(this.headNod, dt);
+    n.head.rotation.set(this.headPitch + nod + tuck * 0.5, this.headYaw * (1 - tuck), -roll * 0.3);
+    // arms counter-swing to the legs (left arm back while the left leg is forward)
+    this.armSwing = sp * 0.45 * amp * Math.max(0.35, Math.abs(fk));
+    // footfalls: each heel strike (the swing ends as cos(phase) turns over)
+    const fs = cp >= 0 ? 1 : -1;
+    if (fs !== this.footSign) {
+      this.footSign = fs;
+      if (amp > 0.25 && this.grounded && !rolling) this.onStep?.(amp, fs);
+    }
+    this.idleSounds(dt);
   }
 
-  // knees buckle and it pitches forward; then finishDeath() blows it apart
+  // one leg: the thigh swings along the walk direction (forward / back, out to the side when strafing),
+  // the knee lifts through the swing (cos > 0) and folds for the crouch, the roll's tuck and a squash
+  poseLeg(leg, shin, sw, lift, sgn, A, amp, fk, sk, crouch, tuck, bend) {
+    leg.rotation.x = -sw * A * fk - crouch * 0.9 - tuck * 1.7 - bend;
+    leg.rotation.z = sw * A * 0.8 * sk + sgn * 0.045 * (1 + crouch);
+    shin.rotation.x = (Math.max(0, lift) * 0.95 + 0.08) * amp + crouch * 1.5 + tuck * 2.3 + bend * 2;
+  }
+
+  // the arm pitch that points a shoulder at you, given the torso's lean (rotation.x = -PI/2 is level)
+  aimPitch(player, shoulderY) {
+    const d = Math.max(1, Math.hypot(player.pos.x - this.pos.x, player.pos.z - this.pos.z));
+    return -Math.PI / 2 - Math.atan2(player.pos.y + player.eye * 0.6 - (this.pos.y + shoulderY), d) - this.hunch;
+  }
+
+  // knees buckle and it topples along the killing shot; then finishDeath() blows it apart
   die(dir) {
     this.dead = true;
     this.dying = true;
     director.release(this);
     this.dyingT = 0;
     this.deathDir = dir.clone().setY(0).normalize();
+    const L = this.localDir(this.deathDir);
+    this.deathF = L.f;
+    this.deathS = L.s;
     this.world.removeHittable(this.hitRoot);
+    esfx(this.painSound ?? 'robot_pain_heavy', this.pos, 1, (this.voicePitch ?? 1) * 0.8);
+    barks.died(this);
     this.onDie?.();
   }
 
@@ -1036,12 +1207,18 @@ export class Trooper extends GroundEnemy {
     this.vel.z = this.move.z;
     if (this.grounded) this.walk(this.vel.x * dt, this.vel.z * dt);
     this.sync();
-    n.body.position.y = n.body.userData.rest.y - k * k * this.height * 0.3;
-    n.body.rotation.x = k * k * 0.9;
-    n.legL.rotation.x = n.legR.rotation.x = -k * 1.2;
+    // a jolt back from the hit, then the knees go and it pitches over along the shot
+    const kk = k * k, jolt = Math.sin(Math.min(1, k * 3) * Math.PI) * 0.25;
+    const f = this.deathF ?? -1, s = this.deathS ?? 0;
+    n.body.position.y = n.body.userData.rest.y - kk * this.height * 0.3;
+    n.body.rotation.set(f * (kk * 0.9 + jolt), Math.sin(this.dyingT * 30) * 0.04 * (1 - k), -s * (kk * 0.7 + jolt));
+    n.torso.rotation.x = (this.torsoRestX ?? 0) + kk * 0.4;
+    n.legL.rotation.x = -k * 1.2;
+    n.legR.rotation.x = -k * 0.9;
     n.shinL.rotation.x = n.shinR.rotation.x = k * 1.8;
-    n.armL.rotation.x = n.armR.rotation.x = -k * 0.8;
-    n.head.rotation.x = k * 0.5;
+    n.armL.rotation.x = -k * 0.8 + jolt;
+    n.armR.rotation.x = -k * 0.6 - jolt;
+    n.head.rotation.x = k * 0.5 - jolt;
     this.dyingFx?.(dt, k);
     if (k >= 1) {
       this.dying = false;

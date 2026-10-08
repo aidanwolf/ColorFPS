@@ -15,6 +15,7 @@ class Director {
     this.game = null;
     this.tokens = DEFAULT_TOKENS;
     this.holders = new Map(); // enemy -> seconds left on its token
+    this.onGrant = null; // (enemy, holders) when a token is granted
   }
 
   attach(game) {
@@ -32,6 +33,7 @@ class Director {
     if (this.holders.has(enemy)) return true;
     if (this.holders.size >= this.tokens) return false;
     this.holders.set(enemy, hold);
+    this.onGrant?.(enemy, this.holders.size); // combat/barks.js: "Flank it!" / "Pinning it down!"
     return true;
   }
 

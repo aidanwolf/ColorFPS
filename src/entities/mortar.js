@@ -4,6 +4,8 @@
 import * as THREE from 'three';
 import { Orb } from './drone.js';
 import { Enemy, Parts, MAT, GEO, glowMat, additive, floorBelow, converge, falloff, hexOf, sfx, Blast } from './enemyKit.js';
+import { esfx } from './enemySfx.js';
+import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
 const _a = new THREE.Vector3();
@@ -221,6 +223,8 @@ export class Mortar extends Enemy {
         const target = _v.copy(player.pos);
         const f = floorBelow(this.world, _a.copy(player.pos).setY(player.pos.y + 0.5), 8);
         if (f !== null) target.y = f;
+        barks.say(this, 'suppress'); // "Containment fire."
+        esfx('turret_servo', this.pos, 0.8, 0.7); // the tube cranks up to elevation
         this.zone = new BlastZone(this.world, target, this.color, { radius: this.radius, linger: this.linger, warn: 0.6 + this.flight });
       }
       if (this.zone) this.aim = Math.min(1, this.aim + dt * 3);

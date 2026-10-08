@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { COLORS } from '../colors.js';
 import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
+import { esfx } from './enemySfx.js';
+import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
 const _eye = new THREE.Vector3();
@@ -149,6 +151,7 @@ export class Drone {
     this.onDeath = onDeath;
     // per-drone pitch offset so a group of drones doesn't hum in unison
     this.humPitch = 0.92 + Math.random() * 0.16;
+    this.barkPersona = 'lumen'; // combat/barks.js (sub-drones speak for the deep)
     this.humGain = -1;
     this.humRate = -1;
     this.hum = audio.createLoop('drone_hum', { rate: this.humPitch });
@@ -235,6 +238,8 @@ export class Drone {
     const side = new THREE.Vector3(-_v.z, 0, _v.x).normalize().multiplyScalar(Math.random() < 0.5 ? -1 : 1);
     this.dodge.copy(side).multiplyScalar(strength);
     this.dodge.y = (Math.random() - 0.3) * 4;
+    esfx('drone_servo', this.pos, Math.min(1, strength / 9), this.humPitch * 1.1); // the fins snap over
+    if (strength >= 9) barks.say(this, 'roll');
   }
 
   // Move by `d`, axis by axis, so a wall only stops the blocked component (the rest still slides).
@@ -294,7 +299,12 @@ export class Drone {
     if (this.sightTimer <= 0) {
       this.sightTimer = 0.25;
       this.sees = dist < this.range && this.world.lineOfSight(this.pos, _eye);
-      if (this.sees && !this.aggro) audio.droneAlert();
+      if (this.sees && !this.aggro) {
+        audio.droneAlert();
+        barks.say(this, 'spot');
+      }
+      this.unseenT = this.sees || !this.aggro ? 0 : (this.unseenT || 0) + 0.25;
+      if (this.unseenT === 1.5) barks.say(this, 'lost');
       if (this.sees) this.aggro = true;
     }
     const wasStaggered = this.stagger > 0;
@@ -447,8 +457,11 @@ export class Drone {
     audio.droneHit(Math.max(0.5, falloff(this.dist, 6, 40)));
     if (this.hp <= 0) {
       this.die();
+      barks.died(this);
       return 'kill';
     }
+    esfx('robot_pain_light', this.pos, 0.8, this.humPitch * 1.2);
+    barks.say(this, 'hit');
     return 'hit';
   }
 

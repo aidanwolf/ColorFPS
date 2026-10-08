@@ -5,6 +5,9 @@
 import * as THREE from 'three';
 import { audio } from '../audio.js';
 import { Enemy, Parts, Beam, MAT, moveSafe, floorBelow, falloff, hexOf, sfx, DANGER } from './enemyKit.js';
+import { Spring } from './groundKit.js';
+import { esfx } from './enemySfx.js';
+import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
 const _d = new THREE.Vector3();
@@ -29,6 +32,11 @@ export class Brute extends Enemy {
     this.floorY = floorBelow(world, this.pos, 20) ?? this.pos.y - HOVER;
     this.pos.y = this.floorY + HOVER;
     this.floorT = 0;
+    // body language (poseBody): pitch / roll springs for leaning into moves, rearing up, flinching
+    this.pS = new Spring(60, 8);
+    this.rS = new Spring(60, 8);
+    this.wobble = 0;
+    this.painSound = null; // (onDamage plays its own, heavier)
 
     this.body = new THREE.Group();
     this.group.add(this.body);
@@ -137,6 +145,8 @@ export class Brute extends Enemy {
       }
       if (this.timer <= 0 && this.sees && this.dist > 4 && this.dist < 32) {
         this.state = 'windup';
+        esfx('hydraulic_hiss', this.pos, 1, 0.7); // it plants itself: the hydraulics vent
+        barks.say(this, 'charge');
         this.timer = this.windupTime;
         const g = Math.max(0.4, falloff(this.dist, 6, 45));
         sfx('brute_roar', { gain: 0.8 * g }, 'boss_charge', { gain: 0.7 * g, rate: 1.3 });
@@ -162,6 +172,8 @@ export class Brute extends Enemy {
       this.game.player.shake = Math.max(this.game.player.shake, 0.06 * falloff(this.dist, 4, 20));
       if (this.timer <= 0) {
         this.state = 'charge';
+        esfx('robot_effort', this.pos, 1, 0.6);
+        this.pS.kick(3); // it lunges forward off the mark
         this.travel = 0;
         this.body.position.set(0, 0, 0);
         this.lane.hide();
@@ -185,13 +197,13 @@ export class Brute extends Enemy {
       // dazed: weak point still open, sparks crackling round it
       wantOpen = 1;
       if (this.state === 'stunned') {
-        this.body.rotation.z = Math.sin(this.t * 9) * 0.06 * Math.min(1, this.timer);
+        this.wobble = Math.sin(this.t * 9) * 0.06 * Math.min(1, this.timer);
         if (Math.random() < dt * 12) fx.sparks(_v.copy(this.pos).setY(this.pos.y + 1), _a.randomDirection().setY(0.8), 0xffe080, { count: 4, speed: 5, spread: 0.6, life: 0.3 });
       }
       if (this.timer <= 0) {
         this.state = 'stalk';
         this.timer = this.cooldown * (0.85 + Math.random() * 0.3);
-        this.body.rotation.z = 0;
+        this.wobble = 0;
       }
     }
     // shoves (a light push back from hits) and the player bumping into it
@@ -208,6 +220,7 @@ export class Brute extends Enemy {
         player.vel.z += (dz / d) * 30 * dt;
       }
     }
+    this.poseBody(dt);
     this.group.position.copy(this.pos);
     this.group.rotation.y = this.yaw;
     // shutters slide open; the weak point blazes while exposed
@@ -222,8 +235,30 @@ export class Brute extends Enemy {
     this.updateHum(0.4 + (this.state === 'charge' ? 0.5 : this.state === 'windup' ? 0.25 : 0), 0.45, 4, 34);
   }
 
+  // The hull's weight: it leans into its stalk and banks into turns, rears back on its thrusters through
+  // the wind-up (anticipation), dips its prow for the charge, and rocks on the springs (hits, the slam).
+  poseBody(dt) {
+    const turn = Math.atan2(Math.sin(this.yaw - (this.lastYaw ?? this.yaw)), Math.cos(this.yaw - (this.lastYaw ?? this.yaw))) / Math.max(dt, 1e-3);
+    this.lastYaw = this.yaw;
+    let pitchT = 0, rollT = THREE.MathUtils.clamp(-turn * 0.08, -0.18, 0.18);
+    if (this.state === 'stalk' && this.aggro && this.dist > 5.5) pitchT = 0.06 + Math.sin(this.t * 2.2) * 0.02;
+    else if (this.state === 'windup') pitchT = -0.2 * Math.min(1, (this.windupTime - this.timer) / 0.35);
+    else if (this.state === 'charge') pitchT = 0.16;
+    else if (this.state === 'stunned') pitchT = 0.12;
+    const p = this.pS.step(pitchT, dt), r = this.rS.step(rollT, dt);
+    this.body.rotation.set(p, 0, r + this.wobble);
+    // the servos whine as it hauls itself round
+    if (Math.abs(turn) > 1.2 && this.state !== 'charge' && (this.servoT = (this.servoT ?? 0) - dt) <= 0) {
+      this.servoT = 0.5;
+      esfx('servo_heavy', this.pos, Math.min(1, Math.abs(turn) / 3), 0.6);
+    }
+  }
+
   slam() {
     this.state = 'stunned';
+    this.pS.kick(-5); // the impact throws its prow up
+    this.rS.kick((Math.random() < 0.5 ? -1 : 1) * 3);
+    esfx('robot_pain_heavy', this.pos, 1, 0.65);
     this.timer = this.stunTime;
     const p = _v.copy(this.pos).addScaledVector(this.dir, 1.4);
     const fx = this.world.fx;
@@ -243,6 +278,12 @@ export class Brute extends Enemy {
 
   onDamage(hit, dir, amount) {
     this.knock.addScaledVector(_a.copy(dir).setY(0), amount > 1 ? 2.5 : 0.8);
+    // flinch along the shot: a hit on the prow rocks it back, one from the side tips it over
+    const c = Math.cos(this.yaw), s = Math.sin(this.yaw);
+    const f = dir.x * s + dir.z * c, sd = dir.x * c - dir.z * s;
+    this.pS.kick(f * (amount > 1 ? 4 : 2.2));
+    this.rS.kick(-sd * (amount > 1 ? 4 : 2.2));
+    esfx('robot_pain_heavy', this.pos, amount > 1 ? 1 : 0.6, 0.6 + Math.random() * 0.1);
     if (amount > 1) this.world.fx.ring(hit?.point ?? this.pos, null, 0xffffff, { size: 0.2, end: 1.5, life: 0.25, thick: 0.15 });
   }
 

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { COLORS, RED } from '../colors.js';
 import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
-import { GroundEnemy, Trooper, RigDef, Bolt, blast, explosionFx, sfx, falloff, rnd } from './groundKit.js';
+import { GroundEnemy, Trooper, RigDef, Bolt, blast, explosionFx, sfx, falloff, rnd, esfx, barks } from './groundKit.js';
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
@@ -14,6 +14,8 @@ const _np = new THREE.Vector3();
 const _fd = new THREE.Vector3();
 const _pp = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
+const _steam = new THREE.Color(0x8a8a90);
+const smooth01 = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 
 const glowHex = (color, k = 2.4) => new THREE.Color(COLORS[color].hex).multiplyScalar(k);
 
@@ -161,6 +163,7 @@ export class BlastCrab extends GroundEnemy {
         return;
       }
       this.setState('arm');
+      esfx('crab_arm_whine', this.pos, 1, 1); // the warhead spins up: a rising whine under the beeps
       this.beepT = 0;
     }
   }
@@ -175,6 +178,7 @@ export class BlastCrab extends GroundEnemy {
         const x = this.home.x + Math.cos(a) * r, z = this.home.z + Math.sin(a) * r;
         if (this.pathClear(x, z, 0.4)) this.target = new THREE.Vector3(x, 0, z);
         this.waitT = rnd(0.4, 1.6);
+        if (Math.random() < 0.3 && this.dist < 14) esfx('robot_idle_click', this.pos, 0.6, 1.7); // a curious chirp-click
       }
       return;
     }
@@ -205,6 +209,7 @@ export class BlastCrab extends GroundEnemy {
     this.grounded = false;
     this.ground = null;
     this.setState('leap');
+    esfx('robot_effort', this.pos, 0.6, 1.7); // a strained little servo grunt as it springs
     this.leapCool = rnd(1.0, 1.6);
     const fx = this.world.fx;
     fx.burst(this.pos, 0x5a4a40, { count: 10, speed: 2.5, life: 0.5, size: 0.3, gravity: 3 });
@@ -297,6 +302,7 @@ export class BlastCrab extends GroundEnemy {
     sfx('crab_explode', 0.9 * g, { alt: 'drone_explode', altRate: 1.35, synth: (gg) => audio.explode(false) });
     audio.tone({ type: 'sine', f: 120, f2: 35, dur: 0.4, gain: 0.35 * g });
     blast(this.world, c, this.blastRadius, this);
+    barks.died(this); // a welder nearby reacts ("Crab blew! Stay back!")
     this.onDeath?.(this);
     const push = hit?.dir ? hit.dir.clone().multiplyScalar(3) : null;
     this.scatter([...this.legs, this.n.clawL, this.n.clawR, this.n.body], push, { speed: 7, up: 0.8, life: 1.4 });
@@ -418,7 +424,12 @@ export class Welder extends Trooper {
     this.chargeCool = 1;
     this.turnRate = 5;
     this.stride = 0.5;
+    this.strideLen = 1.05; // m per step: short, heavy strides
     this.crouchDrop = 0.3;
+    this.rollRadius = 0.62; // hip height when tucked into a roll (the curled body's reach)
+    this.barkPersona = 'foundry'; // combat/barks.js
+    this.painSound = 'robot_pain_heavy';
+    this.voicePitch = 0.9;
     this.m = {
       armor: this.mat(new THREE.MeshStandardMaterial({ color: 0x8a1c24, metalness: 0.55, roughness: 0.4, flatShading: true })),
       shell: this.mat(new THREE.MeshStandardMaterial({ color: 0x2c2e36, metalness: 0.85, roughness: 0.32, flatShading: true })),
@@ -452,9 +463,11 @@ export class Welder extends Trooper {
     sfx('welder_alert', 0.6 * falloff(this.dist, 5, 35), { alt: 'drone_alert', altRate: 0.55, synth: (g) => audio.tone({ type: 'sawtooth', f: 90, f2: 60, dur: 0.5, gain: 0.12 * g }) });
   }
 
-  onStep() {
+  onStep(amp = 1) {
     const g = 0.3 * falloff(this.dist, 3, 26);
     sfx('welder_step', g, { alt: 'boss_step', altRate: 1.8, altGain: 0.5, synth: (gg) => audio.tone({ type: 'sine', f: 70, f2: 40, dur: 0.12, gain: 0.25 * gg }) });
+    // the knee and hip servos whine with each stride, harder and higher the faster it goes
+    esfx('servo_heavy', this.pos, 0.35 + 0.45 * amp, 0.8 + 0.3 * amp);
   }
 
   onRoll() {
@@ -488,6 +501,10 @@ export class Welder extends Trooper {
     this.move.set(0, 0, 0);
     if (s === 'charge') {
       // stomp straight at you, then light up
+      if (this.stateT <= dt * 1.5) {
+        barks.say(this, 'charge');
+        esfx('robot_effort', this.pos, 1, 0.85);
+      }
       this.toPlayer(player, _v);
       this.move.copy(_v).multiplyScalar(this.speed * 1.45);
       if (d < 5.2) this.setState('ignite');
@@ -528,6 +545,16 @@ export class Welder extends Trooper {
       if (this.stateT >= FLAME_T) this.setState('vent');
     } else if (s === 'vent') {
       this.wantCrouch = 0;
+      if (this.stateT <= dt * 1.5) {
+        // the torch overheats: it vents steam from the tanks, shoulders slumped
+        esfx('welder_vent', this.pos, 1, 1);
+        barks.say(this, 'reload');
+      }
+      if (this.dist < 30 && Math.random() < dt * 30) {
+        this.group.updateMatrixWorld(true);
+        const p = this.n.pack.getWorldPosition(_w);
+        this.world.fx.puff(p, rnd(-0.6, 0.6), rnd(1, 2), rnd(-0.6, 0.6), _steam, 0.4, 0.9, 0.35, 2.5);
+      }
       if (this.stateT >= 0.7) {
         director.release(this);
         this.flameCool = rnd(3.5, 5);
@@ -577,31 +604,79 @@ export class Welder extends Trooper {
     this.world.fx.flash(from, COLORS[this.color].hex, { size: 0.4, life: 0.08, k: 1.8 });
     this.world.fx.sparks(from, dir, 0xffd9a0, { count: 6, speed: 9, spread: 0.4, life: 0.2 });
     this.recoil = 1;
+    // the kick: the torso rocks back and twists off the gun side, the hips give a little
+    this.pS.kick(-2.2);
+    this.tS.kick(1.4); // (y > 0 swings its left, gun-side shoulder back)
+    this.sqS.kick(-0.15);
     sfx('welder_rivet', 0.55 * falloff(this.dist, 4, 40), { alt: 'enemy_shot', altRate: 0.72, synth: () => audio.enemyShoot() });
   }
 
   animate(dt, player) {
-    this.poseBase(dt);
     const n = this.n;
     const s = this.state;
-    // aim pitch from the shoulder to your chest, and the yaw that brings an offset arm onto you
+    const u = this.stateT;
+    // the body language of each attack, fed to the shared pose as lean / twist targets:
+    //   aim: settles back onto its heels and squares the gun shoulder to you (anticipation)
+    //   burst: braced, each rivet kicks the torso back (fireRivet)
+    //   ignite: rears back as the pilot sputters, then hunches over the torch as it catches
+    //   flame: leans into the fire, shuddering; vent: slumps, head down, steaming; charge: head down, rushing
+    let ap = 0, ar = 0, at = 0, nod = 0;
+    if (s === 'aim') {
+      ap = -0.1 * smooth01(u / AIM_T * 1.6);
+      at = this.aimErr * 0.45 + 0.12;
+    } else if (s === 'burst') {
+      ap = -0.05;
+      at = this.aimErr * 0.45 + 0.12;
+    } else if (s === 'ignite') {
+      const k = u / IGNITE_T;
+      ap = -0.16 * smooth01(k * 2.5) + 0.42 * smooth01((k - 0.55) * 2.2);
+      ar = Math.sin(this.t * 31) * 0.02 * k;
+    } else if (s === 'flame') {
+      ap = 0.26 + Math.sin(this.t * 27) * 0.02;
+      ar = Math.sin(this.t * 19) * 0.025;
+    } else if (s === 'vent') {
+      const k = Math.min(1, u / 0.7);
+      ap = 0.3 * (1 - k * k);
+      nod = 0.35 * (1 - k);
+    } else if (s === 'charge') {
+      ap = 0.3;
+      nod = 0.15;
+    } else if (s === 'cover' && !this.coverAt) ap = 0.15;
+    this.actPitch = ap;
+    this.actRoll = ar;
+    this.actTwist = at;
+    this.headNod = nod;
+    this.poseBase(dt);
+    // aim: the arm pitch onto your chest (the torso's lean taken out), and the yaw that brings an offset
+    // arm onto you (the torso's twist taken out)
     const d = Math.max(1, Math.hypot(player.pos.x - this.pos.x, player.pos.z - this.pos.z));
-    const pitch = Math.atan2(player.pos.y + player.eye * 0.6 - (this.pos.y + 1.95), d);
-    const tilt = 0.2 + n.body.rotation.x; // the hunch
+    const aimX = this.aimPitch(player, 1.95);
     const inward = Math.atan2(0.64, d);
     this.recoil = Math.max(0, (this.recoil || 0) - dt * 8);
-    // left arm: rivet gun
+    const breathe = this.breath * 1.5; // shoulders rise and fall when it stands still
+    // left arm: rivet gun (it may lead the body onto you: the rivets aim themselves)
     const aiming = s === 'aim' || s === 'burst';
-    const aimK = aiming ? Math.min(1, this.stateT / 0.22 + (s === 'burst' ? 1 : 0)) : 0;
-    this.aimL = THREE.MathUtils.lerp(this.aimL ?? 0, aimK, Math.min(1, dt * 14));
-    n.armL.rotation.set(THREE.MathUtils.lerp(this.armSwing * 0.8, -Math.PI / 2 - pitch - tilt + this.recoil * 0.25, this.aimL) - this.tuck * 1.2, THREE.MathUtils.lerp(0, -inward, this.aimL), 0.14 * (1 - this.aimL));
-    n.foreL.rotation.x = THREE.MathUtils.lerp(-0.35, 0, this.aimL) - this.tuck * 1.4;
-    // right arm: torch
-    const torch = s === 'ignite' || s === 'flame' ? Math.min(1, this.stateT / 0.25 + (s === 'flame' ? 1 : 0)) : 0;
-    this.aimR = THREE.MathUtils.lerp(this.aimR ?? 0, torch, Math.min(1, dt * 12));
-    n.armR.rotation.set(THREE.MathUtils.lerp(-this.armSwing * 0.8, -Math.PI / 2 - pitch - tilt, this.aimR) - this.tuck * 1.2, THREE.MathUtils.lerp(0, inward, this.aimR), -0.14 * (1 - this.aimR));
-    n.foreR.rotation.x = THREE.MathUtils.lerp(-0.35, 0, this.aimR) - this.tuck * 1.4;
-    n.head.rotation.x = -pitch * 0.4 * (this.aggro ? 1 : 0);
+    const aimK = aiming ? Math.min(1, u / 0.22 + (s === 'burst' ? 1 : 0)) : 0;
+    const was = this.aimL ?? 0;
+    this.aimL = THREE.MathUtils.lerp(was, aimK, Math.min(1, dt * 14));
+    if (was < 0.15 && this.aimL >= 0.15) esfx('servo_heavy', this.pos, 0.7, 1.15); // the gun arm swings up
+    n.armL.rotation.set(
+      THREE.MathUtils.lerp(this.armSwing * 0.8 + 0.06, aimX + this.recoil * 0.3, this.aimL) - this.tuck * 1.2,
+      THREE.MathUtils.lerp(0, -inward + this.aimErr - this.bodyTwist, this.aimL),
+      (0.14 + breathe) * (1 - this.aimL),
+    );
+    n.foreL.rotation.x = THREE.MathUtils.lerp(-0.35 - this.gaitAmp * 0.15, -this.recoil * 0.2, this.aimL) - this.tuck * 1.4;
+    // right arm: torch (locked to the body's facing: the cone turns only as fast as the body does)
+    const torch = s === 'ignite' || s === 'flame' ? Math.min(1, u / 0.25 + (s === 'flame' ? 1 : 0)) : 0;
+    const wasR = this.aimR ?? 0;
+    this.aimR = THREE.MathUtils.lerp(wasR, torch, Math.min(1, dt * 12));
+    if (wasR < 0.15 && this.aimR >= 0.15) esfx('servo_heavy', this.pos, 0.7, 0.9);
+    n.armR.rotation.set(
+      THREE.MathUtils.lerp(-this.armSwing * 0.8 + 0.06, aimX, this.aimR) - this.tuck * 1.2,
+      THREE.MathUtils.lerp(0, inward - this.bodyTwist, this.aimR),
+      (-0.14 - breathe) * (1 - this.aimR),
+    );
+    n.foreR.rotation.x = THREE.MathUtils.lerp(-0.35 - this.gaitAmp * 0.15, 0, this.aimR) - this.tuck * 1.4;
     // glows: the visor flares when it attacks; the muzzle ring and torch tip heat up on the wind-up
     const flare = s === 'ignite' ? (0.4 + 0.6 * (this.stateT / IGNITE_T)) * (0.7 + 0.3 * Math.sin(this.t * 60)) : s === 'flame' ? 1 : 0;
     const muzzle = s === 'aim' ? this.stateT / AIM_T : s === 'burst' ? 1 : 0;

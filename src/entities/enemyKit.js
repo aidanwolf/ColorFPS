@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COLORS } from '../colors.js';
 import { audio } from '../audio.js';
+import { barks } from '../combat/barks.js';
+import { esfx } from './enemySfx.js';
 
 const _v = new THREE.Vector3();
 const _a = new THREE.Vector3();
@@ -359,6 +361,8 @@ export class Enemy {
     // armor plating faintly lit in the enemy's color, so it reads even in a dark room
     this.armor = new THREE.MeshStandardMaterial({ color: 0x3a3e4e, metalness: 0.75, roughness: 0.35, flatShading: true });
     this.mats = [this.glow, this.armor]; // per-enemy materials freed on removal
+    this.barkPersona = 'lumen'; // the Lumen security network's voice (combat/barks.js)
+    this.painSound = 'robot_pain_light'; // a glitchy electronic yelp on a hit (entities/enemySfx.js)
   }
 
   register() {
@@ -402,8 +406,14 @@ export class Enemy {
     if (this.sightTimer <= 0) {
       this.sightTimer = this.sightEvery;
       this.sees = this.dist < this.range && this.world.lineOfSight(this.sightFrom(), this.eye);
-      if (this.sees && !this.aggro) this.alert();
+      if (this.sees && !this.aggro) {
+        this.alert();
+        barks.say(this, 'spot');
+      }
       if (this.sees) this.aggro = true;
+      // lost sight of you for a moment while hunting: "Visual lost. Recalculating."
+      this.unseenT = this.sees || !this.aggro ? 0 : (this.unseenT || 0) + this.sightEvery;
+      if (this.unseenT >= 1.5 && this.unseenT < 1.5 + this.sightEvery) barks.say(this, 'lost');
     }
     return true;
   }
@@ -476,8 +486,11 @@ export class Enemy {
     this.onDamage(hit, dir, amount);
     if (this.hp <= 0) {
       this.die(hit, dir);
+      barks.died(this); // the nearest other unit reacts ("Unit offline.")
       return 'kill';
     }
+    if (this.painSound) esfx(this.painSound, this.pos, 0.9, this.voicePitch ?? 1);
+    barks.say(this, 'hit');
     return 'hit';
   }
 
