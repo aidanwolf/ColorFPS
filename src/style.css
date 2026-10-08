@@ -28,6 +28,18 @@ html, body {
   position: absolute; inset: 0; opacity: 0; transition: opacity 0.1s;
   background: radial-gradient(ellipse at center, transparent 45%, rgba(255, 20, 40, 0.65) 100%);
 }
+#hud.cinematic #crosshair, #hud.cinematic #health, #hud.cinematic #colors, #hud.cinematic #stats,
+#hud.cinematic #boss-bar, #hud.cinematic #message, #hud.cinematic #hitmarker { visibility: hidden; }
+#hud.cinematic::before, #hud.cinematic::after { content: ""; position: absolute; left: 0; right: 0; height: 9vh; background: #000; z-index: 1; }
+#hud.cinematic::before { top: 0; }
+#hud.cinematic::after { bottom: 0; }
+#fade { position: absolute; inset: 0; background: #000; opacity: 0; }
+#death { position: absolute; left: 50%; top: 34%; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+#death.show { opacity: 1; }
+#death .death-main { font-size: clamp(32px, 6vw, 60px); font-weight: 900; letter-spacing: 8px; color: var(--red); text-shadow: 0 0 26px var(--red); }
+#death .death-sub { margin-top: 6px; color: var(--dim); letter-spacing: 3px; font-size: 13px; }
+#death .revive { margin-top: 18px; min-width: 0; font-size: 13px; letter-spacing: 1px; text-transform: none; border-color: var(--green); color: var(--green); }
+#death.show .revive { pointer-events: auto; }
 #crosshair { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
 #crosshair span {
   position: absolute; background: var(--cur); box-shadow: 0 0 6px var(--cur);

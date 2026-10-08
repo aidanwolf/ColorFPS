@@ -18,7 +18,7 @@ export class Input {
     addEventListener('keydown', (e) => {
       if (!this.keys.has(e.code)) this.pressed.add(e.code);
       this.keys.add(e.code);
-      if (this.locked && ['Space', 'Tab', 'KeyQ', 'KeyE'].includes(e.code)) e.preventDefault();
+      if (this.locked && (['Space', 'Tab', 'KeyQ', 'KeyE'].includes(e.code) || e.ctrlKey)) e.preventDefault();
     });
     addEventListener('keyup', (e) => this.keys.delete(e.code));
     addEventListener('blur', () => {
@@ -65,18 +65,10 @@ export class Input {
   requestLock() {
     const fail = () => (this.lockFailed = true);
     try {
-      const p = this.dom.requestPointerLock?.({ unadjustedMovement: true });
-      // Some browsers reject unadjustedMovement; retry with a plain lock before giving up.
-      if (p && p.catch) {
-        p.catch(() => {
-          try {
-            const q = this.dom.requestPointerLock();
-            if (q && q.catch) q.catch(fail);
-          } catch {
-            fail();
-          }
-        });
-      } else if (!this.dom.requestPointerLock) fail();
+      // A plain lock keeps the OS pointer speed/acceleration, which is what most players expect.
+      const p = this.dom.requestPointerLock?.();
+      if (p && p.catch) p.catch(fail);
+      else if (!this.dom.requestPointerLock) fail();
     } catch {
       fail();
     }

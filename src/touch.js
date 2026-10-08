@@ -4,9 +4,9 @@
 
 const STICK_RADIUS = 56;
 const DEADZONE = 0.12;
-// Finger pixels are coarser than mouse counts; at the default sensitivity (3) this makes a
+// Finger pixels are coarser than mouse counts; at the default sensitivity (20) this makes a
 // half-screen drag turn roughly 180°.
-const LOOK_SCALE = 5.5;
+const LOOK_SCALE = 0.85;
 
 export class TouchControls {
   constructor(input, { onPause }) {

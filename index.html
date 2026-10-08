@@ -12,6 +12,12 @@
 
   <div id="hud" class="hidden">
     <div id="vignette"></div>
+    <div id="fade"></div>
+    <div id="death">
+      <div class="death-main">SIGNAL LOST</div>
+      <div class="death-sub">Returning to last checkpoint…</div>
+      <button type="button" class="revive" data-action="revive"><span class="revive-key">Press R</span> to revive here · play a Bonus Round</button>
+    </div>
     <div id="crosshair"><span></span><span></span><span></span><span></span><i></i></div>
     <div id="hitmarker"></div>
     <div id="boss-bar" class="hidden">
@@ -42,7 +48,7 @@
         <div><kbd>WASD</kbd> move</div>
         <div><kbd>Space</kbd> jump</div>
         <div><kbd>Shift</kbd> sprint</div>
-        <div><kbd>C</kbd> crouch</div>
+        <div><kbd>Ctrl</kbd>/<kbd>C</kbd> crouch</div>
         <div><kbd>LMB</kbd> fire</div>
         <div><kbd>1-4</kbd> / <kbd>Q</kbd><kbd>E</kbd> / wheel: switch color</div>
         <div><kbd>Esc</kbd> pause</div>
@@ -69,14 +75,6 @@
       <p class="small" id="pause-stats"></p>
     </div>
 
-    <div id="screen-dead" class="screen hidden">
-      <h2 class="danger">Signal Lost</h2>
-      <div class="buttons">
-        <button data-action="respawn" class="primary">Respawn at last checkpoint</button>
-        <button data-action="revive" class="reward hidden">Revive here — watch an ad</button>
-      </div>
-    </div>
-
     <div id="screen-victory" class="screen hidden">
       <h2 class="win">Warden Shattered</h2>
       <p class="tag">The spectrum is yours. Demo complete.</p>
@@ -86,7 +84,7 @@
 
     <div id="screen-settings" class="screen hidden">
       <h2>Settings</h2>
-      <label>Mouse sensitivity <span class="val" id="sens-val"></span> <input type="range" id="set-sens" min="0.5" max="10" step="0.1" /></label>
+      <label>Mouse sensitivity <span class="val" id="sens-val"></span> <input type="range" id="set-sens" min="1" max="60" step="0.5" /></label>
       <label>Field of view <span class="val" id="fov-val"></span> <input type="range" id="set-fov" min="75" max="120" step="1" /></label>
       <label>Volume <input type="range" id="set-vol" min="0" max="1" step="0.05" /></label>
       <label class="check"><input type="checkbox" id="set-invert" /> Invert Y</label>

@@ -39,6 +39,7 @@ export class World {
     return this.addSolid(new THREE.Vector3(minX, minY, minZ), new THREE.Vector3(maxX, maxY, maxZ), {
       static: true,
       hazard: opts.hazard,
+      kind, // floor material, used for footstep sounds
     });
   }
 

@@ -9,7 +9,7 @@ const TOUCH_TEXT = [
   [/Hold <b>LMB<\/b> to fire\./, 'Hold <b>FIRE</b> to shoot. Drag on it to aim while firing.'],
   [/<b>LMB<\/b> to fire\./, 'Hold <b>FIRE</b> to shoot.'],
   [/<b>Space<\/b> to jump/, 'Tap <b>JUMP</b>'],
-  [/hold <b>C<\/b> to crouch/, 'tap <b>CROUCH</b> to duck'],
+  [/hold <b>Ctrl<\/b> or <b>C<\/b> to crouch/, 'tap <b>CROUCH</b> to duck'],
   [/press <b>\d<\/b>/, 'tap its color button'],
 ];
 
@@ -33,6 +33,22 @@ export class Hud {
     this.hurtLevel = 0;
     this.hintTimer = 0;
     this.slots = [];
+    this.fadeEl = $('#fade');
+    this.deathEl = $('#death');
+  }
+
+  // Full-screen black fade, 0..1. With a duration it eases there via CSS.
+  fade(v, secs = 0) {
+    this.fadeEl.style.transition = secs ? `opacity ${secs}s` : 'none';
+    this.fadeEl.style.opacity = v;
+  }
+
+  deathBanner(text, offerRevive = false) {
+    this.deathEl.classList.toggle('show', !!text);
+    if (!text) return;
+    this.deathEl.querySelector('.death-main').textContent = text;
+    this.deathEl.querySelector('.revive').classList.toggle('hidden', !offerRevive);
+    this.deathEl.querySelector('.revive-key').textContent = this.touchMode ? 'Tap' : 'Press R';
   }
 
   show(v) {
@@ -80,12 +96,26 @@ export class Hud {
     this.msgTimer = time;
   }
 
-  zoneTitle(sub, main, color = '#fff') {
+  // Letterboxed cutscene view: hides the gameplay HUD but keeps title cards and flashes.
+  cinematic(on) {
+    this.root.classList.toggle('cinematic', on);
+  }
+
+  whiteFlash() {
+    this.fadeEl.style.background = '#fff';
+    this.fade(1);
+    requestAnimationFrame(() => {
+      this.fade(0, 0.7);
+      setTimeout(() => (this.fadeEl.style.background = ''), 750);
+    });
+  }
+
+  zoneTitle(sub, main, color = '#fff', time = 3.5) {
     this.zone.querySelector('.zone-sub').textContent = sub;
     this.zone.querySelector('.zone-main').textContent = main;
     this.zone.style.setProperty('--zc', color);
     this.zone.classList.add('show');
-    this.zoneTimer = 3.5;
+    this.zoneTimer = time;
   }
 
   hurt(amount) {

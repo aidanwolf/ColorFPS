@@ -3,6 +3,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { COLORS, RED, YELLOW, GREEN, BLUE } from './colors.js';
 import { Input } from './input.js';
@@ -14,6 +15,7 @@ import { Hud } from './hud.js';
 import { buildLevel } from './level.js';
 import { ads } from './monetization/bonusround.js';
 import { TouchControls } from './touch.js';
+import { UnlockCutscene } from './cutscene.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -21,12 +23,12 @@ const DEV = params.has('dev');
 // Phones and tablets get touch controls and a lighter render setup.
 const COARSE = matchMedia('(pointer: coarse)').matches;
 
-// sens uses Quake/Half-Life units (0.022° per mouse count × sens, default 3); fov is Quake-style:
-// horizontal degrees on a 4:3 screen (default 90), widened for wider screens.
+// sens is in Quake/Half-Life units (0.022° per mouse count × sens) on top of the OS pointer speed;
+// fov is Quake-style: horizontal degrees on a 4:3 screen (default 90), widened for wider screens.
 function loadSettings() {
-  const d = { sens: 3, fov: 90, volume: 0.7, invertY: false };
+  const d = { sens: 20, fov: 90, volume: 0.7, invertY: false };
   try {
-    return { ...d, ...JSON.parse(localStorage.getItem('chroma-settings-v2') || '{}') };
+    return { ...d, ...JSON.parse(localStorage.getItem('chroma-settings-v3') || '{}') };
   } catch {
     return d;
   }
@@ -46,7 +48,7 @@ class Game {
 
     // ---- renderer / scene ----
     const renderer = (this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' }));
-    renderer.setPixelRatio(Math.min(devicePixelRatio, COARSE ? 1.25 : 2));
+    renderer.setPixelRatio(Math.min(devicePixelRatio, COARSE ? 1.25 : 1.5));
     renderer.setSize(innerWidth, innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
@@ -73,6 +75,7 @@ class Game {
     this.world = new World(this);
     this.player = new Player(this);
     this.blaster = new Blaster(this);
+    this.cutscene = new UnlockCutscene(this);
     this.level = buildLevel(this.world, this);
     this.world.finalize();
     this.hud.buildColors(this.blaster);
@@ -83,10 +86,26 @@ class Game {
     // ---- post processing: world → bloom → view model on top → output ----
     const target = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: COARSE ? 0 : 4 });
     this.composer = new EffectComposer(renderer, target);
-    this.composer.setPixelRatio(Math.min(devicePixelRatio, COARSE ? 1.25 : 2));
+    this.composer.setPixelRatio(Math.min(devicePixelRatio, COARSE ? 1.25 : 1.5));
     this.composer.addPass(new RenderPass(scene, this.camera));
     this.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.6, 0.5, 0.82);
     this.composer.addPass(this.bloom);
+    // death grade: drains color, tints red and closes a vignette as uAmount goes 0 → 1
+    this.deathPass = new ShaderPass({
+      uniforms: { tDiffuse: { value: null }, uAmount: { value: 0 } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `
+        uniform sampler2D tDiffuse; uniform float uAmount; varying vec2 vUv;
+        void main(){
+          vec4 c = texture2D(tDiffuse, vUv);
+          float g = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+          vec3 grade = mix(c.rgb, vec3(g * 1.1, g * 0.35, g * 0.35), uAmount);
+          float v = smoothstep(0.85, 0.2, length(vUv - 0.5) * (1.0 + uAmount));
+          gl_FragColor = vec4(grade * mix(1.0, v, uAmount), c.a);
+        }`,
+    });
+    this.deathPass.enabled = false;
+    this.composer.addPass(this.deathPass);
     const vm = new RenderPass(this.blaster.vmScene, this.blaster.vmCamera);
     vm.clear = false;
     vm.clearDepth = true;
@@ -110,6 +129,7 @@ class Game {
     // a touch anywhere (e.g. tapping Play on a touchscreen laptop) switches to touch controls
     addEventListener('touchstart', () => this.enableTouch(), { once: true, passive: true });
     document.addEventListener('visibilitychange', () => document.hidden && this.pause());
+    addEventListener('pointerdown', () => this.state === 'cutscene' && this.cutscene.skip());
 
     // ---- Bonus Round (native mode: the round plays in our world with our own player) ----
     this.frameCallbacks = [];
@@ -207,8 +227,7 @@ class Game {
       else if (a === 'settings-back') this.showScreen(this.settingsReturn);
       else if (a === 'checkpoint') this.respawn();
       else if (a === 'quit') location.reload();
-      else if (a === 'respawn') this.respawn();
-      else if (a === 'revive') this.revive();
+      else if (a === 'revive') this.reviveTapped = true;
       else if (a === 'continue') this.resume();
     });
     const bind = (id, key, parse, after) => {
@@ -218,7 +237,7 @@ class Game {
       el.addEventListener('input', () => {
         this.settings[key] = parse(el);
         try {
-          localStorage.setItem('chroma-settings-v2', JSON.stringify(this.settings));
+          localStorage.setItem('chroma-settings-v3', JSON.stringify(this.settings));
         } catch {
           /* storage unavailable: settings last for this session only */
         }
@@ -252,7 +271,7 @@ class Game {
 
   play() {
     audio.unlock();
-    audio.startMusic();
+    audio.playMusic(this.musicTrack || 'music_red');
     this.state = 'playing';
     this.hud.show(true);
     this.showScreen(null);
@@ -260,7 +279,7 @@ class Game {
     ads.safe(false);
     if (!this.started) {
       this.started = true;
-      this.hud.zoneTitle('SECTOR 1', 'CRIMSON FOUNDRY', '#ff3344');
+      this.enterZone('SECTOR 1', 'CRIMSON FOUNDRY', '#ff3344');
       setTimeout(() => this.hud.message('Grab the <b>Chroma Blaster</b> from the pedestal.', 5), 1200);
     }
   }
@@ -272,10 +291,18 @@ class Game {
     document.body.classList.add('touch');
   }
 
-  // Grab input for gameplay: pointer lock on desktop; fullscreen (where allowed) on touch devices.
+  // Grab input for gameplay. Desktop: fullscreen + pointer lock, and a keyboard lock on the movement and
+  // crouch keys so Ctrl+W crouch-walks instead of closing the tab (Chrome/Edge). Touch: fullscreen.
   capture() {
-    if (!this.touchMode) return this.input.requestLock();
     const el = document.documentElement;
+    if (!this.touchMode) {
+      if (!document.fullscreenElement && el.requestFullscreen) {
+        el.requestFullscreen()
+          .then(() => navigator.keyboard?.lock?.(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyC', 'ControlLeft', 'ControlRight', 'Space']))
+          .catch(() => {});
+      }
+      return this.input.requestLock();
+    }
     if (!document.fullscreenElement && el.requestFullscreen) {
       el.requestFullscreen({ navigationUI: 'hide' })
         .then(() => screen.orientation?.lock?.('landscape').catch(() => {}))
@@ -307,6 +334,18 @@ class Game {
   }
 
   // ------------------------------------------------------------------ progression hooks
+  // Each sector has its own music; the antechamber gets the ominous title theme until the boss drops.
+  enterZone(sub, main, color) {
+    this.hud.zoneTitle(sub, main, color);
+    const track = { 'CRIMSON FOUNDRY': 'music_red', 'AMBER CONDUITS': 'music_yellow', 'OVERGROWTH YARD': 'music_green', 'AZURE GAUNTLET': 'music_blue', 'PRISM CORE': 'music_title' }[main];
+    if (track) this.setMusic(track);
+  }
+
+  setMusic(track) {
+    this.musicTrack = track;
+    if (this.started) audio.playMusic(track);
+  }
+
   setCheckpoint(pos, yaw, ref) {
     this.checkpoint = { pos: pos.clone(), yaw, ref };
     audio.checkpoint();
@@ -314,10 +353,19 @@ class Game {
     this.player.heal(10);
   }
 
-  unlockColor(c) {
+  // Picking up a chroma core plays the unlock cutscene; the color is granted when it ends.
+  unlockColor(c, corePos) {
+    this.unlocking = c;
+    this.state = 'cutscene';
+    this.input.mouseDown = false;
+    this.cutscene.start(c, corePos);
+  }
+
+  onCutsceneDone() {
+    const c = this.unlocking;
     const first = !this.blaster.has;
+    this.state = 'playing';
     this.blaster.give(c);
-    audio.colorUnlocked(c);
     const name = `<b>${COLORS[c].name}</b>`;
     if (first) this.hud.message(`${name} blaster online. <b>LMB</b> to fire.`, 4);
     else this.hud.message(`${name} unlocked — press <b>${c + 1}</b>. Remember those ${name}-marked doors?`, 6);
@@ -339,6 +387,7 @@ class Game {
     this.hud.bossShow(true);
     this.hud.bossBar(1);
     audio.setIntensity(2);
+    this.setMusic('music_boss');
     ads.safe(false);
   }
 
@@ -350,6 +399,7 @@ class Game {
     this.level.setSeal(false);
     this.hud.bossShow(false);
     audio.setIntensity(0);
+    this.setMusic('music_title');
     this.hud.zoneTitle('PRISM WARDEN', 'SHATTERED', '#ffd23a');
     setTimeout(async () => {
       await this.naturalBreak();
@@ -370,18 +420,53 @@ class Game {
     ads.safe(true);
   }
 
+  // Death: the camera crumples, the suit bursts into shards of your color, the screen drains to red,
+  // then you're put back at the last checkpoint automatically. A Bonus Round revive is offered meanwhile.
   onPlayerDeath() {
-    this.state = 'dead';
+    const p = this.player;
+    this.state = 'dying';
+    this.deathT = 0;
     this.stats.deaths++;
-    this.deathPos = this.player.pos.clone();
-    this.deathYaw = this.player.yaw;
-    this.input.exitLock();
-    audio.explode();
-    const shot = ['orb', 'sweep', 'ring', 'charge'].includes(this.player.deathCause);
-    $('#screen-dead h2').textContent = shot ? 'Shot Down' : 'Signal Lost';
-    $('#screen-dead [data-action="revive"]').classList.toggle('hidden', !ads.available);
-    this.showScreen('dead');
-    ads.safe(true);
+    this.deathPos = p.pos.clone();
+    this.deathYaw = p.yaw;
+    this.deathPitch = p.pitch;
+    this.deathEye = this.camera.position.clone();
+    this.deathRoll = Math.random() < 0.5 ? -1 : 1;
+    this.input.mouseDown = false;
+    audio.death();
+    const eye = this.deathEye.clone();
+    const hex = COLORS[this.blaster.color].hex;
+    this.world.fx.burst(eye.clone().setY(eye.y - 0.4), hex, { count: 140, speed: 7, life: 1.4, size: 0.3, gravity: 6 });
+    this.world.fx.burst(eye.clone().setY(eye.y - 0.6), 0xffffff, { count: 50, speed: 4, life: 0.7, size: 0.4, gravity: 2 });
+    p.shake = 1;
+    const shot = ['orb', 'sweep', 'ring', 'charge'].includes(p.deathCause);
+    this.hud.deathBanner(shot ? 'SHOT DOWN' : 'SIGNAL LOST', ads.available);
+    this.deathPass.enabled = true;
+  }
+
+  updateDying(dt) {
+    this.deathT += dt;
+    const t = this.deathT;
+    const k = 1 - Math.pow(1 - Math.min(1, t / 0.9), 3);
+    const c = this.camera;
+    c.position.copy(this.deathEye);
+    c.position.y -= (this.player.eye - 0.3) * k;
+    c.rotation.set(this.deathPitch * (1 - k) + 0.35 * k, this.deathYaw, this.deathRoll * 1.25 * k, 'YXZ');
+    this.deathPass.uniforms.uAmount.value = Math.min(1, t / 0.7);
+    this.hud.fade(Math.max(0, Math.min(1, (t - 1.9) / 0.45)));
+    this.world.fx.update(dt);
+    if (ads.available && (this.input.hit('KeyR') || this.reviveTapped)) {
+      this.reviveTapped = false;
+      return this.revive();
+    }
+    if (t > 2.4) this.respawn();
+  }
+
+  clearDeathFx() {
+    this.deathPass.enabled = false;
+    this.deathPass.uniforms.uAmount.value = 0;
+    this.hud.deathBanner(null);
+    this.hud.fade(0, 0.45);
   }
 
   respawn() {
@@ -397,11 +482,14 @@ class Game {
       this.level.bossTrigger.inside = false;
       this.hud.bossShow(false);
       audio.setIntensity(1);
+      this.setMusic('music_title');
     }
     for (const pr of this.world.projectiles) pr.alive = false;
+    this.clearDeathFx();
+    p.updateCamera();
     this.state = 'playing';
     this.showScreen(null);
-    this.capture();
+    if (!this.input.locked) this.capture();
     ads.safe(false);
   }
 
@@ -415,6 +503,7 @@ class Game {
     p.spawn(this.deathPos, this.deathYaw);
     p.health = 1;
     for (const pr of this.world.projectiles) pr.alive = false;
+    this.clearDeathFx();
     this.state = 'playing';
     this.showScreen(null);
     this.capture();
@@ -509,6 +598,12 @@ class Game {
     if (this.state === 'playing') {
       if (DEV) this.devKeys();
       this.step(dt);
+    } else if (this.state === 'cutscene') {
+      if (this.input.hit('Space') || this.input.hit('Enter') || this.input.mousePressed) this.cutscene.skip();
+      this.cutscene.update(dt);
+      this.world.fx.update(dt);
+    } else if (this.state === 'dying') {
+      this.updateDying(dt);
     } else if (this.state === 'title') {
       // slow look around the spawn room behind the menu
       this.camera.position.set(Math.sin(t * 0.1) * 2, 2.2, -1.5);

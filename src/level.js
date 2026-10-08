@@ -10,6 +10,7 @@ import { Barrier } from './entities/barrier.js';
 import { Drone } from './entities/drone.js';
 import { Pickup, MovingPlatform, JumpPad, Checkpoint } from './entities/misc.js';
 import { Boss } from './boss.js';
+import { Mirror, Glass, ColorTarget, SlidingDoor } from './entities/puzzle.js';
 
 const T = 0.5; // wall thickness
 const CH = 3.2; // corridor height
@@ -97,7 +98,7 @@ export function buildLevel(world, game) {
   function pedestal(x, y, z, color, zone) {
     W.box(x - 0.7, y, z - 0.7, x + 0.7, y + 0.9, z + 0.7, 'metal', zone);
     W.deco(x - 0.75, y + 0.9, z - 0.75, x + 0.75, y + 0.98, z + 0.75, GLOW[zone], zone);
-    return new Pickup(W, { pos: [x, y + 1.8, z], type: 'color', color, onCollect: () => game.unlockColor(color) });
+    return new Pickup(W, { pos: [x, y + 1.8, z], type: 'color', color, onCollect: (pk) => game.unlockColor(color, pk.pos) });
   }
 
   function secretRoom(min, max, label) {
@@ -105,8 +106,19 @@ export function buildLevel(world, game) {
     W.trigger(min, max, () => game.foundSecret(label));
   }
 
+  // A glass booth with an open top around a floor target: only a shot coming down from above gets in.
+  function targetBooth(x1, z1, x2, z2, y, color, onActivate, zone) {
+    const h = 2.6, t = 0.08;
+    new Glass(W, { min: [x1, y, z1], max: [x2, y + h, z1 + t] });
+    new Glass(W, { min: [x1, y, z2 - t], max: [x2, y + h, z2] });
+    new Glass(W, { min: [x1, y, z1 + t], max: [x1 + t, y + h, z2 - t] });
+    new Glass(W, { min: [x2 - t, y, z1 + t], max: [x2, y + h, z2 - t] });
+    W.deco(x1 - 0.05, y, z1 - 0.05, x2 + 0.05, y + 0.05, z2 + 0.05, GLOW[zone], zone);
+    return new ColorTarget(W, { pos: [(x1 + x2) / 2, y, (z1 + z2) / 2], color, onActivate });
+  }
+
   const hint = (min, max, html, time = 5) => W.trigger(min, max, () => game.hud.message(html, time));
-  const zoneTitle = (min, max, sub, main, color) => W.trigger(min, max, () => game.hud.zoneTitle(sub, main, color));
+  const zoneTitle = (min, max, sub, main, color) => W.trigger(min, max, () => game.enterZone(sub, main, color));
   const light = (x, y, z, color, intensity = 30, dist = 30) => {
     const l = new THREE.PointLight(color, intensity, dist, 1.5);
     l.position.set(x, y, z);
@@ -198,6 +210,14 @@ export function buildLevel(world, game) {
     const zone = 'yellow';
     room({ x1: -5, x2: 5, zS: -96, zN: -106, y: 4, h: 5, zone, s: [{ c: 0, w: 3, h: CH }], n: [{ c: 0, w: 3, h: CH }] });
     pedestal(0, 4, -101, YELLOW, zone);
+    // PUZZLE: the exit is sealed; bank a yellow shot off the mirrored ceiling into the booth
+    const doorA = new SlidingDoor(W, { min: [-1.5, 4, -106.5], max: [1.5, 7.2, -106], color: YELLOW, zone });
+    new Mirror(W, { min: [-5, 8.85, -106], max: [5, 9, -96] });
+    targetBooth(2.4, -104.6, 4.6, -102.4, 4, YELLOW, () => {
+      doorA.open();
+      game.hud.message('Exit unsealed!', 2.5);
+    }, zone);
+    hint([-5, 4, -106], [5, 7, -103.5], 'The exit is sealed. Hit the <b>target behind the glass</b>: bounce a shot off the <b>mirrored ceiling</b>.', 6);
     new Checkpoint(W, game, { pos: [0, 4, -97.5], yaw: 0, size: [10, 3, 3] });
     zoneTitle([-5, 4, -98], [5, 7, -96], 'SECTOR 2', 'AMBER CONDUITS', '#ffd23a');
     light(0, 8, -101, 0xffd23a, 20, 16);
@@ -212,7 +232,7 @@ export function buildLevel(world, game) {
     hint([-1.5, 4, d(3)], [1.5, 7, d(1)], 'Switch colors with <b>1-4</b>, <b>Q</b>/<b>E</b> or the <b>mouse wheel</b>. <b>F</b> swaps to your last color.');
     [[4, YELLOW], [7, RED], [10, YELLOW], [13, YELLOW], [16, RED], [22, RED], [24, YELLOW], [26, RED], [28, YELLOW]].forEach(([k, c]) => barrierWall(d(k), 4, c, zone));
     new Drone(W, { pos: [0, 6.2, d(19.5)], color: [RED, YELLOW], orbit: 0.4, range: 16, cycle: 2 });
-    hint([-1.5, 4, d(26)], [1.5, 7, d(24)], 'Low passage ahead — hold <b>C</b> to crouch.');
+    hint([-1.5, 4, d(26)], [1.5, 7, d(24)], 'Low passage ahead — hold <b>Ctrl</b> or <b>C</b> to crouch.');
 
     // SECRET 3 — green door (come back after Sector 3)
     new Barrier(W, { min: [-2, 4, d(13.2)], max: [-1.5, 7, d(10.8)], color: GREEN, kind: 'door', zone });
@@ -261,6 +281,14 @@ export function buildLevel(world, game) {
     const zone = 'green';
     room({ x1: -5, x2: 5, zS: -188, zN: -198, y: 3, h: 5, zone, s: [{ c: 0, w: 3, h: CH }], n: [{ c: 0, w: 3, h: CH }] });
     pedestal(0, 3, -193, GREEN, zone);
+    // PUZZLE: no mirror this time; green bounces off anything that isn't green, like the red ceiling
+    const doorB = new SlidingDoor(W, { min: [-1.5, 3, -198.5], max: [1.5, 6.2, -198], color: GREEN, zone });
+    new Barrier(W, { min: [-5, 7.7, -198], max: [5, 7.95, -188], color: RED, kind: 'wall', regen: 2.5, zone });
+    targetBooth(2.4, -196.6, 4.6, -194.4, 3, GREEN, () => {
+      doorB.open();
+      game.hud.message('Exit unsealed!', 2.5);
+    }, zone);
+    hint([-5, 3, -198], [5, 6, -195.5], 'Sealed again, and no mirror. <b>Wrong colors bounce</b>: ricochet green off the <b>red ceiling</b>.', 6);
     new Checkpoint(W, game, { pos: [0, 3, -189.5], yaw: 0, size: [10, 3, 3] });
     zoneTitle([-5, 3, -190], [5, 6, -188], 'SECTOR 3', 'OVERGROWTH YARD', '#3dff7a');
     light(0, 7, -193, 0x3dff7a, 20, 16);
@@ -285,7 +313,14 @@ export function buildLevel(world, game) {
     W.box(-12, -1, z(20), -2, 1.9, z(10), 'rock', zone);
     W.box(-12, 1.9, z(20), -2, 2.0, z(10), 'grass', zone);
     tree(-10.5, 2, z(18.5));
-    tree(-4, 2, z(18));
+    // PUZZLE: the bridge to island two is offline until you bank a shot off the mirror canopy
+    targetBooth(-6.5, z(15.5), -4.5, z(13.5), 2, YELLOW, () => {
+      bridge.active = true;
+      game.hud.message('Bridge online!', 2.5);
+    }, zone);
+    for (const [px, pz] of [[-8, z(12)], [-3, z(12)], [-8, z(17)], [-3, z(17)]]) W.box(px - 0.12, 2, pz - 0.12, px + 0.12, 6.3, pz + 0.12, 'metal', zone);
+    new Mirror(W, { min: [-8.2, 6.3, z(17.2)], max: [-2.8, 6.5, z(11.8)] });
+    hint([-12, 2, z(20)], [-2, 5, z(10)], 'The bridge is offline. Find a way to hit the <b>yellow target</b>.', 5);
     // SECRET 4 — the hut's only entrance is a crawl hole
     room({ x1: -11.5, x2: -8, zS: z(11), zN: z(14.5), y: 2, h: 2.2, zone, floor: false, trim: false, e: [{ c: z(12.75), w: 1.2, h: 1.0 }] });
     new Pickup(W, { pos: [-9.75, 3, z(12.75)], type: 'maxhp', amount: 20 });
@@ -293,7 +328,7 @@ export function buildLevel(world, game) {
     new Drone(W, { pos: [-7, 6.5, z(15)], color: GREEN, range: 24 });
     new Drone(W, { pos: [-15, 7, z(24)], color: YELLOW, range: 24 });
 
-    new MovingPlatform(W, { min: [-1.5, 1.9, z(16.5)], max: [1.5, 2.5, z(13.5)], offset: [7, 0, 0], speed: 2.2, zone });
+    const bridge = new MovingPlatform(W, { min: [-1.5, 1.9, z(16.5)], max: [1.5, 2.5, z(13.5)], offset: [7, 0, 0], speed: 2.2, zone, active: false });
 
     // island two, with the jump pad up to the drop perch
     W.box(10, -2, z(24), 18, 2.9, z(12), 'rock', zone);

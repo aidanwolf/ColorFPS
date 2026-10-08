@@ -51,6 +51,7 @@ export class Player {
     this.arenaBounds = null; // set by the Bonus Round SDK during a native round
     this.floorY = null;
     this.sprinting = false;
+    this.stride = 0;
     this._min = new THREE.Vector3();
     this._max = new THREE.Vector3();
   }
@@ -93,7 +94,7 @@ export class Player {
     if (this.ground && this.ground.delta) this.pos.add(this.ground.delta);
 
     // ---- crouch ----
-    const wantCrouch = input.down('KeyC') || input.down('TouchCrouch');
+    const wantCrouch = input.down('KeyC') || input.down('ControlLeft') || input.down('ControlRight') || input.down('TouchCrouch');
     if (wantCrouch && !this.crouching) {
       this.crouching = true;
       // crouching in mid-air tucks the legs up, which helps clear ledges
@@ -224,6 +225,16 @@ export class Player {
     this.invuln = Math.max(0, this.invuln - dt);
     this.speed2d = Math.hypot(this.vel.x, this.vel.z);
     if (this.grounded) this.bob += dt * this.speed2d * 1.25;
+    // footsteps: one per stride, louder and longer-strided when sprinting, quiet when crouched
+    if (this.grounded && this.speed2d > 1.2) {
+      this.stride += this.speed2d * dt;
+      const len = this.sprinting ? 2.6 : this.crouching ? 1.5 : 2.1;
+      if (this.stride > len) {
+        this.stride = 0;
+        const k = this.ground?.kind;
+        if (!this.crouching) audio.footstep(k === 'grass' || k === 'rock' ? 'grass' : 'metal', this.sprinting);
+      }
+    }
     this.landKick = Math.max(0, this.landKick - dt * 1.4);
     this.shake = Math.max(0, this.shake - dt * 2.5);
     this.updateCamera();

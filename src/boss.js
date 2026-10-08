@@ -851,7 +851,7 @@ export class Boss {
     this.hips.position.y = 3.2 + this.dipY + (moving ? Math.abs(Math.cos(this.walkPhase)) * 0.12 : 0);
     if (moving && Math.abs(Math.sin(this.walkPhase)) > 0.98 && !this._stepped) {
       this._stepped = true;
-      audio.land(2.5);
+      audio.bossStep();
       this.game.player.shake = Math.max(this.game.player.shake, 0.12);
     } else if (Math.abs(Math.sin(this.walkPhase)) < 0.9) this._stepped = false;
     this.root.position.copy(this.pos);

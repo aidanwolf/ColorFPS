@@ -5,6 +5,7 @@ import { COLORS } from './colors.js';
 import { audio } from './audio.js';
 
 const FIRE_INTERVAL = 0.13;
+const MAX_BOUNCES = 4;
 const _dir = new THREE.Vector3();
 const _muzzle = new THREE.Vector3();
 
@@ -114,36 +115,48 @@ export class Blaster {
     const game = this.game;
     const cam = game.camera;
     cam.getWorldDirection(_dir);
-    const origin = cam.position.clone();
-    const hit = game.world.raycast(origin, _dir, 250, { projectiles: true });
-    const end = hit ? hit.point : origin.clone().addScaledVector(_dir, 250);
-    // tracer starts at the on-screen muzzle, projected into the world
+    // the tracer starts at the on-screen muzzle, projected into the world
     _muzzle.set(0.22, -0.16, -0.9).applyQuaternion(cam.quaternion).add(cam.position);
-    const hex = COLORS[this.color].hex;
-    game.world.fx.tracer(_muzzle, end, hex, 0.05);
     audio.shoot(this.color);
     this.recoil = 1;
     this.muzzleLight.intensity = 6;
-    if (hit) {
-      let result = 'world';
-      if (hit.entity && hit.entity.onHit) result = hit.entity.onHit(this.color, hit) || 'hit';
-      const n = hit.normal || _dir.clone().negate();
-      game.world.fx.burst(hit.point.clone().addScaledVector(n, 0.05), result === 'immune' ? 0xaab0c0 : hex, {
-        count: result === 'immune' ? 6 : 10,
-        speed: 4,
-        life: 0.35,
-        size: 0.18,
-        gravity: 6,
-        dir: n,
-      });
-      if (result === 'hit' || result === 'kill') {
-        game.hud.hitmarker(false);
-        audio.hit();
-      } else if (result === 'immune') {
-        game.hud.hitmarker(true);
-        audio.immune();
-      }
+    const outcome = this.trace(cam.position.clone(), _dir.clone(), _muzzle.clone(), 0);
+    if (outcome.hit) {
+      game.hud.hitmarker(false);
+      audio.hit();
+    } else if (outcome.bounced) {
+      game.hud.hitmarker(true);
     }
+  }
+
+  // Follow one shot. Wrong-color hits and mirror panels reflect the beam, which keeps going and can
+  // hit something else (that's how targets behind glass are reached). Glass and plain walls stop it.
+  trace(origin, dir, from, depth, outcome = { hit: false, bounced: false }) {
+    const world = this.game.world;
+    const hex = COLORS[this.color].hex;
+    const hit = world.raycast(origin, dir, 250, { projectiles: true });
+    const end = hit ? hit.point : origin.clone().addScaledVector(dir, 250);
+    world.fx.tracer(from, end, hex, depth ? 0.035 : 0.05);
+    if (!hit) return outcome;
+    const n = hit.normal || dir.clone().negate();
+    let result = 'world';
+    if (hit.entity && hit.entity.onHit) result = hit.entity.onHit(this.color, hit) || 'hit';
+    else if (hit.solid?.mirror) result = 'mirror';
+    else if (hit.solid?.glass) result = 'glass';
+    if (result === 'hit' || result === 'kill') outcome.hit = true;
+
+    const reflects = result === 'mirror' || result === 'immune';
+    const p = hit.point.clone().addScaledVector(n, 0.02);
+    if (reflects && depth < MAX_BOUNCES) {
+      outcome.bounced = true;
+      world.fx.burst(p, 0xffffff, { count: 8, speed: 5, life: 0.25, size: 0.16, gravity: 4, dir: n });
+      world.fx.burst(p, hex, { count: 10, speed: 3, life: 0.35, size: 0.2, gravity: 2, dir: n });
+      if (result === 'immune') audio.ricochet();
+      const r = dir.clone().addScaledVector(n, -2 * dir.dot(n)).normalize();
+      return this.trace(p, r, hit.point.clone(), depth + 1, outcome);
+    }
+    world.fx.burst(p, result === 'glass' ? 0xbfe8ff : hex, { count: 10, speed: 4, life: 0.35, size: 0.18, gravity: 6, dir: n });
+    return outcome;
   }
 
   animate(dt) {
