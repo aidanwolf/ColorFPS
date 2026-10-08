@@ -5,35 +5,36 @@
   "where": "Atrium · beside the Prism dais",
   "file": "memo_01",
   "text": "Okay. Okay okay okay. Recorder on. Field note one. Doctor Wren Ashby, and I am... standing in it. I am actually standing in it. There's a heart hanging from the ceiling. A machine heart, the size of a bus, and it's beating. And humming. Like a fridge. A gorgeous, enormous, alien fridge. That is not going in the paper. Ten minutes, I promised. Just a look.",
-  "dur": 29.62,
-  "est": true,
+  "spoken": "[excited] Okay. Okay okay okay. Recorder on. Field note one. Doctor Wren Ashby, and I am... standing in it. [whispers] I am actually standing in it. There's a heart hanging from the ceiling. A machine heart, the size of a bus, and it's beating. And humming. Like a fridge. A gorgeous, enormous, alien fridge. [laughs] That is not going in the paper. Ten minutes, I promised. Just a look.",
+  "profile": "expressive",
+  "dur": 37.64,
   "lines": [
    {
-    "t": 0,
+    "t": 0.4,
     "text": "Okay. Okay okay okay. Recorder on."
    },
    {
-    "t": 3.01,
+    "t": 3.87,
     "text": "Field note one. Doctor Wren Ashby, and I am... standing in it."
    },
    {
-    "t": 8.14,
+    "t": 12.86,
     "text": "I am actually standing in it."
    },
    {
-    "t": 10.78,
+    "t": 15.79,
     "text": "There's a heart hanging from the ceiling. A machine heart, the size of a bus, and it's beating."
    },
    {
-    "t": 18.39,
+    "t": 23.3,
     "text": "And humming. Like a fridge. A gorgeous, enormous, alien fridge."
    },
    {
-    "t": 23.59,
+    "t": 31.41,
     "text": "That is not going in the paper."
    },
    {
-    "t": 26.38,
+    "t": 34.24,
     "text": "Ten minutes, I promised. Just a look."
    }
   ]
@@ -44,27 +45,28 @@
   "where": "Atrium · the sunken plaza",
   "file": "memo_02",
   "text": "Lunch break. One squashed granola bar. Five stars. The floor in this little plaza is warm. And if I press my ear to it... there's flow. Lava from the south. A sunbeam from the west. Roots across the ceiling. Water climbing a glass pipe. All of it pouring into that heart. Somebody built a junction between worlds. Mum would say I've got my thinking face on. I absolutely do.",
-  "dur": 29.78,
-  "est": true,
+  "spoken": "[happy sigh] Lunch break. One squashed granola bar. Five stars. The floor in this little plaza is warm. And if I press my ear to it... there's flow. Lava from the south. A sunbeam from the west. Roots across the ceiling. Water climbing a glass pipe. All of it pouring into that heart. Somebody built a junction between worlds. Mum would say I've got my thinking face on. [laughs] I absolutely do.",
+  "profile": "expressive",
+  "dur": 31.87,
   "lines": [
    {
-    "t": 0,
+    "t": 0.69,
     "text": "Lunch break. One squashed granola bar. Five stars."
    },
    {
-    "t": 4.17,
+    "t": 5.48,
     "text": "The floor in this little plaza is warm. And if I press my ear to it... there's flow."
    },
    {
-    "t": 10.87,
+    "t": 12.12,
     "text": "Lava from the south. A sunbeam from the west. Roots across the ceiling. Water climbing a glass pipe."
    },
    {
-    "t": 18.76,
+    "t": 20.18,
     "text": "All of it pouring into that heart. Somebody built a junction between worlds."
    },
    {
-    "t": 24.87,
+    "t": 26.12,
     "text": "Mum would say I've got my thinking face on. I absolutely do."
    }
   ]
@@ -75,27 +77,28 @@
   "where": "Atrium · the east gallery",
   "file": "memo_03",
   "text": "Okay. Small confession, for the record. I clipped the probe onto the glass pipe up here, just to sip a little power. Barely a trickle. And every light in the room blinked. Every single one. Somewhere off to the south, a door went... pfft. Oops. But it worked! A trickle from this place could run a whole city back home. Priya is going to scream.",
-  "dur": 28.21,
-  "est": true,
+  "spoken": "[nervous giggle] Okay. Small confession, for the record. I clipped the probe onto the glass pipe up here, just to sip a little power. Barely a trickle. And every light in the room blinked. Every single one. Somewhere off to the south, a door went... pfft. [whispers] Oops. [excited] But it worked! A trickle from this place could run a whole city back home. Priya is going to scream.",
+  "profile": "expressive",
+  "dur": 30.35,
   "lines": [
    {
-    "t": 0,
+    "t": 0.61,
     "text": "Okay. Small confession, for the record."
    },
    {
-    "t": 3.42,
+    "t": 3.8,
     "text": "I clipped the probe onto the glass pipe up here, just to sip a little power. Barely a trickle."
    },
    {
-    "t": 11.03,
+    "t": 10.84,
     "text": "And every light in the room blinked. Every single one. Somewhere off to the south, a door went... pfft."
    },
    {
-    "t": 19.31,
+    "t": 21.98,
     "text": "Oops."
    },
    {
-    "t": 20.15,
+    "t": 23.27,
     "text": "But it worked! A trickle from this place could run a whole city back home. Priya is going to scream."
    }
   ]
@@ -106,27 +109,28 @@
   "where": "Solar · the Sunward Overlook",
   "file": "memo_04",
   "text": "I need to say this out loud so I believe it. The sun out here is real. A real star, on a track, caught like a fish on a line. And the probe can talk to it. I found its frequency, and I turned it down. Just for nine seconds. The whole mesa went blue, and quiet, and... I dimmed a star! Then it came back brighter. Like it was cross with me.",
-  "dur": 27.78,
-  "est": true,
+  "spoken": "[breathless] I need to say this out loud so I believe it. The sun out here is real. A real star, on a track, caught like a fish on a line. And the probe can talk to it. I found its frequency, and I turned it down. Just for nine seconds. The whole mesa went blue, and quiet, and... [laughs] I dimmed a star! [beat] Then it came back brighter. Like it was cross with me.",
+  "profile": "expressive",
+  "dur": 31.95,
   "lines": [
    {
-    "t": 0,
+    "t": 0.15,
     "text": "I need to say this out loud so I believe it."
    },
    {
-    "t": 3.81,
+    "t": 2.92,
     "text": "The sun out here is real. A real star, on a track, caught like a fish on a line."
    },
    {
-    "t": 10.35,
+    "t": 12,
     "text": "And the probe can talk to it. I found its frequency, and I turned it down. Just for nine seconds."
    },
    {
-    "t": 18.19,
+    "t": 19.98,
     "text": "The whole mesa went blue, and quiet, and... I dimmed a star!"
    },
    {
-    "t": 23.21,
+    "t": 28.78,
     "text": "Then it came back brighter. Like it was cross with me."
    }
   ]
@@ -137,27 +141,28 @@
   "where": "Solar · the array terrace",
   "file": "memo_05",
   "text": "Found glass in the sand, layered like tree rings. Every layer is one summer. This whole world gets burned down and poured out again. Over, and over. I counted four thousand before I made myself stop. Also, the link home has gone quiet. Probably interference. Probably. Note to self: stop saying probably.",
-  "dur": 24.78,
-  "est": true,
+  "spoken": "Found glass in the sand, layered like tree rings. Every layer is one summer. This whole world gets burned down and poured out again. Over, and over. [uneasy] I counted four thousand before I made myself stop. Also, the link home has gone quiet. Probably interference. Probably. [sighs] Note to self: stop saying probably.",
+  "profile": "expressive",
+  "dur": 27.95,
   "lines": [
    {
     "t": 0,
     "text": "Found glass in the sand, layered like tree rings. Every layer is one summer."
    },
    {
-    "t": 6.16,
+    "t": 6.3,
     "text": "This whole world gets burned down and poured out again. Over, and over."
    },
    {
-    "t": 11.94,
+    "t": 13.02,
     "text": "I counted four thousand before I made myself stop."
    },
    {
-    "t": 16.14,
+    "t": 16.1,
     "text": "Also, the link home has gone quiet. Probably interference. Probably."
    },
    {
-    "t": 21.7,
+    "t": 25.02,
     "text": "Note to self: stop saying probably."
    }
   ]
@@ -168,27 +173,28 @@
   "where": "Solar · the Gnomon summit",
   "file": "memo_06",
   "text": "There are shapes on the summit stones. Burned in. People-shaped. Some of them look... new. The edges are still sharp. No. They're old. Thousands of summers old. I literally just counted them. I'm a physicist, not an archaeologist. I wouldn't know what new looks like. Moving on. North. Somewhere green, please.",
-  "dur": 25.21,
-  "est": true,
+  "spoken": "[quietly] There are shapes on the summit stones. Burned in. People-shaped. Some of them look... new. The edges are still sharp. No. They're old. Thousands of summers old. I literally just counted them. [shaky laugh] I'm a physicist, not an archaeologist. I wouldn't know what new looks like. Moving on. North. Somewhere green, please.",
+  "profile": "expressive",
+  "dur": 34.04,
   "lines": [
    {
-    "t": 0,
+    "t": 0.2,
     "text": "There are shapes on the summit stones. Burned in. People-shaped."
    },
    {
-    "t": 5.25,
+    "t": 6.64,
     "text": "Some of them look... new. The edges are still sharp."
    },
    {
-    "t": 9.6,
+    "t": 13.39,
     "text": "No. They're old. Thousands of summers old. I literally just counted them."
    },
    {
-    "t": 15.53,
+    "t": 22.71,
     "text": "I'm a physicist, not an archaeologist. I wouldn't know what new looks like."
    },
    {
-    "t": 21.61,
+    "t": 28.22,
     "text": "Moving on. North. Somewhere green, please."
    }
   ]
@@ -199,27 +205,28 @@
   "where": "Verdant · the Root Court",
   "file": "memo_07",
   "text": "Oh, it's lovely. Moss, and rain, and that gold light through the leaves. Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls. But there's no birdsong. No bees. Nothing here that wouldn't burn well. The whole valley is just... fuel, growing. A wren, and no other birds. That's me, then.",
-  "dur": 25.64,
-  "est": true,
+  "spoken": "[softly] Oh, it's lovely. Moss, and rain, and that gold light through the leaves. Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls. But there's no birdsong. No bees. Nothing here that wouldn't burn well. The whole valley is just... fuel, growing. [small laugh] A wren, and no other birds. That's me, then.",
+  "profile": "expressive",
+  "dur": 29.39,
   "lines": [
    {
-    "t": 0,
+    "t": 0.28,
     "text": "Oh, it's lovely. Moss, and rain, and that gold light through the leaves."
    },
    {
-    "t": 5.85,
+    "t": 6.24,
     "text": "Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls."
    },
    {
-    "t": 12.52,
+    "t": 13.08,
     "text": "But there's no birdsong. No bees. Nothing here that wouldn't burn well."
    },
    {
-    "t": 18.29,
+    "t": 19,
     "text": "The whole valley is just... fuel, growing."
    },
    {
-    "t": 21.89,
+    "t": 25.08,
     "text": "A wren, and no other birds. That's me, then."
    }
   ]
@@ -230,27 +237,28 @@
   "where": "Verdant · the rim of the Great Hollow",
   "file": "memo_08",
   "text": "The roots down by the water are growing through... people. Not old ones. There's a jacket. A trainer, with the laces still done up. And a bus pass. From home. From my city. That's not possible. Nobody else came through. The breach only ever opened for me. Why is it here?",
-  "dur": 22.42,
-  "est": true,
+  "spoken": "[trembling] The roots down by the water are growing through... people. Not old ones. There's a jacket. A trainer, with the laces still done up. And a bus pass. From home. From my city. That's not possible. Nobody else came through. The breach only ever opened for me. [crying quietly] Why is it here?",
+  "profile": "expressive",
+  "dur": 30.04,
   "lines": [
    {
-    "t": 0,
+    "t": 0.14,
     "text": "The roots down by the water are growing through... people."
    },
    {
-    "t": 4.83,
+    "t": 5.74,
     "text": "Not old ones. There's a jacket. A trainer, with the laces still done up."
    },
    {
-    "t": 10.72,
+    "t": 13.4,
     "text": "And a bus pass. From home. From my city."
    },
    {
-    "t": 14.19,
+    "t": 19.5,
     "text": "That's not possible. Nobody else came through. The breach only ever opened for me."
    },
    {
-    "t": 20.83,
+    "t": 28.69,
     "text": "Why is it here?"
    }
   ]
@@ -261,27 +269,28 @@
   "where": "Verdant · the root island",
   "file": "memo_09",
   "text": "Recording quietly. Something has been following me since the lake. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. Right. Count to three, then run for the cold door, east. One. Two...",
-  "dur": 23.49,
-  "est": true,
+  "spoken": "[whispers] Recording quietly. Something has been following me since the lake. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. [nervous] Right. Count to three, then run for the cold door, east. One. Two...",
+  "profile": "expressive",
+  "dur": 28.84,
   "lines": [
    {
-    "t": 0,
+    "t": 0.58,
     "text": "Recording quietly."
    },
    {
-    "t": 1.81,
+    "t": 2.44,
     "text": "Something has been following me since the lake. It stops when I stop."
    },
    {
-    "t": 7.45,
+    "t": 7.73,
     "text": "When I turn around, it's only light, bending, like heat over a road."
    },
    {
-    "t": 13.02,
+    "t": 14.72,
     "text": "I think the machine knows my name now. Ever since the star."
    },
    {
-    "t": 17.92,
+    "t": 21.05,
     "text": "Right. Count to three, then run for the cold door, east. One. Two..."
    }
   ]
@@ -292,27 +301,28 @@
   "where": "Azure · the Rim Deck",
   "file": "memo_10",
   "text": "Coldest I've ever been, and I once went camping in Wales in April. It's a station, hanging over an ocean with no bottom. Tides, with no moon. Every pipe here turns the weight of the water into power, and sends it up to the Atrium. Heat, light, life, water. That's everything a world has to give. This is the last one. Six granola bars left. Should've packed for more than ten minutes.",
-  "dur": 30.49,
-  "est": true,
+  "spoken": "[laughs, teeth chattering] Coldest I've ever been, and I once went camping in Wales in April. It's a station, hanging over an ocean with no bottom. Tides, with no moon. Every pipe here turns the weight of the water into power, and sends it up to the Atrium. Heat, light, life, water. That's everything a world has to give. This is the last one. [sighs] Six granola bars left. Should've packed for more than ten minutes.",
+  "profile": "expressive",
+  "dur": 33.72,
   "lines": [
    {
-    "t": 0,
+    "t": 1.17,
     "text": "Coldest I've ever been, and I once went camping in Wales in April."
    },
    {
-    "t": 5.35,
+    "t": 6.03,
     "text": "It's a station, hanging over an ocean with no bottom. Tides, with no moon."
    },
    {
-    "t": 11.3,
+    "t": 12.35,
     "text": "Every pipe here turns the weight of the water into power, and sends it up to the Atrium."
    },
    {
-    "t": 18.29,
+    "t": 18.24,
     "text": "Heat, light, life, water. That's everything a world has to give. This is the last one."
    },
    {
-    "t": 25.14,
+    "t": 29.5,
     "text": "Six granola bars left. Should've packed for more than ten minutes."
    }
   ]
@@ -323,27 +333,28 @@
   "where": "Azure · inside the pump hut",
   "file": "memo_11",
   "text": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the lab and argued to go first, because I wanted it to be me. It was my sister's birthday dinner that night. I told her I'd only be a bit late. Ten minutes, I said. Sorry, Bea. Save me some cake.",
-  "dur": 24.71,
-  "est": true,
+  "spoken": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the lab and argued to go first, because I wanted it to be me. It was my sister's birthday dinner that night. I told her I'd only be a bit late. [softly] Ten minutes, I said. [sniffles] Sorry, Bea. Save me some cake.",
+  "profile": "expressive",
+  "dur": 25.08,
   "lines": [
    {
     "t": 0,
     "text": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat."
    },
    {
-    "t": 6.53,
+    "t": 6.3,
     "text": "I was so sure. I stood in the lab and argued to go first, because I wanted it to be me."
    },
    {
-    "t": 13.52,
+    "t": 13.25,
     "text": "It was my sister's birthday dinner that night. I told her I'd only be a bit late."
    },
    {
-    "t": 20.05,
+    "t": 19.97,
     "text": "Ten minutes, I said."
    },
    {
-    "t": 22.01,
+    "t": 22.48,
     "text": "Sorry, Bea. Save me some cake."
    }
   ]
@@ -354,31 +365,32 @@
   "where": "Azure · the Bell, in the Flooded Depths",
   "file": "memo_12",
   "text": "Air pocket. Okay. Breathe, Wren. Just breathe. The walls down here are covered in the machine's own records, and I can finally read them. There's an entry. Anomaly. A world outside the loop reached into the junction. It drew power. It silenced a sun, for nine seconds. Classification: threat. That's me. That's my nine seconds.",
-  "dur": 26.7,
-  "est": true,
+  "spoken": "[scared, whispering] Air pocket. Okay. Breathe, Wren. Just breathe. The walls down here are covered in the machine's own records, and I can finally read them. There's an entry. Anomaly. A world outside the loop reached into the junction. It drew power. It silenced a sun, for nine seconds. [voice cracking] Classification: threat. That's me. That's my nine seconds.",
+  "profile": "expressive",
+  "dur": 32.91,
   "lines": [
    {
-    "t": 0,
+    "t": 0.14,
     "text": "Air pocket. Okay. Breathe, Wren. Just breathe."
    },
    {
-    "t": 3.88,
+    "t": 5.62,
     "text": "The walls down here are covered in the machine's own records, and I can finally read them."
    },
    {
-    "t": 11.04,
+    "t": 11.79,
     "text": "There's an entry. Anomaly. A world outside the loop reached into the junction."
    },
    {
-    "t": 17.3,
+    "t": 18.72,
     "text": "It drew power. It silenced a sun, for nine seconds."
    },
    {
-    "t": 21.55,
+    "t": 26.68,
     "text": "Classification: threat."
    },
    {
-    "t": 23.72,
+    "t": 28.53,
     "text": "That's me. That's my nine seconds."
    }
   ]
@@ -389,27 +401,28 @@
   "where": "Azure · the Cryo Lab",
   "file": "memo_13",
   "text": "I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used. Everyone from home is in here. All entered on the same day. The day after my nine seconds. Mum's name. Bea's. Priya's. It never even noticed us. We were too small to bother with. Until I showed it we could switch it off. It wasn't an invitation. It was me.",
-  "dur": 27.56,
-  "est": true,
+  "spoken": "[crying] I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used. Everyone from home is in here. All entered on the same day. The day after my nine seconds. Mum's name. Bea's. Priya's. It never even noticed us. We were too small to bother with. Until I showed it we could switch it off. [sobbing] It wasn't an invitation. It was me.",
+  "profile": "expressive",
+  "dur": 34.69,
   "lines": [
    {
-    "t": 0,
+    "t": 0.68,
     "text": "I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used."
    },
    {
-    "t": 6.87,
+    "t": 9.53,
     "text": "Everyone from home is in here. All entered on the same day. The day after my nine seconds."
    },
    {
-    "t": 14.04,
+    "t": 17.02,
     "text": "Mum's name. Bea's. Priya's."
    },
    {
-    "t": 16.51,
+    "t": 20.69,
     "text": "It never even noticed us. We were too small to bother with. Until I showed it we could switch it off."
    },
    {
-    "t": 24.5,
+    "t": 30.13,
     "text": "It wasn't an invitation. It was me."
    }
   ]
@@ -420,31 +433,32 @@
   "where": "Prism Core · among the crystals",
   "file": "memo_14",
   "text": "Okay. Crying's done. Mostly. This is where the four rivers end. The heart, under the Atrium. If the rivers go dark, it starves, and the loop has to let go. I broke it, so I fix it. That's the rule. That's always been the rule. Slight problem: the thing guarding the heart is enormous. All facets and fury. And it has been looking for me since the star.",
-  "dur": 28.49,
-  "est": true,
+  "spoken": "[sniffles, steadier] Okay. Crying's done. Mostly. This is where the four rivers end. The heart, under the Atrium. If the rivers go dark, it starves, and the loop has to let go. I broke it, so I fix it. That's the rule. That's always been the rule. [nervous laugh] Slight problem: the thing guarding the heart is enormous. All facets and fury. And it has been looking for me since the star.",
+  "profile": "expressive",
+  "dur": 34.19,
   "lines": [
    {
-    "t": 0,
+    "t": 0.56,
     "text": "Okay. Crying's done. Mostly."
    },
    {
-    "t": 2.53,
+    "t": 4.51,
     "text": "This is where the four rivers end. The heart, under the Atrium."
    },
    {
-    "t": 7.66,
+    "t": 10.8,
     "text": "If the rivers go dark, it starves, and the loop has to let go."
    },
    {
-    "t": 12.72,
+    "t": 16.16,
     "text": "I broke it, so I fix it. That's the rule. That's always been the rule."
    },
    {
-    "t": 18.37,
+    "t": 23.89,
     "text": "Slight problem: the thing guarding the heart is enormous. All facets and fury."
    },
    {
-    "t": 24.62,
+    "t": 31.3,
     "text": "And it has been looking for me since the star."
    }
   ]
@@ -455,31 +469,32 @@
   "where": "Prism Core · the way to the arena",
   "file": "memo_15",
   "text": "It's close. I can hear it turning. There's a door beneath the heart that only opens to white light. Every color at once. That's where the loop begins. I've got one color, half a plan, and a squashed granola bar. Mum. Bea. If you dream at all in there... dream about cake. Recorder off. No. Leave it on. I'd like the company.",
-  "dur": 26.99,
-  "est": true,
+  "spoken": "[whispers] It's close. I can hear it turning. There's a door beneath the heart that only opens to white light. Every color at once. That's where the loop begins. I've got one color, half a plan, and a squashed granola bar. [softly, almost laughing] Mum. Bea. If you dream at all in there... dream about cake. Recorder off. [pause] No. Leave it on. I'd like the company.",
+  "profile": "expressive",
+  "dur": 31.71,
   "lines": [
    {
-    "t": 0,
+    "t": 0.07,
     "text": "It's close. I can hear it turning."
    },
    {
-    "t": 3.04,
+    "t": 2.85,
     "text": "There's a door beneath the heart that only opens to white light. Every color at once."
    },
    {
-    "t": 9.96,
+    "t": 10.75,
     "text": "That's where the loop begins."
    },
    {
-    "t": 12.62,
+    "t": 12.96,
     "text": "I've got one color, half a plan, and a squashed granola bar."
    },
    {
-    "t": 17.64,
+    "t": 19.07,
     "text": "Mum. Bea. If you dream at all in there... dream about cake."
    },
    {
-    "t": 22.58,
+    "t": 25.2,
     "text": "Recorder off. No. Leave it on. I'd like the company."
    }
   ]
