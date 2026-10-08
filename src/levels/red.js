@@ -167,7 +167,7 @@ export function buildRed(B) {
   corridor({ zStart: -81.5, zEnd: -99.5, y: 4, zone }); // runs into the Hub's south door
   barrierWall(-86, 4, RED, zone);
   barrierWall(-90, 4, RED, zone);
-  new Drone(W, { pos: [0, 6, -93.5], color: RED, orbit: 0.4, range: 14 });
+  new Drone(W, { pos: [0, 6, -92], color: RED, orbit: 0.4, range: 9 }); // short range so it can't reach the Hub checkpoint
 
   area([-6, 0, -12], [6, 6, 0], { ambient: 'amb_foundry', atmosphere: 'foundry' });
   area([-1.5, 4, -99.5], [1.5, 7, -95], { music: 'music_red', ambient: 'amb_foundry', atmosphere: 'foundry' });
