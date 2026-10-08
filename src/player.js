@@ -41,6 +41,7 @@ export class Player {
     this.invuln = 0;
     this.dead = false;
     this.safePos = new THREE.Vector3();
+    this.carry = new THREE.Vector3(); // velocity inherited from a moving platform
     this.safeTimer = 0;
     this.bob = 0;
     this.landKick = 0;
@@ -64,6 +65,7 @@ export class Player {
     this.height = STAND_H;
     this.dead = false;
     this.ground = null;
+    this.carry.set(0, 0, 0);
   }
 
   bounds(h = this.height) {
@@ -89,7 +91,15 @@ export class Player {
     this.pitch = Math.max(-1.55, Math.min(1.55, this.pitch));
 
     // ---- ride moving platforms ----
-    if (this.ground && this.ground.delta) this.pos.add(this.ground.delta);
+    // While standing on one, its motion carries you; jump or step off and you keep its horizontal velocity
+    // until you land (as if you were moving with it), so hopping on a moving platform keeps you over it.
+    const rode = !!this.ground?.delta;
+    if (rode) {
+      this.pos.add(this.ground.delta);
+      if (dt > 0) this.carry.set(this.ground.delta.x / dt, 0, this.ground.delta.z / dt);
+    } else if (this.grounded) {
+      this.carry.set(0, 0, 0);
+    }
 
     // ---- crouch ----
     const wantCrouch = input.down('KeyC') || input.down('ControlLeft') || input.down('ControlRight') || input.down('TouchCrouch');
@@ -166,7 +176,10 @@ export class Player {
     // ---- integrate with collision ----
     const wasGrounded = this.grounded;
     const fallSpeed = -this.vel.y;
-    this.move(this.vel.x * dt, this.vel.y * dt, this.vel.z * dt);
+    // (the frame you leave a platform its delta already moved you, so the carry starts next frame)
+    const cx = rode ? 0 : this.carry.x * dt, cz = rode ? 0 : this.carry.z * dt;
+    this.move(this.vel.x * dt + cx, this.vel.y * dt, this.vel.z * dt + cz);
+    if (this.grounded && !this.ground?.delta) this.carry.set(0, 0, 0);
     if (this.grounded && !wasGrounded) {
       if (fallSpeed > 6) {
         this.landKick = Math.min(0.25, fallSpeed * 0.012);

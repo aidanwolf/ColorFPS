@@ -348,6 +348,9 @@ class Game {
     $('#pause-stats').textContent = `Time ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} · Secrets ${this.secretsFound}/${this.level.secretsTotal} · Deaths ${this.stats.deaths}`;
     this.showScreen('pause');
     ads.safe(true);
+    // free the cursor so the menu is clickable, even if something other than our canvas holds the lock
+    // (e.g. a Bonus Round that ended with the pointer still captured)
+    if (document.pointerLockElement) document.exitPointerLock();
   }
 
   onLockChange(locked) {
@@ -502,6 +505,23 @@ class Game {
     this.stats.deaths++;
     this.deathPos = p.pos.clone();
     this.deathYaw = p.yaw;
+    // where a revive puts you: on the spot if you were shot, but never back inside the acid, spikes or
+    // pit that killed you: then it's the last solid ground you stood on, or the checkpoint
+    this.revivePos = this.deathPos.clone();
+    if (['spike', 'acid', 'fall', 'burn'].includes(p.deathCause)) {
+      const safe = p.safePos.clone();
+      const ok = safe.distanceToSquared(this.deathPos) < 40 * 40 && [0.3, 1.2].every((h) => !this.world.pointInSolid(safe.clone().setY(safe.y + h), 0.3));
+      this.revivePos = ok ? safe : this.checkpoint.pos.clone();
+      // step back from the edge you went over (toward the checkpoint) if there's floor there
+      if (ok) {
+        const back = this.checkpoint.pos.clone().sub(safe).setY(0);
+        if (back.lengthSq() > 0.01) {
+          const probe = safe.clone().addScaledVector(back.normalize(), 1.2).setY(safe.y + 0.5);
+          const hit = this.world.raycast(probe, new THREE.Vector3(0, -1, 0), 1.0, { meshes: false });
+          if (hit && !hit.solid?.hazard && !hit.entity) this.revivePos.copy(probe).setY(hit.point.y);
+        }
+      }
+    }
     this.deathPitch = p.pitch;
     this.deathEye = this.camera.position.clone();
     this.deathRoll = Math.random() < 0.5 ? -1 : 1;
@@ -513,7 +533,7 @@ class Game {
     this.world.fx.burst(eye.clone().setY(eye.y - 0.4), hex, { count: 140, speed: 7, life: 1.4, size: 0.3, gravity: 6 });
     this.world.fx.burst(eye.clone().setY(eye.y - 0.6), 0xffffff, { count: 50, speed: 4, life: 0.7, size: 0.4, gravity: 2 });
     p.shake = 1;
-    const banner = { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST' }[p.deathCause] || 'SHOT DOWN';
+    const banner = { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED' }[p.deathCause] || 'SHOT DOWN';
     this.hud.deathBanner(banner, ads.available);
     this.deathPass.enabled = true;
   }
@@ -569,14 +589,15 @@ class Game {
     ads.safe(false);
   }
 
-  // Rewarded Bonus Round: you're dropped into the round right where you fell; finish it and
-  // you're revived there with 60% integrity, otherwise you respawn at the checkpoint.
+  // Rewarded Bonus Round: you're dropped into the round right where you fell (or the nearest safe ground
+  // for hazard deaths); finish it and you're revived there with 60% integrity, otherwise you respawn
+  // at the checkpoint.
   async revive() {
     const p = this.player;
     let rewarded = false;
     this.reviving = true; // rules stay paused from the click until the round ends
     p.dead = false;
-    p.spawn(this.deathPos, this.deathYaw);
+    p.spawn(this.revivePos, this.deathYaw);
     p.health = 1;
     for (const pr of this.world.projectiles) pr.alive = false;
     this.clearDeathFx();
