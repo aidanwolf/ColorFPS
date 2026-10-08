@@ -356,5 +356,16 @@
   "text": "Single thick lava bubble popping, deep viscous blorp with a soft hiss",
   "dur": 0.7,
   "influence": 0.5
+ },
+ "incinerator_roar": {
+  "text": "Roaring column of concentrated sunlight incinerator beam, intense crackling plasma roar, blazing fire-hose of heat, deep rumbling whoosh with sizzling crackle, continuous",
+  "dur": 4,
+  "loop": true,
+  "influence": 0.6
+ },
+ "incinerator_ignite": {
+  "text": "Massive incinerator beam igniting, sudden explosive whoomph of fire and plasma, bright searing blast with crackle",
+  "dur": 1.5,
+  "influence": 0.6
  }
 }

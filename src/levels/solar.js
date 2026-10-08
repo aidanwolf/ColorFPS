@@ -124,8 +124,10 @@ const LANCE_FS = `
     float shimmer = 0.8 + 0.2 * sin(vY * 14.0 - uTime * 13.0 + vUv.x * 40.0);
     float fade = smoothstep(1.0, 0.7, vY) * (1.0 + smoothstep(0.1, 0.0, vY));
     vec3 col = mix(vec3(1.0, 0.36, 0.05), vec3(1.4, 1.2, 0.8), core);
-    gl_FragColor = vec4(col * uI * (0.04 + 0.38 * core + 0.24 * threads) * shimmer * fade, 1.0);
+    gl_FragColor = vec4(min(col * uI * (0.1 + 0.6 * core + 0.35 * threads) * shimmer * fade, vec3(2.5)), 1.0);
   }`;
+
+const _lp = new THREE.Vector3();
 
 class SunLance {
   constructor(W, { min, max, period = 0, on = 1.5, warn = 0.7, phase = 0 }) {
@@ -158,11 +160,22 @@ class SunLance {
     plate.rotation.x = -Math.PI / 2;
     plate.position.set(center.x, this.min.y + 0.03, center.z);
     W.scene.add(plate);
+    // a soft halo of light around the column, so the rays read from across the canyon
+    this.haloMat = new THREE.MeshBasicMaterial({ color: 0xff9a40, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    this.halo = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 16, 1, true), this.haloMat);
+    this.halo.position.copy(center);
+    this.halo.scale.set(Math.max(size.x, size.z) * 1.9, size.y, Math.max(size.x, size.z) * 1.9);
+    W.scene.add(this.halo);
+    this.size = size;
+    this.world = W;
+    this.roar = audio.createLoop('incinerator_roar');
+    this.fxT = 0;
     W.add(this);
   }
 
   update(dt, player) {
     this.t += dt;
+    const wasLethal = this.lethal;
     let I = 0, heat = 0;
     this.lethal = false;
     if (!this.enabled) I = 0;
@@ -192,6 +205,28 @@ class SunLance {
     this.mat.uniforms.uTime.value += dt;
     this.mesh.visible = I > 0.001;
     this.plateMat.color.setRGB(1, 0.36, 0.08).multiplyScalar(this.enabled ? 0.12 + 0.75 * heat : 0.04);
+    this.haloMat.opacity = I * 0.22;
+    this.halo.visible = I > 0.01;
+    // the roar of each incinerator, by distance; a blast as it ignites
+    const dx = player.pos.x - (this.min.x + this.max.x) / 2, dz = player.pos.z - (this.min.z + this.max.z) / 2;
+    const near = Math.max(0, 1 - Math.hypot(dx, dz) / 38);
+    this.roar.setGain(near * near * (this.lethal ? 0.85 : I * 0.6));
+    this.roar.setRate(0.9 + I * 0.15);
+    if (this.lethal && !wasLethal && near > 0) audio.sample('incinerator_ignite', { gain: 0.9 * near, vary: 0.08 });
+    // sunfire streaming down the column and splashing off the scorched plate
+    if (this.lethal && near > 0) {
+      this.fxT -= dt;
+      const fx = this.world.fx;
+      while (this.fxT <= 0) {
+        this.fxT += 0.025;
+        const p = _lp.set(this.min.x + Math.random() * this.size.x, this.max.y - Math.random() * this.size.y * 0.4, this.min.z + Math.random() * this.size.z);
+        fx.ember(p, (Math.random() - 0.5) * 0.6, -14 - Math.random() * 8, (Math.random() - 0.5) * 0.6, 0xffb24a, 0.5 + Math.random() * 0.4, 0.1);
+        if (Math.random() < 0.5) {
+          p.set(this.min.x + Math.random() * this.size.x, this.min.y + 0.1, this.min.z + Math.random() * this.size.z);
+          fx.ember(p, (Math.random() - 0.5) * 7, 1 + Math.random() * 4, (Math.random() - 0.5) * 7, 0xff7a1a, 0.5, 0.08);
+        }
+      }
+    }
     if (this.lethal) {
       const b = player.bounds();
       if (boxOverlap(b.min, b.max, this.kmin, this.kmax)) player.damage(1, 'burn');

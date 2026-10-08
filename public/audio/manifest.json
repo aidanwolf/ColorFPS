@@ -47,6 +47,8 @@
  "hit",
  "hurt",
  "impact_death",
+ "incinerator_ignite",
+ "incinerator_roar",
  "jump",
  "jump_pad",
  "land",

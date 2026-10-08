@@ -340,7 +340,7 @@ class Game {
   play() {
     audio.unlock();
     if (!this.started) audio.gameStart();
-    audio.prefetch(['lava_sizzle', 'sand_sink', 'toxic_sink', 'lava_bubble']);
+    audio.prefetch(['lava_sizzle', 'sand_sink', 'toxic_sink', 'lava_bubble', 'incinerator_ignite']);
     // area music and ambience follow the player (updateMix); only special tracks (boss, ascent) are pushed
     if (this.musicOverride) audio.playMusic(this.musicOverride);
     this.state = 'playing';
