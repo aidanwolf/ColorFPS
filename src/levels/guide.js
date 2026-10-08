@@ -41,6 +41,7 @@ function foundryObjective(game) {
   const inBox = (q, x1, x2, z1, z2, y1 = -99, y2 = 99) => q.x >= x1 && q.x <= x2 && q.z >= z1 && q.z <= z2 && q.y >= y1 && q.y <= y2;
   const R = (t) => tag(RED, t);
   if (game.isWorldDown?.('red')) return p.z < -55 ? 'The Foundry is cold. <b>North</b>, up the stairs, to the Atrium.' : 'The Foundry is dead. Head <b>north</b> to the Atrium.';
+  if (inBox(p, 6, 23, -8, 0.5)) return 'Out of the cell block: <b>west</b>, into the room with the red door.'; // (cellblock.js)
   if (p.z > 0.5) return 'This annex wing needs colors you don\'t have yet. Head back <b>north</b>.';
   if (inBox(p, -6, 6, -12.2, 0)) return `Shoot the ${R('red barrier')} in the north door.`;
   if (inBox(p, -7, 7, -30.5, -12.2)) {
