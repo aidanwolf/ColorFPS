@@ -160,6 +160,7 @@ export class Hud {
 
   bossShow(v) {
     this.bossEl.classList.toggle('hidden', !v);
+    this.bossEl.parentElement?.classList.toggle('boss-on', !!v); // the objective panel steps aside for the boss bar
   }
 
   bossBar(frac) {
