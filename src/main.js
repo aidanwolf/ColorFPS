@@ -743,7 +743,15 @@ class Game {
     this.hud.fade(0, 0.45);
   }
 
+  // Fell off the edge of the world: keep falling while the screen fades out, then you're back at the
+  // checkpoint (no death screen, no death counted).
+  fallOutOfWorld() {
+    this.voidT = 0.001;
+    this.hud.fade(1, 0.7);
+  }
+
   respawn() {
+    this.voidT = 0;
     const p = this.player;
     p.spawn(this.checkpoint.pos, this.checkpoint.yaw);
     p.health = p.maxHealth;
@@ -918,6 +926,10 @@ class Game {
     if (this.state === 'playing') {
       if (DEV) this.devKeys();
       // one bad frame of game logic must not freeze the game: report it and keep running
+      if (this.voidT && (this.voidT += dt) > 0.8) {
+        this.voidT = 0;
+        this.respawn();
+      }
       try {
         this.step(dt);
       } catch (e) {

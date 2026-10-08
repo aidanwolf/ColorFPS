@@ -22,6 +22,7 @@ const LETHAL_FALL = 29.5; // m/s: fatal (~18 m drop)
 const VOID_DROP = 30;
 const SWIM_SPEED = 4.4;
 export const AIR_MAX = 14; // seconds of breath
+const _down = new THREE.Vector3(0, -1, 0);
 const _swimF = new THREE.Vector3(), _swimT = new THREE.Vector3(); // m below the last ground: you've fallen off the world
 const COYOTE = 0.12;
 const BUFFER = 0.14;
@@ -309,7 +310,12 @@ export class Player {
       }
     }
     // off the edge of the world: falling this far below where you last stood never ends well
-    if (this.pos.y < -95 || (!this.grounded && this.fallTop - this.pos.y > VOID_DROP)) this.damage(1, 'fall');
+    // Falling off the world: if there's nothing below to hit you're faded back to the checkpoint (no
+    // death); a long fall onto something still kills you when you land (see the landing above).
+    if (!this.grounded && !this.game.voidT && (this.pos.y < -95 || this.fallTop - this.pos.y > VOID_DROP)) {
+      const below = this.pos.y < -95 ? null : world.raycast(this.pos, _down, 120, { meshes: false });
+      if (!below) this.game.fallOutOfWorld();
+    }
 
     this.finishUpdate(dt);
   }
