@@ -17,6 +17,7 @@ import { currentObjective } from './levels/guide.js';
 import { regionOf, PORTALS, PORTAL_BLEND } from './levels/regions.js';
 import { updateLiquids } from './liquid.js';
 import { Restock } from './restock.js';
+import { director } from './combat/director.js';
 import { loadSave, writeSave, clearSave } from './save.js';
 import { ads } from './monetization/bonusround.js';
 import { TouchControls } from './touch.js';
@@ -121,6 +122,7 @@ class Game {
     if (COARSE) this.world.fx.quality = 0.6; // lighter particle effects on phones
     this.world.setupCulling([this.sky]);
     this.restock = new Restock(this.world);
+    director.attach(this);
     this.hud.buildColors(this.blaster);
     this.hud.setSecrets(0, this.level.secretsTotal);
     this.player.spawn(this.level.spawn, this.level.spawnYaw);
@@ -800,6 +802,7 @@ class Game {
     }
     for (const pr of this.world.projectiles) pr.alive = false;
     for (const fn of this.level.respawnHooks) fn();
+    director.holders.clear();
     this.clearDeathFx();
     audio.respawn();
     p.updateCamera();
@@ -931,6 +934,7 @@ class Game {
     this.blaster.update(dt, this.input);
     this.hud.setHealth(this.player.health, this.player.maxHealth);
     this.restock.update(this.player);
+    director.update(dt);
     const air = this.player.air / AIR_MAX;
     this.hud.setAir(air, this.player.headUnder || air < 0.999);
     const goal = currentObjective(this);
