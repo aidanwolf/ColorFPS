@@ -246,7 +246,7 @@ class SolarDirector {
       for (const s of this.slag) {
         if (b.min.x < s.max.x + 0.04 && b.max.x > s.min.x - 0.04 && b.min.y < s.max.y + 0.06 && b.max.y > s.min.y && b.min.z < s.max.z + 0.04 && b.max.z > s.min.z - 0.04) {
           audio.acid();
-          player.damage(1, 'burn');
+          player.damage(1, 'quicksand');
           return;
         }
       }
@@ -336,7 +336,7 @@ export function buildSolar(B) {
   heliostat(-51, 4, -106);
   heliostat(-51, 4, -118);
   M(-49, 4, -114, -45.6, 4.25, -111.6); // a toppled panel
-  hint([-56, 4, -104], [-46, 7, -100], 'The canyon floor is <b>molten slag</b>. Mind your footing.', 4);
+  hint([-56, 4, -104], [-46, 7, -100], 'The canyon floor is <b>quicksand</b>. One wrong step and it swallows you.', 4);
 
   // SECRET 1 — the Sunshade Grotto, behind a green door in the mesa wall (come back after Verdant)
   R(-62, -24.4, -132, -38, 4, -124);

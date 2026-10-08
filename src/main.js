@@ -15,6 +15,7 @@ import { Hud } from './hud.js';
 import { buildLevel } from './level.js';
 import { currentObjective } from './levels/guide.js';
 import { regionOf, PORTALS, PORTAL_BLEND } from './levels/regions.js';
+import { updateLiquids } from './liquid.js';
 import { loadSave, writeSave, clearSave } from './save.js';
 import { ads } from './monetization/bonusround.js';
 import { TouchControls } from './touch.js';
@@ -30,6 +31,13 @@ const AREA_MOOD = {
   verdant: { music: 'music_green', ambient: 'amb_jungle', atmosphere: 'verdant' },
   azure: { music: 'music_blue', ambient: 'amb_abyss', atmosphere: 'azure' },
   prism: { music: 'music_antechamber', ambient: 'amb_core', atmosphere: 'prism' },
+};
+// how each hazard liquid takes you (death sequence): depth sunk, over how long, tint, sound, banner
+const SINK = {
+  lava: { depth: 2.2, time: 1.5, tint: 0xff4a10, ember: 0xff7a1a, sound: 'lava_sizzle', banner: 'MELTED' },
+  sand: { depth: 2.0, time: 1.8, tint: 0x6a4a28, ember: null, sound: 'sand_sink', banner: 'SWALLOWED' },
+  toxic: { depth: 2.0, time: 1.5, tint: 0x2aff4a, ember: 0x7dff8a, sound: 'toxic_sink', banner: 'DISSOLVED' },
+  brine: { depth: 2.0, time: 1.6, tint: 0x2a7aff, ember: null, sound: 'toxic_sink', banner: 'FROZEN' },
 };
 const AREA_TRACKS = new Set(Object.values(AREA_MOOD).map((m) => m.music));
 const AREA_AMBIENTS = new Set(Object.values(AREA_MOOD).map((m) => m.ambient));
@@ -135,12 +143,16 @@ class Game {
     this.composer.addPass(this.bloom);
     // death grade: drains color, tints red and closes a vignette as uAmount goes 0 → 1
     this.deathPass = new ShaderPass({
-      uniforms: { tDiffuse: { value: null }, uAmount: { value: 0 } },
+      uniforms: { tDiffuse: { value: null }, uAmount: { value: 0 }, uSubmerge: { value: 0 }, uTint: { value: new THREE.Color() }, uTime: { value: 0 } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
       fragmentShader: `
-        uniform sampler2D tDiffuse; uniform float uAmount; varying vec2 vUv;
+        uniform sampler2D tDiffuse; uniform float uAmount, uSubmerge, uTime; uniform vec3 uTint; varying vec2 vUv;
         void main(){
-          vec4 c = texture2D(tDiffuse, vUv);
+          // sinking into a liquid: the view wobbles and drowns in its color
+          vec2 uv = vUv + uSubmerge * 0.012 * vec2(sin(vUv.y * 24.0 + uTime * 5.0), cos(vUv.x * 19.0 + uTime * 4.0));
+          vec4 c = texture2D(tDiffuse, uv);
+          float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+          c.rgb = mix(c.rgb, uTint * (0.35 + 0.9 * lum), uSubmerge * 0.9);
           float g = dot(c.rgb, vec3(0.299, 0.587, 0.114));
           vec3 grade = mix(c.rgb, vec3(g * 1.1, g * 0.35, g * 0.35), uAmount);
           float v = smoothstep(0.85, 0.2, length(vUv - 0.5) * (1.0 + uAmount));
@@ -328,6 +340,7 @@ class Game {
   play() {
     audio.unlock();
     if (!this.started) audio.gameStart();
+    audio.prefetch(['lava_sizzle', 'sand_sink', 'toxic_sink', 'lava_bubble']);
     // area music and ambience follow the player (updateMix); only special tracks (boss, ascent) are pushed
     if (this.musicOverride) audio.playMusic(this.musicOverride);
     this.state = 'playing';
@@ -634,7 +647,7 @@ class Game {
     // where a revive puts you: on the spot if you were shot, but never back inside the acid, spikes or
     // pit that killed you: then it's the last solid ground you stood on, or the checkpoint
     this.revivePos = this.deathPos.clone();
-    if (['spike', 'acid', 'fall', 'burn', 'impact'].includes(p.deathCause)) {
+    if (['spike', 'acid', 'quicksand', 'fall', 'burn', 'impact'].includes(p.deathCause)) {
       const safe = p.safePos.clone();
       const ok = safe.distanceToSquared(this.deathPos) < 40 * 40 && [0.3, 1.2].every((h) => !this.world.pointInSolid(safe.clone().setY(safe.y + h), 0.3));
       this.revivePos = ok ? safe : this.checkpoint.pos.clone();
@@ -659,7 +672,12 @@ class Game {
     this.world.fx.burst(eye.clone().setY(eye.y - 0.4), hex, { count: 140, speed: 7, life: 1.4, size: 0.3, gravity: 6 });
     this.world.fx.burst(eye.clone().setY(eye.y - 0.6), 0xffffff, { count: 50, speed: 4, life: 0.7, size: 0.4, gravity: 2 });
     p.shake = 1;
-    const banner = { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED', impact: 'CRATERED' }[p.deathCause] || 'SHOT DOWN';
+    // falling into a liquid: you sink into it instead of crumpling (see updateDying)
+    const where = regionOf(this.deathPos);
+    const liquid = p.deathCause === 'quicksand' ? 'sand' : p.deathCause === 'acid' ? { verdant: 'toxic', azure: 'brine', solar: 'sand' }[where] || 'lava' : null;
+    this.sink = liquid && { ...SINK[liquid], surface: this.deathPos.y };
+    if (this.sink) audio.sample(this.sink.sound, { gain: 1, vary: 0.05 });
+    const banner = this.sink?.banner || { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED', impact: 'CRATERED' }[p.deathCause] || 'SHOT DOWN';
     // The rewarded revive is a helping hand for a section you're stuck on, not a way to skip every
     // challenge: it's offered from the 3rd death since your last checkpoint, once per checkpoint.
     this.deathsHere = (this.deathsHere || 0) + 1;
@@ -674,10 +692,33 @@ class Game {
     const t = this.deathT;
     const k = 1 - Math.pow(1 - Math.min(1, t / 0.9), 3);
     const c = this.camera;
+    const u = this.deathPass.uniforms;
+    u.uTime.value = t;
     c.position.copy(this.deathEye);
-    c.position.y -= (this.player.eye - 0.3) * k;
-    c.rotation.set(this.deathPitch * (1 - k) + 0.35 * k, this.deathYaw, this.deathRoll * 1.25 * k, 'YXZ');
-    this.deathPass.uniforms.uAmount.value = Math.min(1, t / 0.7);
+    if (this.sink) {
+      // pulled under: slow at first, then the liquid swallows you; the view tips up toward the light
+      const s = this.sink, ks = Math.min(1, t / s.time);
+      const depth = s.depth * ks * ks * (3 - 2 * ks);
+      c.position.y -= depth;
+      c.position.x += Math.sin(t * 2.3) * 0.05 * ks;
+      c.rotation.set(this.deathPitch * (1 - ks) + 0.45 * ks, this.deathYaw + Math.sin(t * 1.7) * 0.06 * ks, 0, 'YXZ');
+      u.uTint.value.set(s.tint);
+      u.uSubmerge.value = Math.min(1, Math.max(0, (s.surface + 0.25 - c.position.y) / 0.5));
+      u.uAmount.value = Math.min(0.6, t / 1.2);
+      s.fxT = (s.fxT || 0) - dt;
+      if (s.fxT <= 0 && t < s.time) {
+        s.fxT = 0.06;
+        const p = this.deathPos.clone().setY(s.surface + 0.1);
+        p.x += (Math.random() - 0.5) * 1.2;
+        p.z += (Math.random() - 0.5) * 1.2;
+        if (s.ember) this.world.fx.ember(p, (Math.random() - 0.5) * 2, 2 + Math.random() * 3, (Math.random() - 0.5) * 2, s.ember, 0.8, 0.12);
+        else this.world.fx.puff(p, 0, 0.6, 0, new THREE.Color(s.tint), 0.5, 1.2, 0.5, 3);
+      }
+    } else {
+      c.position.y -= (this.player.eye - 0.3) * k;
+      c.rotation.set(this.deathPitch * (1 - k) + 0.35 * k, this.deathYaw, this.deathRoll * 1.25 * k, 'YXZ');
+      u.uAmount.value = Math.min(1, t / 0.7);
+    }
     this.hud.fade(Math.max(0, Math.min(1, (t - 1.65) / 0.4)));
     this.world.fx.update(dt);
     if (this.reviveOffered && (this.input.hit('KeyR') || this.reviveTapped)) {
@@ -690,6 +731,8 @@ class Game {
   clearDeathFx() {
     this.deathPass.enabled = false;
     this.deathPass.uniforms.uAmount.value = 0;
+    this.deathPass.uniforms.uSubmerge.value = 0;
+    this.sink = null;
     this.hud.deathBanner(null);
     this.hud.fade(0, 0.45);
   }
@@ -851,6 +894,7 @@ class Game {
     const dt = Math.min(this.timer.getDelta(), 1 / 20);
     const t = this.timer.getElapsed();
     this.sky.material.uniforms.uTime.value = t;
+    updateLiquids(t);
     this.sky.position.copy(this.camera.position);
     this.updateAtmosphere(dt);
     if (this.started && this.state !== 'title') {

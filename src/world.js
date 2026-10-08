@@ -5,6 +5,8 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { boxGeo, mat } from './materials.js';
 import { Fx } from './fx.js';
 import { regionOf, VISIBLE_FROM } from './levels/regions.js';
+import { liquidMaterial, liquidSurface } from './liquid.js';
+import { audio } from './audio.js';
 
 const _v = new THREE.Vector3();
 const _ray = new THREE.Raycaster();
@@ -132,7 +134,8 @@ export class World {
     const minZ = Math.min(z1, z2), maxZ = Math.max(z1, z2);
     const w = maxX - minX, h = maxY - minY, d = maxZ - minZ;
     if (w <= 0.001 || h <= 0.001 || d <= 0.001) return null;
-    const m = mat(kind, zone);
+    const m = kind === 'acid' ? liquidMaterial(zone, false) : mat(kind, zone);
+    if (kind === 'acid') liquidSurface(this, minX, minZ, maxX, maxZ, maxY, zone);
     const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, cz = (minZ + maxZ) / 2;
     const geo = boxGeo(w, h, d, opts.uv ?? 0.5).translate(cx, cy, cz);
     // merged per material *and* per area (regions.js), so whole worlds can be culled
@@ -324,9 +327,42 @@ export class World {
       }
       t.inside = inside;
     }
+    this.updateLiquidFx(dt, player);
     this.fx.update(dt);
   }
 }
+
+// Bubbles and spatter on the hazard liquids near the player (see liquid.js for the surfaces).
+World.prototype.updateLiquidFx = function (dt, player) {
+  if (!this.liquids) return;
+  this.bubbleT = (this.bubbleT || 0) - dt;
+  if (this.bubbleT > 0) return;
+  this.bubbleT = 0.07;
+  const near = this.liquids.filter((L) => player.pos.x > L.min.x - 30 && player.pos.x < L.max.x + 30 && player.pos.z > L.min.z - 30 && player.pos.z < L.max.z + 30 && Math.abs(player.pos.y - L.max.y) < 40);
+  if (!near.length) return;
+  const L = near[Math.floor(Math.random() * near.length)];
+  // a spot on the surface, favouring the part near the player
+  const px = Math.min(L.max.x, Math.max(L.min.x, player.pos.x + (Math.random() - 0.5) * 36));
+  const pz = Math.min(L.max.z, Math.max(L.min.z, player.pos.z + (Math.random() - 0.5) * 36));
+  const p = _v.set(px, L.max.y + 0.1, pz), fx = this.fx;
+  const dist = p.distanceTo(player.pos);
+  if (L.style === 0) {
+    // lava: a fat bubble bursts, flinging embers, sometimes with a deep blorp
+    fx.ring(p, UP, 0xff7a1a, { size: 0.15, end: 1.4, life: 0.5, k: 1.2 });
+    for (let i = 0; i < 6; i++) fx.ember(p, (Math.random() - 0.5) * 3, 2 + Math.random() * 4, (Math.random() - 0.5) * 3, 0xff8a2a, 0.9 + Math.random() * 0.6, 0.12);
+    if (dist < 18 && Math.random() < 0.35) audio.sample('lava_bubble', { gain: 0.5 * (1 - dist / 18), vary: 0.2 });
+  } else if (L.style === 1) {
+    // quicksand: a slow sigh of dust where the sand slumps
+    if (Math.random() < 0.5) fx.puff(p, 0, 0.4, 0, _c.set(0x8a6a40), 0.5, 1.6, 0.6, 3);
+  } else if (L.style === 2) {
+    fx.ring(p, UP, 0x5dff6a, { size: 0.1, end: 0.9, life: 0.45, k: 1.1 });
+    for (let i = 0; i < 3; i++) fx.ember(p, (Math.random() - 0.5) * 1.2, 1 + Math.random() * 1.5, (Math.random() - 0.5) * 1.2, 0x7dff8a, 0.6, 0.08);
+  } else if (Math.random() < 0.4) {
+    fx.ring(p, UP, 0x6ab8ff, { size: 0.1, end: 1.2, life: 0.8, k: 0.8 });
+  }
+};
+const UP = new THREE.Vector3(0, 1, 0);
+const _c = new THREE.Color();
 
 export function boxOverlap(amin, amax, bmin, bmax) {
   return amin.x < bmax.x && amax.x > bmin.x && amin.y < bmax.y && amax.y > bmin.y && amin.z < bmax.z && amax.z > bmin.z;

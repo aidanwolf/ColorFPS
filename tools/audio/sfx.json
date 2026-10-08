@@ -336,5 +336,25 @@
   "text": "Brutal bone-crunching impact of a body slamming into the ground from a great height, heavy deep thud with crack and debris",
   "dur": 1.2,
   "influence": 0.6
+ },
+ "lava_sizzle": {
+  "text": "Body plunging into molten lava, violent hissing sizzle and searing steam burst, thick bubbling glop, deep molten gurgle",
+  "dur": 2.5,
+  "influence": 0.6
+ },
+ "sand_sink": {
+  "text": "Being sucked down into thick quicksand, heavy wet sand slurping and swallowing, muffled gritty suction, a final deep gulp",
+  "dur": 2.5,
+  "influence": 0.6
+ },
+ "toxic_sink": {
+  "text": "Sinking into bubbling toxic sludge, thick acidic gurgle and fizzing hiss, viscous glooping bubbles",
+  "dur": 2.3,
+  "influence": 0.6
+ },
+ "lava_bubble": {
+  "text": "Single thick lava bubble popping, deep viscous blorp with a soft hiss",
+  "dur": 0.7,
+  "influence": 0.5
  }
 }

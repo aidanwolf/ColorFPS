@@ -51,6 +51,8 @@
  "jump_pad",
  "land",
  "land_hard",
+ "lava_bubble",
+ "lava_sizzle",
  "maxhp",
  "mirror_hit",
  "music_antechamber",
@@ -69,6 +71,7 @@
  "respawn",
  "ricochet",
  "ring_wave",
+ "sand_sink",
  "secret",
  "shatter",
  "shield_break",
@@ -86,5 +89,6 @@
  "sun_hum",
  "switch",
  "target",
+ "toxic_sink",
  "ui_click"
 ]
