@@ -9,8 +9,9 @@ export class Restock {
   constructor(world) {
     this.world = world;
     this.region = null;
-    // every drone the level placed, by area (drones spawned later, e.g. by encounters, aren't included)
-    this.drones = world.entities.filter((e) => e instanceof Drone).map((d) => ({ d, region: regionOf(d.home), opts: d.spawnOpts }));
+    // every drone (and restockable ground enemy, see entities/groundKit.js) the level placed, by area
+    // (enemies spawned later, e.g. by encounters, aren't included)
+    this.drones = world.entities.filter((e) => e instanceof Drone || e.restockable).map((d) => ({ d, region: regionOf(d.home), opts: d.spawnOpts }));
     // the world creatures (slime, spider bot, robo-fish schools, robo-squid) keep their spawn options too
     this.critters = world.entities.filter((e) => e.critter && e.spawnOpts).map((d) => ({ d, region: regionOf(d.home), C: d.constructor, opts: d.spawnOpts }));
     this.barriers = world.entities.filter((e) => e instanceof Barrier).map((b) => ({ b, region: regionOf(b.min.clone().add(b.max).multiplyScalar(0.5)) }));

@@ -16,6 +16,8 @@ import { Encounter, Seal, spawnEnemy } from '../entities/combat.js';
 import { Slime, SpiderBot } from '../entities/verdantEnemies.js';
 import { FishSchool, RoboSquid } from '../entities/azureEnemies.js';
 import { resetCritters } from '../entities/critters.js';
+import { BlastCrab, Welder } from '../entities/foundryEnemies.js';
+import { Scarab, Mummy } from '../entities/solarEnemies.js';
 
 export const T = 0.5; // wall thickness
 export const CH = 3.2; // corridor height
@@ -390,6 +392,34 @@ export function makeBuilders(W, game, level) {
   // fireInterval, orbit
   const roboSquid = (pos, opts = {}) => critter(new RoboSquid(W, { pos, ...opts }));
 
+  // Ground enemies (entities/foundryEnemies.js, solarEnemies.js). pos is on the floor; opts:
+  //  color: a color index, or palette: an array of them (a scarab cycles through it each time it surfaces)
+  //  patrol: how far (m) it wanders from pos while idle   range: how far off it notices you   hp
+  //  count / spread: a pack of `count` (each its own restockable enemy) in a ring of radius `spread`
+  //  blastCrab: blast (radius)   scarab: burrow (false = starts on the surface)   mummy: shieldColor (null = immune to all)
+  // Returns the enemy (or the pack's array). On a checkpoint respawn every living one returns to its post.
+  let groundHooked = false;
+  function groundEnemy(Cls, pos, opts = {}) {
+    if (!groundHooked) {
+      groundHooked = true;
+      onRespawn(() => {
+        for (const e of [...W.entities]) if (e.restockable && !e.dead) e.reset?.();
+      });
+    }
+    const { count = 1, spread = 1.6, palette, ...rest } = opts;
+    if (palette) rest.color = palette;
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + 0.4, r = count > 1 ? spread : 0;
+      out.push(new Cls(W, { ...rest, pos: [pos[0] + Math.cos(a) * r, pos[1], pos[2] + Math.sin(a) * r] }));
+    }
+    return count > 1 ? out : out[0];
+  }
+  const blastCrab = (pos, opts) => groundEnemy(BlastCrab, pos, opts);
+  const welder = (pos, opts) => groundEnemy(Welder, pos, opts);
+  const scarab = (pos, opts) => groundEnemy(Scarab, pos, opts);
+  const mummy = (pos, opts) => groundEnemy(Mummy, pos, opts);
+
   return {
     W, game, level, T, CH, GLOW,
     wallX, wallZ, abs, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy,
@@ -399,5 +429,6 @@ export function makeBuilders(W, game, level) {
     audioLog,
     encounter, enemy, turret, swarm, warden, brute, mortar, seal,
     slime, spiderBot, roboFish, roboSquid,
+    blastCrab, welder, scarab, mummy,
   };
 }
