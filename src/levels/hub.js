@@ -18,6 +18,7 @@ import { audio } from '../audio.js';
 import { boxOverlap } from '../world.js';
 import { buildReactor } from './reactor.js';
 import { WorkerSwarm } from '../entities/workerDrone.js';
+import { regionOf } from './regions.js';
 
 const FLOOR = 4; // main floor top
 const GAL = 12; // gallery / balcony floor top
@@ -502,8 +503,18 @@ export function buildHub(B) {
     L.lit = false;
     L.panel = new TargetPanel(W, { min: L.min, max: L.max, color: L.color, face: 'up', onActivate: () => attune(L) });
   }
-  function attune(L) {
+  function attune(L, silent = false) {
     L.lit = true;
+    if (silent) {
+      L.panel.light();
+      if (locks.every((k) => k.lit)) {
+        sealT = 1;
+        seal.visible = false;
+        sealSolid.enabled = false;
+        elevator.enabled = true;
+      }
+      return;
+    }
     const n = locks.filter((k) => k.lit).length;
     if (n < 4) {
       game.hud.message(`${tag(L.color, COLORS[L.color].name)} lock attuned — <b>${n}/4</b>. The Prism Core needs every frequency.`, 4);
@@ -551,6 +562,9 @@ export function buildHub(B) {
         b.emblem.position.y = b.baseY + Math.sin(t * 1.3 + b.color) * 0.15;
         if (b.light) b.light.intensity = done ? 14 : open ? 5 * b.level : 0;
       }
+      // in the Prism Core with the dais still sealed (a save restored down there: the locks aren't saved):
+      // it was opened to get here, so open it again, or the lift could never take you back up
+      if (sealT < 0 && p.y < -6 && regionOf(p) === 'prism') for (const L of locks) attune(L, true);
       const n = locks.filter((k) => k.lit).length;
       const open = sealT >= 0;
       prism.rotation.y += dt * (open ? 0.9 : 0.25);
