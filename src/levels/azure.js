@@ -494,7 +494,11 @@ export function buildAzure(B) {
   W.box(64, -46.5, -166.5, 66, -44.2, -158, 'floor', zone);
   W.box(60, -46.5, -166.5, 64, -44.2, -164.5, 'floor', zone);
   W.box(60, -46.5, -160.5, 64, -44.2, -158, 'floor', zone);
-  W.deco(59.9, -44.2, -164.6, 64.1, -44.14, -160.4, 'glow3', zone);
+  // a glowing frame round the hole
+  W.deco(59.85, -44.2, -164.65, 64.15, -44.14, -164.5, 'glow3', zone);
+  W.deco(59.85, -44.2, -160.5, 64.15, -44.14, -160.35, 'glow3', zone);
+  W.deco(59.85, -44.2, -164.5, 60, -44.14, -160.5, 'glow3', zone);
+  W.deco(64, -44.2, -164.5, 64.15, -44.14, -160.5, 'glow3', zone);
   W.box(62, -26, -172, 66, -25, -168, 'floor', zone); // catwalk from the gauntlet
   new Checkpoint(W, game, { pos: [64, -25, -170], yaw: Math.PI / 2, size: [3, 3, 3] });
   area([62, -25, -172], [66, -22, -168], DEEP);
