@@ -78,6 +78,18 @@ html, body {
 #health .fill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff5a6a, #ffe08a); transition: width 0.15s; }
 #health .value { position: absolute; right: 0; top: -2px; font-size: 22px; font-weight: 700; }
 
+/* armor: a one-hit shield (entities/armor.js) */
+#armor { position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 7px; color: #7ff6ff; background: rgba(10, 30, 40, 0.55); border: 1px solid rgba(127, 246, 255, 0.55); font-size: 11px; letter-spacing: 3px; text-shadow: 0 0 8px #7ff6ff; box-shadow: 0 0 14px rgba(127, 246, 255, 0.35); transition: opacity 0.25s, transform 0.25s; }
+#armor svg { width: 18px; height: 18px; filter: drop-shadow(0 0 4px #7ff6ff); }
+#armor.hidden { opacity: 0; transform: translateX(-50%) scale(0.6); }
+#armor.gain { animation: armor-gain 0.6s ease-out; }
+@keyframes armor-gain { 0% { transform: translateX(-50%) scale(1.8); } 100% { transform: translateX(-50%) scale(1); } }
+#armor-edge { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.4s; box-shadow: inset 0 0 60px 6px rgba(127, 246, 255, 0.28); }
+#hud.armored #armor-edge { opacity: 1; animation: armor-pulse 2.4s ease-in-out infinite; }
+@keyframes armor-pulse { 50% { box-shadow: inset 0 0 80px 10px rgba(127, 246, 255, 0.36); } }
+#armor-edge.break { opacity: 1 !important; animation: armor-break 0.7s ease-out forwards !important; }
+@keyframes armor-break { 0% { box-shadow: inset 0 0 220px 60px rgba(200, 255, 255, 0.85); } 100% { box-shadow: inset 0 0 40px 0 rgba(127, 246, 255, 0); } }
+#hud.cinematic #armor, #hud.cinematic #armor-edge { visibility: hidden; }
 #colors { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; gap: 10px; }
 .cslot {
   width: 54px; height: 54px; border: 2px solid rgba(255, 255, 255, 0.15); background: var(--panel);

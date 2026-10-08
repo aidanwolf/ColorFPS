@@ -513,6 +513,12 @@ export function buildRed(B) {
   glowEdge(AX1, -53.5, -17.8, -43.5, 0, 'hazard', zone);
   mood([AX1, 0, AN], [AX2, AH, AS]);
   hint([12, 0, -42.5], [13, 2, -38.5], 'The <b>Smelting Floor</b>. The door north is the Forge.', 3);
+  // ARMOR: three one-hit shields for players who move: up on the shortcut perch (climb the steps), over
+  // the lava runnel along the west wall (lean out from its edge), and tucked behind the east low wall by the
+  // turret's forge. They come back 30 s after you take one, and every time you respawn.
+  B.armor([-9.5, 4, -40]);
+  B.armor([-18.5, 0, -48.5], { base: false }); // lean out over the lava from the runnel's edge
+  B.armor([15.8, 0, -51.6]);
   const bossDoorSeal = { min: [-1.6, 0, AN + 0.1], max: [1.6, CH, AN + 0.6] };
   const smelting = B.encounter({
     trigger: [[AX1 + 0.5, 0, AN + 1], [12, 3, -43]],

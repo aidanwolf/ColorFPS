@@ -17,6 +17,7 @@ import { Slime, SpiderBot } from '../entities/verdantEnemies.js';
 import { FishSchool, RoboSquid } from '../entities/azureEnemies.js';
 import { resetCritters } from '../entities/critters.js';
 import { BlastCrab, Welder } from '../entities/foundryEnemies.js';
+import { ArmorPickup } from '../entities/armor.js';
 import { Scarab, Mummy } from '../entities/solarEnemies.js';
 
 export const T = 0.5; // wall thickness
@@ -415,6 +416,19 @@ export function makeBuilders(W, game, level) {
     }
     return count > 1 ? out : out[0];
   }
+  // Armor pickup (a one-hit shield, entities/armor.js): pos on the floor; opts: respawn (s after it's
+  // taken; it's always back after you die). Put a few round an arena, off the main line, for players who explore.
+  let armors = null;
+  function armor(pos, opts = {}) {
+    if (!armors) {
+      armors = [];
+      onRespawn(() => armors.forEach((a) => a.restore()));
+    }
+    const a = new ArmorPickup(W, { pos, ...opts });
+    armors.push(a);
+    return a;
+  }
+
   const blastCrab = (pos, opts) => groundEnemy(BlastCrab, pos, opts);
   const welder = (pos, opts) => groundEnemy(Welder, pos, opts);
   const scarab = (pos, opts) => groundEnemy(Scarab, pos, opts);
@@ -429,6 +443,6 @@ export function makeBuilders(W, game, level) {
     audioLog,
     encounter, enemy, turret, swarm, warden, brute, mortar, seal,
     slime, spiderBot, roboFish, roboSquid,
-    blastCrab, welder, scarab, mummy,
+    blastCrab, welder, scarab, mummy, armor,
   };
 }

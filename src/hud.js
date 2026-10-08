@@ -141,6 +141,29 @@ export class Hud {
     this.zoneTimer = time;
   }
 
+  // armor (a one-hit shield): the badge over the color slots and a cyan rim round the screen
+  setArmor(n) {
+    this.armorEl ??= document.querySelector('#armor');
+    this.armorEdge ??= document.querySelector('#armor-edge');
+    this.armorEl.classList.toggle('hidden', !n);
+    this.root.classList.toggle('armored', !!n);
+  }
+
+  armorGain() {
+    this.armorEl.classList.remove('gain');
+    void this.armorEl.offsetWidth;
+    this.armorEl.classList.add('gain');
+    this.message('<b style="color:#7ff6ff">SHIELD</b> up: it takes the next hit for you.', 2.2);
+  }
+
+  armorBreak() {
+    this.armorEdge ??= document.querySelector('#armor-edge');
+    this.armorEdge.classList.remove('break');
+    void this.armorEdge.offsetWidth;
+    this.armorEdge.classList.add('break');
+    setTimeout(() => this.armorEdge.classList.remove('break'), 750);
+  }
+
   hurt(amount) {
     this.hurtLevel = Math.min(1, this.hurtLevel + amount / 35);
   }

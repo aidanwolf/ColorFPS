@@ -2,6 +2,7 @@
 // crouching (for vents), step-up, moving-platform riding, hazards and fall recovery.
 import * as THREE from 'three';
 import { audio } from './audio.js';
+import { ARMOR_IGNORES, ARMOR_COLOR } from './entities/armor.js';
 
 const HALF_W = 0.35;
 const STAND_H = 1.75;
@@ -47,6 +48,7 @@ export class Player {
     this.maxHealth = 100;
     this.health = 100;
     this.invuln = 0;
+    this.armor = 0; // one-hit shields from armor pickups (entities/armor.js)
     this.dead = false;
     this.safePos = new THREE.Vector3();
     this.carry = new THREE.Vector3(); // velocity inherited from a moving platform
@@ -75,6 +77,7 @@ export class Player {
     this.ground = null;
     this.carry.set(0, 0, 0);
     this.air = AIR_MAX;
+    if (this.armor) this.setArmor(0); // a respawn (or any reset) starts unarmored
   }
 
   bounds(h = this.height) {
@@ -489,8 +492,30 @@ export class Player {
   }
 
   // Every hit is fatal: shots, boss attacks, spikes, acid and falls all send you back to the last checkpoint.
+  // Armor pickups: the shield takes the next enemy hit instead of you (hazards still kill).
+  giveArmor() {
+    this.setArmor(1);
+    this.game.hud.armorGain?.();
+  }
+
+  setArmor(n) {
+    this.armor = n;
+    this.game.hud.setArmor?.(n);
+  }
+
   damage(amount, source) {
     if (this.dead || this.invuln > 0 || this.game.godMode || this.game.rulesPaused) return;
+    if (this.armor > 0 && !ARMOR_IGNORES.has(source)) {
+      this.setArmor(this.armor - 1);
+      this.invuln = 1.2; // a moment of grace to get out of the line of fire
+      this.shake = Math.max(this.shake || 0, 0.45);
+      this.game.hud.armorBreak?.();
+      audio.sample('shield_break', { gain: 1.1 });
+      const p = this.pos.clone();
+      p.y += 1.1;
+      this.game.world.fx.burst(p, ARMOR_COLOR, { count: 90, speed: 9, life: 0.8, size: 0.28, gravity: 2 });
+      return;
+    }
     this.deathCause = source;
     this.health = 0;
     this.dead = true;
