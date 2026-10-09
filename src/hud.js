@@ -213,6 +213,38 @@ export class Hud {
     this.hurtLevel = Math.min(1, this.hurtLevel + amount / 35);
   }
 
+  // The sun beam's heat (0..1) as a thin arc hugging the right of the crosshair: gold, then orange, then
+  // red and flashing near the top; locked (overheated) it flashes while it drains. null hides it.
+  setHeat(k, locked = false) {
+    if (!this.heatEl) {
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      svg.id = 'heat';
+      svg.setAttribute('viewBox', '-30 -30 60 60');
+      // a 110° arc on the right, filling bottom → top
+      const arc = (r) => `M ${r * Math.cos(1)} ${r * Math.sin(1)} A ${r} ${r} 0 0 0 ${r * Math.cos(-0.92)} ${r * Math.sin(-0.92)}`;
+      const track = document.createElementNS(NS, 'path');
+      track.setAttribute('d', arc(22));
+      track.setAttribute('class', 'heat-track');
+      const fill = document.createElementNS(NS, 'path');
+      fill.setAttribute('d', arc(22));
+      fill.setAttribute('class', 'heat-fill');
+      svg.append(track, fill);
+      document.querySelector('#crosshair').appendChild(svg);
+      this.heatEl = svg;
+      this.heatFill = fill;
+      this.heatLen = fill.getTotalLength?.() || 42;
+      fill.style.strokeDasharray = `${this.heatLen} ${this.heatLen}`;
+    }
+    this.heatEl.classList.toggle('show', k !== null);
+    if (k === null) return;
+    this.heatFill.style.strokeDashoffset = `${this.heatLen * (1 - Math.max(0.02, k))}`;
+    const hue = 48 - Math.max(0, k - 0.35) * 70; // gold → orange → red
+    this.heatFill.style.stroke = `hsl(${Math.max(0, hue)}, 100%, ${58 - k * 8}%)`;
+    this.heatEl.classList.toggle('hot', k > 0.8 && !locked);
+    this.heatEl.classList.toggle('locked', locked);
+  }
+
   // burning in lava: the edges glow hotter as the grace runs out (k 0 → 1)
   burning(k) {
     this.hurtLevel = Math.max(this.hurtLevel, 0.45 + 0.55 * Math.min(1, k));

@@ -1,6 +1,8 @@
-// The Chroma Blaster: hitscan color shots, fast color switching and an animated view model
-// rendered in its own scene on top of the world (so it never clips into walls). Each color has its
-// own gun from its world (src/weapons/*), swapped with a quick dip-and-rise.
+// The Chroma Blaster: fast color switching and an animated view model rendered in its own scene on top
+// of the world (so it never clips into walls). Each color has its own gun from its world (src/weapons/*),
+// swapped with a quick dip-and-rise, and each fires its own way: red is rapid hitscan shots (fire/trace
+// below), yellow a held sun beam that overheats (weapons/sunbeam.js), green arcing globs that burst
+// (weapons/globs.js) and blue a held water stream that leaves puddles (weapons/hose.js).
 import * as THREE from 'three';
 import { COLORS } from './colors.js';
 import { Drone, Orb } from './entities/drone.js';
@@ -9,6 +11,9 @@ import { buildCrimson } from './weapons/crimson.js';
 import { buildSolar } from './weapons/solar.js';
 import { buildVerdant } from './weapons/verdant.js';
 import { buildAzure } from './weapons/azure.js';
+import { SunBeam } from './weapons/sunbeam.js';
+import { GlobLauncher } from './weapons/globs.js';
+import { WaterCannon } from './weapons/hose.js';
 
 const FIRE_INTERVAL = 0.13;
 const MAX_BOUNCES = 6;
@@ -65,6 +70,9 @@ export class Blaster {
     this.vmScene.add(this.vmCamera);
     this.gun.visible = false;
     this.setColor(0, true);
+    // how yellow, green and blue fire (red is fire() / trace()); each runs every frame, held or not
+    this.modes = [null, new SunBeam(this), new GlobLauncher(this), new WaterCannon(this)];
+    this.heatShown = null;
   }
 
   give(color) {
@@ -126,15 +134,53 @@ export class Blaster {
 
   update(dt, input) {
     this.cooldown -= dt;
+    let held = false;
     if (this.has) {
       for (let i = 0; i < 4; i++) if (input.hit('Digit' + (i + 1)) || input.hit('Numpad' + (i + 1))) this.setColor(i);
       if (input.hit('KeyE')) this.cycle(1);
       if (input.hit('KeyQ')) this.cycle(-1);
       if (input.wheel) this.cycle(input.wheel > 0 ? 1 : -1);
       if (input.hit('KeyF') || input.hit('Tab')) this.setColor(this.lastColor);
-      if (input.mouseDown && this.cooldown <= 0) this.fire();
+      if (this.modes[this.color]) held = input.mouseDown;
+      else if (input.mouseDown && this.cooldown <= 0) this.fire();
+    }
+    for (let i = 1; i < 4; i++) this.modes[i].update(dt, held && i === this.color);
+    // the sun beam's heat gauge by the crosshair, while yellow is in hand
+    const beam = this.modes[1];
+    const heat = this.has && this.color === 1 ? Math.round(beam.heat * 100) / 100 + (beam.locked ? 2 : 0) : null;
+    if (heat !== this.heatShown) {
+      this.heatShown = heat;
+      this.game.hud.setHeat?.(heat === null ? null : beam.heat, beam.locked);
     }
     this.animate(dt);
+  }
+
+  // Stop every held weapon and drop the globs in flight (death, respawn).
+  release() {
+    for (const m of this.modes) m?.release();
+  }
+
+  // firing mid-switch brings the new gun straight up, so the shot comes out of it
+  bringUp() {
+    if (this.switchT < 1) {
+      this.show(this.color);
+      this.switchT = Math.max(this.switchT, 0.8);
+    }
+  }
+
+  // a recoil impulse, in units of the current gun's own kick
+  kick(k) {
+    this.recoilVel += this.models[this.shown].spring.omega * k;
+  }
+
+  // The on-screen emitter as a point in the world: from view-model space to the same screen point in the
+  // world camera (the two cameras share an aspect but not a field of view), MUZZLE_DEPTH in front of the eye.
+  muzzleWorld(out) {
+    const cam = this.game.camera;
+    this.models[this.shown].muzzle.getWorldPosition(_v);
+    const k = Math.tan((cam.fov * Math.PI) / 360) / Math.tan((this.vmCamera.fov * Math.PI) / 360);
+    const d = MUZZLE_DEPTH / Math.max(0.2, -_v.z);
+    return out.set(_v.x * k * d, _v.y * k * d, _v.z * d).applyQuaternion(cam.quaternion).add(cam.position);
   }
 
   fire() {

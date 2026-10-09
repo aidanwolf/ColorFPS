@@ -53,6 +53,15 @@ html, body {
   position: absolute; width: 4px; height: 4px; left: -2px; top: -2px; border-radius: 50%;
   background: var(--cur); box-shadow: 0 0 8px var(--cur);
 }
+#heat { position: absolute; left: -30px; top: -30px; width: 60px; height: 60px; overflow: visible; opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+#heat.show { opacity: 1; }
+#heat path { fill: none; stroke-linecap: round; }
+#heat .heat-track { stroke: rgba(255, 255, 255, 0.16); stroke-width: 2.2; }
+#heat .heat-fill { stroke-width: 2.6; transition: stroke-dashoffset 0.06s linear; }
+#heat.hot .heat-fill { animation: heat-flash 0.22s steps(2) infinite; }
+#heat.locked .heat-fill { stroke: #ff3a1a !important; animation: heat-flash 0.4s steps(2) infinite; }
+#heat.locked .heat-track { stroke: rgba(255, 80, 40, 0.35); }
+@keyframes heat-flash { 50% { opacity: 0.25; } }
 #hitmarker {
   position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px;
   opacity: 0; transform: rotate(45deg);

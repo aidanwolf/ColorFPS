@@ -1,6 +1,7 @@
 // AZURE: a crisp, angular rifle. A faceted navy frame under a white frost plate, one hexagonal
 // blue core glowing through both flanks, a slim hex barrel and an ice crystal at the tip that spins
-// hard with every shot. Precise: a tight, crisp kick.
+// hard with every shot. It pours a pressurized water stream (hose.js): while it sprays the crystal
+// whirls, the core pulses with the pump and the nozzle shivers.
 import * as THREE from 'three';
 import { Kit, part, group, glow, setGlow, profile, grip, CYL_Z } from './kit.js';
 
@@ -31,6 +32,7 @@ export function buildAzure(hex) {
   const muzzle = group(root, [0, -0.004, -0.56]);
   let spin = 0;
   let pulse = 0;
+  let spray = 0;
 
   return {
     root,
@@ -42,8 +44,16 @@ export function buildAzure(hex) {
       spin = Math.min(40, spin + 14);
       pulse = 1;
     },
+    // the water stream's pressure (0 off → 1 full)
+    spray(on) {
+      spray = on;
+    },
     update(dt, t) {
       spin = Math.max(0, spin - dt * spin * 7);
+      if (spray > 0) {
+        spin = Math.max(spin, 26 * spray);
+        pulse = Math.max(pulse, 0.35 + 0.25 * Math.sin(t * 38));
+      }
       pulse = Math.max(0, pulse - dt * 10);
       // the crystal contracts sharply on a shot and snaps back, spinning hard
       crystal.rotation.z += dt * (1.1 + spin);
@@ -53,7 +63,7 @@ export function buildAzure(hex) {
       heart.scale.setScalar(1 + pulse);
       setGlow(cold, COLD, 1.5 + Math.sin(t * 1.4) * 0.25 + pulse * 1.2);
       // steady and precise: barely any idle drift
-      root.position.y = Math.sin(t * 1.1) * 0.002;
+      root.position.y = Math.sin(t * 1.1) * 0.002 + (spray ? (Math.random() - 0.5) * 0.0025 * spray : 0);
       return 0.4 + pulse * 0.6;
     },
   };
