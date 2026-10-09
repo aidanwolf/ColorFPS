@@ -110,17 +110,19 @@ function azureAfter(p, game) {
     if (storm && storm.state === 'cleared') return 'Back over the gantry to the turbine deck, and in through the hatch.';
     return 'Clear the Storm Deck.';
   }
+  // (the corridor out of the Ballast Shaft lies inside the Flooded Depths' box)
+  if (inBox(p, 107, 126, -149, -145, -26, -21)) return 'Out of the deep: on to the <b>Cryo Lab</b>.';
   // the Flooded Depths
   if (inBox(p, 108, 162, -153, -100, -63, 8)) {
     if (inBox(p, 108, 147, -127, -100, -31.5)) {
       if (st.pipeHatch && st.pipeHatch.state === 'closed') return `The maintenance seal can work the valve on the north shelf: ${W('hose it a trail of puddles')} along the shelf.`;
       return 'Swim out along the buoys and dive by the marker, down the open pipe.';
     }
+    if (inBox(p, 125.5, 152, -152, -136, -61, -17) && st.ballast?.flooding) return 'Ride the water up the shaft (hold <b>Space</b>), then out up the steps by the <b>west</b> wall.';
     if (inBox(p, 125.5, 152, -152, -136, -61, -17)) return `Drop a ${tag(GREEN, 'green')} shot into the lit gap beside the glass case: the mirror banks it onto the ballast valve. Then ride the water up.`;
     return 'Follow the <b>cyan lights</b> through the flood; surface in the <b>gold-lit air pockets</b> to breathe.';
   }
   if (inBox(p, 125, 147, -152, -141, -48, -16)) return 'Ride the water up the Ballast Shaft to the way out.';
-  if (inBox(p, 107, 126, -149, -145, -26, -21)) return 'Out of the deep: on to the <b>Cryo Lab</b>.';
   // the Cryo Lab
   if (inBox(p, 88, 116, -176, -142, -26, -16)) {
     const lab = st.lab;
@@ -197,7 +199,7 @@ function verdantObjective(game) {
     if (next === 2) return `Land one ${G('glob')} between the two bulbs: one burst has to catch both.`;
     return 'Over the last root arm to the ledge beyond.';
   }
-  const hollow = p.x > -60 && p.z < -244 && p.z > -292; // the descent down the Hollow's west side
+  const hollow = p.x > -60 && p.x < -18 && p.z < -244 && p.z > -292; // the descent down the Hollow's west side (not the crown deck above the tree)
   if (hollow && p.y > 2) return 'Down the stones <b>west</b>, onto the old walkway.';
   if (hollow && p.y > -1 && p.x > -50) return 'Cross the walkway west. <b>Sprint</b> over its sagging middle.';
   if (hollow && p.y > -11) return v.stoneLock?.on ? 'Down the stones while they hold!' : `Splash all three bulbs on the wall shelf with <b>one</b> ${G('glob')}, then hop down the stones while they hold.`;

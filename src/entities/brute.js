@@ -50,7 +50,9 @@ export class Brute extends Enemy {
     this.open = 0; // shutters over the weak point: 0 closed, 1 open
     this.dir = new THREE.Vector3();
     this.knock = new THREE.Vector3();
-    this.floorY = floorBelow(world, this.pos, 20) ?? this.pos.y - HOVER;
+    // (probed from a little above: a spawn point right on a floor's top would miss it and find the floor
+    // below, or none, and it would sink through)
+    this.floorY = floorBelow(world, _v.copy(this.pos).setY(this.pos.y + 0.5), 20) ?? this.pos.y - HOVER;
     this.pos.y = this.floorY + HOVER;
     this.floorT = 0;
     // body language (poseBody): pitch / roll springs for leaning into moves, rearing up, flinching

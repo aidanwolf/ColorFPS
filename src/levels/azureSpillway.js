@@ -267,7 +267,10 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     },
   });
   B.colorSwitch({ pos: [173, -47.5, QZ2], face: '-z', color: BLUE, mode: 'pulse', size: 1.5, links: [feed(1)], zone, light: false });
-  B.colorSwitch({ pos: [173, -3.5, -163], face: 'down', color: BLUE, mode: 'pulse', size: 1.9, links: [feed(3)], zone, light: false });
+  // (the roof valve hangs on a drop pipe: flush with the roof, 33 m over ledge 2, it was out of the stream's
+  // reach, and the level only rises while it's being hit)
+  box(172.75, -6, -163.25, 173.25, -3.5, -162.75, 'metal');
+  B.colorSwitch({ pos: [173, -6, -163], face: 'down', color: BLUE, mode: 'pulse', size: 1.9, links: [feed(3)], zone, light: false });
   // gauges up the walls: a mark every 4 m, the two locks in gold
   for (let y = -52; y < -8; y += 4) deco(QX1, y, QZ1, QX1 + 0.05, y + 0.06, QZ2);
   for (const y of [LOCK1, LOCK2]) {
@@ -356,7 +359,8 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   // Hub's east balcony port. With the engine dead the pads run on their own capacitors: shoot the orb over
   // a pad (each in its own color) and it holds a charge for 6 s; step on and it throws you to the next
   // landing. Pads throw you at 8 m/s across, so holding W (or nothing) lands you near the middle; each
-  // landing is long enough for a sprint, too.
+  // landing is long enough for a sprint, too. (They don't carry your run into the throw, as other pads do:
+  // walking on from the landing before carried you clean off the far end of the next.)
   plat(97, -158.5, 112, -152.5, GY, zone, 1);
   glowEdge(97, -158.5, 112, -152.5, GY, 'trimWhite', zone);
   new Checkpoint(W, game, { pos: [108.5, GY, GZ], yaw: Math.PI / 2, size: [3, 3, 5] });
@@ -377,7 +381,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     const [px, py, pz] = pads[i];
     const dx = land[0] - px, dz = land[2] - pz, d = Math.hypot(dx, dz), s = 8, t = (d - 1) / s;
     const vy = (land[1] - (py + 0.2) + 12 * t * t) / t;
-    const pad = new JumpPad(W, { pos: [px, py, pz], power: vy, push: [(dx / d) * s, 0, (dz / d) * s], color: 0xdfe6ff });
+    const pad = new JumpPad(W, { pos: [px, py, pz], power: vy, push: [(dx / d) * s, 0, (dz / d) * s], color: 0xdfe6ff, carry: false });
     // its capacitor: a timed orb switch hanging beside it
     const charge = { on: false, activate() { this.on = true; }, deactivate() { this.on = false; } };
     B.colorSwitch({ pos: [px, py + 2.7, pz + 1.9], style: 'orb', color: CHARGE[i], mode: 'timed', time: 6, links: [charge], zone, light: false });

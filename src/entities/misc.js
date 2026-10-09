@@ -184,11 +184,14 @@ export class MovingPlatform {
 }
 
 export class JumpPad {
-  constructor(world, { pos, power = 16, push = [0, 0, 0], color = 0x9bf6ff }) {
+  // carry = false: a directional pad that throws you exactly `push` (no part of your run on top): for a
+  // throw that has to land on a narrow target
+  constructor(world, { pos, power = 16, push = [0, 0, 0], color = 0x9bf6ff, carry = true }) {
     this.world = world;
     this.pos = new THREE.Vector3(...pos);
     this.power = power;
     this.push = new THREE.Vector3(...push);
+    this.carry = carry;
     this.cool = 0;
     this.t = 0;
     this.color = color;
@@ -223,7 +226,7 @@ export class JumpPad {
     });
     const dx = player.pos.x - this.pos.x, dz = player.pos.z - this.pos.z;
     if (this.cool <= 0 && dx * dx + dz * dz < 1.1 && Math.abs(player.pos.y - (this.pos.y + 0.2)) < 0.3) {
-      player.launch(this.power, this.push.lengthSq() ? this.push : null);
+      player.launch(this.power, this.push.lengthSq() ? this.push : null, this.carry);
       this.cool = 0.5;
       audio.pad();
       this.world.fx.padLaunch(this.pos, this.color);

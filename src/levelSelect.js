@@ -65,7 +65,7 @@ const AREAS = [
   ['dev', 'Test ranges'],
 ];
 // starts that sit after a world's guardian (its power source already shut down)
-const AFTER = { red8: ['red'], ascent: ['azure'] };
+const AFTER = { red8: ['red'], solar16: ['solar'], verdant13: ['verdant'], ascent: ['azure'] };
 
 const areaOf = (s) => {
   if (s.pos.x > 390 && s.pos.x < FINALE_X) return 'dev';
