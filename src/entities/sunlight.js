@@ -2,23 +2,34 @@
 // power things, beams of focused sunlight that bounce between them, and sand-glass that the sun burns away.
 //
 // RotMirror     { pos (the panel's pivot), yaw: 0, step: π/4, count: 8, start: 0, tilt: 0, size: [2.4, 1.8],
-//                 look: 'mirror' | 'pv', post: 1.6 (support height under the pivot; 0 = none), color: YELLOW, onTurn(i) }
+//                 look: 'mirror' | 'pv', post: 1.6 (support height under the pivot; 0 = none), color: YELLOW, onTurn(i),
+//                 reflectShots: false, drift: 0, home: start, follow: null, followOffset: [0, 0, 0], armored: false }
 //    A mirror (or a glossy photovoltaic panel) that turns about the vertical when shot `color` (YELLOW: it runs
 //    on sunlight; null = any color) on its back, frame, yoke or post: one `step` per hit, with a clunk, sparks
 //    and a little overshoot. Other colors glance off (its turntable flickers). Facing
 //    angles are yaw + i·step (yaw 0 faces north/-z, π/2 west, like the player); tilt > 0 tips the face up
 //    (π/4 throws a vertical sunbeam out sideways). count·step = 2π wraps round; a shorter arc stops at its
 //    ends (it jams). Which way it turns: a hit right of the pivot (as you look at it) pushes that edge away
-//    (a revolving door); a dead-centre hit turns it +1. Its FACE reflects: shots (weapon.js follows the
-//    'mirror' result with hit.normal), the yellow beam (onBeam → 'mirror') and SunBeams (reflects()).
+//    (a revolving door); a dead-centre hit turns it +1. The big mirrors are for SUNLIGHT: their FACE reflects
+//    SunBeams (reflects()); a blaster shot or the held yellow beam anywhere on it (face included) just turns
+//    it. (reflectShots: true restores the old bank-shot face: shots and the gun beam bounce off it.)
+//    drift > 0: left alone for `drift` s it creeps one step back toward `home` (a timed mirror: shoot it,
+//    then race before the sun drifts off). lock(): solved, it clunks but won't turn again (unlock()).
+//    follow: a platform-like object with `cur` (a MovingPlatform / Elevator): the mirror rides along with
+//    it at followOffset from its min corner (a mirror on a track). armored: hits never turn it; something
+//    else does (a switch linked to { activate: () => mirror.turn(1) }).
 //    index / normal / turn(dir) / setIndex(i) / reset().
 // LightReceiver { pos (centre of the lens), face: '+x' | '-x' | '+z' | '-z' | 'up' | 'down', accept: 'light' |
-//                 'sun', color: YELLOW, mode: 'latch' | 'hold', fill: 0.5 (s of beam to light it),
-//                 size: 1.3, links: [], onOn, onOff, cable: [[x,y,z], ...] (a power line that lights up) }
+//                 'sun', color: YELLOW, mode: 'latch' | 'hold' | 'timed', fill: 0.5 (s of beam to light it),
+//                 time: 5 (timed), when: null, size: 1.3, links: [], onOn, onOff, cable: [[x,y,z], ...] (a power
+//                 line that lights up), look: 'lens' | 'disc' }
 //    accept 'light' (a target plate): a matching shot lights it at once (other colors ricochet), the yellow
 //    beam and sunlight fill it. 'sun' (a sun-catcher with a crystal): only focused sunlight (a SunBeam:
 //    hit.sun) fills it — the blaster can't fake the sun. color null: any color.
-//    latch: once lit it stays lit. hold: lit while the light stays on it (it fades ~0.3 s after).
+//    latch: once lit it stays lit. hold: lit while the light stays on it (it fades ~0.3 s after). timed: lit,
+//    it stays on `time` s after the light leaves it (links get timer(left) so hard-light flickers before it
+//    goes), then goes dark; light on it again refills the clock. when(): while it answers false the receiver
+//    is dormant (dark, takes no light; a hit just shimmers it). look 'disc': a big sun-disc target.
 //    Lighting calls activate(this) on each link (Seal: open(), Elevator: start(), PhasePlatform, ...),
 //    going dark calls deactivate(this). on / lit (0..1) / setOn(on) / reset().
 // BurnWall      { min, max, time: 1.4 (s of sunlight), look: 'glass' | 'wax', onBurn, hintHtml }
@@ -33,6 +44,19 @@
 //    rate. It doesn't touch the player. path (points) / end (the last hit) / enabled.
 // SunEmitter    { pos, dir, time: 2.6, size: 0.9 } — a focusing prism: shoot it YELLOW (or hold the beam on it)
 //    and it throws a SunBeam along `dir` for `time` s (kept alight while you keep feeding it).
+// Prism         { pos (the crystal's centre), out: [x, y, z] (a fixed prism's exit) | rotatable: true with yaw: 0,
+//                 step: π/4, count: 8, start: 0, pitch: 0 (exit = yaw + i·step, tipped up by pitch), spin: 0
+//                 (rad/s: it turns on its own), path: null ([dx, dy, dz]: it glides back and forth), speed: 1.5,
+//                 pause: 0.8, stand: 1.1 (pedestal under the centre; 0 = none), hang: false, size: 0.5, onLit }
+//    A small faceted glass prism for the YELLOW GUN's beam (the big mirrors are for sunlight; prisms are
+//    for your own light): the held beam striking the crystal from any side leaves it along the prism's
+//    exit direction (sunbeam.js follows the 'mirror' answer: hit.point moves to the exit face and
+//    hit.normal is set so the reflection comes out exactly along `dir`). Chain them round corners into
+//    receivers. A rotatable one turns a step per yellow tick on its BASE (the turntable under the crystal);
+//    the crystal only relays. Other colors glance off; sunlight just ends on it.
+//    dir (the exit now) / lit (0..1) / turn(dir) / setIndex(i) / reset().
+// BeamGlass     { min, max } — beam-proof glass: you see through it, but it stops the gun beam (a 'glass'
+//    solid: the beam ends on it), shots and the player. It hides receivers from direct fire.
 import * as THREE from 'three';
 import { COLORS, YELLOW } from '../colors.js';
 import { audio } from '../audio.js';
@@ -116,6 +140,7 @@ function kitMats() {
   if (M) return M;
   M = {
     steel: new THREE.MeshStandardMaterial({ color: 0x4a4640, metalness: 0.85, roughness: 0.35 }),
+    chrome: new THREE.MeshStandardMaterial({ color: 0xc8c4bc, metalness: 0.95, roughness: 0.18 }), // a big mirror's polished frame
     dark: new THREE.MeshStandardMaterial({ color: 0x1c1a18, metalness: 0.7, roughness: 0.5 }),
     brass: new THREE.MeshStandardMaterial({ color: 0xb08840, metalness: 0.8, roughness: 0.35, emissive: 0x2a1a06 }),
     // (unlit: out in the sun a lit chrome sheet blows the bloom out)
@@ -181,9 +206,17 @@ function beamCast(world, origin, dir, far) {
 
 // ------------------------------------------------------------------ RotMirror
 export class RotMirror {
-  constructor(world, { pos, yaw = 0, step = Math.PI / 4, count = 8, start = 0, tilt = 0, size = [2.4, 1.8], look = 'mirror', post = 1.6, color = YELLOW, onTurn = null, time = 0.45 }) {
+  constructor(world, { pos, yaw = 0, step = Math.PI / 4, count = 8, start = 0, tilt = 0, size = [2.4, 1.8], look = 'mirror', post = 1.6, color = YELLOW, onTurn = null, time = 0.45, reflectShots = false, drift = 0, home = null, follow = null, followOffset = [0, 0, 0], armored = false }) {
     this.world = world;
     this.color = color;
+    this.armored = armored; // turned only by what drives it (a switch's link: turn()), never by a hit
+    this.reflectShots = reflectShots;
+    this.drift = drift;
+    this.home = home ?? start;
+    this.idleT = 0;
+    this.locked = false;
+    this.follow = follow;
+    this.followOffset = v3(followOffset);
     this.pos = v3(pos);
     this.yaw0 = yaw;
     this.step = step;
@@ -247,7 +280,7 @@ export class RotMirror {
     back.position.z = 0.07;
     this.tiltG.add(back);
     for (const [fx, fy, fw, fh] of [[0, h / 2, w + 0.16, 0.1], [0, -h / 2, w + 0.16, 0.1], [w / 2, 0, 0.1, h], [-w / 2, 0, 0.1, h]]) {
-      const f = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, 0.18), look === 'pv' ? mats.steel : mats.brass);
+      const f = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, 0.18), look === 'pv' ? mats.steel : mats.chrome);
       f.position.set(fx, fy, 0.04);
       this.tiltG.add(f);
     }
@@ -285,17 +318,21 @@ export class RotMirror {
     return true;
   }
 
+  // the held yellow beam: it turns the mirror like a stream of shots (land → onHit ticks), unless the
+  // face is a bank-shot face (reflectShots)
   onBeam(dt, hit) {
-    return this.reflects(hit) ? 'mirror' : 'hit';
+    if (hit?.sun) return 'hit';
+    return this.reflectShots && this.reflects(hit) ? 'mirror' : 'hit';
   }
 
   onHit(color, hit) {
-    if (this.reflects(hit)) {
+    if (hit?.sun) return 'hit';
+    if (this.reflectShots && this.reflects(hit)) {
       this.flash = 0.6;
       return 'mirror';
     }
-    if (this.color !== null && color !== this.color) {
-      // the wrong color: the turntable won't take it
+    if (this.armored || (this.color !== null && color !== this.color)) {
+      // the wrong color (or an armored mirror driven from elsewhere): the turntable won't take it
       this.flash = 0.5;
       this.wrong = 0.4;
       return 'immune';
@@ -311,8 +348,25 @@ export class RotMirror {
     return 'hit';
   }
 
+  lock() {
+    this.locked = true;
+    this.drift = 0;
+  }
+
+  unlock() {
+    this.locked = false;
+  }
+
   turn(dir = 1, hit = null) {
     if (this.cool > 0 || this.t < 1) return false;
+    if (this.locked) {
+      // solved: it's locked in place (a dull clunk, no turn)
+      sfx.jam(nearGain(this.world, this.pos) * 0.5);
+      this.jam = 0.25;
+      this.cool = 0.3;
+      return false;
+    }
+    this.idleT = 0;
     let next = this.index + dir;
     if (this.wrap) next = (next + this.count) % this.count;
     else if (next < 0 || next >= this.count) {
@@ -346,6 +400,18 @@ export class RotMirror {
 
   update(dt) {
     this.cool -= dt;
+    if (this.follow) {
+      this.pos.copy(this.follow.cur).add(this.followOffset);
+      this.root.position.copy(this.pos);
+    }
+    // a timed mirror creeps back home, a step at a time, once it's left alone
+    if (this.drift > 0 && !this.locked && this.t >= 1 && this.index !== this.home && (this.idleT += dt) > this.drift) {
+      this.idleT = this.drift * 0.45;
+      const d = this.wrap ? ((this.home - this.index + this.count * 1.5) % this.count) - this.count / 2 : this.home - this.index;
+      this.cool = 0;
+      this.turn(d >= 0 ? 1 : -1);
+      this.idleT = this.drift * 0.55; // (the next creep comes sooner)
+    }
     if (this.t < 1) {
       this.t = Math.min(1, this.t + dt / this.time);
       this.angle = this.from + (this.to - this.from) * easeOutBack(this.t);
@@ -362,7 +428,8 @@ export class RotMirror {
     }
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 3);
     if (this.wrong > 0) this.wrong -= dt;
-    this.arrowMat.color.set(this.wrong > 0 && Math.sin(this.wrong * 60) > 0 ? 0x553311 : SUN_HEX).multiplyScalar(1.2 + this.flash * 2.5);
+    const driftWarn = this.drift > 0 && this.index !== this.home && this.idleT > this.drift - 1.2 && Math.sin(this.idleT * 25) > 0;
+    this.arrowMat.color.set(this.wrong > 0 && Math.sin(this.wrong * 60) > 0 ? 0x553311 : this.locked ? 0x60ff90 : driftWarn ? 0xff5020 : this.color === null ? SUN_HEX : COLORS[this.color].hex).multiplyScalar((this.locked ? 0.8 : 1.2) + this.flash * 2.5);
   }
 }
 
@@ -387,8 +454,11 @@ function mergeGeos(geos) {
 const FACE_N = { '+x': [1, 0, 0], '-x': [-1, 0, 0], '+z': [0, 0, 1], '-z': [0, 0, -1], up: [0, 1, 0], down: [0, -1, 0] };
 
 export class LightReceiver {
-  constructor(world, { pos, face = '+z', accept = 'light', color = YELLOW, mode = 'latch', fill = 0.5, size = 1.3, links = [], onOn = null, onOff = null, cable = null }) {
+  constructor(world, { pos, face = '+z', accept = 'light', color = YELLOW, mode = 'latch', fill = 0.5, size = 1.3, links = [], onOn = null, onOff = null, cable = null, time = 5, when = null, look = 'lens' }) {
     this.world = world;
+    this.time = time;
+    this.left = 0;
+    this.when = when;
     this.pos = v3(pos);
     this.n = new THREE.Vector3(...(FACE_N[face] || face));
     this.accept = accept;
@@ -434,6 +504,19 @@ export class LightReceiver {
         vane.rotation.z = a - Math.PI / 2;
         this.group.add(vane);
       }
+    } else if (look === 'disc') {
+      // a sun-disc target: a ring of twelve rays round the lens (reads as a yellow sun from afar)
+      for (let k = 0; k < 12; k++) {
+        const ray = new THREE.Mesh(new THREE.BoxGeometry(0.14, size * 0.36, 0.08), mats.brass);
+        const a = (k / 12) * Math.PI * 2;
+        ray.position.set(Math.cos(a) * (r + 0.55), Math.sin(a) * (r + 0.55), 0.02);
+        ray.rotation.z = a - Math.PI / 2;
+        this.group.add(ray);
+      }
+      this.glyph = new THREE.MeshBasicMaterial({ map: glyphTex, color: new THREE.Color(hex).multiplyScalar(0.9), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+      const g = new THREE.Mesh(new THREE.PlaneGeometry(size * 0.95, size * 0.95), this.glyph);
+      g.position.z = 0.05;
+      this.group.add(g);
     } else {
       // a target: the bullseye glyph over the lens
       this.glyph = new THREE.MeshBasicMaterial({ map: glyphTex, color: new THREE.Color(hex).multiplyScalar(0.9), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -471,6 +554,10 @@ export class LightReceiver {
   }
 
   onHit(color, hit) {
+    if (this.when && !this.when()) {
+      this.flash = 0.3;
+      return 'immune';
+    }
     if (this.color !== null && color !== this.color) {
       this.flash = 0.6;
       return 'immune';
@@ -492,8 +579,9 @@ export class LightReceiver {
   }
 
   onBeam(dt, hit) {
-    if (!this.takes(hit)) return 'hit';
+    if (!this.takes(hit) || (this.when && !this.when())) return 'hit';
     this.feed = 0;
+    if (this.mode === 'timed') this.left = this.time;
     this.lit = Math.min(1, this.lit + dt / this.fill);
     if (this.lit >= 1) this.setOn(true, hit);
     return 'hit';
@@ -504,6 +592,7 @@ export class LightReceiver {
     if (on === this.on) return;
     this.on = on;
     const g = quiet ? 0 : nearGain(this.world, this.pos, 50);
+    if (on) this.left = this.time;
     if (on && quiet) {
       this.lit = 1;
       for (const l of this.links) l?.activate?.(this);
@@ -537,14 +626,26 @@ export class LightReceiver {
   update(dt) {
     this.t += dt;
     this.feed += dt;
-    if (!this.on || this.mode === 'hold') {
+    if (this.on && this.mode === 'timed') {
+      // the clock runs once the light leaves it; hard-light it drives flickers before it goes
+      if (this.feed > 0.12) {
+        this.left -= dt;
+        this.lit = Math.max(0, this.left / this.time);
+        for (const l of this.links) l?.timer?.(this.left, this.time);
+        if (this.left <= 0) {
+          for (const l of this.links) l?.timer?.(Infinity, this.time);
+          this.setOn(false);
+        }
+      } else for (const l of this.links) l?.timer?.(Infinity, this.time);
+    } else if (!this.on || this.mode === 'hold') {
       // light that stops falling on it drains away
       if (this.feed > 0.12) this.lit = Math.max(0, this.lit - dt * (this.mode === 'hold' ? 3 : 0.8));
       if (this.on && this.mode === 'hold' && this.lit <= 0) this.setOn(false);
     }
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 2.5);
-    const k = this.on ? 1 : this.lit;
-    const pulse = 0.5 + 0.5 * Math.sin(this.t * 2.4);
+    const dormant = this.when && !this.when();
+    const k = dormant ? 0 : this.on ? (this.mode === 'timed' ? Math.max(0.35, this.lit) : 1) : this.lit;
+    const pulse = dormant ? 0 : 0.5 + 0.5 * Math.sin(this.t * (this.mode === 'timed' && this.on && this.left < 1.6 ? 14 : 2.4));
     this.lensMat.color.set(this.hex).multiplyScalar(0.25 + k * 1.6 + this.flash * 1.2 + (this.on ? 0.3 * pulse : 0.12 * pulse));
     if (this.crystalMat) {
       this.crystalMat.color.set(this.hex).multiplyScalar(0.45 + k * 2.2 + this.flash);
@@ -1040,5 +1141,249 @@ export class LightShaft {
       _v.z += (Math.random() - 0.5) * 1.2;
       this.world.fx.burst(_v, 0xffe0a0, { count: 1, speed: 0.15, life: 3, size: 0.06, gravity: -0.05, drag: 0.6, spread: 1 });
     }
+  }
+}
+
+// ------------------------------------------------------------------ Prism (the gun's beam)
+let PRISM = null;
+function prismMats() {
+  if (PRISM) return PRISM;
+  PRISM = {
+    // the faceted glass: amber-clear, glossy, faintly lit from inside (per prism it's cloned to glow when lit)
+    glass: new THREE.MeshStandardMaterial({ color: 0xffe2a0, emissive: 0x6a3a08, emissiveIntensity: 0.9, metalness: 0.1, roughness: 0.04, transparent: true, opacity: 0.62, flatShading: true, depthWrite: false }),
+    core: new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.8, 0.35).multiplyScalar(0.8) }),
+    tick: new THREE.MeshBasicMaterial({ color: new THREE.Color(SUN_HEX).multiplyScalar(1.4) }),
+  };
+  return PRISM;
+}
+const _pd = new THREE.Vector3(), _pn = new THREE.Vector3();
+
+export class Prism {
+  constructor(world, { pos, out = null, rotatable = false, yaw = 0, step = Math.PI / 4, count = 8, start = 0, pitch = 0, spin = 0, path = null, speed = 1.5, pause = 0.8, stand = 1.1, hang = false, size = 0.5, onLit = null }) {
+    this.world = world;
+    this.home = v3(pos);
+    this.pos = this.home.clone();
+    this.fixed = out ? v3(out).normalize() : null;
+    this.rotatable = rotatable && !out;
+    this.yaw0 = yaw;
+    this.step = step;
+    this.count = count;
+    this.wrap = Math.abs(Math.abs(step * count) - Math.PI * 2) < 1e-3;
+    this.start = start;
+    this.index = start;
+    this.pitch = pitch;
+    this.spin = spin;
+    this.path = path ? v3(path) : null;
+    this.speed = speed;
+    this.pause = pause;
+    this.u = 0;
+    this.udir = 1;
+    this.wait = 0;
+    this.size = size;
+    this.onLit = onLit;
+    this.angle = this.angleOf(start);
+    this.from = this.to = this.angle;
+    this.t = 1;
+    this.cool = 0;
+    this.lit = 0;
+    this.flash = 0;
+    this.clock = Math.random() * 10;
+    this.dir = new THREE.Vector3();
+    const mats = kitMats(), pm = prismMats();
+    this.root = new THREE.Group();
+    this.root.position.copy(this.pos);
+    // the stand: a slim pedestal (or a bracket from above) with a turntable collar under the crystal
+    const base = new THREE.Group();
+    if (stand > 0 && !hang) {
+      const h = Math.max(0.1, stand - size * 0.9);
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, h, 8), mats.steel);
+      col.position.y = -size * 0.9 - h / 2;
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.42, 0.16, 10), mats.dark);
+      foot.position.y = -stand + 0.08;
+      base.add(col, foot);
+    } else if (hang) {
+      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.2, 6), mats.steel);
+      rod.position.y = size * 0.9 + 0.6;
+      base.add(rod);
+    }
+    this.yawG = new THREE.Group();
+    this.root.add(base, this.yawG);
+    const table = new THREE.Mesh(new THREE.CylinderGeometry(size * 0.85, size * 0.95, 0.14, 12), this.rotatable ? mats.brass : mats.dark);
+    table.position.y = hang ? size * 0.85 : -size * 0.85;
+    table.userData.part = 'base';
+    this.yawG.add(table);
+    if (this.rotatable) {
+      this.tickMat = pm.tick.clone();
+      const arrows = new THREE.Mesh(mergeGeos(arrowRing(size * 0.62, 3)), this.tickMat);
+      arrows.position.y = table.position.y + (hang ? -0.08 : 0.08);
+      this.yawG.add(arrows);
+    }
+    // the crystal: a faceted triangular prism round a bright core, and a nub on the face the beam leaves by
+    this.glassMat = pm.glass.clone();
+    const crystal = new THREE.Mesh(new THREE.CylinderGeometry(size * 0.62, size * 0.62, size * 1.4, 3), this.glassMat);
+    crystal.userData.part = 'crystal';
+    this.coreMat = pm.core.clone();
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(size * 0.28, 0), this.coreMat);
+    core.userData.part = 'crystal';
+    this.core = core;
+    this.crystalG = new THREE.Group();
+    this.crystalG.add(crystal, core);
+    this.yawG.add(this.crystalG);
+    this.nub = new THREE.Mesh(new THREE.CylinderGeometry(size * 0.16, size * 0.24, size * 0.4, 6).rotateX(Math.PI / 2), this.coreMat);
+    this.root.add(this.nub);
+    this.root.userData.hit = this;
+    this.root.userData.beamRadius = size * 2 + stand + 0.5;
+    world.scene.add(this.root);
+    world.addHittable(this.root);
+    this.place();
+    world.add(this);
+  }
+
+  angleOf(i) {
+    return this.yaw0 + i * this.step;
+  }
+
+  place() {
+    if (this.fixed) this.dir.copy(this.fixed);
+    else {
+      const cp = Math.cos(this.pitch);
+      this.dir.set(-Math.sin(this.angle) * cp, Math.sin(this.pitch), -Math.cos(this.angle) * cp).normalize();
+    }
+    if (Math.abs(this.dir.y) < 0.99) this.yawG.rotation.y = Math.atan2(-this.dir.x, -this.dir.z);
+    this.nub.position.copy(this.dir).multiplyScalar(this.size * 0.75);
+    this.nub.quaternion.setFromUnitVectors(_pd.set(0, 0, 1), this.dir);
+  }
+
+  isCrystal(hit) {
+    return hit?.object?.userData.part === 'crystal';
+  }
+
+  // the gun's beam through the crystal: out along `dir` from the exit face
+  onBeam(dt, hit, color) {
+    if (hit?.sun || !this.isCrystal(hit)) return 'hit';
+    if (color !== undefined && color !== YELLOW) return 'hit';
+    const d = hit.dir || _pd.set(0, 0, -1);
+    hit.point = this.pos.clone().addScaledVector(this.dir, this.size * 0.95 + 0.06);
+    _pn.subVectors(this.dir, d);
+    if (_pn.lengthSq() < 1e-6) {
+      // straight through: any normal across the ray leaves it as it is
+      _pn.set(-d.z, 0, d.x);
+      if (_pn.lengthSq() < 1e-6) _pn.set(1, 0, 0);
+    }
+    hit.normal = _pn.clone().normalize();
+    const was = this.lit > 0.5;
+    this.lit = 1;
+    this.feed = 0;
+    if (!was) {
+      audio.sample('mirror_hit', { gain: 0.35 * nearGain(this.world, this.pos, 30), rate: 1.5, vary: 0.05 });
+      this.onLit?.(this);
+    }
+    return 'mirror';
+  }
+
+  onHit(color, hit) {
+    if (hit?.sun) return 'hit';
+    if (color !== YELLOW) {
+      this.flash = 0.4;
+      return 'immune';
+    }
+    if (this.isCrystal(hit) || !this.rotatable) return 'hit';
+    let dir = 1;
+    if (hit?.point && hit.dir) {
+      const rx = hit.point.x - this.pos.x, rz = hit.point.z - this.pos.z;
+      const tq = rz * hit.dir.x - rx * hit.dir.z;
+      if (Math.abs(tq) > 0.05) dir = tq > 0 ? 1 : -1;
+    }
+    this.turn(dir, hit);
+    return 'hit';
+  }
+
+  turn(dir = 1, hit = null) {
+    if (!this.rotatable || this.cool > 0 || this.t < 1) return false;
+    let next = this.index + dir;
+    if (this.wrap) next = (next + this.count) % this.count;
+    else if (next < 0 || next >= this.count) {
+      sfx.jam(nearGain(this.world, this.pos));
+      this.cool = 0.3;
+      return false;
+    }
+    this.from = this.angle;
+    this.to = this.from + dir * this.step;
+    this.index = next;
+    this.t = 0;
+    this.cool = 0.5;
+    sfx.rotorTurn(nearGain(this.world, this.pos) * 0.6);
+    this.world.fx.sparks(hit?.point || this.pos, hit?.normal || UP, SUN_HEX, { count: 6, speed: 4, spread: 0.8, life: 0.25 });
+    this.flash = 1;
+    return true;
+  }
+
+  setIndex(i) {
+    this.index = i;
+    this.angle = this.from = this.to = this.angleOf(i);
+    this.t = 1;
+    this.place();
+  }
+
+  reset() {
+    if (this.rotatable) this.setIndex(this.start);
+  }
+
+  update(dt) {
+    this.clock += dt;
+    this.cool -= dt;
+    this.feed = (this.feed ?? 9) + dt;
+    if (this.path) {
+      if (this.wait > 0) this.wait -= dt;
+      else {
+        this.u += (this.udir * this.speed * dt) / this.path.length();
+        if (this.u >= 1 || this.u <= 0) {
+          this.u = Math.max(0, Math.min(1, this.u));
+          this.udir *= -1;
+          this.wait = this.pause;
+        }
+      }
+      const e = this.u * this.u * (3 - 2 * this.u);
+      this.pos.copy(this.home).addScaledVector(this.path, e);
+      this.root.position.copy(this.pos);
+    }
+    if (this.spin) {
+      this.angle += this.spin * dt;
+      this.place();
+    } else if (this.t < 1) {
+      this.t = Math.min(1, this.t + dt / 0.35);
+      this.angle = this.from + (this.to - this.from) * easeOutBack(this.t);
+      if (this.t >= 1) {
+        this.angle = this.to = this.angleOf(this.index);
+        sfx.rotorLock(nearGain(this.world, this.pos) * 0.6);
+      }
+      this.place();
+    }
+    if (this.feed > 0.1) this.lit = Math.max(0, this.lit - dt * 4);
+    if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 3);
+    const k = this.lit;
+    this.glassMat.emissiveIntensity = 0.9 + k * 3.5 + this.flash;
+    this.coreMat.color.setRGB(1, 0.8, 0.35).multiplyScalar(0.8 + k * 2.6 + 0.25 * Math.sin(this.clock * 3));
+    this.core.rotation.y += dt * (0.6 + k * 6);
+    if (this.tickMat) this.tickMat.color.set(SUN_HEX).multiplyScalar(1 + this.flash * 2);
+  }
+}
+
+// ------------------------------------------------------------------ BeamGlass
+let glassMatShared = null, glassEdgeShared = null;
+export class BeamGlass {
+  constructor(world, { min, max }) {
+    const a = v3(min), b = v3(max);
+    const size = b.clone().sub(a), c = a.clone().add(b).multiplyScalar(0.5);
+    glassMatShared ??= new THREE.MeshStandardMaterial({ color: 0xffd9a0, emissive: 0x3a2008, transparent: true, opacity: 0.2, roughness: 0.04, metalness: 0.3, depthWrite: false });
+    glassEdgeShared ??= new THREE.LineBasicMaterial({ color: new THREE.Color(0xffc070).multiplyScalar(1.4), transparent: true, opacity: 0.8 });
+    const geo = new THREE.BoxGeometry(size.x, size.y, size.z);
+    const mesh = new THREE.Mesh(geo, glassMatShared);
+    mesh.position.copy(c);
+    mesh.renderOrder = 2;
+    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), glassEdgeShared));
+    world.scene.add(mesh);
+    this.mesh = mesh;
+    this.solid = world.addSolid(a, b, { static: true, glass: true });
   }
 }

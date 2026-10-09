@@ -24,6 +24,9 @@ const STEP = 0.45;
 const HARD_FALL = 17; // m/s landing speed: a heavy, shaking landing (~6 m drop)
 const LETHAL_FALL = 29.5; // m/s: fatal (~18 m drop)
 const VOID_DROP = 30;
+// below this you are out of the world whatever lies beneath (Solar's excavation reaches down to y -96: its
+// sinkhole drop is ~84 m into quicksand, so the floor sits well below that)
+const VOID_FLOOR = -140;
 const SWIM_SPEED = 4.4;
 // Lava (and every other molten/acid pool): touching it starts a burn rather than killing outright. A shield
 // takes the first touch; bare, you get LAVA_GRACE seconds (slowed, popped up off the surface) to get out.
@@ -374,8 +377,8 @@ export class Player {
     // off the edge of the world: falling this far below where you last stood never ends well
     // Falling off the world: if there's nothing below to hit you're faded back to the checkpoint (no
     // death); a long fall onto something still kills you when you land (see the landing above).
-    if (!this.grounded && !this.game.voidT && (this.pos.y < -95 || this.fallTop - this.pos.y > VOID_DROP)) {
-      const below = this.pos.y < -95 ? null : world.raycast(this.pos, _down, 120, { meshes: false });
+    if (!this.grounded && !this.game.voidT && (this.pos.y < VOID_FLOOR || this.fallTop - this.pos.y > VOID_DROP)) {
+      const below = this.pos.y < VOID_FLOOR ? null : world.raycast(this.pos, _down, 120, { meshes: false });
       if (!below) this.game.fallOutOfWorld();
     }
 

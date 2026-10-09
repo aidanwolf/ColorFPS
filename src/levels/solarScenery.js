@@ -5,7 +5,7 @@
 //
 //   const sc = solarScenery(W, game, { visible: (p) => bool })
 //   sc.farm({ x1, z1, x2, z2, y, rowGap, colGap, w, h, tilt, yaw })      a far solar farm (instanced rows)
-//   sc.turbine([x, y, z], { height, blade, yaw, speed })                  a giant solar windmill
+//   sc.turbine([x, y, z], { height, blade, yaw, speed, haze })            a giant solar windmill (haze: a far silhouette)
 //   sc.ground(x1, z1, x2, z2, y)                                          the far desert floor
 //   sc.mesa(x1, z1, x2, z2, top)                                          a distant mesa silhouette
 //   sc.dunes(x1, z1, x2, z2, y, height)                                   soft dunes (decor) on the desert floor
@@ -30,6 +30,8 @@ function mats() {
     dune: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 }),
     mesa: new THREE.MeshStandardMaterial({ color: 0x8a6440, roughness: 1, flatShading: true }),
     beacon: new THREE.MeshBasicMaterial({ color: new THREE.Color(1.0, 0.25, 0.15).multiplyScalar(2.2) }),
+    // a far windmill as a flat silhouette a shade darker than the hazy horizon behind it (unlit, unfogged)
+    haze: new THREE.MeshBasicMaterial({ color: 0xb08470, fog: false }),
     glow: new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffc650).multiplyScalar(1.8) }),
   };
   return MATS;
@@ -83,29 +85,31 @@ export function solarScenery(W, game, { visible }) {
   }
 
   // A giant solar windmill: a tapering white tower, a nacelle, and three long blades clad in solar cells.
-  function turbine([x, y, z], { height = 110, blade = 52, yaw = Math.PI / 2, speed = 0.12, phase = Math.random() * 6 } = {}) {
+  // haze: drawn as a flat silhouette against the horizon (for the far ones, so they read as huge and far off)
+  function turbine([x, y, z], { height = 110, blade = 52, yaw = Math.PI / 2, speed = 0.12, phase = Math.random() * 6, haze = false } = {}) {
+    const T = haze ? { tower: M.haze, steel: M.haze, pv: M.haze, pvBack: M.haze } : M;
     const g = new THREE.Group();
     g.position.set(x, y, z);
     g.rotation.y = yaw;
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 4.2, height, 12), M.tower);
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 4.2, height, 12), T.tower);
     tower.position.y = height / 2;
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(7, 9, 4, 12), M.steel);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(7, 9, 4, 12), T.steel);
     base.position.y = 2;
-    const nac = new THREE.Mesh(new THREE.BoxGeometry(5, 5, 14), M.tower);
+    const nac = new THREE.Mesh(new THREE.BoxGeometry(5, 5, 14), T.tower);
     nac.position.set(0, height + 2, 2);
     const rotor = new THREE.Group();
     rotor.position.set(0, height + 2, -5.5);
-    const hub = new THREE.Mesh(new THREE.SphereGeometry(3, 12, 8), M.tower);
+    const hub = new THREE.Mesh(new THREE.SphereGeometry(3, 12, 8), T.tower);
     hub.scale.z = 1.4;
     rotor.add(hub);
     for (let k = 0; k < 3; k++) {
       const arm = new THREE.Group();
       arm.rotation.z = (k / 3) * Math.PI * 2;
       // the blade: a long, slightly tapering slab, the cells on its sun side
-      const bl = new THREE.Mesh(new THREE.BoxGeometry(5.5, blade, 0.6), [M.pvBack, M.pvBack, M.pvBack, M.pvBack, M.pv, M.pv]);
+      const bl = new THREE.Mesh(new THREE.BoxGeometry(5.5, blade, 0.6), [T.pvBack, T.pvBack, T.pvBack, T.pvBack, T.pv, T.pv]);
       bl.position.y = blade / 2 + 2.5;
       bl.rotation.y = 0.25;
-      const spar = new THREE.Mesh(new THREE.BoxGeometry(0.9, blade + 2, 0.9), M.steel);
+      const spar = new THREE.Mesh(new THREE.BoxGeometry(0.9, blade + 2, 0.9), T.steel);
       spar.position.y = blade / 2 + 2;
       arm.add(spar, bl);
       rotor.add(arm);
