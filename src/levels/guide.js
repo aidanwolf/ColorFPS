@@ -89,7 +89,7 @@ const swimHint = (p) => (p.y < -9.5 ? ' Watch your <b>air</b>: breathe in the go
 function azureBefore(p, game) {
   const st = game.level.azure || {};
   if (p.y > 2 && p.x < 60) return st.waveDone?.() ? 'Dive off the deck\'s east edge and follow the <b>dive line</b> down: its air bells lead to the Aquarium.' : 'Step out onto the rig\'s deck.';
-  if (p.y < -9.5 && p.y > -72 && inBox(p, 36, 112, -90, -40) && p.x < 60) return 'Swim for the <b>lit hatch</b> on the Aquarium: follow the lights.' + swimHint(p);
+  if (p.y < -9.5 && p.y > -72 && inBox(p, 36, 112, -84, -40) && p.x < 60) return 'Swim for the <b>lit hatch</b> on the Aquarium: follow the lights.' + swimHint(p);
   if (p.y < -9.5 && !inBox(p, 44, 111, -121, -83, -62, -44)) return 'Swim down to the <b>Aquarium</b> on the trench floor: its airlock is on its south side.' + swimHint(p);
   if (inBox(p, 44, 76, -113, -84, -61, -54)) return 'Through the glass corridors <b>east</b>, to the dome.';
   return `Take the ${tag(BLUE, 'AZURE core')} from its dais in the dome.`;

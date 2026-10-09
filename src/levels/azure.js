@@ -391,19 +391,19 @@ export function buildAzure(B) {
     waves: [
       [
         { type: 'blastCrab', pos: [106, SY, -114], color: BLUE, shields: [RED], shieldHp: 1 },
-        { type: 'blastCrab', pos: [107, SY, -96], color: BLUE, shields: [RED], shieldHp: 1, delay: 0.5 },
+        { type: 'blastCrab', pos: [107, SY, -98], color: BLUE, shields: [RED], shieldHp: 1, delay: 0.5 }, // (at -96 it hatched half inside a crate and stuck there)
         { type: 'blastCrab', pos: [104, SY, -104], color: BLUE, delay: 1 },
         { type: 'drone', pos: [104, SY + 3.5, -102], color: BLUE, shields: [YELLOW], delay: 1.6 },
       ],
       [
-        { type: 'welder', pos: [108, SY, -117], color: BLUE, shields: [GREEN] },
-        { type: 'welder', pos: [108, SY, -91], color: BLUE, shields: [YELLOW], delay: 0.8 },
+        { type: 'welder', pos: [107.4, SY, -117], color: BLUE, shields: [GREEN] }, // (x 108 is the seam between two floor slabs: a welder spawned on it fell through under the dome)
+        { type: 'welder', pos: [107.4, SY, -91], color: BLUE, shields: [YELLOW], delay: 0.8 },
         { type: 'drone', pos: [104, SY + 3.5, -96], color: BLUE, shields: [RED], delay: 1.4 },
         { type: 'blastCrab', pos: [102, SY, -113], color: BLUE, shields: [GREEN], shieldHp: 1, delay: 2.2 },
       ],
       { title: 'HEAVY', enemies: [
         { type: 'brute', pos: [106, SY, -104], color: BLUE },
-        { type: 'welder', pos: [108, SY, -118], color: BLUE, shields: [RED, YELLOW], delay: 1.2 },
+        { type: 'welder', pos: [107.4, SY, -118], color: BLUE, shields: [RED, YELLOW], delay: 1.2 },
         { type: 'drone', pos: [103, SY + 3.8, -112], color: BLUE, shields: [GREEN, RED], delay: 2 },
         { type: 'blastCrab', pos: [107, SY, -92], color: BLUE, shields: [YELLOW], shieldHp: 1, delay: 3 },
       ] },
