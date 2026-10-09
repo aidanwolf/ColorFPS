@@ -20,6 +20,7 @@ import { BlastCrab, Welder } from './foundryEnemies.js';
 import { Scarab, Mummy } from './solarEnemies.js';
 import { Slime, SpiderBot } from './verdantEnemies.js';
 import { FishSchool, RoboSquid } from './azureEnemies.js';
+import { Snapjaw, FlySwarm, Borer } from './verdantCreatures.js';
 import { GEO, additive, converge, falloff, sfx, DANGER } from './enemyKit.js';
 
 export { Turret, Swarm, Warden, Brute, Mortar };
@@ -43,6 +44,7 @@ const firstColor = (c) => (Array.isArray(c) ? c[0] : c);
 //  'brute'  { color, hp, speed, chargeSpeed, windup }
 //  'mortar' { color, interval, flight, radius, linger }
 //  'blastCrab' | 'welder' | 'scarab' | 'mummy' | 'slime' | 'spider' | 'fish' | 'squid': the world enemies
+//  'snapjaw' | 'rotflies' | 'borer': Verdant's creatures (entities/verdantCreatures.js; a borer takes `normal`)
 // Returns the enemy; `.dead` turns true once it's down (a swarm: all of it).
 const relentless = (e) => ((e.relentless = true), e);
 
@@ -80,6 +82,9 @@ export function spawnEnemy(world, spec) {
     case 'spider': return new SpiderBot(world, o);
     case 'fish': return new FishSchool(world, o);
     case 'squid': return new RoboSquid(world, o);
+    case 'snapjaw': return new Snapjaw(world, { range: 40, ...o, aggro: o.aggro ?? true });
+    case 'rotflies': return new FlySwarm(world, { hive: false, respawn: 0, range: 60, ...o });
+    case 'borer': return new Borer(world, { ...o, aggro: o.aggro ?? true });
   }
   console.warn('[chroma] unknown enemy type', type);
   return null;
