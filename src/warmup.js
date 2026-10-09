@@ -76,10 +76,6 @@ export class Warmup {
     this.jobs.sort((a, b) => a.d - b.d);
   }
 
-  get done() {
-    return this.i >= this.jobs.length && !this.pending;
-  }
-
   // Send the next batch (up to `budget` new programs, `ms` of script time, `per` objects a
   // renderer.compile call: each call walks the scene's lights, ~0.5 ms) once the last one has linked.
   // Returns false when everything is compiled.
@@ -122,4 +118,3 @@ export class Warmup {
     return true;
   }
 }
-
