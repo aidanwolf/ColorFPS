@@ -1414,5 +1414,70 @@
   "text": "Ancient stone energy pillar awakening: a rising electric hum and crackle of yellow power surging through stone, glassy resonance, ending in a deep thrum",
   "dur": 3,
   "influence": 0.55
+ },
+ "boulder_roll": {
+  "text": "A gigantic stone boulder rolling and rumbling down a stone temple corridor, heavy grinding thunder, rhythmic thumps, debris crunching, deep and menacing, continuous",
+  "dur": 6,
+  "influence": 0.5,
+  "loop": true
+ },
+ "dart_trap": {
+  "text": "Ancient temple dart trap: a stone pressure plate click, then a volley of darts whistling out of the wall and thudding into stone",
+  "dur": 1.5,
+  "influence": 0.6
+ },
+ "stone_slam": {
+  "text": "A massive stone door slamming shut in an ancient temple, heavy grinding then a huge booming impact with dust and rubble",
+  "dur": 2.0,
+  "influence": 0.6
+ },
+ "rope_bridge_creak": {
+  "text": "Old wooden plank rope bridge creaking and swaying, ropes straining, planks knocking, wind in a gorge",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "amb_swamp": {
+  "text": "Eerie foggy jungle swamp ambience at dusk: frogs croaking, insects buzzing, distant strange bird calls, water dripping and bubbling, low wind in hanging vines, unsettling and humid, seamless loop",
+  "dur": 20,
+  "influence": 0.4,
+  "loop": true
+ },
+ "trapdoor_fall": {
+  "text": "A hidden stone trapdoor giving way: a sharp crack, stone tile collapsing, rushing fall of rubble and sand into darkness, ending in a heavy crash",
+  "dur": 2.5,
+  "influence": 0.6
+ },
+ "vine_creak": {
+  "text": "A thick jungle vine creaking and stretching under weight, fibrous rope tension, leaves rustling",
+  "dur": 1.5,
+  "influence": 0.6
+ },
+ "vine_whoosh": {
+  "text": "Fast whoosh of swinging through the air on a jungle vine, wind rushing past, leaves fluttering",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "branch_groan": {
+  "text": "An enormous ancient tree branch groaning and creaking deep and slow, wood fibres straining, mystical resonance",
+  "dur": 3,
+  "influence": 0.5
+ },
+ "leaves_rustle": {
+  "text": "Dense canopy leaves rustling in the wind high in a giant tree, gentle and airy",
+  "dur": 4,
+  "influence": 0.4,
+  "loop": true
+ },
+ "amb_canopy": {
+  "text": "High jungle canopy ambience atop a giant mythic tree: wind through enormous leaves, creaking branches, distant exotic birds and insects, faint mystical chimes, airy and vast, seamless loop",
+  "dur": 20,
+  "influence": 0.4,
+  "loop": true
+ },
+ "boulder_crash": {
+  "text": "A giant boulder smashing through a stone wall and crashing to a stop, explosive rubble, a deep impact boom",
+  "dur": 2.5,
+  "influence": 0.6
  }
 }
