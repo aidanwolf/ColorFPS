@@ -258,7 +258,7 @@ export function buildSolar(B) {
     skyTop: [0.012, 0.008, 0.005], skyMid: [0.022, 0.014, 0.008], skyHorizon: [0.035, 0.022, 0.012], aurora: 0, stars: 0,
     hemiSky: 0x9a6a40, hemiGround: 0x0c0603, hemiIntensity: 0.07,
     sunColor: 0xffc080, sunIntensity: 0.03, sunDir: [0.2, 1, 0.1],
-    exposure: 0.92, bloom: 0.95,
+    exposure: 0.92, bloom: 0.55,
   };
   const deep = (min, max) =>
     W.trigger(min, max, () => {

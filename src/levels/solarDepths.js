@@ -94,7 +94,7 @@ class Conduit {
     this.t += dt;
     this.run += dt * (6 + this.boost * 12);
     if (this.k < 1) this.k = Math.min(1, this.k + dt / 2.5);
-    this.mat.color.copy(DORMANT).lerp(GOLD, this.k).multiplyScalar((1 + this.k * (0.7 + 0.25 * Math.sin(this.t * (3 + this.boost * 9)))) * (1 + this.boost * 1.3));
+    this.mat.color.copy(DORMANT).lerp(GOLD, this.k).multiplyScalar((1 + this.k * (0.7 + 0.25 * Math.sin(this.t * (3 + this.boost * 9)))) * (1 + this.boost * 0.5));
     if (player.pos.distanceToSquared(this.pts[this.pts.length - 1]) > 90 * 90) return;
     // pulses running toward the gate (the head of the light runs out along the conduit as it wakes)
     const reach = this.k * this.len;
@@ -258,7 +258,7 @@ class Stargate {
     this.segMat.color.copy(DORMANT).lerp(GOLD, Math.min(1, k * 0.5 + charge)).multiplyScalar(0.8 + charge * 2.5 + (this.state === 'fired' ? 0.6 : 0));
     this.hum.setGain(near ? Math.min(0.9, k * 0.18 + charge * 0.8 + this.pre * 0.3) : 0);
     this.hum.setRate(0.7 + charge * 0.8 + this.pre * 0.3);
-    this.light.intensity = k * 4 + charge * 30;
+    this.light.intensity = k * 3 + charge * 18;
     if (this.state === 'dormant' && this.pre > 0.01) {
       // the heart drinking the sun: the horizon flickers into being, arcs crawl round the ring
       this.discMat.opacity = this.pre * 0.45 * (0.7 + 0.3 * Math.sin(this.t * 30));
@@ -442,7 +442,7 @@ class SandFall {
     const tex = sandFallTex().clone();
     tex.needsUpdate = true;
     tex.repeat.set(1, h / 6);
-    this.mat = new THREE.MeshBasicMaterial({ map: tex, color: 0xd8b07a, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+    this.mat = new THREE.MeshBasicMaterial({ map: tex, color: 0xa8865a, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
     this.mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.7, h, 10, 1, true), this.mat);
     this.mesh.position.set(x, (top + bottom) / 2, z);
     this.mesh.visible = false;
@@ -460,7 +460,7 @@ class SandFall {
   update(dt, player) {
     if (!this.on) return;
     if (this.k < 1) this.k = Math.min(1, this.k + dt / 2);
-    this.mat.opacity = 0.6 * this.k;
+    this.mat.opacity = 0.42 * this.k;
     this.mat.map.offset.y += dt * 1.7;
     if ((this.puffT -= dt) <= 0) {
       this.puffT = 0.3;
@@ -782,7 +782,7 @@ export function buildSolarDepths(B, K) {
   // matrix dressing: capacitor banks either side of the ring (they fill as nodes wake), lamps along
   // the galleries (they ignite), cables, glyph panels uncovered on the cut faces
   const capMat = new THREE.MeshBasicMaterial({ color: DORMANT.clone() });
-  const fillMat = new THREE.MeshBasicMaterial({ color: GOLD.clone().multiplyScalar(1.5), transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const fillMat = new THREE.MeshBasicMaterial({ color: GOLD.clone().multiplyScalar(1.1), transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const fills = [];
   let fillK = 0, fillTo = 0;
   W.add({
@@ -1043,8 +1043,8 @@ export function buildSolarDepths(B, K) {
   const wakeUp = () => {
     const n = nodes.filter((x) => x.done).length;
     capMat.color.copy(DORMANT).lerp(GOLD, n / 3).multiplyScalar(1 + n * 0.5);
-    lampGlow.color.copy(DORMANT).lerp(new THREE.Color(1, 0.85, 0.6), Math.min(1, n / 2)).multiplyScalar(0.6 + n * 0.7);
-    hallLight.intensity = n * 9;
+    lampGlow.color.copy(DORMANT).lerp(new THREE.Color(1, 0.85, 0.6), Math.min(1, n / 2)).multiplyScalar(0.45 + n * 0.3);
+    hallLight.intensity = n * 2.5;
     setFill(n / 7, restoring);
   };
   let restoring = false;
@@ -1120,7 +1120,7 @@ export function buildSolarDepths(B, K) {
     const n = relayDone();
     for (const c of conduits) c.boost = Math.min(1, n * 0.2 + (st.finalOn ? 0.3 : 0));
     for (const f of falls) if (f.at < n && !f.on) f.start(instant);
-    hallLight.intensity = 27 + n * 7 + (st.finalOn ? 10 : 0);
+    hallLight.intensity = 7.5 + n * 1.5 + (st.finalOn ? 3 : 0); // (a warm glow: the lamps and the sun's own beams do the rest)
     if (!instant) game.player.shake = Math.max(game.player.shake || 0, 0.35 + n * 0.1);
   };
   const solveLeg = (i) => {
