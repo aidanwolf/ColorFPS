@@ -32,7 +32,8 @@ const MOTES = 90;
 //  90 out to the side, <0 across her), twist]; l/rFore: [elbow bend, twist]; l/rHand: [flex, twist, tilt];
 //  l/rFoot: ankle [x, y, z, yaw, pitch(+ toe up)]; knees: outward splay of each knee; l/rIK: a hand target in
 //  B [x, y, z, weight]; gait: 0 stops the walk cycle while `at` moves (jumps, climbs); swing: arm swing
-//  while walking; breath: [depth, rate]; shiver: cold / fear tremble.
+//  while walking; breath: [depth, rate]; shiver: cold / fear tremble; ride: 1 while the vignette's riding set
+//  pieces (its `ride` list: a swivel chair) move with her, 0 leaves them where they are.
 export const CHANNELS = [
   ['at', [0, 0, 0, 0]],
   ['hips', [0, 0.95, 0]],
@@ -58,6 +59,7 @@ export const CHANNELS = [
   ['swing', [1]],
   ['breath', [1, 1]],
   ['shiver', [0]],
+  ['ride', [1]],
 ];
 const OFF = {};
 let SIZE = 0;
@@ -556,9 +558,11 @@ export class Ghost {
     // the projection pool follows her across the floor
     B.glow.position.set(bx + hx * cb + hz * sb, by + 0.03, bz - hx * sb + hz * cb);
     this.moteMat.uniforms.uCenter.value.set(B.glow.position.x, by, B.glow.position.z);
-    for (const r of this.riders) {
-      r.position.set(bx, by, bz);
-      r.rotation.set(0, byaw, 0);
+    if (P[o.ride] > 0.5) {
+      for (const r of this.riders) {
+        r.position.set(bx, by, bz);
+        r.rotation.set(0, byaw, 0);
+      }
     }
     this.moteMat.uniforms.uTop.value = Math.max(0.7, hy * 1.85);
     this.group.updateMatrixWorld(true);

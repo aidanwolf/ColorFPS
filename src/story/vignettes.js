@@ -586,3 +586,43 @@ export const VIGNETTES = {
     ],
   },
 };
+
+// DAY 1 in the Atrium offices (for the log moving into them: retimed to its final text when that lands).
+// Spinning in a swivel chair, pinning a photo to the board, raising a coffee mug to the reactor, feet up.
+const CHAIR_SIT = { hips: [0, 0.56, -0.02], hipsR: [-6, 0, 0], spine: [4, 0, 0], lFoot: [0.13, 0.075, 0.36, 8, 4], rFoot: [-0.13, 0.075, 0.36, -8, 4], knees: [10, 10], gait: 0 };
+const FEET_UP = { lFoot: [0.12, 0.3, 0.5, 8, 10], rFoot: [-0.12, 0.32, 0.5, -8, 10] };
+export const OFFICE = {
+  props: [], dist: 3.6, view: 22, set: { chair: [0, 0, 0, 0], board: [-1.35, 0, -0.55, 35] }, ride: ['chair'],
+  keys: [
+    [0, p(CHAIR_SIT, FEET_UP, { lArm: [80, 88, 0], rArm: [80, 88, 0], lFore: [20, 0], rFore: [20, 0], head: [-10, 0, 0], at: [0, 0, 0, 0] })],
+    [2.4, { at: [0, 0, 0, 360], head: [-14, 0, 8] }],
+    [4.2, { at: [0, 0, 0, 540], chest: [10, 0, 0] }],
+    [4.9, p(CHAIR_SIT, { at: [0, 0, 0, 720], lArm: [40, 10, 0], rArm: [40, 10, 0], lFore: [100, 0], rFore: [100, 0], head: [-4, 0, 0], chest: [0, 0, 0] })],
+    [5.3, { lArm: [42, 4, 0], rArm: [42, 4, 0] }],
+    [5.6, { lArm: [40, 14, 0], rArm: [40, 14, 0] }],
+    [5.9, { lArm: [42, 4, 0], rArm: [42, 4, 0] }],
+    [6.9, p(STAND, ARMS, { at: [0, 0, 0.25, 720], ride: 0, props: ['photo'] })],
+    [7.4, { lArm: [36, 20, 0], lFore: [96, 0], head: [16, 0, 0] }],
+    [9.4, { at: [-0.95, 0, -0.05, 720 - 135], head: [-4, 0, 0] }],
+    [10.4, { lIK: [0.05, 1.42, 0.45, 1], head: [-8, 0, 0] }],
+    [11.2, { rIK: [0.02, 1.5, 0.45, 1] }],
+    [11.7, { rIK: [0.02, 1.5, 0.47, 1] }],
+    [12.3, { props: [], lIK: [null, null, null, 0], rIK: [null, null, null, 0], at: [-0.7, 0, 0.2, 720 - 135] }],
+    [13.4, p(HIPS_HANDS, { head: [-6, 0, 10] })],
+    [15.0, { at: [-0.7, 0, 0.2, 720 - 30], ...NOIK, rArm: [80, 50, 0], rFore: [10, 0], head: [0, -30, 0] }],
+    [16.2, { rArm: [70, 10, 0], rFore: [90, -60], lArm: [50, 30, 0], lFore: [90, -60], head: [0, 0, 8] }],
+    [17.4, { rArm: [7, 80, 0], rFore: [20, 0], lArm: [7, 80, 0], lFore: [12, 0] }],
+    [18.4, { props: ['mug'], rArm: [30, 20, 0], rFore: [100, 0] }],
+    [20.0, p(LOOK_UP, { rArm: [132, 18, 0], rFore: [20, 0], lArm: [30, 60, 0], lFore: [40, 0] })],
+    [22.4, {}],
+    [23.6, { ...REC_MOUTH, head: [0, 0, 0], neck: [0, 0, 0], chest: [0, 0, 0] }],
+    [24.6, { head: [-12, 0, 0] }],
+    [25.6, { rArm: [30, 20, 0], rFore: [100, 0], head: [0, 0, 0] }],
+    [28.0, { at: [0, 0, 0, 720 + 10] }],
+    [29.2, p(CHAIR_SIT, { ride: 1, at: [0, 0, 0, 720], rArm: [30, 20, 0], rFore: [100, 0] })],
+    [30.4, p(FEET_UP, { props: [], hipsR: [-16, 0, 0], lArm: [150, 60, 0], rArm: [150, 60, 0], lFore: [150, 0], rFore: [150, 0], head: [-10, 0, 0] })],
+    [33.0, { at: [0, 0, 0, 760] }],
+    [35.0, { at: [0, 0, 0, 720] }],
+  ],
+};
+VIGNETTES.office = OFFICE;
