@@ -193,13 +193,13 @@ export class SunBeam {
       if (u2) u2.uAlpha.value = 0.6 * ignite * dim * flick;
       phase += _from.distanceTo(_end);
       if (!hit) break;
-      const n = hit.normal;
       hit.dir = _d.clone();
       hit.kind = 'beam';
       const e = hit.entity;
       let res;
       if (e?.onBeam?.(dt, hit, YELLOW) === 'mirror') res = 'mirror';
-      else res = this.land(hit, n);
+      else res = this.land(hit, hit.normal);
+      const n = hit.normal; // (read after onBeam/onHit: a rotating mirror hands back its exact face normal)
       _p.copy(hit.point).addScaledVector(n, 0.02);
       if (res === 'mirror' && depth < MAX_BOUNCES) {
         this.mirrorsNow.add(e || hit.solid);
