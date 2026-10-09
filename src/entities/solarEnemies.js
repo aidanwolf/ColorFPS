@@ -34,8 +34,7 @@ let SHARED = null;
 function sharedMats() {
   SHARED ??= {
     armor: new THREE.MeshStandardMaterial({ color: 0xb2ab9c, metalness: 0.3, roughness: 0.42, flatShading: true }), // warm ceramic
-    shell: new THREE.MeshStandardMaterial({ color: 0x2a2c34, metalness: 0.85, roughness: 0.3, flatShading: true }), // graphite plate
-    dark: new THREE.MeshStandardMaterial({ color: 0x121318, metalness: 0.7, roughness: 0.5, flatShading: true }), // frame and joints
+    frame: new THREE.MeshStandardMaterial({ color: 0x1d1f26, metalness: 0.8, roughness: 0.4, flatShading: true }), // graphite hull, frame and joints
     steel: new THREE.MeshStandardMaterial({ color: 0x8d929c, metalness: 0.95, roughness: 0.24, flatShading: true }), // cutters, pistons
     cable: new THREE.MeshStandardMaterial({ color: 0x1b1c22, metalness: 0.4, roughness: 0.55 }),
   };
@@ -82,55 +81,55 @@ const SCARAB = new RigDef((r) => {
   r.node('body', null, [0, 0.3, 0]);
   // the carapace: head, middle and tail sections, each a flattened hex prism (a graphite hull with a
   // ceramic armor cap)
-  r.add('body', 'shell', hexSeg(0.17, 0.2, 0.2, 1.25, 0.62), [0, -0.01, 0.37]);
-  r.add('body', 'shell', hexSeg(0.28, 0.3, 0.34, 1.2, 0.6), [0, 0.0, 0.08]);
-  r.add('body', 'shell', hexSeg(0.27, 0.15, 0.32, 1.2, 0.58), [0, -0.01, -0.25]);
+  r.add('body', 'frame', hexSeg(0.17, 0.2, 0.2, 1.25, 0.62), [0, -0.01, 0.37]);
+  r.add('body', 'frame', hexSeg(0.28, 0.3, 0.34, 1.2, 0.6), [0, 0.0, 0.08]);
+  r.add('body', 'frame', hexSeg(0.27, 0.15, 0.32, 1.2, 0.58), [0, -0.01, -0.25]);
   r.add('body', 'armor', hexTop(0.18, 0.21, 0.2, 1.25, 0.62), [0, -0.005, 0.37]);
   r.add('body', 'armor', hexTop(0.29, 0.31, 0.34, 1.2, 0.6), [0, 0.005, 0.08]);
   r.add('body', 'armor', hexTop(0.28, 0.16, 0.32, 1.2, 0.58), [0, -0.005, -0.25]);
   // graphite bands under each section, and the glowing seams between them
-  r.add('body', 'shell', hexSeg(0.215, 0.215, 0.06, 1.25, 0.66), [0, -0.01, 0.255]);
-  r.add('body', 'shell', hexSeg(0.29, 0.29, 0.06, 1.2, 0.62), [0, -0.005, -0.1]);
+  r.add('body', 'frame', hexSeg(0.215, 0.215, 0.06, 1.25, 0.66), [0, -0.01, 0.255]);
+  r.add('body', 'frame', hexSeg(0.29, 0.29, 0.06, 1.2, 0.62), [0, -0.005, -0.1]);
   r.add('body', 'glow', hexSeg(0.222, 0.222, 0.018, 1.25, 0.66, true), [0, -0.01, 0.255]);
   r.add('body', 'glow', hexSeg(0.297, 0.297, 0.018, 1.2, 0.62, true), [0, -0.005, -0.1]);
   // the lit spine
   r.box('body', 'glow', [0.028, 0.012, 0.5], [0, 0.163, 0.02]);
-  r.box('body', 'dark', [0.06, 0.008, 0.52], [0, 0.158, 0.02]);
+  r.box('body', 'frame', [0.06, 0.008, 0.52], [0, 0.158, 0.02]);
   // the radiator: heat-sink fins on the tail, glowing between them
   r.box('body', 'glow', [0.17, 0.012, 0.2], [0, 0.135, -0.24]);
   for (let i = 0; i < 5; i++) {
     const x = (i - 2) * 0.038, h = 0.075 - Math.abs(i - 2) * 0.012;
-    r.box('body', 'shell', [0.012, h, 0.24], [x, 0.135 + h / 2, -0.25]);
+    r.box('body', 'frame', [0.012, h, 0.24], [x, 0.135 + h / 2, -0.25]);
   }
   // the belly plate, and the core showing through it (seen when it's flipped)
-  r.box('body', 'dark', [0.36, 0.03, 0.6], [0, -0.165, 0.05]);
+  r.box('body', 'frame', [0.36, 0.03, 0.6], [0, -0.165, 0.05]);
   r.box('body', 'glow', [0.07, 0.012, 0.3], [0, -0.183, 0.05]);
   for (const s of [-1, 1]) r.box('body', 'glow', [0.012, 0.012, 0.4], [s * 0.12, -0.183, 0.05]);
   // the cutter head and its sensor cluster
-  r.box('body', 'dark', [0.24, 0.1, 0.1], [0, -0.02, 0.5]);
-  r.box('body', 'shell', [0.2, 0.03, 0.12], [0, 0.04, 0.49], [-0.25, 0, 0]);
+  r.box('body', 'frame', [0.24, 0.1, 0.1], [0, -0.02, 0.5]);
+  r.box('body', 'frame', [0.2, 0.03, 0.12], [0, 0.04, 0.49], [-0.25, 0, 0]);
   r.node('sensor', 'body', [0, 0.085, 0.42]);
-  r.box('sensor', 'shell', [0.12, 0.05, 0.08], [0, 0, 0]);
-  r.box('sensor', 'dark', [0.13, 0.03, 0.02], [0, 0.0, 0.045]);
+  r.box('sensor', 'frame', [0.12, 0.05, 0.08], [0, 0, 0]);
+  r.box('sensor', 'frame', [0.13, 0.03, 0.02], [0, 0.0, 0.045]);
   for (const [x, y, s] of [[-0.036, -0.002, 0.021], [0.036, -0.002, 0.021], [0, 0.018, 0.016]]) r.add('sensor', 'glow', new THREE.SphereGeometry(s, 8, 6), [x, y, 0.055]);
-  rod(0.006, [0.04, 0.02, -0.02], [0.05, 0.16, -0.06], 'dark', 'sensor', r, 4);
+  rod(0.006, [0.04, 0.02, -0.02], [0.05, 0.16, -0.06], 'frame', 'sensor', r, 4);
   r.add('sensor', 'glow', new THREE.SphereGeometry(0.012, 6, 4), [0.05, 0.165, -0.06]);
   // the drill
   r.node('drill', 'body', [0, -0.03, 0.55]);
   r.add('drill', 'steel', new THREE.ConeGeometry(0.06, 0.2, 6).rotateX(Math.PI / 2), [0, 0, 0.1]);
-  for (let i = 0; i < 3; i++) r.box('drill', 'shell', [0.012, 0.075, 0.12], [0, 0, 0.07], [0, 0, (i / 3) * Math.PI]); // flutes
-  r.add('drill', 'dark', new THREE.CylinderGeometry(0.07, 0.07, 0.03, 8).rotateX(Math.PI / 2), [0, 0, 0]);
+  for (let i = 0; i < 3; i++) r.box('drill', 'frame', [0.012, 0.075, 0.12], [0, 0, 0.07], [0, 0, (i / 3) * Math.PI]); // flutes
+  r.add('drill', 'frame', new THREE.CylinderGeometry(0.07, 0.07, 0.03, 8).rotateX(Math.PI / 2), [0, 0, 0]);
   r.add('drill', 'glow', new THREE.TorusGeometry(0.07, 0.009, 4, 12), [0, 0, 0.012]);
   // the mandible cutters, serrated on the inside
   for (const [name, s] of [['mandL', 1], ['mandR', -1]]) {
     r.node(name, 'body', [s * 0.1, -0.04, 0.52]);
     r.box(name, 'steel', [0.035, 0.04, 0.16], [0, 0, 0.07], [0, -s * 0.25, 0]);
     r.box(name, 'steel', [0.03, 0.035, 0.1], [-s * 0.035, 0, 0.17], [0, -s * 0.85, 0]);
-    for (let i = 0; i < 3; i++) r.add(name, 'dark', new THREE.ConeGeometry(0.012, 0.04, 4), [-s * (0.012 + i * 0.008), 0, 0.04 + i * 0.05], [0, 0, s * Math.PI / 2]);
+    for (let i = 0; i < 3; i++) r.add(name, 'steel', new THREE.ConeGeometry(0.012, 0.04, 4), [-s * (0.012 + i * 0.008), 0, 0.04 + i * 0.05], [0, 0, s * Math.PI / 2]);
   }
   // the dust jets
   for (const s of [-1, 1]) {
-    r.add('body', 'dark', new THREE.CylinderGeometry(0.035, 0.042, 0.09, 8).rotateX(Math.PI / 2), [s * 0.085, -0.02, -0.44]);
+    r.add('body', 'frame', new THREE.CylinderGeometry(0.035, 0.042, 0.09, 8).rotateX(Math.PI / 2), [s * 0.085, -0.02, -0.44]);
     r.add('body', 'glow', new THREE.CylinderGeometry(0.024, 0.024, 0.01, 8).rotateX(Math.PI / 2), [s * 0.085, -0.02, -0.488]);
   }
   // armor vanes over the middle section: they flare open over thrusters when it flies
@@ -145,26 +144,26 @@ const SCARAB = new RigDef((r) => {
     const s = x > 0 ? 1 : -1;
     const leg = 'leg' + i;
     r.node(leg, 'body', [x, -0.06, z], { rot: [0, (s > 0 ? 0 : Math.PI) - s * splay, 0] });
-    r.add(leg, 'dark', new THREE.CylinderGeometry(0.04, 0.04, 0.07, 8), [0.0, 0.0, 0], [0, 0, Math.PI / 2]);
+    r.add(leg, 'frame', new THREE.CylinderGeometry(0.04, 0.04, 0.07, 8), [0.0, 0.0, 0], [0, 0, Math.PI / 2]);
     r.box(leg, 'armor', [0.26, 0.055, 0.07], [0.12, 0.06, 0], [0, 0, 0.45]);
-    r.box(leg, 'steel', [0.2, 0.018, 0.018], [0.13, 0.02, 0.03], [0, 0, 0.45]);
-    r.add(leg, 'dark', new THREE.CylinderGeometry(0.03, 0.03, 0.08, 6), [0.235, 0.115, 0], [Math.PI / 2, 0, 0]);
-    r.box(leg, 'shell', [0.36, 0.04, 0.045], [0.34, -0.06, 0], [0, 0, -1.0]);
+    r.box(leg, 'frame', [0.2, 0.018, 0.018], [0.13, 0.02, 0.03], [0, 0, 0.45]);
+    r.add(leg, 'frame', new THREE.CylinderGeometry(0.03, 0.03, 0.08, 6), [0.235, 0.115, 0], [Math.PI / 2, 0, 0]);
+    r.box(leg, 'frame', [0.36, 0.04, 0.045], [0.34, -0.06, 0], [0, 0, -1.0]);
     if (i % 3 === 0) {
-      r.box(leg, 'steel', [0.13, 0.018, 0.085], [0.44, -0.2, 0], [0, 0, -1.0]);
-      r.add(leg, 'steel', new THREE.ConeGeometry(0.03, 0.08, 4), [0.5, -0.27, 0], [0, 0, -2.57]);
-    } else r.add(leg, 'steel', new THREE.ConeGeometry(0.028, 0.09, 4), [0.455, -0.215, 0], [0, 0, Math.PI]);
+      r.box(leg, 'frame', [0.13, 0.018, 0.085], [0.44, -0.2, 0], [0, 0, -1.0]);
+      r.add(leg, 'frame', new THREE.ConeGeometry(0.03, 0.08, 4), [0.5, -0.27, 0], [0, 0, -2.57]);
+    } else r.add(leg, 'frame', new THREE.ConeGeometry(0.028, 0.09, 4), [0.455, -0.215, 0], [0, 0, Math.PI]);
   });
 });
 
 // the periscope that shows above the mound while it's buried (not shootable: it's not on the drone)
 const SCOPE = new RigDef((r) => {
   r.node('scope', null, [0, 0, 0]);
-  r.add('scope', 'dark', new THREE.CylinderGeometry(0.022, 0.03, 0.4, 6), [0, 0.2, 0]);
-  r.box('scope', 'shell', [0.11, 0.075, 0.12], [0, 0.42, 0.01]);
+  r.add('scope', 'frame', new THREE.CylinderGeometry(0.022, 0.03, 0.4, 6), [0, 0.2, 0]);
+  r.box('scope', 'frame', [0.11, 0.075, 0.12], [0, 0.42, 0.01]);
   r.box('scope', 'glow', [0.09, 0.03, 0.012], [0, 0.425, 0.072]);
   r.add('scope', 'glow', new THREE.TorusGeometry(0.035, 0.008, 4, 10).rotateX(Math.PI / 2), [0, 0.37, 0.01]);
-  r.add('scope', 'dark', new THREE.CylinderGeometry(0.004, 0.004, 0.14, 4), [0.03, 0.51, -0.02]);
+  r.add('scope', 'frame', new THREE.CylinderGeometry(0.004, 0.004, 0.14, 4), [0.03, 0.51, -0.02]);
   r.add('scope', 'glow', new THREE.SphereGeometry(0.01, 6, 4), [0.03, 0.58, -0.02]);
 });
 
@@ -188,8 +187,7 @@ export class Scarab extends GroundEnemy {
     const S = sharedMats();
     this.m = {
       armor: S.armor,
-      shell: S.shell,
-      dark: S.dark,
+      frame: S.frame,
       steel: S.steel,
       glow: this.mat(new THREE.MeshBasicMaterial({ color: 0xffffff })),
       wing: this.mat(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })),
@@ -599,50 +597,50 @@ const MUMMY = new RigDef((r) => {
   // the hips: a narrow armored block between the hip joints
   r.node('pelvis', 'body', [0, 0, 0]);
   r.box('pelvis', 'armor', [0.28, 0.12, 0.2], [0, 0.03, 0]);
-  r.box('pelvis', 'dark', [0.34, 0.06, 0.14], [0, -0.04, 0]);
+  r.box('pelvis', 'frame', [0.34, 0.06, 0.14], [0, -0.04, 0]);
   r.box('pelvis', 'glow', [0.18, 0.016, 0.012], [0, 0.035, 0.105]);
-  for (const s of [-1, 1]) r.add('pelvis', 'shell', new THREE.CylinderGeometry(0.055, 0.055, 0.09, 8), [s * HIP_X, -0.04, 0], [0, 0, Math.PI / 2]);
+  for (const s of [-1, 1]) r.add('pelvis', 'frame', new THREE.CylinderGeometry(0.055, 0.055, 0.09, 8), [s * HIP_X, -0.04, 0], [0, 0, Math.PI / 2]);
   // the waist: a bare spine and two pistons, thin enough to look wrong
-  r.box('pelvis', 'dark', [0.05, 0.3, 0.05], [0, 0.22, -0.02]);
-  for (let i = 0; i < 3; i++) r.box('pelvis', 'shell', [0.08, 0.025, 0.07], [0, 0.12 + i * 0.08, -0.02]);
-  for (const s of [-1, 1]) rod(0.012, [s * 0.075, 0.08, 0.02], [s * 0.07, 0.38, 0.0], 'steel', 'pelvis', r);
+  r.box('pelvis', 'frame', [0.05, 0.3, 0.05], [0, 0.22, -0.02]);
+  for (let i = 0; i < 3; i++) r.box('pelvis', 'frame', [0.08, 0.025, 0.07], [0, 0.12 + i * 0.08, -0.02]);
+  for (const s of [-1, 1]) rod(0.012, [s * 0.075, 0.08, 0.02], [s * 0.07, 0.38, 0.0], 'frame', 'pelvis', r);
   // the chest: a slim wedge, widest at the shoulders, with seams lit down its front
   r.node('torso', 'pelvis', [0, 0.36, -0.02], { rot: [TORSO_REST, 0, 0] });
   r.add('torso', 'armor', new THREE.CylinderGeometry(0.25, 0.12, 0.5, 4).rotateY(Math.PI / 4).scale(1, 1, 0.55), [0, 0.27, 0]);
-  r.add('torso', 'shell', new THREE.CylinderGeometry(0.19, 0.1, 0.4, 4).rotateY(Math.PI / 4).scale(1, 1, 0.55), [0, 0.28, 0.018]);
+  r.add('torso', 'frame', new THREE.CylinderGeometry(0.19, 0.1, 0.4, 4).rotateY(Math.PI / 4).scale(1, 1, 0.55), [0, 0.28, 0.018]);
   r.box('torso', 'glow', [0.018, 0.36, 0.012], [0, 0.28, 0.083], [0.09, 0, 0]);
   for (const s of [-1, 1]) r.box('torso', 'glow', [0.012, 0.32, 0.012], [s * 0.1, 0.32, 0.083], [0.09, 0, -s * 0.2]);
-  r.box('torso', 'dark', [0.56, 0.05, 0.1], [0, 0.5, 0]); // the shoulder bar
+  r.box('torso', 'frame', [0.56, 0.05, 0.1], [0, 0.5, 0]); // the shoulder bar
   for (const s of [-1, 1]) {
-    r.add('torso', 'dark', new THREE.SphereGeometry(0.058, 8, 6), [s * 0.28, 0.5, 0]);
+    r.add('torso', 'frame', new THREE.SphereGeometry(0.058, 8, 6), [s * 0.28, 0.5, 0]);
     r.box('torso', 'armor', [0.13, 0.04, 0.15], [s * 0.27, 0.56, 0], [0, 0, -s * 0.3]);
   }
-  r.box('torso', 'shell', [0.2, 0.3, 0.05], [0, 0.32, -0.1]); // the back plate the emitter mounts on
+  r.box('torso', 'frame', [0.2, 0.3, 0.05], [0, 0.32, -0.1]); // the back plate the emitter mounts on
   // the neck, craned forward, and the sensor head: a narrow wedge with a slit visor and a crest blade
   r.node('neck', 'torso', [0, 0.52, 0.02], { rot: [NECK_REST, 0, 0] });
-  r.box('neck', 'dark', [0.032, 0.3, 0.032], [0, 0.15, -0.01]);
-  for (const s of [-1, 1]) rod(0.011, [s * 0.03, 0.0, 0.02], [s * 0.022, 0.3, 0.02], 'steel', 'neck', r);
+  r.box('neck', 'frame', [0.032, 0.3, 0.032], [0, 0.15, -0.01]);
+  for (const s of [-1, 1]) rod(0.011, [s * 0.03, 0.0, 0.02], [s * 0.022, 0.3, 0.02], 'frame', 'neck', r);
   r.node('head', 'neck', [0, 0.3, 0]);
   r.add('head', 'armor', new THREE.CylinderGeometry(0.065, 0.1, 0.32, 4).rotateY(Math.PI / 4).rotateX(Math.PI / 2).scale(1, 0.85, 1), [0, 0.04, 0.06]);
-  r.box('head', 'dark', [0.115, 0.07, 0.03], [0, 0.04, 0.215]);
+  r.box('head', 'frame', [0.115, 0.07, 0.03], [0, 0.04, 0.215]);
   r.box('head', 'glow', [0.11, 0.024, 0.012], [0, 0.045, 0.232]);
   r.box('head', 'glow', [0.03, 0.036, 0.014], [0, 0.045, 0.234]); // the lens behind the slit
   for (const s of [-1, 1]) r.box('head', 'glow', [0.01, 0.018, 0.13], [s * 0.068, 0.045, 0.14], [0, s * 0.13, 0]);
-  r.box('head', 'dark', [0.014, 0.06, 0.28], [0, 0.12, 0.03]);
-  r.box('head', 'shell', [0.08, 0.03, 0.12], [0, -0.025, 0.12]);
+  r.box('head', 'frame', [0.014, 0.06, 0.28], [0, 0.12, 0.03]);
+  r.box('head', 'frame', [0.08, 0.03, 0.12], [0, -0.025, 0.12]);
   for (const s of [-1, 1]) {
-    r.add('head', 'dark', new THREE.CylinderGeometry(0.024, 0.024, 0.05, 6), [s * 0.08, 0.04, 0.02], [0, 0, Math.PI / 2]);
+    r.add('head', 'frame', new THREE.CylinderGeometry(0.024, 0.024, 0.05, 6), [s * 0.08, 0.04, 0.02], [0, 0, Math.PI / 2]);
     r.add('head', 'glow', new THREE.SphereGeometry(0.01, 6, 4), [s * 0.106, 0.04, 0.02]);
   }
   // the forked emitter on its back: two prongs wound with coils, a lit tip on each, and between them the
   // point (core) where a bolt's charge gathers
   r.node('emitter', 'torso', [0, 0.38, -0.14]);
-  r.box('emitter', 'dark', [0.14, 0.12, 0.08], [0, 0, 0]);
+  r.box('emitter', 'frame', [0.14, 0.12, 0.08], [0, 0, 0]);
   r.box('emitter', 'armor', [0.1, 0.16, 0.04], [0, 0.03, -0.045]);
   for (const s of [-1, 1]) {
     const a = -s * 0.42, len = 0.6;
     const dx = -Math.sin(a), dy = Math.cos(a);
-    r.add('emitter', 'shell', new THREE.CylinderGeometry(0.016, 0.022, len, 6), [s * 0.01 + dx * len * 0.5, 0.04 + dy * len * 0.5, -0.04], [0, 0, a]);
+    r.add('emitter', 'frame', new THREE.CylinderGeometry(0.016, 0.022, len, 6), [s * 0.01 + dx * len * 0.5, 0.04 + dy * len * 0.5, -0.04], [0, 0, a]);
     for (const f of [0.45, 0.6, 0.75]) r.add('emitter', 'coil', new THREE.TorusGeometry(0.036, 0.011, 4, 10).rotateX(Math.PI / 2), [s * 0.01 + dx * len * f, 0.04 + dy * len * f, -0.04], [0, 0, a]);
     r.add('emitter', 'glow', new THREE.OctahedronGeometry(0.035), [s * 0.01 + dx * len, 0.04 + dy * len, -0.04]);
     r.node(s > 0 ? 'tipL' : 'tipR', 'emitter', [s * 0.01 + dx * (len + 0.04), 0.04 + dy * (len + 0.04), -0.04]);
@@ -651,47 +649,47 @@ const MUMMY = new RigDef((r) => {
   // long thin arms: a ceramic sleeve over each bone, a piston, a lit wrist ring, three long fingers
   for (const [arm, fore, hand, s] of [['armL', 'foreL', 'handL', 1], ['armR', 'foreR', 'handR', -1]]) {
     r.node(arm, 'torso', [s * 0.3, 0.5, 0]);
-    r.box(arm, 'dark', [0.04, 0.82, 0.04], [0, -0.41, 0]);
+    r.box(arm, 'frame', [0.04, 0.82, 0.04], [0, -0.41, 0]);
     r.box(arm, 'armor', [0.075, 0.36, 0.085], [0, -0.2, 0]);
     r.box(arm, 'glow', [0.012, 0.28, 0.01], [0, -0.2, 0.044]);
-    rod(0.011, [s * 0.035, -0.08, -0.03], [s * 0.03, -0.7, -0.03], 'steel', arm, r);
+    rod(0.011, [s * 0.035, -0.08, -0.03], [s * 0.03, -0.7, -0.03], 'frame', arm, r);
     r.node(fore, arm, [0, -0.82, 0]);
-    r.add(fore, 'shell', new THREE.SphereGeometry(0.045, 8, 6), [0, 0, 0]);
-    r.box(fore, 'dark', [0.036, 0.8, 0.036], [0, -0.4, 0]);
+    r.add(fore, 'frame', new THREE.SphereGeometry(0.045, 8, 6), [0, 0, 0]);
+    r.box(fore, 'frame', [0.036, 0.8, 0.036], [0, -0.4, 0]);
     r.box(fore, 'armor', [0.065, 0.3, 0.075], [0, -0.48, 0]);
     r.add(fore, 'glow', new THREE.TorusGeometry(0.04, 0.009, 4, 12).rotateX(Math.PI / 2), [0, -0.72, 0]);
     r.node(hand, fore, [0, -0.8, 0]);
-    r.box(hand, 'shell', [0.06, 0.07, 0.03], [0, -0.035, 0]);
+    r.box(hand, 'frame', [0.06, 0.07, 0.03], [0, -0.035, 0]);
     r.box(hand, 'glow', [0.03, 0.03, 0.01], [0, -0.04, 0.017]);
     for (let i = 0; i < 3; i++) {
       const x = (i - 1) * 0.022, ang = (i - 1) * 0.14;
-      r.box(hand, 'dark', [0.012, 0.13, 0.012], [x + Math.sin(ang) * 0.06, -0.12, 0.012], [-0.12, 0, ang]);
-      r.box(hand, 'steel', [0.01, 0.1, 0.01], [x + Math.sin(ang) * 0.13, -0.235, 0.04], [-0.42, 0, ang]);
+      r.box(hand, 'frame', [0.012, 0.13, 0.012], [x + Math.sin(ang) * 0.06, -0.12, 0.012], [-0.12, 0, ang]);
+      r.box(hand, 'frame', [0.01, 0.1, 0.01], [x + Math.sin(ang) * 0.13, -0.235, 0.04], [-0.42, 0, ang]);
     }
-    r.box(hand, 'dark', [0.012, 0.1, 0.012], [-s * 0.035, -0.07, 0.03], [-0.5, 0, -s * 0.4]); // the thumb
+    r.box(hand, 'frame', [0.012, 0.1, 0.012], [-s * 0.035, -0.07, 0.03], [-0.5, 0, -s * 0.4]); // the thumb
   }
   // the stilt legs: thigh down to the knee, the telescoping shin back down to the hock, the ankle down
   // to a small pointed foot (posed by inverse kinematics: poseLegs)
   for (const [leg, shin, meta, foot, s] of [['legL', 'shinL', 'metaL', 'footL', 1], ['legR', 'shinR', 'metaR', 'footR', -1]]) {
     r.node(leg, 'body', [s * HIP_X, -0.04, 0]);
-    r.box(leg, 'dark', [0.038, THIGH, 0.038], [0, -THIGH / 2, 0]);
+    r.box(leg, 'frame', [0.038, THIGH, 0.038], [0, -THIGH / 2, 0]);
     r.add(leg, 'armor', new THREE.CylinderGeometry(0.07, 0.045, THIGH * 0.78, 4).rotateY(Math.PI / 4).scale(0.8, 1, 1), [0, -THIGH * 0.42, 0.01]);
     r.box(leg, 'glow', [0.012, THIGH * 0.55, 0.01], [0, -THIGH * 0.42, 0.058], [-0.03, 0, 0]);
+    r.box(leg, 'armor', [0.07, 0.1, 0.05], [0, -THIGH, 0.05], [0.2, 0, 0]); // knee cap
     r.node(shin, leg, [0, -THIGH, 0]);
-    r.add(shin, 'shell', new THREE.CylinderGeometry(0.05, 0.05, 0.1, 8), [0, 0, 0], [0, 0, Math.PI / 2]);
-    r.box(shin, 'armor', [0.07, 0.1, 0.05], [0, 0.0, 0.05], [0.2, 0, 0]); // knee cap
+    r.add(shin, 'frame', new THREE.CylinderGeometry(0.05, 0.05, 0.1, 8), [0, 0, 0], [0, 0, Math.PI / 2]);
     r.add(shin, 'steel', new THREE.CylinderGeometry(0.034, 0.03, SHIN * 0.48, 8), [0, -SHIN * 0.26, 0]);
     r.add(shin, 'glow', new THREE.TorusGeometry(0.035, 0.008, 4, 10).rotateX(Math.PI / 2), [0, -SHIN * 0.5, 0]);
-    r.add(shin, 'dark', new THREE.CylinderGeometry(0.021, 0.021, SHIN * 0.55, 6), [0, -SHIN * 0.75, 0]);
+    r.add(shin, 'frame', new THREE.CylinderGeometry(0.021, 0.021, SHIN * 0.55, 6), [0, -SHIN * 0.75, 0]);
     r.node(meta, shin, [0, -SHIN, 0]);
-    r.add(meta, 'shell', new THREE.SphereGeometry(0.036, 8, 6), [0, 0, 0]);
+    r.add(meta, 'frame', new THREE.SphereGeometry(0.036, 8, 6), [0, 0, 0]);
     r.add(meta, 'armor', new THREE.ConeGeometry(0.022, 0.16, 4).rotateX(-Math.PI / 2), [0, 0.02, -0.08]); // the hock spur
-    r.add(meta, 'dark', new THREE.CylinderGeometry(0.018, 0.016, META, 6), [0, -META / 2, 0]);
+    r.add(meta, 'frame', new THREE.CylinderGeometry(0.018, 0.016, META, 6), [0, -META / 2, 0]);
     r.box(meta, 'armor', [0.04, META * 0.4, 0.035], [0, -META * 0.35, 0.012]);
     r.node(foot, meta, [0, -META, 0]);
-    r.add(foot, 'shell', new THREE.SphereGeometry(0.03, 8, 6), [0, 0, 0]);
+    r.add(foot, 'steel', new THREE.SphereGeometry(0.03, 8, 6), [0, 0, 0]);
     r.add(foot, 'steel', new THREE.ConeGeometry(0.03, 0.18, 4).rotateX(Math.PI / 2), [0, -0.012, 0.085]);
-    r.add(foot, 'dark', new THREE.ConeGeometry(0.02, 0.09, 4).rotateX(-Math.PI / 2), [0, -0.01, -0.05]);
+    r.add(foot, 'steel', new THREE.ConeGeometry(0.02, 0.09, 4).rotateX(-Math.PI / 2), [0, -0.01, -0.05]);
   }
 });
 
@@ -841,8 +839,7 @@ export class Mummy extends Trooper {
     const S = sharedMats();
     this.m = {
       armor: S.armor,
-      shell: S.shell,
-      dark: S.dark,
+      frame: S.frame,
       steel: S.steel,
       glow: this.mat(new THREE.MeshBasicMaterial({ color: 0xffffff })),
       coil: this.mat(new THREE.MeshBasicMaterial({ color: 0xffffff })),
