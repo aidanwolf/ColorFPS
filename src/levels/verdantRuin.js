@@ -133,8 +133,11 @@ export function buildVerdantRuin(B, { K, F, trap }) {
   slab(mats.granite, C.x1 - T, C.top, H.z1 - 0.5, H.x1 - 0.5, C.top + 1, H.z2 + 0.5);
   slab(mats.granite, H.x2 + 0.5, C.top, H.z1 - 0.5, C.x2 + T, C.top + 1, H.z2 + 0.5);
   // the north ledge (0.6 m over the water: swim to it and climb out) and the water
-  slab(mats.granite, C.x1, C.floor, C.z1, C.x2, C.water + 0.6, C.z1 + 3.2);
-  K.put(mats.glyph, boxGeo(14, 0.3, 0.2, 0.5), -50, C.water + 0.45, C.z1 + 3.25);
+  // (its top just under the surface, so a leap out of the water lands you on it; a step up to the doorway)
+  slab(mats.granite, C.x1, C.floor, C.z1, C.x2, C.water - 0.3, C.z1 + 3.2);
+  K.put(mats.glyph, boxGeo(14, 0.3, 0.2, 0.5), -50, C.water - 0.45, C.z1 + 3.25);
+  slab(mats.granite, -52.5, C.water - 0.3, C.z1, -47.5, C.water + 0.05, C.z1 + 1.4);
+  slab(mats.granite, -52.5, C.water + 0.05, C.z1, -47.5, C.water + 0.35, C.z1 + 0.7);
   B.water([C.x1, C.floor, C.z1 + 3.2], [C.x2, C.water, C.z2], { surface: false });
   K.put(mats.swampDeep, new THREE.PlaneGeometry(C.x2 - C.x1, C.z2 - C.z1 - 3.2, 6, 5).rotateX(-PI / 2), -50, C.water, (C.z1 + 3.2 + C.z2) / 2);
   for (let i = 0; i < 5; i++) K.limb([[R(C.x1, C.x2), C.top + 0.5, R(-300, -292)], [R(C.x1, C.x2), C.top - 2, R(-300, -292)], [R(C.x1, C.x2), C.water - 0.5, R(-300, -292)]], 0.25, 0.08, mats.bark, 6);
@@ -143,7 +146,7 @@ export function buildVerdantRuin(B, { K, F, trap }) {
   B.light(-50, -5, -301, 0x6dffb0, 6, 14);
   F.drips([[-50, -2, -297, -8, 1.6, 30], [-55, -2.2, -293, -8, 0.4, 8], [-45, -2.2, -294, -8, 0.4, 8]], { near: 25 });
   F.shaft(-50, -2.5, -297, 6, 2.6, 0.02);
-  const cisternCp = cp([-50, C.water + 0.6, -303.5], NORTH, [6, 3, 3]);
+  const cisternCp = cp([-50, C.water - 0.3, -303], NORTH, [6, 3, 3]);
   mood([C.x1, C.water - 3, C.z1], [C.x2, C.top, C.z2], 'music_ruin');
   // the doorway north into the glyph stair
   // ================================================================ THE GLYPH STAIR (x -52..-48, z -306 → -318)
@@ -484,7 +487,7 @@ export function buildVerdantRuin(B, { K, F, trap }) {
   }
 
   // ================================================================ STARTS
-  devStart('verdant8', [-50, C.water + 0.6, -303.5], NORTH, RY, 'The ruin: the cistern under the island');
+  devStart('verdant8', [-50, C.water - 0.3, -303], NORTH, RY, 'The ruin: the cistern under the island');
   devStart('verdant9', [-50, Hh.floor, -321.5], NORTH, RY, 'The algae reactors (log 07b)');
   devStart('verdant10', [-50, S.floor, -357], NORTH, RY, 'The inner sanctum (the green core)');
 

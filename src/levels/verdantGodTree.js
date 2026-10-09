@@ -34,11 +34,12 @@ export function buildGodTree(B, { landing = [30, 18, -330] } = {}) {
   for (const x of [36, 42]) W.box(x - 0.8, -30, -271, x + 0.8, 11.4, -269, 'rock', zone);
   blocker([lx - 2, 12, z1 - 1], [lx - 1.5, 40, z0]);
   blocker([lx + 1.5, 12, z1 + 1.5], [lx + 2, 40, z0]);
-  blocker([lx - 1.5, 12, -272], [45, 40, -271.5]);
+  blocker([lx + 1.5, 12, -272], [45, 40, -271.5]);
+  blocker([lx - 2, 12, -272], [lx - 1.5, 40, -268]);
   blocker([lx - 1.5, 12, -268.5], [45, 40, -268]);
   B.corridorX({ xStart: 45, xEnd: 52.8, y: 12, zone, cz: -270 });
   area([52.8, 12, -271.5], [55, 15, -268.5], MOOD);
-  area([lx - 3, ly, lz - 3], [lx + 3, ly + 3, lz + 3], MOOD);
+  area([lx - 3, ly, lz - 3], [lx + 3, ly + 3, lz + 3], { ...MOOD, atmosphere: 'verdantGorge' });
   B.hint([lx - 3, ly, lz - 3], [lx + 3, ly + 3, lz + 3], '(Stub) The god tree is still growing. Take the stair south to the old courtyard.', 4);
 
   // THE THORNMAW'S COURTYARD (verdantArena.js), as before

@@ -529,7 +529,7 @@ export function buildVerdantSwamp(B, ctx = {}) {
   function objective(p) {
     const r = ruin.objective?.(p);
     if (r) return r;
-    if (p.y < -2) return '';
+    if (p.y < -2 || p.z < -301.5 || p.x > 31) return '';
     if (p.z > -158.5) return '';
     if (p.z > -172) return 'Into the swamp: <b>down the steps</b>, into the shallows.';
     if (p.z > -232) {
@@ -723,7 +723,7 @@ export function buildVerdantSwamp(B, ctx = {}) {
             game.clearedEncounters?.add(TRAP_ID);
             audio.sample('leviathan_splash', { gain: 0.9, rate: 1.3, vary: 0 });
             setTimeout(() => game.hud.fade(0, 1.6), 450);
-            setTimeout(() => game.hud.message('Darkness, and cold water. <b>Swim to the ledge</b> and climb out.', 5), 1600);
+            setTimeout(() => game.hud.message('Darkness, and cold water. Swim up (<b>Space</b>) to the ledge on the <b>north</b> side, and press <b>Space</b> at its edge to climb out.', 6), 1600);
             ruin.onFall?.();
           }
           if (st.t > 4 && player.pos.y > iy - 1) st.state = 'open'; // (jumped clear: the hole stays open)

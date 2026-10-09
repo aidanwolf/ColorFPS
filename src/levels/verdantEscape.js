@@ -834,7 +834,10 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
       const z = R(cz - 20, cz + 20);
       K.limb([[0.5, 52, z], [R(3, 6), R(36, 46), z + R(-3, 3)], [R(2, 7), R(20, 30), z + R(-4, 4)], [R(0.5, 3), R(4, 12), z + R(-4, 4)]], R(0.35, 0.6), 0.12, mats.bark, 6);
     }
-    // a light at the mouth: the daylight you run toward
+    // a light at the mouth: the daylight you run toward (and a soft glow filling the opening, seen from inside)
+    const day = new THREE.Mesh(new THREE.PlaneGeometry(6, 6).rotateY(-PI / 2), new THREE.MeshBasicMaterial({ map: F.FM.blob, color: 0xd8f0c0, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+    day.position.set(cx + 6.8, 20.6, cz);
+    W.scene.add(day);
     B.light(8, 22, cz, 0xfff0c8, 26, 26);
     // the gorge below: mist on the water far down, rock pillars, a kill zone (fall and you're back at the run's end)
     for (let i = 0; i < 10; i++) F.mist(R(4, 26), R(-4, 2), R(-360, -302), R(14, 24), R(14, 24));
