@@ -32,10 +32,11 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RED, YELLOW, GREEN } from '../colors.js';
 import { audio } from '../audio.js';
 import { Barrier } from '../entities/barrier.js';
-import { Checkpoint, JumpPad } from '../entities/misc.js';
+import { Checkpoint } from '../entities/misc.js';
 import { SlidingDoor } from '../entities/puzzle.js';
 import { Thicket } from '../entities/globPuzzle.js';
-import { spawnEnemy } from '../entities/combat.js';
+import { GooPad } from '../entities/gooPad.js';
+import { creatureKit } from '../entities/verdantCreatures.js';
 import { VineSwing, ZipLine } from '../entities/vineSwing.js';
 import { regionOf } from './regions.js';
 import { buildVerdantArena } from './verdantArena.js';
@@ -109,6 +110,7 @@ export function buildGodTree(B, ctx = {}) {
   const R = (a, b) => a + (b - a) * rand();
   const pick = (arr) => arr[Math.floor(rand() * arr.length)];
   const K = makeVerdantKit(B, { seed: 31 });
+  const C = creatureKit(B);
   const KM = kitMaterials();
   const tagC = (hex, t) => `<b style="color:${hex}">${t}</b>`;
   const G_ = (t) => tagC('#3dff7a', t), Y_ = (t) => tagC('#ffd23a', t), R_ = (t) => tagC('#ff3344', t);
@@ -632,11 +634,34 @@ export function buildGodTree(B, ctx = {}) {
       }
     },
   });
-  // ... and boxes inside it (shots, globs and creatures stop at the bark)
+  // ... and slabs inside it, hugging the bark (shots, globs, goo and creatures stop at the skin): per 6 m band,
+  // slices along x and along z, each as long as the bark allows (the union is a close polygon)
   for (let y = -6; y < TREE.top; y += 6) {
-    let rmin = Infinity;
-    for (let b = 0; b < 360; b += 6) for (const yy of [y, y + 6]) rmin = Math.min(rmin, trunkR(b, yy) - 0.9);
-    for (const [a, c] of [[0.94, 0.34], [0.34, 0.94], [0.72, 0.72]]) solid(TREE.x - rmin * a, y, TREE.z - rmin * c, TREE.x + rmin * a, y + 6, TREE.z + rmin * c, 'rock', { treeBody: true });
+    const pts = [];
+    for (let b = 0; b < 360; b += 1) {
+      let r = Infinity;
+      for (const yy of [y, y + 3, Math.min(y + 6, TREE.top)]) r = Math.min(r, trunkR(b, yy));
+      r -= 0.25;
+      pts.push([r * Math.sin(b * DEG), -r * Math.cos(b * DEG)]);
+    }
+    const N = 14;
+    let rmax = 0;
+    for (const [px, pz] of pts) rmax = Math.max(rmax, Math.abs(px), Math.abs(pz));
+    for (const axis of [0, 1]) {
+      for (let i = 0; i < N; i++) {
+        const a1 = -rmax + (2 * rmax * i) / N, a2 = -rmax + (2 * rmax * (i + 1)) / N;
+        let lo = -Infinity, hi = Infinity;
+        for (const pt of pts) {
+          const a = pt[axis], c = pt[1 - axis];
+          if (a < a1 - 0.5 || a > a2 + 0.5) continue;
+          if (c > 0) hi = Math.min(hi, c);
+          else lo = Math.max(lo, c);
+        }
+        if (!(Number.isFinite(hi) && Number.isFinite(lo) && hi > 0.5 && lo < -0.5)) continue;
+        if (axis === 0) solid(TREE.x + a1, y, TREE.z + lo, TREE.x + a2, y + 6, TREE.z + hi, 'rock', { treeBody: true });
+        else solid(TREE.x + lo, y, TREE.z + a1, TREE.x + hi, y + 6, TREE.z + a2, 'rock', { treeBody: true });
+      }
+    }
   }
 
   // ================================================================ THE CHASM: mist, water, the forest walls
@@ -804,10 +829,10 @@ export function buildGodTree(B, ctx = {}) {
     }
     if (boxes) {
       // the floor's body: three overlapping boxes inside the disc
-      const s1 = rr * 0.84, s2 = rr * 0.6;
+      const s1 = rr * 0.93, s2 = rr * 0.62;
       solid(cx - s1, y - 2.2, cz - s2, cx + s1, y, cz + s2);
       solid(cx - s2, y - 2.2, cz - s1, cx + s2, y, cz + s1);
-      solid(cx - rr * 0.72, y - 2.2, cz - rr * 0.72, cx + rr * 0.72, y, cz + rr * 0.72);
+      solid(cx - rr * 0.8, y - 2.2, cz - rr * 0.8, cx + rr * 0.8, y, cz + rr * 0.8);
     }
     return { top, cx, cz, y, rr };
   }
@@ -994,8 +1019,8 @@ export function buildGodTree(B, ctx = {}) {
   strip(L1, 2.6, { kind: 'grass' });
   limb(curveOf(L1.map(([x, y, z]) => [x, y - 0.9, z])), 1.5, 1.4, { seg: 10, flat: 3.4, squash: 0.8, knob: 0.1 });
   for (const [x, y, z] of L1) put(mossMat, new THREE.IcosahedronGeometry(1.2, 1).scale(1, 0.12, 1), x, y - 0.03, z);
-  const borer1 = new BorerHole(W, game, { pos: P(189, trunkR(189, 24.8) - 0.2, 24.8), bearing: 189, reach: 3.6, period: 3.2 });
-  say([L1[0][0] - 2, 23, L1[0][2] - 2], [L1[0][0] + 2, 27, L1[0][2] + 2], `Something lives in that hole. ${G_('Goo it shut')} — or time your run.`, 5);
+  const borer1 = C.borer(P(189, trunkR(189, 25.2) - 0.1, 25.2), [Math.sin(189 * DEG), 0, -Math.cos(189 * DEG)], { color: GREEN, range: 6, length: 14, plugTime: 10 });
+  say([L1[0][0] - 2, 23, L1[0][2] - 2], [L1[0][0] + 2, 27, L1[0][2] + 2], `Something lives in that hole. ${G_('Goo it shut')} while it's in — or kill it when it lunges.`, 5);
   overgrow(180, 240, 21, 32, 40);
 
   // ================================================================ BOUGH 1 · THE SAP TAP (y 30, south)
@@ -1056,7 +1081,7 @@ export function buildGodTree(B, ctx = {}) {
   // ================================================================ THE VINES (30 → 46), round the south-east
   // Three vines hang from side boughs, each higher than the last: run and jump into one (you grab it), swing,
   // pump with W toward where you look, and jump at the top of the arc to fly to the next.
-  const V1 = vine({ anchor: [88.4, 43.2, -351], length: 12.2, sway: [1, 0] });
+  const V1 = vine({ anchor: [87.8, 42.4, -351], length: 12.2, sway: [1, 0] });
   const V2 = vine({ anchor: [95.6, 50.4, -360.6], length: 12.6, sway: [0.6, -0.8] });
   const V3 = vine({ anchor: [102.6, 55.4, -369.8], length: 12.8, sway: [0.5, -0.9] });
   say([B1.x + 4, 29, B1.z - 6], [B1.x + 9, 33, B1.z + 6], `<b>Jump into the vine</b> to grab it. Hold <b>W</b> toward where you look to swing higher, <b>JUMP</b> to let go at the top of the arc.`, 8);
@@ -1103,55 +1128,95 @@ export function buildGodTree(B, ctx = {}) {
       ],
       [
         { type: 'swarm', pos: [B2.x - 3, B2.y + 7, B2.z - 2], color: [GREEN, YELLOW], count: 7 },
-        { type: 'swarm', pos: [B2.x + 4, B2.y + 7, B2.z + 3], color: [RED, GREEN], count: 5 },
+        { type: 'rotflies', pos: [B2.x + 4, B2.y + 1, B2.z + 3], color: GREEN, count: 4, respawn: 0, hive: false },
         { type: 'spider', pos: [B2.x + 3, B2.y, B2.z - 5], color: YELLOW, shields: [GREEN] },
       ],
     ],
     checkpoint: { pos: [B2.x - 6, B2.y, B2.z], yaw: WEST },
   });
-  const nestPlug = new Thicket(W, { min: P(84, 15.2, B2.y).map((v, i) => v - [1.4, 0, 1.4][i]), max: P(84, 15.2, B2.y).map((v, i) => v + [1.4, 3.2, 1.4][i]), style: 'nest', health: 2, seed: 7 });
   cp([B2.x, B2.y, B2.z + 6], NORTH, [4, 3, 3], 'THE HANGING NESTS');
   B.armor([B2.x + 6.5, B2.y, B2.z - 2]);
   lamp(B2.x, B2.y + 6, B2.z, 0xb8ff9a, 18, 22);
   say([98, 45, -382], [104, 49, -376], `Swarms: a ${G_('glob')} bursting in the air catches the lot.`, 5);
 
-  // ================================================================ THE FLY WALL and THE SEED PODS (46 → 52)
-  // A catwalk bolted to the bark runs north from the bough's root to a sheer face. Goo the bark there and the
-  // rotflies that circle the tree get stuck in it, a staircase of them up to the ledge above. Past the ledge
-  // seed pods swing across the gap on long stems: goo one still when it's in line, and hop across.
-  const CW = [[92.6, -387.6], [91.9, -390.6], [90.6, -393.6], [88.7, -396.4]];
-  K.catwalk(CW, B2.y + 0.4, { w: 2.0 });
-  for (const [x, z] of CW) K.rod(KM.pipeDark, [x, B2.y, z], [...P(bearingOf(x, z), trunkR(bearingOf(x, z), 44) - 0.5, 44)], 0.1, 0.1, 5);
-  const flyWall = new FlyWall(W, game, {
-    face: 44, y0: B2.y + 0.4, steps: [[46.5, 47.5], [43.3, 48.6], [40.1, 49.7], [36.9, 50.8]], // [bearing, top]
-    rOff: 1.25,
-  });
-  const LF = [];
-  for (let b = 34.5; b >= 26; b -= 2.8) LF.push(P(b, trunkR(b, 51.6) + 1.6, 51.6));
-  strip(LF, 2.8);
-  limb(curveOf(LF.map(([x, y, z]) => [x, y - 0.9, z])), 1.6, 1.5, { seg: 10, flat: 3.4, squash: 0.8 });
-  for (const [x, y, z] of LF) put(mossMat, new THREE.IcosahedronGeometry(1.3, 1).scale(1, 0.12, 1), x, y - 0.03, z);
-  say([88, 46, -398], [91, 50, -394], `Sheer bark. ${G_('Goo it')}: the flies that circle this tree stick to anything sticky.`, 6);
-  // the seed pods: from the ledge's end (bearing 26) across to the bloom pad's stub (bearing 4)
-  const podA = LF[LF.length - 1];
-  const BLOOM = [81.5, 52, -409.5];
-  solid(BLOOM[0] - 1.8, 49.5, BLOOM[2] - 1.8, BLOOM[0] + 1.8, 52, BLOOM[2] + 1.8, 'grass');
-  limb(curveOf([P(14, trunkR(14, 50) - 2, 49.6), [BLOOM[0] - 0.5, 50.6, BLOOM[2] + 0.5], [BLOOM[0] + 1.2, 50.8, BLOOM[2] - 1.4]]), 2.2, 1.6, { seg: 12, flat: 3.4 });
-  put(mossMat, new THREE.IcosahedronGeometry(1.9, 1).scale(1, 0.12, 1), BLOOM[0], 51.98, BLOOM[2]);
+  // ================================================================ THE CUT FACE and THE SEED PODS (46 → 53.4)
+  // Where the second bough meets the trunk the harvesters stripped the bark off a whole face of it: flat,
+  // raw heartwood weeping sap, too sheer to climb, and a hive nest built over its foot. Burst the nest, goo
+  // the face, and the rotflies that hang round the bough fly into the goo and stick: climb them to the
+  // catwalk above. It runs north to a gap where seed pods swing on long stems: goo one still when it swings
+  // into line and hop across to a bloom pad that throws you up onto the third bough.
+  const FACE = { x: TREE.x + trunkR(90, 50) + 0.15, z1: -390.6, z2: -379.6, y1: B2.y, y2: 53.4 };
+  solid(FACE.x - 5, FACE.y1, FACE.z1, FACE.x, FACE.y2 - 0.01, FACE.z2, 'rock');
+  {
+    // the raw heartwood: a pale panel, growth rings, sap weeping down it, curled lips of bark round it
+    const ringTex = canvasTex(256, 128, (g, w, h) => {
+      g.fillStyle = '#8a7656';
+      g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 60; i++) {
+        g.strokeStyle = `rgba(${60 + rand() * 30},${44 + rand() * 20},${26 + rand() * 12},${0.3 + rand() * 0.4})`;
+        g.lineWidth = 1 + rand() * 2.5;
+        g.beginPath();
+        const yy = rand() * h * 1.4 - h * 0.2;
+        g.moveTo(0, yy);
+        for (let x = 0; x <= w; x += 16) g.lineTo(x, yy + Math.sin(x * 0.03 + i) * 6 + (rand() - 0.5) * 3);
+        g.stroke();
+      }
+      for (let i = 0; i < 90; i++) {
+        g.fillStyle = `rgba(20,14,8,${0.2 + rand() * 0.3})`;
+        g.fillRect(rand() * w, rand() * h, 1 + rand() * 2, 4 + rand() * 18);
+      }
+    });
+    const faceMat = new THREE.MeshStandardMaterial({ map: ringTex, color: 0xd8c8a8, roughness: 0.9 });
+    const fg = new THREE.PlaneGeometry(FACE.z2 - FACE.z1, FACE.y2 - FACE.y1 + 0.6).rotateY(PI / 2);
+    put(faceMat, fg, FACE.x + 0.01, (FACE.y1 + FACE.y2) / 2 - 0.3, (FACE.z1 + FACE.z2) / 2);
+    for (let i = 0; i < 7; i++) {
+      const z = R(FACE.z1 + 0.5, FACE.z2 - 0.5), len = R(1.5, 5);
+      put(KM.sap, new THREE.BoxGeometry(0.04, len, R(0.08, 0.2)), FACE.x + 0.03, FACE.y2 - 0.4 - len / 2 - R(0, 1.5), z);
+    }
+    // the bark's curled lips round the cut (top and both sides)
+    limb(curveOf([[FACE.x - 0.4, FACE.y1 - 0.5, FACE.z1 - 0.3], [FACE.x - 0.1, (FACE.y1 + FACE.y2) / 2, FACE.z1 - 0.6], [FACE.x - 0.4, FACE.y2 + 0.4, FACE.z1 - 0.3]]), 0.7, 0.6, { seg: 8, knob: 0.2 });
+    limb(curveOf([[FACE.x - 0.4, FACE.y1 - 0.5, FACE.z2 + 0.3], [FACE.x - 0.1, (FACE.y1 + FACE.y2) / 2, FACE.z2 + 0.6], [FACE.x - 0.4, FACE.y2 + 0.4, FACE.z2 + 0.3]]), 0.7, 0.6, { seg: 8, knob: 0.2 });
+    limb(curveOf([[FACE.x - 0.4, FACE.y2 + 0.3, FACE.z1 - 0.3], [FACE.x - 0.05, FACE.y2 + 0.7, (FACE.z1 + FACE.z2) / 2], [FACE.x - 0.4, FACE.y2 + 0.3, FACE.z2 + 0.3]]), 0.75, 0.75, { seg: 8, knob: 0.2 });
+    // the harvesters' marks: a spigot rack bolted across the top of the cut, hoses hanging
+    for (let i = 0; i < 4; i++) K.sapTap([FACE.x + 0.05, FACE.y2 - 0.8, FACE.z1 + 1.6 + i * 2.6], { yaw: -PI / 2 });
+  }
+  const faceNest = new Thicket(W, { min: [FACE.x, FACE.y1, FACE.z1 + 1.5], max: [FACE.x + 1.6, FACE.y1 + 3.2, FACE.z2 - 1.5], style: 'nest', health: 2, seed: 7 });
+  const faceFlies = C.rotflies([B2.x - 6.5, B2.y, B2.z - 5.2], { count: 6, aggro: false, attract: 22, stuckTime: 10, respawn: 3, perPatch: 1 });
+  say([FACE.x + 0.5, 45, FACE.z1], [FACE.x + 5, 50, FACE.z2], `Raw heartwood: too sheer to climb. Burst the nest, then ${G_('goo the face')} in steps — the rotflies stick to goo.`, 7);
+  // the catwalk above the cut, round to the seed pods
+  const CWb = [66, 56, 46, 37.5];
+  const CW = CWb.map((b) => [...P(b, trunkR(b, 53.4) + 2.1, 0)].filter((_, i) => i !== 1));
+  const cwStart = P(76, trunkR(76, 53.4) + 1.6, 53.4);
+  solid(cwStart[0] - 1.8, 52.2, cwStart[2] - 1.8, cwStart[0] + 1.8, 53.4, cwStart[2] + 1.8, 'grass');
+  ledge(76, 53.4, { d: 3.4, w: 3.6, solidBox: false });
+  K.catwalk([[cwStart[0], cwStart[2]], ...CW], 53.4, { w: 2.2 });
+  for (const [x, z] of CW) {
+    const b = bearingOf(x, z);
+    K.rod(KM.pipeDark, [x, 53.2, z], P(b, trunkR(b, 51) - 0.3, 51), 0.1, 0.1, 5);
+  }
+  cp([cwStart[0], 53.4, cwStart[2]], -2.4, [3, 3, 3], 'THE CUT FACE');
+  // the seed pods: from the catwalk's end across to the bloom pad's stub
+  const podA = [CW[CW.length - 1][0], 53.4, CW[CW.length - 1][1]];
+  const BLOOM = [80.6, 53.4, -411.2];
+  solid(BLOOM[0] - 1.9, 51, BLOOM[2] - 1.9, BLOOM[0] + 1.9, 53.4, BLOOM[2] + 1.9, 'grass');
+  limb(curveOf([P(12, trunkR(12, 51) - 2, 51), [BLOOM[0] - 0.4, 52, BLOOM[2] + 0.4], [BLOOM[0] + 1.2, 52.2, BLOOM[2] - 1.4]]), 2.2, 1.6, { seg: 12, flat: 3.4 });
+  put(mossMat, new THREE.IcosahedronGeometry(2.0, 1).scale(1, 0.12, 1), BLOOM[0], 53.38, BLOOM[2]);
   const pods = [];
   for (let i = 1; i <= 3; i++) {
     const t = i / 4;
     const x = podA[0] + (BLOOM[0] - podA[0]) * t, z = podA[2] + (BLOOM[2] - podA[2]) * t;
-    // they swing across the line between the ledge and the stub
+    // they swing across the line between the catwalk and the stub
     const dx = BLOOM[0] - podA[0], dz = BLOOM[2] - podA[2], l = Math.hypot(dx, dz);
-    pods.push(new SeedPod(W, game, { pivot: [x, 64, z], length: 12.2, dir: [-dz / l, dx / l], amp: 0.36, period: 3.3 + i * 0.35, phase: i * 1.9, top: 52 }));
+    const pod = new SeedPod(W, game, { pivot: [x, 66, z], length: 12.6, dir: [-dz / l, dx / l], amp: 0.4, period: 3.1 + i * 0.4, phase: i * 1.9, top: 53.4 });
+    W.goo.registerStickable(pod, { duration: 7 });
+    pods.push(pod);
   }
-  limb(curveOf([P(30, 14, 60), P(20, 24, 64.5), P(8, 30, 64)]), 1.8, 0.8, { seg: 10 });
-  say([podA[0] - 2, 51, podA[2] - 2], [podA[0] + 2, 55, podA[2] + 2], `Swinging seed pods. ${G_('Goo one')} as it swings into line and it sticks there.`, 6);
-  cp([LF[1][0], 51.6, LF[1][2]], -2.7, [3, 3, 3], 'THE FLY WALL');
-  // the bloom pad on the stub: shoot it green, stand on it as it blooms
-  const bloom1 = new BloomPad(W, game, { pos: BLOOM, power: 25.5, push: [-2.4, 0, 0.6] });
-  say([BLOOM[0] - 2, 51.5, BLOOM[2] - 2], [BLOOM[0] + 2, 55, BLOOM[2] + 2], `A ${G_('bloom pad')}: shoot it ${G_('green')}, then stand on it when it bursts open.`, 6);
+  limb(curveOf([P(34, 14, 62), P(22, 22, 66.6), P(8, 30, 66.2)]), 1.8, 0.8, { seg: 10 });
+  say([podA[0] - 2, 52.5, podA[2] - 2], [podA[0] + 2, 56, podA[2] + 2], `Swinging seed pods. ${G_('Goo one')} as it swings into line and it hangs there.`, 6);
+  // the bloom pad on the stub: lob a glob into it, stand on it as it blooms
+  const bloom1 = new GooPad(W, { pos: BLOOM, power: 24, push: [-2.2, 0, 0.4], carry: false, window: 0.8 });
+  B.onRespawn(() => bloom1.reset());
+  say([BLOOM[0] - 2, 52.9, BLOOM[2] - 2], [BLOOM[0] + 2, 56, BLOOM[2] + 2], `A ${G_('bloom pad')}: lob a ${G_('glob')} into it, stand on it, and ride the bloom.`, 6);
   overgrow(5, 95, 46, 64, 50);
 
   // ================================================================ BOUGH 3 · THE MOSS POND (y 62, north)
@@ -1187,7 +1252,6 @@ export function buildGodTree(B, ctx = {}) {
       const a = R(0, PI * 2), d = R(4, 5.2);
       K.rod(KM.vine, [x + Math.cos(a) * d, y - 0.5, z + Math.sin(a) * d], [x + Math.cos(a) * d + R(-0.2, 0.2), y + R(0.8, 2), z + Math.sin(a) * d + R(-0.2, 0.2)], 0.04, 0.02, 3);
     }
-    // the snapjaw flytraps on the rim (their creatures arrive with verdantCreatures.js)
     for (let i = 0; i < 6; i++) mushroom(x + R(-8, 8), y, z + R(-8, 8), R(0.3, 1.2), R(0.3, 0.8));
     K.harvestTower([x + 6.5, y, z - 6], 9, { r: 1.4 });
     mistAt(x, 56, z, 20, 3);
@@ -1209,41 +1273,47 @@ export function buildGodTree(B, ctx = {}) {
     checkpoint: { pos: [B3.x - 7, B3.y, B3.z], yaw: WEST },
   });
   cp([75, B3.y, -404], NORTH, [4, 3, 3], 'THE MOSS POND');
+  // the snapjaws rooted on the far rim: they wake with you (a closed or stunned head is a step)
+  C.snapjaw([B3.x - 5.5, B3.y, B3.z - 6.5], { color: GREEN, yaw: 0.5, reach: 5.5 });
+  C.snapjaw([B3.x + 6, B3.y, B3.z - 5.5], { color: YELLOW, shields: [GREEN], yaw: -0.6, reach: 5.5 });
+  say([71, 61, -408], [79, 65, -404], `Ground things bog down in ${G_('goo')}: splash the floor in front of anything that charges.`, 6);
   B.armor([B3.x + 7.5, B3.y, B3.z + 3]);
   lamp(B3.x, B3.y + 6, B3.z, 0x9dffd0, 18, 24);
 
   // ================================================================ THE SAP PISTONS (62 → 77), round the north-west
-  // A flytrap pad on the pond's west rim flings you up onto a ledge on the trunk. Beyond it the hive's sap
-  // pistons shove bark slabs out of the trunk and draw them back: goo one while it's out and it jams there.
-  // Then a gap over a spore vent you can only cross on a goo membrane, and a vine to the fourth bough.
-  const trapPad = new JumpPad(W, { pos: [B3.x - 7.5, B3.y, B3.z + 0.5], power: 17.5, push: [-1.6, 0, 6.6], color: 0x9dff6a, carry: false });
-  const LD1 = [];
-  for (let b = 336; b >= 322; b -= 3.4) LD1.push(P(b, trunkR(b, 68.4) + 1.7, 68.4));
-  strip(LD1, 3.0);
-  limb(curveOf(LD1.map(([x, y, z]) => [x, y - 0.95, z])), 1.7, 1.6, { seg: 10, flat: 3.4, squash: 0.8 });
-  for (const [x, y, z] of LD1) put(mossMat, new THREE.IcosahedronGeometry(1.4, 1).scale(1, 0.12, 1), x, y - 0.03, z);
-  cp([LD1[1][0], 68.4, LD1[1][2]], WEST, [3, 3, 3], 'THE SAP PISTONS');
+  // A dormant flytrap grown on the third bough flings you up onto a ledge on the trunk. The ledge has rotted
+  // through over a spore vent: goo the hole and walk the membrane (it chokes the vent). Beyond, the hive's
+  // sap pistons shove bark slabs out of the trunk and draw them back: goo one while it's out and it jams.
+  // Then a vine from the last ledge swings you onto the fourth bough.
+  const trapPad = C.snapPad([73.6, B3.y, -403.4], { power: 20, push: [-3.9, 3.9], carry: false, yaw: PI * 0.75 });
+  const ledgeRun = (b0, b1, y, step = 3.2) => {
+    const pts = [];
+    for (let b = b0; b0 > b1 ? b >= b1 - 0.01 : b <= b1 + 0.01; b += b0 > b1 ? -step : step) pts.push(P(b, trunkR(b, y) + 1.7, y));
+    strip(pts, 3.0);
+    limb(curveOf(pts.map(([x, yy, z]) => [x, yy - 0.95, z]), 0.5), 1.7, 1.6, { seg: 10, flat: 3.4, squash: 0.8 });
+    for (const [x, yy, z] of pts) put(mossMat, new THREE.IcosahedronGeometry(1.4, 1).scale(1, 0.12, 1), x, yy - 0.03, z);
+    return pts;
+  };
+  const LD1 = ledgeRun(342, 337.5, 68.4, 2.25);
+  const LD1b = ledgeRun(318.5, 312, 68.4, 3.25);
+  cp([LD1[0][0], 68.4, LD1[0][2]], WEST, [3, 3, 3], 'THE SAP PISTONS');
+  // the rotted hole between them, a vent far down in the hollow below
+  const holeC = P(328, trunkR(328, 68.4) + 1.7, 68.4);
+  const membrane = W.goo.addGap({ min: [holeC[0] - 1.6, 67.4, holeC[2] - 1.6], max: [holeC[0] + 1.6, 68.4, holeC[2] + 1.6] }, { axis: 'y', duration: 11, onFill: () => (vent.blocked = true), onClear: () => (vent.blocked = false) });
+  const vent = new SporeVent(W, game, { pos: [holeC[0], 60, holeC[2]], top: 78 });
+  limb(curveOf([P(333, trunkR(333, 66.5) + 1.4, 67.2), P(328, trunkR(328, 65) + 2.6, 64.5), P(323, trunkR(323, 66.5) + 1.4, 67.2)]), 1.1, 1.1, { seg: 8, knob: 0.25, cap: false });
+  say([LD1[0][0] - 2, 67.4, LD1[0][2] - 2], [LD1[0][0] + 2, 71, LD1[0][2] + 2], `The ledge has rotted through over a spore vent. ${G_('Goo the hole')}: the membrane holds you and chokes the vent.`, 7);
   const pistons = [];
-  [[314.5, 69.5, 0], [305.5, 70.6, 1.3], [296.5, 71.7, 2.6]].forEach(([b, y, ph]) => pistons.push(new SapPiston(W, game, { bearing: b, top: y, phase: ph })));
-  say([LD1[0][0] - 2, 67, LD1[0][2] - 2], [LD1[0][0] + 2, 71, LD1[0][2] + 2], `The pistons won't wait for you. ${G_('Goo a slab')} while it's out and it jams.`, 6);
-  // the membrane gap: a ledge, a spore vent below a 4.5 m gap, the far ledge
-  const LD2a = [P(291, trunkR(291, 72.6) + 1.7, 72.6), P(287.5, trunkR(287.5, 72.6) + 1.7, 72.6)];
-  const LD2b = [P(276.5, trunkR(276.5, 72.6) + 1.7, 72.6), P(272.5, trunkR(272.5, 72.6) + 1.8, 72.6)];
-  for (const L of [LD2a, LD2b]) {
-    strip(L, 3.0);
-    limb(curveOf([L[0], L[1]].map(([x, y, z]) => [x, y - 0.95, z]), 0.5), 1.7, 1.6, { seg: 10, flat: 3.4, squash: 0.8 });
-    for (const [x, y, z] of L) put(mossMat, new THREE.IcosahedronGeometry(1.4, 1).scale(1, 0.12, 1), x, y - 0.03, z);
-  }
-  const gapMin = [Math.min(LD2a[1][0], LD2b[0][0]) - 1.5, 72.6, Math.min(LD2a[1][2], LD2b[0][2])];
-  const gapMax = [Math.max(LD2a[1][0], LD2b[0][0]) + 1.5, 72.6, Math.max(LD2a[1][2], LD2b[0][2])];
-  const membrane = new GooMembrane(W, game, { a: LD2a[1], b: LD2b[0], top: 72.6, width: 3 });
-  const vent = new SporeVent(W, game, { pos: [(LD2a[1][0] + LD2b[0][0]) / 2, 64, (LD2a[1][2] + LD2b[0][2]) / 2], top: 80, membrane });
-  void gapMin;
-  void gapMax;
-  say([LD2a[0][0] - 2, 71.5, LD2a[0][2] - 2], [LD2a[0][0] + 2, 75, LD2a[0][2] + 2], `A spore vent blasts up through the gap. ${G_('Goo across it')}: the membrane holds you.`, 6);
+  [[306, 69.5, 0], [297.5, 70.6, 1.4], [289, 71.7, 2.8]].forEach(([b, y, ph]) => {
+    const pis = new SapPiston(W, game, { bearing: b, top: y, phase: ph });
+    W.goo.registerStickable(pis, { duration: 8 });
+    pistons.push(pis);
+  });
+  say([LD1b[0][0] - 2, 67.4, LD1b[0][2] - 2], [LD1b[0][0] + 2, 71, LD1b[0][2] + 2], `The pistons won't wait for you. ${G_('Goo a slab')} while it's out and it jams.`, 6);
+  const LD2 = ledgeRun(282.5, 279, 72.9, 3.5);
   // the vine to the fourth bough
-  const V4 = vine({ anchor: [51.4, 86.2, -394.6], length: 13.2, sway: [-0.7, 0.7] });
-  overgrow(270, 345, 62, 80, 46);
+  const V4 = vine({ anchor: [56.2, 86.6, -394.2], length: 13, sway: [-0.7, 0.7] });
+  overgrow(278, 345, 62, 80, 46);
 
   // ================================================================ BOUGH 4 · THE FUNGUS GROVE (y 77, west)
   // A grove of giant glowing fungus on the last bough, spore light hanging in the air: the hive's last stand
@@ -1286,12 +1356,28 @@ export function buildGodTree(B, ctx = {}) {
   // At the grove's tip a giant fly hovers, tamed to the harvest (a saddle-rig strapped on its back). Leap on
   // and it carries you a whole turn round the trunk up to the crown, the hive coming at you all the way.
   const FLY_PATH = [
-    [31.2, 76.2, -385], [26, 79, -372], [33, 82, -352], [52, 84.5, -340], [75, 86, -338], [98, 88, -346], [112, 90, -366],
-    [114, 92, -390], [106, 94, -414], [86, 96, -428], [62, 98, -426], [44, 99.5, -410], [36.5, 100.2, -394], [39.2, 100.2, -386],
+    [26, 79, -373], [32, 82, -350], [52, 84.5, -336], [75, 86.5, -333], [99, 88.5, -342], [114, 90.5, -364],
+    [117, 92.5, -390], [109, 94, -416], [88, 95.5, -431], [62, 97, -430], [43, 98.6, -414], [33.5, 100, -397],
   ];
-  const fly = new FlyRide(W, game, { path: FLY_PATH, speed: 9.5 });
-  B.onRespawn(() => fly.reset());
-  say([35, 76, -388], [40, 80, -382], `The fly is waiting. <b>Jump onto its back.</b>`, 5);
+  const fly = C.flyRide({
+    start: [32.2, B4.y, B4.z],
+    yaw: PI * 0.1,
+    path: FLY_PATH,
+    end: [33.6, 100, -385.6],
+    speed: 10,
+    checkpoint: [37.5, B4.y, B4.z],
+    spawns: [
+      { u: 0.1, type: 'rotflies', rel: [0, 3, 22], count: 4, color: GREEN },
+      { u: 0.26, type: 'drone', rel: [-12, 4, 18], color: GREEN, shields: [YELLOW], life: 24 },
+      { u: 0.3, type: 'drone', rel: [10, 5, 14], color: RED, shields: [GREEN], life: 24 },
+      { u: 0.44, type: 'borer', pos: P(95, trunkR(95, 91) - 0.2, 91), normal: [1, 0, 0], range: 13, length: 26, color: GREEN },
+      { u: 0.56, type: 'rotflies', rel: [6, 2, 20], count: 4, colors: [GREEN, YELLOW] },
+      { u: 0.68, type: 'borer', pos: P(352, trunkR(352, 95) - 0.2, 95), normal: [Math.sin(352 * DEG), 0, -Math.cos(352 * DEG)], range: 13, length: 26, color: YELLOW },
+      { u: 0.78, type: 'swarm', rel: [-8, 4, 16], color: [GREEN, RED], count: 6 },
+    ],
+    title: ['THE GOD TREE · HOLD ON', 'THE GIANT FLY'],
+  });
+  say([35, 76, -388], [40, 80, -382], `The fly is waiting. <b>Step onto its back.</b>`, 5);
 
   // ================================================================ THE CROWN: THE THORNMAW'S COURTYARD (y 100)
   // The tree lifted an old temple into its crown; the hive made it the harvest's heart. Its limbs cradle the
@@ -1498,9 +1584,9 @@ export function buildGodTree(B, ctx = {}) {
   devStart('verdantTree2', [75, 27.3, -361], SOUTH, RYG, 'Bough 1: the Sap Tap');
   devStart('verdantTree3', [B1.x + 5.8, B1.y, B1.z], EAST, RYG, 'The vines');
   devStart('verdantTree4', [B2.x, B2.y, B2.z + 6], NORTH, RYG, 'Bough 2: the Hanging Nests');
-  devStart('verdantTree5', [CW[3][0], B2.y + 0.4, CW[3][1]], -2.7, RYG, 'The fly wall and the seed pods');
+  devStart('verdantTree5', [B2.x - 12, B2.y, B2.z], WEST, RYG, 'The cut face and the seed pods');
   devStart('verdantTree6', [75, B3.y, -404], NORTH, RYG, 'Bough 3: the Moss Pond');
-  devStart('verdantTree7', [LD1[1][0], 68.4, LD1[1][2]], WEST, RYG, 'The sap pistons');
+  devStart('verdantTree7', [LD1[0][0], 68.4, LD1[0][2]], WEST, RYG, 'The rotted ledge and the sap pistons');
   devStart('verdantTree8', [55, B4.y, B4.z], WEST, RYG, 'Bough 4: the Fungus Grove');
   devStart('verdantTree9', [36.4, B4.y, B4.z], WEST, RYG, 'The giant fly');
   devStart('verdantBoss', arena.checkpoint, EAST, RYG, 'The Thornmaw');
@@ -1523,162 +1609,127 @@ export function buildGodTree(B, ctx = {}) {
       }
       return 'The Thornmaw guards the Heart in the courtyard. <b>Kill it</b>, then shut the engine down.';
     }
-    if (fly.rider) return 'Hold on — and shoot back.';
+    if (fly.state === 'ride' || fly.state === 'takeoff') return 'Hold on — and shoot back.';
     if (p.y < 22.5 && p.z > -380 && p.x < 62) return p.z > -366 ? 'Follow the great root to the tree.' : 'Up the carved steps round the trunk\'s <b>south</b> side.';
-    if (p.y < 25.5 && p.z > -372) return borer1.plugged ? 'On up the first bough.' : `Get past the borer: ${G_('goo its hole')} shut, or time your run.`;
+    if (p.y < 25.5 && p.z > -372) return borer1.dead || borer1.plugT > 0 ? 'On up the first bough.' : `Get past the borer: ${G_('goo its hole')} while it's in, or kill it.`;
     if (p.y < 33 && p.z > -362) {
       if (fight1.state !== 'armed' && fight1.state !== 'cleared') return 'Clear the bough.';
       if (fight1.state === 'cleared') return 'Run and <b>jump into the vine</b> off the bough\'s east edge.';
       return 'Up the bough to the harvest rig.';
     }
     if (p.y < 45.5 && p.x > 82 && p.z > -378) return 'Swing up the vines: <b>W</b> pumps toward where you look, <b>JUMP</b> lets go.';
-    if (p.y < 50 && p.x > 95) return fight2.state === 'cleared' ? `Back along the bough: burst the ${G_('nest')} choking the catwalk north.` : 'Clear the nests.';
-    if (p.y < 51 && p.x > 85) return `${G_('Goo the sheer bark')} past the catwalk's end, then climb the flies stuck in it.`;
-    if (p.y < 55 && p.z < -395 && p.x > 76) {
+    if (p.y < 50 && p.x > 95) return fight2.state === 'cleared' ? 'Back along the bough to the cut face on the trunk.' : 'Clear the nests.';
+    if (p.y < 53 && p.x > 85) return faceNest.broken ? `${G_('Goo the cut face')} in steps; climb the rotflies that stick.` : `Burst the ${G_('nest')} at the foot of the cut face.`;
+    if (p.y < 56 && p.z < -388 && p.x > 76) {
       if (Math.hypot(p.x - BLOOM[0], p.z - BLOOM[2]) < 3) return `Shoot the ${G_('bloom pad')}, then stand on it as it opens.`;
       return `${G_('Goo a seed pod')} when it swings into line, then hop across.`;
     }
     if (p.y > 59 && p.y < 66 && p.z < -400) return fight3.state === 'cleared' ? 'The flytrap pad on the pond\'s <b>west</b> rim throws you up the trunk.' : 'Clear the pond.';
     if (p.y > 66 && p.y < 75) {
       const b = bearingOf(p.x, p.z);
-      if (b > 300) return `${G_('Goo a piston\'s slab')} while it's out, and climb.`;
-      if (b > 284) return `${G_('Goo the gap')}: walk the membrane over the vent.`;
+      if (b > 322) return `${G_('Goo the rotted hole')}: walk the membrane over the vent.`;
+      if (b > 285) return `${G_('Goo a piston\'s slab')} while it's out, and climb.`;
       return 'Jump into the vine and swing onto the fourth bough.';
     }
     if (p.y > 75 && p.y < 82 && p.x < 64) return fight4.state === 'cleared' || fight4.state === 'armed' ? 'Out to the bough\'s tip: <b>jump onto the giant fly</b>.' : 'Clear the grove.';
     return 'Climb the god tree.';
   }
 
-  return { objective, arena, homeDoor, fly, zip, vines, pods, pistons, membrane, vent, borer1, flyWall, bloom1, trapPad, seal1, nestPlug, fights: [fight1, fight2, fight3, fight4], pockets: [p1, p2, p3, p4], trunkR, TREE };
+  return { objective, arena, homeDoor, fly, zip, vines, pods, pistons, membrane, vent, borer1, faceFlies, faceNest, FACE, BLOOM, bloom1, trapPad, seal1, fights: [fight1, fight2, fight3, fight4], pockets: [p1, p2, p3, p4], trunkR, TREE };
 }
 
 // ================================================================================================
-// LOCAL STAND-INS for the goo and creature pieces (goo.js, gooPad.js, verdantCreatures.js are coming from
-// other modules; these keep the climb playable until they land, with the same beats).
+// THE TREE'S OWN MOVING PIECES (the goo freezes them: W.goo.registerStickable, see goo.js)
 // ================================================================================================
-const GOO = 0x3dff7a;
-const _p = new THREE.Vector3();
-let gooKit = null;
-function goo() {
-  if (gooKit) return gooKit;
-  gooKit = {
-    blob: new THREE.MeshStandardMaterial({ color: 0x3dff7a, emissive: 0x0f6a2a, emissiveIntensity: 0.6, roughness: 0.15, transparent: true, opacity: 0.78 }),
-    film: new THREE.MeshStandardMaterial({ color: 0x5dff8a, emissive: 0x0f6a2a, emissiveIntensity: 0.5, roughness: 0.1, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }),
+let pieceKit = null;
+function pieces() {
+  if (pieceKit) return pieceKit;
+  pieceKit = {
     husk: new THREE.MeshStandardMaterial({ color: 0x6a5a34, roughness: 0.9, flatShading: true }),
+    huskGlow: new THREE.MeshBasicMaterial({ color: new THREE.Color(0xd8ff7a).multiplyScalar(1.2) }),
     moss: new THREE.MeshStandardMaterial({ color: 0x4a7a2c, roughness: 1, flatShading: true }),
-    dark: new THREE.MeshStandardMaterial({ color: 0x1c1410, roughness: 1 }),
-    worm: new THREE.MeshStandardMaterial({ color: 0x9a7a6a, roughness: 0.6, flatShading: true }),
-    fly: new THREE.MeshStandardMaterial({ color: 0x2a3a30, roughness: 0.4, metalness: 0.4, flatShading: true }),
-    wing: new THREE.MeshStandardMaterial({ color: 0xc8f0ff, roughness: 0.1, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }),
-    eye: new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff5a3a).multiplyScalar(1.4) }),
-    spore: new THREE.MeshBasicMaterial({ color: 0xd8ff9a, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false }),
+    slab: new THREE.MeshStandardMaterial({ color: 0x6a5640, roughness: 1, flatShading: true }),
+    spore: new THREE.MeshBasicMaterial({ color: 0xd8ff9a, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
+    mouth: new THREE.MeshStandardMaterial({ color: 0x8a7a4a, roughness: 1, flatShading: true }),
   };
-  return gooKit;
+  return pieceKit;
 }
-// did a green burst at `point` (radius r) reach within `pad` of the box min..max?
-function splashReaches(point, r, min, max, pad = 0.4) {
-  const cx = Math.max(min.x, Math.min(point.x, max.x)), cy = Math.max(min.y, Math.min(point.y, max.y)), cz = Math.max(min.z, Math.min(point.z, max.z));
-  return Math.hypot(point.x - cx, point.y - cy, point.z - cz) < r + pad;
-}
-const gooSound = () => audio.sample(audio.sfxOr('goo_stick', 'slime_splat'), { gain: 0.7, rate: 0.9, vary: 0.1 });
 
-// A swinging seed pod on a long stem: standable (it carries you), a green burst freezes it for `hold` s.
+// A seed pod swinging on a long stem across a gap: standable (it carries you), and a green burst sticks it
+// fast wherever it is (goo.js freezes it: update skipped, the solid's delta zeroed).
 class SeedPod {
-  constructor(world, game, { pivot, length, dir, amp = 0.35, period = 3.4, phase = 0, top, hold = 7 }) {
+  constructor(world, game, { pivot, length, dir, amp = 0.35, period = 3.4, phase = 0, top }) {
     this.world = world;
     this.game = game;
     this.pivot = new THREE.Vector3(...pivot);
     this.L = length;
     this.dir = new THREE.Vector3(dir[0], 0, dir[1]).normalize();
+    this.axis = new THREE.Vector3(this.dir.z, 0, -this.dir.x);
     this.amp = amp;
     this.w = (PI * 2) / period;
     this.phase = phase;
     this.t = 0;
-    this.hold = hold;
-    this.frozen = 0;
     this.topOff = top - (this.pivot.y - length); // the pod's top above the stem's end
-    const k = goo();
+    const k = pieces();
     this.group = new THREE.Group();
     const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, length, 5).translate(0, -length / 2, 0), k.moss);
-    const husk = new THREE.Mesh(new THREE.SphereGeometry(1.1, 10, 8).scale(1, 1.3, 1).translate(0, -length - 0.2, 0), k.husk);
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.05, 0.25, 10).translate(0, -length + this.topOff - 0.12, 0), k.moss);
-    this.gooMesh = new THREE.Mesh(new THREE.SphereGeometry(1.25, 10, 8).scale(1, 1.2, 1).translate(0, -length - 0.1, 0), k.blob);
-    this.gooMesh.visible = false;
-    this.group.add(stem, husk, cap, this.gooMesh);
+    const husk = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 9).scale(1, 1.25, 1).translate(0, -length + this.topOff - 1.35, 0), k.husk);
+    const seams = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.05, 4, 16).rotateX(PI / 2).translate(0, -length + this.topOff - 1.0, 0), k.huskGlow);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.08, 0.3, 12).translate(0, -length + this.topOff - 0.15, 0), k.moss);
+    this.group.add(stem, husk, seams, cap);
+    this.mesh = this.group;
     this.group.position.copy(this.pivot);
     world.scene.add(this.group);
     this.pos = new THREE.Vector3();
-    this.place(0);
-    this.solid = world.addSolid(this.pos.clone().add(new THREE.Vector3(-0.85, -0.6, -0.85)), this.pos.clone().add(new THREE.Vector3(0.85, 0, 0.85)), { delta: new THREE.Vector3(), moving: true, kind: 'grass' });
+    this.place(this.angle());
+    this.solid = world.addSolid(this.pos.clone().add(new THREE.Vector3(-0.85, -0.7, -0.85)), this.pos.clone().add(new THREE.Vector3(0.85, 0, 0.85)), { delta: new THREE.Vector3(), moving: true, kind: 'grass' });
     world.add(this);
   }
   angle() {
     return Math.sin(this.t * this.w + this.phase) * this.amp;
   }
   place(a) {
-    // top of the pod (where you stand)
+    // the top of the pod (where you stand)
     this.pos.copy(this.pivot).addScaledVector(this.dir, Math.sin(a) * this.L);
     this.pos.y = this.pivot.y - Math.cos(a) * this.L + this.topOff;
-    this.group.rotation.set(0, 0, 0);
-    const axis = new THREE.Vector3(this.dir.z, 0, -this.dir.x);
-    this.group.quaternion.setFromAxisAngle(axis, -a);
-  }
-  onSplash(point, radius, color) {
-    if (color !== GREEN) return;
-    if (!splashReaches(point, radius, this.solid.min, this.solid.max, 0.8)) return;
-    if (this.frozen <= 0) gooSound();
-    this.frozen = this.hold;
-    this.gooMesh.visible = true;
+    this.group.quaternion.setFromAxisAngle(this.axis, -a);
   }
   update(dt) {
     const d = this.solid.delta.set(0, 0, 0);
-    if (this.frozen > 0) {
-      this.frozen -= dt;
-      this.gooMesh.visible = this.frozen > 1.5 || Math.sin(this.frozen * 18) > 0;
-      if (this.frozen <= 0) this.gooMesh.visible = false;
-      return;
-    }
     this.t += dt;
     const prev = this.pos.clone();
     this.place(this.angle());
     d.subVectors(this.pos, prev);
-    this.solid.min.set(this.pos.x - 0.85, this.pos.y - 0.6, this.pos.z - 0.85);
+    this.solid.min.set(this.pos.x - 0.85, this.pos.y - 0.7, this.pos.z - 0.85);
     this.solid.max.set(this.pos.x + 0.85, this.pos.y, this.pos.z + 0.85);
   }
-  reset() {
-    this.frozen = 0;
-    this.gooMesh.visible = false;
-  }
+  reset() {}
 }
 
-// A bark slab on a sap piston: it shoves out of the trunk, waits a moment, draws back in. A green burst on
-// it while it's out jams it there for `hold` s.
+// A bark slab on a sap piston: it shoves out of the trunk, waits a moment and draws back in (standing on it
+// as it goes in, the bark shoves you off). Goo it while it's out and it jams there.
 class SapPiston {
-  constructor(world, game, { bearing, top, phase = 0, out = 3.2, size = 2.4, hold = 8, cycle = 4.2, stay = 1.3 }) {
+  constructor(world, game, { bearing, top, phase = 0, out = 3.2, size = 2.4, cycle = 4.2, stay = 1.3 }) {
     this.world = world;
     this.game = game;
     this.b = bearing;
     this.top = top;
     this.size = size;
-    this.hold = hold;
     this.cycle = cycle;
     this.stay = stay;
-    this.t = phase;
-    this.frozen = 0;
+    this.t = this.t0 = phase;
     this.rIn = trunkR(bearing, top) - size * 0.5 - 0.6;
     this.rOut = trunkR(bearing, top) + out - size * 0.5 + 0.4;
     this.u = 0;
-    const k = goo();
+    const k = pieces(), km = kitMaterials();
     this.group = new THREE.Group();
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(size, 0.7, size), new THREE.MeshStandardMaterial({ color: 0x6a5640, roughness: 1, flatShading: true }));
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(size, 0.7, size), k.slab);
     slab.position.y = -0.35;
     const moss = new THREE.Mesh(new THREE.BoxGeometry(size * 0.9, 0.06, size * 0.9), k.moss);
-    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 4, 8).rotateX(PI / 2).translate(0, -0.5, 2.2), kitMaterials().pipe);
-    const glowRing = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.05, 4, 10).translate(0, -0.5, 1.4), kitMaterials().sap);
-    this.gooMesh = new THREE.Mesh(new THREE.BoxGeometry(size + 0.2, 0.5, size + 0.2), k.blob);
-    this.gooMesh.position.y = -0.2;
-    this.gooMesh.visible = false;
-    this.group.add(slab, moss, rod, glowRing, this.gooMesh);
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 4, 8).rotateX(PI / 2).translate(0, -0.5, 2.2), km.pipe);
+    const glowRing = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.05, 4, 10).translate(0, -0.5, 1.4), km.sap);
+    this.group.add(slab, moss, rod, glowRing);
+    this.mesh = this.group;
     this.group.rotation.y = -bearing * DEG + PI; // (the rod points back into the trunk)
     world.scene.add(this.group);
     this.pos = new THREE.Vector3();
@@ -1692,21 +1743,8 @@ class SapPiston {
     this.pos.set(...P(this.b, r, this.top));
     this.group.position.copy(this.pos);
   }
-  onSplash(point, radius, color) {
-    if (color !== GREEN || this.u < 0.6) return;
-    if (!splashReaches(point, radius, this.solid.min, this.solid.max, 0.7)) return;
-    if (this.frozen <= 0) gooSound();
-    this.frozen = this.hold;
-    this.gooMesh.visible = true;
-  }
   update(dt) {
     const d = this.solid.delta.set(0, 0, 0);
-    if (this.frozen > 0) {
-      this.frozen -= dt;
-      this.gooMesh.visible = this.frozen > 1.5 || Math.sin(this.frozen * 18) > 0;
-      if (this.frozen > 0) return;
-      this.gooMesh.visible = false;
-    }
     this.t = (this.t + dt) % this.cycle;
     // out over 0.35 s, stay, back in over 0.5 s, wait
     const t = this.t, o = 0.35, back = 0.5;
@@ -1721,426 +1759,49 @@ class SapPiston {
     this.solid.max.set(this.pos.x + h, this.top, this.pos.z + h);
   }
   reset() {
-    this.frozen = 0;
-    this.gooMesh.visible = false;
+    this.t = this.t0;
   }
 }
 
-// A borer's hole in the bark: every `period` s the worm lunges out across the ledge (touching it knocks you
-// off); a green burst in the hole plugs it for good.
-class BorerHole {
-  constructor(world, game, { pos, bearing, reach = 3.5, period = 3.2 }) {
-    this.world = world;
-    this.game = game;
-    this.pos = new THREE.Vector3(...pos);
-    this.dir = new THREE.Vector3(Math.sin(bearing * DEG), 0, -Math.cos(bearing * DEG));
-    this.reach = reach;
-    this.period = period;
-    this.t = 0;
-    this.plugged = false;
-    const k = goo();
-    this.group = new THREE.Group();
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.25, 6, 12), new THREE.MeshStandardMaterial({ color: 0x4a3a28, roughness: 1, flatShading: true }));
-    const hole = new THREE.Mesh(new THREE.CircleGeometry(0.72, 12), k.dark);
-    hole.position.z = 0.05;
-    this.worm = new THREE.Group();
-    for (let i = 0; i < 6; i++) {
-      const s = new THREE.Mesh(new THREE.SphereGeometry(0.42 - i * 0.03, 8, 6), k.worm);
-      s.position.z = -i * 0.55;
-      this.worm.add(s);
-    }
-    const jaw = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.6, 6).rotateX(PI / 2), new THREE.MeshStandardMaterial({ color: 0xd8c8a8, roughness: 0.5, flatShading: true }));
-    jaw.position.z = 0.35;
-    this.worm.add(jaw);
-    this.plug = new THREE.Mesh(new THREE.SphereGeometry(0.8, 10, 8).scale(1, 1, 0.5), k.blob);
-    this.plug.visible = false;
-    this.group.add(rim, hole, this.worm, this.plug);
-    this.group.position.copy(this.pos);
-    this.group.lookAt(this.pos.clone().add(this.dir));
-    world.scene.add(this.group);
-    // a hittable target over the hole so a glob bursts right on it
-    this.solid = world.addSolid(this.pos.clone().add(new THREE.Vector3(-0.6, -0.6, -0.6)), this.pos.clone().add(new THREE.Vector3(0.6, 0.6, 0.6)), { static: false, kind: 'rock', noCollide: true });
-    this.ext = 0;
-    world.add(this);
-  }
-  onSplash(point, radius, color) {
-    if (color !== GREEN || this.plugged) return;
-    if (point.distanceTo(this.pos) > radius + 0.9) return;
-    this.plugged = true;
-    this.plug.visible = true;
-    gooSound();
-    audio.sample(audio.sfxOr('borer_hiss', 'slime_squelch'), { gain: 0.6, rate: 0.7 });
-  }
-  update(dt, player) {
-    if (this.plugged) {
-      this.ext = Math.max(0, this.ext - dt * 4);
-    } else {
-      this.t = (this.t + dt) % this.period;
-      const t = this.t, warn = this.period - 0.9;
-      // a rattle, a lunge, a slow withdrawal
-      if (t > warn && t - dt <= warn) audio.at?.(audio.sfxOr('borer_hiss', 'slime_burble'), this.pos, { gain: 0.8, far: 30 });
-      this.ext = t < 0.18 ? t / 0.18 : t < 0.9 ? 1 : t < 1.6 ? 1 - (t - 0.9) / 0.7 : t > warn ? 0.06 * Math.sin(t * 40) + 0.06 : 0;
-    }
-    this.worm.position.z = this.ext * this.reach;
-    this.worm.visible = this.ext > 0.02;
-    if (this.ext < 0.1) this.struck = false;
-    if (this.ext > 0.5 && !this.struck && player && !player.dead && !player.mount) {
-      _p.copy(this.pos).addScaledVector(this.dir, this.ext * this.reach * 0.6);
-      const dx = player.pos.x - _p.x, dz = player.pos.z - _p.z, dy = player.pos.y + 0.9 - _p.y;
-      if (Math.abs(dy) < 1.4 && Math.hypot(dx, dz) < 0.9 + this.ext * this.reach * 0.5) {
-        // shoved out off the ledge (once a lunge)
-        this.struck = true;
-        player.vel.addScaledVector(this.dir, 9);
-        player.vel.y = Math.max(player.vel.y, 4);
-        player.grounded = false;
-        player.shake = Math.max(player.shake, 0.4);
-        audio.sample('land_hard', { gain: 0.6 });
-      }
-    }
-  }
-  reset() {}
-}
-
-// A sheer face of bark the rotflies circle: a green burst on it leaves goo the flies stick in, a staircase
-// of them (standable) up to the ledge, for `hold` s.
-class FlyWall {
-  constructor(world, game, { face, y0, steps, rOff = 1.2, hold = 10 }) {
-    this.world = world;
-    this.game = game;
-    this.hold = hold;
-    this.t = 0;
-    this.active = 0;
-    const k = goo();
-    // the bark face: a plate of rough bark (a box the globs burst on)
-    const r0 = trunkR(face, y0 + 2.5);
-    const [fx, , fz] = P(face, r0 - 0.3, y0 + 2.5);
-    this.face = new THREE.Vector3(fx, y0 + 2.5, fz);
-    this.solid = world.addSolid(new THREE.Vector3(fx - 2.2, y0, fz - 2.2), new THREE.Vector3(fx + 2.2, y0 + 5.2, fz + 2.2), { static: true, kind: 'rock', noCollide: true });
-    this.flies = steps.map(([b, top]) => {
-      const r = trunkR(b, top) + rOff;
-      const at = new THREE.Vector3(...P(b, r, top));
-      const g = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 8, 6).scale(1, 0.6, 1.4), k.fly);
-      body.position.y = -0.3;
-      const wings = [-1, 1].map((s) => {
-        const w = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.6).translate(0.7 * s, 0, 0).rotateX(-PI / 2), k.wing);
-        w.position.set(0, -0.05, 0);
-        g.add(w);
-        return w;
-      });
-      const eyes = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 4).scale(1.6, 1, 1), k.eye);
-      eyes.position.set(0, -0.2, -0.65);
-      const blob = new THREE.Mesh(new THREE.SphereGeometry(0.75, 8, 6).scale(1, 0.5, 1), k.blob);
-      blob.position.y = -0.4;
-      g.add(body, eyes, blob);
-      g.visible = false;
-      world.scene.add(g);
-      const solid = world.addSolid(new THREE.Vector3(at.x - 0.75, top - 0.6, at.z - 0.75), new THREE.Vector3(at.x + 0.75, top, at.z + 0.75), { static: false, kind: 'grass' });
-      solid.enabled = false;
-      return { at, g, wings, blob, solid, top, k: 0, from: new THREE.Vector3() };
-    });
-    // the circling flies (until they're stuck): a few small dark shapes buzzing round the face
-    this.circlers = [];
-    for (let i = 0; i < 5; i++) {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(0.3, 6, 4).scale(1, 0.6, 1.4), k.fly);
-      world.scene.add(m);
-      this.circlers.push({ m, ph: i * 1.3, r: 3 + i * 0.6 });
-    }
-    world.add(this);
-  }
-  onSplash(point, radius, color) {
-    if (color !== GREEN) return;
-    if (!splashReaches(point, radius, this.solid.min, this.solid.max, 1.2)) return;
-    if (this.active <= 0) {
-      gooSound();
-      audio.sample(audio.sfxOr('fly_buzz', 'drone_hum'), { gain: 0.6, rate: 1.5 });
-      for (const f of this.flies) (f.k = 0), f.from.copy(this.face).add(new THREE.Vector3((Math.random() - 0.5) * 8, Math.random() * 4, (Math.random() - 0.5) * 8));
-    }
-    this.active = this.hold;
-  }
-  update(dt) {
-    this.t += dt;
-    const on = this.active > 0;
-    if (on) this.active -= dt;
-    this.flies.forEach((f, i) => {
-      if (on) {
-        f.k = Math.min(1, f.k + dt * (1.6 - i * 0.2));
-        f.g.visible = true;
-        f.g.position.lerpVectors(f.from, f.at, f.k * f.k * (3 - 2 * f.k));
-        f.solid.enabled = f.k >= 1;
-        const blink = this.active < 2 && Math.sin(this.active * 16) < 0;
-        f.blob.visible = !blink;
-        for (const w of f.wings) w.rotation.z = f.k < 1 ? Math.sin(this.t * 60) * 0.6 : Math.sin(this.t * 25 + i) * 0.12;
-      } else {
-        f.g.visible = false;
-        f.solid.enabled = false;
-      }
-    });
-    this.circlers.forEach((c) => {
-      c.m.visible = !on;
-      const a = this.t * 1.7 + c.ph;
-      c.m.position.set(this.face.x + Math.cos(a) * c.r, this.face.y + Math.sin(a * 1.6) * 1.5, this.face.z + Math.sin(a) * c.r);
-    });
-  }
-  reset() {
-    this.active = 0;
-  }
-}
-
-// A gap a green burst bridges with a goo membrane (standable) for `hold` s.
-class GooMembrane {
-  constructor(world, game, { a, b, top, width = 3, hold = 12 }) {
-    this.world = world;
-    this.game = game;
-    this.hold = hold;
-    this.on = 0;
-    const A = new THREE.Vector3(...a), Bv = new THREE.Vector3(...b);
-    this.min = new THREE.Vector3(Math.min(A.x, Bv.x) - width / 2, top - 0.3, Math.min(A.z, Bv.z) - width / 2);
-    this.max = new THREE.Vector3(Math.max(A.x, Bv.x) + width / 2, top, Math.max(A.z, Bv.z) + width / 2);
-    this.solids = [];
-    const n = Math.ceil(A.distanceTo(Bv) / 1.2);
-    for (let i = 0; i <= n; i++) {
-      const p = A.clone().lerp(Bv, i / n);
-      const s = world.addSolid(new THREE.Vector3(p.x - width / 2, top - 0.3, p.z - width / 2), new THREE.Vector3(p.x + width / 2, top, p.z + width / 2), { static: false, kind: 'grass' });
-      s.enabled = false;
-      this.solids.push(s);
-    }
-    const len = A.distanceTo(Bv);
-    const g = new THREE.PlaneGeometry(width, len, 4, 8).rotateX(-PI / 2);
-    const pp = g.attributes.position;
-    for (let i = 0; i < pp.count; i++) pp.setY(i, -Math.cos((pp.getZ(i) / len) * PI) * 0.2 - 0.2);
-    g.computeVertexNormals();
-    this.mesh = new THREE.Mesh(g, goo().film);
-    this.mesh.position.copy(A.clone().lerp(Bv, 0.5)).setY(top);
-    this.mesh.rotation.y = Math.atan2(Bv.x - A.x, Bv.z - A.z);
-    this.mesh.visible = false;
-    world.scene.add(this.mesh);
-    // a target the globs burst on: a thin invisible sheet over the gap (no collision)
-    this.target = world.addSolid(this.min.clone().setY(top - 0.6), this.max.clone().setY(top - 0.3), { static: false, kind: 'grass', noCollide: true });
-    world.add(this);
-  }
-  onSplash(point, radius, color) {
-    if (color !== GREEN) return;
-    if (!splashReaches(point, radius, this.min, this.max, 1.2)) return;
-    if (this.on <= 0) gooSound();
-    this.on = this.hold;
-  }
-  update(dt) {
-    const on = this.on > 0;
-    if (on) this.on -= dt;
-    for (const s of this.solids) s.enabled = on;
-    this.mesh.visible = on && (this.on > 2 || Math.sin(this.on * 16) > 0);
-    this.target.enabled = !on;
-  }
-  reset() {
-    this.on = 0;
-  }
-}
-
-// A spore vent far down in a gap: it blasts a column of spores up through it every few seconds that throws
-// anyone over it up and off the tree (a goo membrane over the gap shuts it off).
+// A spore vent far down in a hollow: it blasts a column of spores up through the hole above it every few
+// seconds that throws anyone over it up and off the tree (blocked: a goo membrane over the hole chokes it).
 class SporeVent {
-  constructor(world, game, { pos, top, membrane, period = 2.6, blast = 1.1 }) {
+  constructor(world, game, { pos, top, period = 2.4, blast = 1.4 }) {
     this.world = world;
     this.game = game;
     this.pos = new THREE.Vector3(...pos);
     this.top = top;
-    this.membrane = membrane;
     this.period = period;
     this.blast = blast;
+    this.blocked = false;
     this.t = 0;
-    const k = goo();
-    this.col = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.0, top - pos[1], 12, 1, true), k.spore);
+    const k = pieces();
+    this.col = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.0, top - pos[1], 12, 1, true), k.spore);
     this.col.position.copy(this.pos).setY((pos[1] + top) / 2);
     world.scene.add(this.col);
-    const mouth = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.3, 6, 12).rotateX(PI / 2), new THREE.MeshStandardMaterial({ color: 0x8a7a4a, roughness: 1, flatShading: true }));
+    const mouth = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.35, 6, 12).rotateX(PI / 2), k.mouth);
     mouth.position.copy(this.pos);
     world.scene.add(mouth);
     world.add(this);
   }
   update(dt, player) {
     this.t = (this.t + dt) % this.period;
-    const blowing = this.t < this.blast;
-    const shut = this.membrane?.on > 0;
-    this.col.visible = blowing && !shut;
-    this.col.material.opacity = blowing ? 0.18 + 0.1 * Math.sin(this.t * 30) : 0;
-    if (blowing && !shut && Math.random() < dt * 30) this.world.fx.burst(this.pos.clone().setY(this.pos.y + Math.random() * (this.top - this.pos.y)), 0xd8ff9a, { count: 3, speed: 3, life: 0.6, size: 0.2, gravity: -6, mode: 'puff' });
-    if (this.t < dt) !shut && audio.at?.(audio.sfxOr('spore_burst', 'mortar_launch'), this.pos.clone().setY(this.top - 4), { gain: 0.6, far: 35 });
-    if (!blowing || shut || !player || player.mount) return;
+    const blowing = this.t < this.blast && !this.blocked;
+    this.col.visible = blowing;
+    this.col.material.opacity = 0.16 + 0.1 * Math.sin(this.t * 30);
+    if (blowing && Math.random() < dt * 30) this.world.fx.burst(this.pos.clone().setY(this.pos.y + Math.random() * (this.top - this.pos.y)), 0xd8ff9a, { count: 3, speed: 3, life: 0.6, size: 0.2, gravity: -6, mode: 'puff' });
+    if (this.t < dt && !this.blocked) audio.at?.(audio.sfxOr('spore_vent', 'spore_burst'), this.pos.clone().setY(this.top - 6), { gain: 0.7, far: 35 });
+    if (!blowing || !player || player.mount) return;
     const dx = player.pos.x - this.pos.x, dz = player.pos.z - this.pos.z;
-    if (dx * dx + dz * dz < 2.4 * 2.4 && player.pos.y < this.top && player.pos.y > this.pos.y) {
+    if (dx * dx + dz * dz < 2.2 * 2.2 && player.pos.y < this.top && player.pos.y > this.pos.y) {
       // thrown up and out, away from the trunk
       const ox = player.pos.x - TREE.x, oz = player.pos.z - TREE.z, ol = Math.hypot(ox, oz) || 1;
-      player.vel.y = Math.max(player.vel.y, 14);
-      player.vel.x += (ox / ol) * 6 * dt * 8;
-      player.vel.z += (oz / ol) * 6 * dt * 8;
+      player.vel.y = Math.max(player.vel.y, 15);
+      player.vel.x += (ox / ol) * 40 * dt;
+      player.vel.z += (oz / ol) * 40 * dt;
       player.grounded = false;
       player.launched = true;
     }
   }
   reset() {}
-}
-
-// A bloom pad (stand-in for the green gun's GooPad): shoot it green and it counts down, swells, and bursts
-// open: stand on it as it bursts and it throws you high.
-class BloomPad {
-  constructor(world, game, { pos, power = 24, push = [0, 0, 0], count = 2.4 }) {
-    this.world = world;
-    this.game = game;
-    this.pos = new THREE.Vector3(...pos);
-    this.power = power;
-    this.push = new THREE.Vector3(...push);
-    this.count = count;
-    this.t = -1;
-    const k = goo();
-    this.group = new THREE.Group();
-    this.bulb = new THREE.Mesh(new THREE.SphereGeometry(1.1, 14, 8, 0, PI * 2, 0, PI / 2).scale(1, 0.4, 1), k.blob);
-    this.petals = [];
-    for (let i = 0; i < 6; i++) {
-      const p = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 4, 0, PI * 2, 0, PI / 2).scale(0.5, 0.2, 1).translate(0, 0, 0.9), k.moss);
-      p.rotation.y = (i / 6) * PI * 2;
-      this.group.add(p);
-      this.petals.push(p);
-    }
-    this.group.add(this.bulb);
-    this.group.position.copy(this.pos);
-    world.scene.add(this.group);
-    this.solid = world.addSolid(this.pos.clone().add(new THREE.Vector3(-1, 0, -1)), this.pos.clone().add(new THREE.Vector3(1, 0.3, 1)), { static: false, kind: 'grass', noCollide: true });
-    world.add(this);
-  }
-  onSplash(point, radius, color) {
-    if (color !== GREEN || this.t >= 0) return;
-    if (point.distanceTo(this.pos) > radius + 1.4) return;
-    this.t = 0;
-    gooSound();
-  }
-  update(dt, player) {
-    if (this.t < 0) {
-      this.bulb.scale.setScalar(1 + Math.sin(this.world.time * 3) * 0.04);
-      return;
-    }
-    const prev = this.t;
-    this.t += dt;
-    const k = Math.min(1, this.t / this.count);
-    this.bulb.scale.set(1 + k * 0.5, 1 + k * 2.2, 1 + k * 0.5);
-    if (Math.floor(prev * 2) !== Math.floor(this.t * 2) && this.t < this.count) audio.sample('target', { gain: 0.4, rate: 1 + k });
-    if (this.t >= this.count) {
-      this.t = -1;
-      this.bulb.scale.setScalar(1);
-      audio.sample(audio.sfxOr('bloom_burst', 'jump_pad'), { gain: 0.9 });
-      this.world.fx.burst(this.pos.clone().setY(this.pos.y + 0.6), GOO, { count: 40, speed: 7, life: 0.8, size: 0.3, gravity: 8 });
-      const dx = player.pos.x - this.pos.x, dz = player.pos.z - this.pos.z;
-      if (dx * dx + dz * dz < 1.7 * 1.7 && Math.abs(player.pos.y - this.pos.y) < 1.2 && !player.mount) {
-        player.launch(this.power, this.push.lengthSq() ? this.push : null, false);
-        audio.pad();
-      }
-    }
-  }
-  reset() {
-    this.t = -1;
-  }
-}
-
-// The giant fly ride (stand-in for verdantCreatures.js's GiantFlyRide): it hovers at the path's start; land on
-// its back and it flies the path (you stand on its saddle and shoot freely), hive flyers coming at you, and
-// sets you down at the end. Fall off and you're faded back to the checkpoint (the falls rule).
-class FlyRide {
-  constructor(world, game, { path, speed = 9 }) {
-    this.world = world;
-    this.game = game;
-    this.curve = new THREE.CatmullRomCurve3(path.map((p) => new THREE.Vector3(...p)), false, 'centripetal');
-    this.len = this.curve.getLength();
-    this.speed = speed;
-    this.s = 0;
-    this.rider = null;
-    this.done = false;
-    this.t = 0;
-    this.spawned = [];
-    const k = goo();
-    this.group = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.SphereGeometry(1.5, 12, 8).scale(1.2, 0.75, 2.2), k.fly);
-    body.position.y = -0.6;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.9, 10, 8), k.fly);
-    head.position.set(0, -0.4, -3);
-    const eyes = [-1, 1].map((s) => {
-      const e = new THREE.Mesh(new THREE.SphereGeometry(0.55, 8, 6), k.eye);
-      e.position.set(s * 0.6, -0.2, -3.3);
-      return e;
-    });
-    const saddle = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.2, 2.4), new THREE.MeshStandardMaterial({ color: 0x5a4a30, roughness: 1 }));
-    saddle.position.y = 0.0;
-    this.wings = [-1, 1].map((s) => {
-      const w = new THREE.Mesh(new THREE.PlaneGeometry(5, 2).translate(2.5 * s, 0, 0).rotateX(-PI / 2), k.wing);
-      w.position.set(0, 0.1, 0.3);
-      return w;
-    });
-    this.group.add(body, head, ...eyes, saddle, ...this.wings);
-    world.scene.add(this.group);
-    this.pos = new THREE.Vector3();
-    this.solid = world.addSolid(new THREE.Vector3(), new THREE.Vector3(), { delta: new THREE.Vector3(), moving: true, kind: 'grass' });
-    this.place(0);
-    this.buzz = null;
-    world.add(this);
-  }
-  place(s) {
-    const u = Math.min(1, s / this.len);
-    this.curve.getPointAt(u, this.pos);
-    const bob = this.rider || this.done ? 0 : Math.sin(this.t * 2.2) * 0.25;
-    this.pos.y += bob;
-    const tg = this.curve.getTangentAt(u);
-    this.group.position.copy(this.pos);
-    this.group.rotation.set(0, Math.atan2(-tg.x, -tg.z), 0);
-    this.solid.min.set(this.pos.x - 1.1, this.pos.y - 0.6, this.pos.z - 1.1);
-    this.solid.max.set(this.pos.x + 1.1, this.pos.y + 0.1, this.pos.z + 1.1);
-  }
-  update(dt, player) {
-    this.t += dt;
-    for (const w of this.wings) w.rotation.z = Math.sin(this.t * 48) * 0.5;
-    this.buzz ??= audio.createLoop(audio.sfxOr('fly_buzz', 'drone_hum'), { gain: 0 });
-    if (player) this.buzz.setGain(Math.max(0, 0.6 - player.pos.distanceTo(this.pos) / 40));
-    const prev = this.pos.clone();
-    const d = this.solid.delta;
-    if (!this.rider && !this.done) {
-      this.place(this.s);
-      d.subVectors(this.pos, prev);
-      // board: standing on its saddle
-      if (player && player.grounded && player.ground === this.solid) this.rider = player;
-      return;
-    }
-    if (this.rider) {
-      if (this.rider.dead || (this.rider.ground !== this.solid && this.rider.grounded)) this.rider = null;
-      this.s = Math.min(this.len, this.s + this.speed * dt);
-      this.place(this.s);
-      d.subVectors(this.pos, prev);
-      // the hive comes for you: flyers out of the trunk along the way
-      for (const at of [0.18, 0.4, 0.62, 0.8]) {
-        if (this.spawned.includes(at) || this.s / this.len < at) continue;
-        this.spawned.push(at);
-        const ahead = this.curve.getPointAt(Math.min(1, at + 0.07));
-        const toward = ahead.clone().sub(new THREE.Vector3(TREE.x, ahead.y, TREE.z)).setLength(-6).add(ahead);
-        const e = spawnEnemy(this.world, { type: 'swarm', pos: toward.toArray(), color: at > 0.5 ? [GREEN, RED] : [GREEN, YELLOW], count: 5, aggro: true });
-        if (e) this.live.push(e);
-      }
-      if (this.s >= this.len - 0.01) {
-        this.rider = null;
-        this.done = true;
-        d.set(0, 0, 0);
-      }
-      return;
-    }
-    d.set(0, 0, 0);
-  }
-  get live() {
-    return (this._live ??= []);
-  }
-  reset() {
-    if (this.done && this.game.player.pos.y > 97) return;
-    for (const e of this.live) if (!e.dead) e.despawn?.();
-    this._live = [];
-    this.spawned = [];
-    this.rider = null;
-    this.done = false;
-    this.s = 0;
-    this.place(0);
-  }
 }

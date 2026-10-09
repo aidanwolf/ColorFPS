@@ -21,9 +21,10 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { audio } from '../audio.js';
 
 const GRAV = 22; // (a touch lighter than the player's 24: long, readable arcs)
-const PUMP = 7.5; // m/s² W adds along the look direction (tangent to the swing)
+const PUMP = 10; // m/s² W adds along the look direction (tangent to the swing)
 const LEAN = 3.5; // m/s² A/D sideways
-const DAMP = 0.12; // per second
+const STEER = 5; // m/s² the look direction turns the swing's plane toward itself (while pumping)
+const DAMP = 0.08; // per second
 const MAX_V = 19;
 const MAX_ANGLE = 1.35; // rad from straight down
 const KICK_UP = 4.2; // m/s added upward on letting go
@@ -111,7 +112,7 @@ function vineMesh(L, seed) {
 
 // ================================================================ VINE SWING
 export class VineSwing {
-  constructor(world, game, { anchor, length, sway = [1, 0], swayAmp = 0.08, grab = 3.2, seed = 7 }) {
+  constructor(world, game, { anchor, length, sway = [1, 0], swayAmp = 0.035, grab = 3.4, seed = 7 }) {
     this.world = world;
     this.game = game;
     this.anchor = new THREE.Vector3(...anchor);
@@ -157,7 +158,7 @@ export class VineSwing {
   nearest(p) {
     _u.subVectors(this.bob, this.anchor).normalize();
     _v.subVectors(p, this.anchor);
-    const along = THREE.MathUtils.clamp(_v.dot(_u), 0, this.L);
+    const along = THREE.MathUtils.clamp(_v.dot(_u), 0, this.L + 0.9);
     _w.copy(this.anchor).addScaledVector(_u, along);
     return { along, off: _w.distanceTo(p) };
   }
@@ -181,9 +182,12 @@ export class VineSwing {
     // grab: in the air, touching the vine's lower stretch
     if (!player || player.dead || player.mount || this.cool > 0 || player.grounded || this.game.state !== 'playing') return;
     if (Math.abs(player.pos.x - this.bob.x) > 5 || Math.abs(player.pos.z - this.bob.z) > 5) return;
-    _f.set(player.pos.x, player.pos.y + 1.2, player.pos.z);
-    const { along, off } = this.nearest(_f);
-    if (off < 1.05 && along > this.L - this.grabSpan) this.board(player);
+    // any part of you (shins to head) touching the vine's lower stretch or its dangling tail
+    for (const h of [0.5, 1.1, 1.7]) {
+      _f.set(player.pos.x, player.pos.y + h, player.pos.z);
+      const { along, off } = this.nearest(_f);
+      if (off < 1.3 && along > this.L - this.grabSpan) return this.board(player);
+    }
   }
 
   // point the mesh down at the bob
@@ -257,7 +261,22 @@ export class VineSwing {
       }
       _f.set(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
       _r.set(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
-      _w.copy(_f).multiplyScalar(f * PUMP).addScaledVector(_r, r * LEAN);
+      // W pumps: it drives the swing along the way it's already going (so it grows), and from rest it
+      // starts one toward where you look; S brakes. The look direction steers the swing's plane round
+      // toward itself, A/D lean it sideways.
+      const sp = this.vel.length();
+      if (sp < 1.2) _w.copy(_f).multiplyScalar(f * PUMP);
+      else {
+        _w.copy(this.vel).multiplyScalar((f * PUMP) / sp);
+        if (f > 0) {
+          // steer: the part of the look direction across the swing
+          _v.copy(this.vel).setY(0).normalize();
+          const across = _f.x * -_v.z + _f.z * _v.x; // (+: look is to the swing's left)
+          const ahead = _f.dot(_v);
+          _w.addScaledVector(_v.set(-_v.z, 0, _v.x), across * STEER * (ahead < 0 ? 0.5 : 1));
+        }
+      }
+      _w.addScaledVector(_r, r * LEAN);
       _w.addScaledVector(_u, -_w.dot(_u));
       this.vel.addScaledVector(_w, dt);
     }
