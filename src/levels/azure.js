@@ -25,6 +25,7 @@ import { ShaftSpikes } from '../entities/spikeShield.js';
 import { boxGeo } from '../materials.js';
 import { buildAzureSpillway } from './azureSpillway.js';
 import { dressAzure } from './azureDressing.js';
+import { buildRain } from './azureRain.js';
 
 // tiny seeded RNG so the crystal fields and cliffs come out the same every load
 function mulberry32(a) {
@@ -95,8 +96,9 @@ export function buildAzure(B) {
 
   // ------------------------------------------------------------------ mood
   const AZURE = {
-    fog: 0x0a1c38, fogNear: 16, fogFar: 150,
-    skyTop: [0.004, 0.008, 0.025], skyMid: [0.012, 0.035, 0.09], skyHorizon: [0.04, 0.12, 0.26], aurora: 0.05, stars: 0.6,
+    // (a storm sky: low cloud lit from below by the station, no stars; see azureRain.js)
+    fog: 0x0c1b30, fogNear: 14, fogFar: 140,
+    skyTop: [0.01, 0.014, 0.026], skyMid: [0.026, 0.045, 0.08], skyHorizon: [0.06, 0.1, 0.17], aurora: 0, stars: 0.04,
     hemiSky: 0x86b8ff, hemiGround: 0x0c1a34, hemiIntensity: 1.05,
     sunColor: 0x8fe8ff, sunIntensity: 0.55, sunDir: [-0.35, 1, -0.25],
     exposure: 0.95, bloom: 0.65,
@@ -731,6 +733,8 @@ export function buildAzure(B) {
 
   // ---- set dressing: pipes, signage, windows onto the sea, caustics, mist, machine halls (azureDressing.js)
   dressAzure(B, { zone });
+  // ---- the storm: rain over the open chasm, stopping under every roof (azureRain.js)
+  level.azure.rain = buildRain(B, { bounds: [20, -236, 204, -36] });
 
   const RYG = [RED, YELLOW, GREEN];
   devStart('azure', [27, 4, -112], -Math.PI / 2, RYG);
