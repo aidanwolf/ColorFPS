@@ -100,6 +100,7 @@ class Game {
     this.powerDown = { red: false, solar: false, verdant: false, azure: false };
     this.clearedEncounters = new Set(); // arena fights already won (persisted in the save)
     this.beaten = new Set(); // worlds whose guardian is dead (saved at once, before its power source goes down)
+    this.events = new Set(); // one-off story beats already played, saved (e.g. 'feed_red': the Atrium's Foundry feed blew)
     this.powerDownListeners = [];
 
     // ---- renderer / scene ----
@@ -449,6 +450,7 @@ class Game {
       powerDown: Object.keys(this.powerDown).filter((k) => this.powerDown[k]),
       cleared: [...this.clearedEncounters],
       beaten: [...this.beaten],
+      events: [...this.events],
       won: !!this.won,
       time: Math.floor(this.stats.time),
       deaths: this.stats.deaths,
@@ -476,8 +478,13 @@ class Game {
       this.secretsFound++;
     }
     this.hud.setSecrets(this.secretsFound, this.level.secretsTotal);
+    // one-off beats already played (before the power-down listeners hear about it: the Atrium reactor asks).
+    // A save from before they were kept: a down world's feed counts as blown once the checkpoint is out of it.
+    const down = [...(s.powerDown || []), ...(s.beaten || [])];
+    for (const e of s.events || []) this.events.add(e);
+    if (!s.events) for (const name of down) if (regionOf(new THREE.Vector3(...s.cp.pos)) !== name) this.events.add('feed_' + name);
     // (a guardian beaten but its power source not yet shot counts as shut down: its fight never comes back)
-    for (const name of [...(s.powerDown || []), ...(s.beaten || [])]) {
+    for (const name of down) {
       if (name in this.powerDown && !this.powerDown[name]) {
         this.powerDown[name] = true;
         for (const fn of this.powerDownListeners) fn(name, { restored: true });

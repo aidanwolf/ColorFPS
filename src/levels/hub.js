@@ -5,9 +5,10 @@
 //   return ports (W z -136, N x 10, E z -136); hop its 1 m railing to drop down, or ride the two lifts up
 //   (x ±22.7, z -122.5). Windows above y 14 look out into each world; a tall banner of each world's color
 //   sits above its door (dim = locked, pulsing = open, bright = complete).
-//   Centre: the Prism dais (x 0, z -110) — four color locks; when all four are attuned the seal drops and
-//   the elevator descends 52.8 m to the Prism Core antechamber (prism.js). A sunken plaza sits further north.
-//   Overhead hangs the reactor heart (reactor.js), drawing power from every world through four conduits.
+//   The Prism dais (x 0, z -110, in from the red door) — four color locks; when all four are attuned the seal
+//   drops and the elevator descends 52.8 m to the Prism Core antechamber (prism.js). In the middle of the
+//   Atrium (z -124) a sunken compass plaza; over it floats the Prism the locks beam into, and above that, hung
+//   from the oculus, the reactor heart (reactor.js), fed by a glass feed from beside every world's door.
 import * as THREE from 'three';
 import { COLORS, RED, YELLOW, GREEN, BLUE } from '../colors.js';
 import { Barrier } from '../entities/barrier.js';
@@ -217,7 +218,7 @@ export function buildHub(B) {
   // ---------------------------------------------------------------- floor (holes: shaft, lifts, plaza)
   const liftW = { x1: -24.4, x2: -21, z1: -124, z2: -121 };
   const liftE = { x1: 21, x2: 24.4, z1: -124, z2: -121 };
-  const plaza = { x1: -8, x2: 8, z1: -142, z2: -126 };
+  const plaza = { x1: -7, x2: 7, z1: -131, z2: -117 }; // right under the reactor heart (its beam lands in the compass)
   const floorHoles = [SHAFT, liftW, liftE, plaza].map((h) => ({ u1: h.x1, u2: h.x2, v1: h.z1, v2: h.z2 }));
   for (const [x1, z1, x2, z2] of rectMinus(-24.5, -148, 24.5, -100, floorHoles)) box(x1, FLOOR - 1, z1, x2, FLOOR, z2, 'floor');
   for (const L of [liftW, liftE]) box(L.x1, FLOOR - 1, L.z1, L.x2, FLOOR - 0.7, L.z2, 'grate'); // lift pits
@@ -233,15 +234,15 @@ export function buildHub(B) {
   }
   {
     const y = FLOOR - 1.2, cz = (plaza.z1 + plaza.z2) / 2;
-    deco(-0.08, y, cz - 5.6, 0.08, y + 0.03, cz - 0.6, 'glow2'); // north: Verdant
-    deco(-0.08, y, cz + 0.6, 0.08, y + 0.03, cz + 5.6, 'glow0'); // south: the Foundry
-    deco(-5.6, y, cz - 0.08, -0.6, y + 0.03, cz + 0.08, 'glow1'); // west: Solar
-    deco(0.6, y, cz - 0.08, 5.6, y + 0.03, cz + 0.08, 'glow3'); // east: Azure
+    deco(-0.08, y, cz - 4.6, 0.08, y + 0.03, cz - 0.6, 'glow2'); // north: Verdant
+    deco(-0.08, y, cz + 0.6, 0.08, y + 0.03, cz + 4.6, 'glow0'); // south: the Foundry
+    deco(-4.6, y, cz - 0.08, -0.6, y + 0.03, cz + 0.08, 'glow1'); // west: Solar
+    deco(0.6, y, cz - 0.08, 4.6, y + 0.03, cz + 0.08, 'glow3'); // east: Azure
     deco(-0.35, y, cz - 0.35, 0.35, y + 0.04, cz + 0.35);
-    // benches along the top step, facing in
+    // benches beside the top step, facing in
     for (const s of [-1, 1]) {
-      box(s * 9.6 - 0.45, FLOOR, cz - 3, s * 9.6 + 0.45, FLOOR + 0.45, cz + 3, 'metal');
-      deco(s * 9.6 - 0.47, FLOOR + 0.45, cz - 3, s * 9.6 + 0.47, FLOOR + 0.48, cz + 3);
+      box(s * 8.7 - 0.45, FLOOR, cz - 3, s * 8.7 + 0.45, FLOOR + 0.45, cz + 3, 'metal');
+      deco(s * 8.7 - 0.47, FLOOR + 0.45, cz - 3, s * 8.7 + 0.47, FLOOR + 0.48, cz + 3);
     }
   }
 
@@ -466,12 +467,13 @@ export function buildHub(B) {
   const sealSolid = W.addSolid(new THREE.Vector3(S.x1, S.top, S.z1), new THREE.Vector3(S.x2, S.top + 3.5, S.z2), {});
   let sealT = -1; // -1 sealed; 0..1 dissolving
 
-  // the Prism: a floating crystal over the dais, one orbiting shard per color, beams from the locks
-  const PRISM_Y = 12; // under the reactor heart's tip (reactor.js)
+  // the Prism: a floating crystal over the compass plaza, under the reactor heart's tip (its down-beam runs
+  // through it), one orbiting shard per color, beams up to it from the locks on the dais
+  const PRISM_Y = 11.5, PZ = (plaza.z1 + plaza.z2) / 2; // -124
   const prismMat = new THREE.MeshStandardMaterial({ color: 0xdfeaff, emissive: 0x7a8cff, emissiveIntensity: 0.35, metalness: 0.25, roughness: 0.08, flatShading: true });
   const prism = new THREE.Mesh(new THREE.OctahedronGeometry(1.7, 0), prismMat);
   prism.scale.y = 1.7;
-  prism.position.set(0, PRISM_Y, DZ);
+  prism.position.set(0, PRISM_Y, PZ);
   const cage = new THREE.Mesh(new THREE.OctahedronGeometry(2.3, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(0x9bf6ff).multiplyScalar(0.8), wireframe: true, transparent: true, opacity: 0.35 }));
   cage.scale.y = 1.35;
   cage.position.copy(prism.position);
@@ -528,8 +530,8 @@ export function buildHub(B) {
     W.fx.burst(prism.position.clone(), 0xffffff, { count: 160, speed: 9, life: 1.4, size: 0.4, gravity: 0 });
     game.hud.message('All four frequencies attuned. <b>The Prism Core is open</b> — step onto the lift.', 6);
   }
-  const centreLight = light(0, 11, DZ, 0xcfe4ff, 12, 30);
-  // the reactor heart hanging over it all, fed by a conduit from every world (reactor.js)
+  const centreLight = light(0, 9, (DZ + PZ) / 2, 0xcfe4ff, 12, 32); // between the dais and the Prism
+  // the reactor heart hanging over the middle of it all, fed from every world (reactor.js)
   level.reactor = buildReactor(B);
   // its maintenance crew: white worker drones flying service routes from four wall bays (workerDrone.js)
   level.workers = new WorkerSwarm(W, {
@@ -574,7 +576,7 @@ export function buildHub(B) {
       prismMat.emissiveIntensity = 0.2 + n * 0.15 + (open ? 0.3 + Math.sin(t * 3) * 0.1 : 0);
       locks.forEach((L, i) => {
         const a = t * 0.5 + (i * Math.PI) / 2;
-        L.shard.position.set(Math.cos(a) * 3.6, halo.position.y + Math.sin(t + i) * 0.3, DZ + Math.sin(a) * 3.6);
+        L.shard.position.set(Math.cos(a) * 3.6, halo.position.y + Math.sin(t + i) * 0.3, PZ + Math.sin(a) * 3.6);
         L.shard.rotation.x += dt * 1.5;
         L.shard.rotation.y += dt;
         if (L.lit) {
