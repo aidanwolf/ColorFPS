@@ -179,7 +179,6 @@ const KINDS = {
   tooth: { rough: 0.45, amp: 0, rate: 0, freq: 0, rimK: 0.04, veinK: 0, veinF: 1, base: 0xc8b88a, vc: false, emissive: 0x0c0a06 },
 };
 const matCache = new Map();
-const f3 = (n) => n.toFixed(4);
 export function organic(kind, color = GREEN) {
   const key = kind + ':' + color;
   if (matCache.has(key)) return matCache.get(key);
@@ -190,28 +189,34 @@ export function organic(kind, color = GREEN) {
   });
   const rim = new THREE.Color(COLORS[color].hex);
   const uRim = { value: rim };
+  // the kind's numbers are uniforms, not baked into the code, so every kind shares one program (only
+  // three's own variants split it: flat shading, sidedness, vertex colours, transparency)
+  const uOrgA = { value: new THREE.Vector4(K.rate, K.freq, K.amp, K.veinF) }; // breathing rate, its spatial frequency, amplitude; vein scale
+  const uOrgB = { value: new THREE.Vector2(K.rimK, K.veinK) }; // rim and vein glow
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uTime = SHADER_TIME;
     sh.uniforms.uRim = uRim;
-    sh.vertexShader = 'uniform float uTime;\nvarying vec3 vObj;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+    sh.uniforms.uOrgA = uOrgA;
+    sh.uniforms.uOrgB = uOrgB;
+    sh.vertexShader = 'uniform float uTime;\nuniform vec4 uOrgA;\nvarying vec3 vObj;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       vec3 wo = vec3(modelMatrix[3]);
       #ifdef USE_INSTANCING
         wo += vec3(instanceMatrix[3]);
       #endif
       float ph = dot(wo, vec3(0.37, 0.21, 0.53));
-      float br = sin(uTime * ${f3(K.rate)} + ph + position.y * ${f3(K.freq)}) * 0.6 + sin(uTime * ${f3(K.rate * 1.73)} + ph * 1.3 + position.x * ${f3(K.freq * 1.31)} + position.z * ${f3(K.freq)}) * 0.4;
-      transformed += objectNormal * br * ${f3(K.amp)};
+      float br = sin(uTime * uOrgA.x + ph + position.y * uOrgA.y) * 0.6 + sin(uTime * (uOrgA.x * 1.73) + ph * 1.3 + position.x * (uOrgA.y * 1.31) + position.z * uOrgA.y) * 0.4;
+      transformed += objectNormal * br * uOrgA.z;
       vObj = position;`);
-    sh.fragmentShader = 'uniform float uTime;\nuniform vec3 uRim;\nvarying vec3 vObj;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+    sh.fragmentShader = 'uniform float uTime;\nuniform vec3 uRim;\nuniform vec4 uOrgA;\nuniform vec2 uOrgB;\nvarying vec3 vObj;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       float rimF = 1.0 - abs(dot(normalize(vViewPosition), normal));
       // two crossing, warped vein networks (thin, branching-looking), pulsing slowly
-      vec3 q = vObj * ${f3(K.veinF)};
+      vec3 q = vObj * uOrgA.w;
       float va = 1.0 - abs(sin(q.x + sin(q.y * 0.7 + sin(q.z * 1.3) * 1.1) * 1.9 + sin(q.z * 0.9) * 1.2));
       float vb = 1.0 - abs(sin(q.z * 1.17 + sin(q.x * 0.8 + sin(q.y * 1.6) * 0.9) * 2.1 - q.y * 0.5));
       float vein = pow(max(va, vb * 0.85), 18.0) * (0.55 + 0.45 * sin(uTime * 2.3 + vObj.y * 4.0 + vObj.z * 3.0));
-      totalEmissiveRadiance += uRim * (rimF * rimF * ${f3(K.rimK)} + vein * ${f3(K.veinK)});`);
+      totalEmissiveRadiance += uRim * (rimF * rimF * uOrgB.x + vein * uOrgB.y);`);
   };
-  m.customProgramCacheKey = () => 'verdant-organic-' + kind;
+  m.customProgramCacheKey = () => 'verdant-organic';
   matCache.set(key, m);
   return m;
 }

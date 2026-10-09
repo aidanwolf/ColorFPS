@@ -129,7 +129,8 @@ export function addCaustics(m, strength = 1, { weather = false } = {}) {
     if (weather) f = f.replace('#include <map_fragment>', '#include <map_fragment>\ndiffuseColor.rgb = weather(diffuseColor.rgb, vCausW, normalize(vCausN));');
     sh.fragmentShader = f.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * vec3(0.55, 1.0, 1.05) * caustic(vCausW, normalize(vCausN)) * 1.6 * uCausS;');
   };
-  m.customProgramCacheKey = () => 'caus' + strength + (weather ? 'w' : '');
+  // (strength is a uniform, so every strength shares one program: only the weathering changes the code)
+  m.customProgramCacheKey = () => (weather ? 'causw' : 'caus');
   m.needsUpdate = true;
   return m;
 }

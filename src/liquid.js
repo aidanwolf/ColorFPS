@@ -26,7 +26,8 @@ export function liquidMaterial(zone, surface, styleOverride = null) {
   if (cache.has(key)) return cache.get(key);
   const m = new THREE.ShaderMaterial({
     fog: true,
-    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uAmp: { value: surface ? waves(style) : 0 } }]),
+    // (the style and glow are uniforms, not defines: every style shares one program)
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uAmp: { value: surface ? waves(style) : 0 }, uStyle: { value: style }, uGlow: { value: 1 } }]),
     vertexShader: /* glsl */ `
       #include <fog_pars_vertex>
       uniform float uTime, uAmp;
@@ -43,14 +44,15 @@ export function liquidMaterial(zone, surface, styleOverride = null) {
       }`,
     fragmentShader: /* glsl */ `
       #include <fog_pars_fragment>
-      uniform float uTime;
+      uniform float uTime, uGlow;
+      uniform int uStyle;
       varying vec3 vW;
       ${NOISE}
       void main(){
         vec2 p = vW.xz;
         float t = uTime;
         vec3 c;
-        #if STYLE == 0
+        if (uStyle == 0) {
           // lava: dark cooling crust plates drifting over a white-hot flow, with glowing seams
           vec2 flow = p * 0.18 + vec2(t * 0.03, t * 0.02);
           float crust = lfbm(flow + lfbm(flow * 1.7 - t * 0.05) * 1.3);
@@ -59,7 +61,7 @@ export function liquidMaterial(zone, surface, styleOverride = null) {
           c = mix(vec3(0.16, 0.03, 0.01), vec3(1.9, 0.55, 0.08), heat);
           c += vec3(2.2, 1.1, 0.25) * seam * (0.6 + 0.4 * sin(t * 2.0 + p.x));
           c += vec3(0.6, 0.12, 0.02) * (0.5 + 0.5 * sin(t * 1.3 + lfbm(p * 0.5) * 6.0)) * heat;
-        #elif STYLE == 1
+        } else if (uStyle == 1) {
           // quicksand: wavy dune ripples crawling steadily one way across it (lit on one face, shaded on
           // the other, pale crests), fine streaks along the flow and darker wet patches
           vec2 dir = vec2(0.8, 0.6);
@@ -74,28 +76,27 @@ export function liquidMaterial(zone, surface, styleOverride = null) {
           c += vec3(0.16, 0.12, 0.07) * crest;
           c *= 0.95 + 0.05 * sin(across * 2.1 + lfbm(p * 0.8 + dir * t * 0.2) * 5.0);
           c = mix(c, vec3(0.3, 0.21, 0.12), smoothstep(0.66, 0.85, lfbm(p * 0.18 - dir * t * 0.02)) * 0.6);
-        #elif STYLE == 2
+        } else if (uStyle == 2) {
           // toxic sludge: oily green with glowing bubbling patches
           float s = lfbm(p * 0.3 + vec2(t * 0.04, t * 0.03));
           float glow = smoothstep(0.55, 0.85, lfbm(p * 0.8 - t * 0.12));
           c = mix(vec3(0.05, 0.25, 0.06), vec3(0.25, 1.4, 0.35), s);
           c += vec3(0.6, 2.0, 0.5) * glow * (0.6 + 0.4 * sin(t * 3.0 + p.y));
-        #elif STYLE == 4
+        } else if (uStyle == 4) {
           // swimmable water: clear blue-green, glinting ripples (seen from above and below)
           float k = lfbm(p * 0.5 + vec2(t * 0.07, t * 0.05));
           float glint = pow(max(0.0, 1.0 - abs(sin(k * 11.0 - t * 1.4))), 8.0);
           c = mix(vec3(0.03, 0.22, 0.32), vec3(0.1, 0.5, 0.65), k) + vec3(0.6, 0.9, 1.0) * glint * 0.5;
-        #else
+        } else {
           // brine: hot turquoise, steaming, with drifting caustic light
           float k = lfbm(p * 0.4 + vec2(t * 0.06, -t * 0.05));
           float caustic = pow(max(0.0, 1.0 - abs(sin(k * 9.0 + t))), 6.0);
           c = mix(vec3(0.02, 0.16, 0.2), vec3(0.18, 0.95, 0.9), k);
           c += vec3(0.9, 1.5, 1.3) * caustic * 0.6;
-        #endif
-        gl_FragColor = vec4(clamp(c, 0.0, 3.0), STYLE == 4 ? 0.62 : 1.0);
+        }
+        gl_FragColor = vec4(clamp(c * uGlow, 0.0, 3.0), uStyle == 4 ? 0.62 : 1.0);
         #include <fog_fragment>
       }`,
-    defines: { STYLE: style },
     transparent: style === 4,
     depthWrite: style !== 4,
     side: style === 4 ? THREE.DoubleSide : THREE.FrontSide,

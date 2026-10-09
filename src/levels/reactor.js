@@ -51,11 +51,13 @@ const conduitVert = `
     vV = normalize(cameraPosition - w.xyz);
     gl_Position = projectionMatrix * viewMatrix * w;
   }`;
-// STYLE 0 magma · 1 water · 2 roots · 4 down beam · 5 glass · 6 sun disc · 7 energy fluid (sunlight, sap)
+// uStyle 0 magma · 1 water · 2 roots · 4 down beam · 5 glass · 6 sun disc · 7 energy fluid (sunlight, sap)
+// (a uniform, not a define: every style shares one program)
 // uTime: flow phase (slows as it dies) · uPower: 1 alive → 0 dead · uFlick: momentary brightness · uLen: metres
 // uTint: the world's color · uCutA..uCutB: the blown-out stretch (metres; jagged ends, nothing drawn between)
 // uEdge: the glow of the break edges · uSurge, uSurgeK: where the rupture's pressure wave is, and how hot
 const conduitFrag = `
+  uniform int uStyle;
   uniform float uTime; uniform float uPower; uniform float uFlick; uniform float uLen; uniform float uSeed;
   uniform vec3 uTint; uniform float uCutA; uniform float uCutB; uniform float uEdge; uniform float uSurge; uniform float uSurgeK;
   varying vec2 vUv; varying vec3 vN; varying vec3 vV; varying vec3 vW;
@@ -71,7 +73,7 @@ const conduitFrag = `
     float facing = abs(dot(vN, vV));
     float fres = 1.0 - facing;
     vec3 col; float alpha = 1.0;
-  #if STYLE == 0
+  if (uStyle == 0) {
     vec2 q = vec2(s * 0.9 - uTime * 1.6, vUv.y * 6.0);
     float n = vnp(q, 6.0) * 0.62 + vnp(q * 2.0 + 7.0, 12.0) * 0.38;
     float crust = smoothstep(mix(0.12, 0.56, uPower), mix(0.2, 0.7, uPower), n);
@@ -81,7 +83,7 @@ const conduitFrag = `
     vec3 alive = mix(hot * (1.25 + pulse * 1.2), rock + hot * 0.18, crust);
     vec3 dead = rock + vec3(0.22, 0.02, 0.03) * (1.0 - crust) * (0.5 + 0.5 * sin(s * 0.3 + uSeed));
     col = mix(dead, alive, clamp(live, 0.0, 1.0)) * (live > 1.0 ? live : 1.0);
-  #elif STYLE == 1
+  } else if (uStyle == 1) {
     float a = vUv.y * 6.2832;
     float swirl = 0.5 + 0.5 * sin(a * 3.0 + s * 1.4 - uTime * 4.0);
     float n1 = vnp(vec2(s * 1.5 - uTime * 2.6, vUv.y * 8.0), 8.0);
@@ -91,7 +93,7 @@ const conduitFrag = `
     col = mix(vec3(0.02, 0.15, 0.4), vec3(0.42, 0.88, 1.1), swirl * 0.3 + ridge * 0.85 + fres * 0.45) + vec3(0.5, 0.9, 1.0) * pulse * 0.7;
     col *= max(live, 0.0);
     alpha = clamp((0.5 + ridge * 0.35 + fres * 0.3 + pulse * 0.2) * min(live, 1.0) + 0.05, 0.0, 1.0);
-  #elif STYLE == 2
+  } else if (uStyle == 2) {
     float bark = vnp(vec2(s * 2.4, vUv.y * 10.0), 10.0);
     float lam = 0.4 + 0.6 * clamp(dot(vN, normalize(vec3(0.3, 1.0, 0.2))) * 0.5 + 0.5, 0.0, 1.0);
     vec3 base = mix(vec3(0.04, 0.08, 0.035), vec3(0.11, 0.19, 0.06), bark) * lam;
@@ -101,15 +103,15 @@ const conduitFrag = `
     float p = fract(s * 0.11 - uTime * 0.55 + uSeed);
     float glow = smoothstep(0.0, 0.85, p) * smoothstep(1.0, 0.92, p);
     col = base + vec3(0.32, 1.0, 0.3) * (vein * 0.3 + glow * glow * (0.55 + vein) * 1.7) * max(live, 0.0);
-  #elif STYLE == 4
+  } else if (uStyle == 4) {
     float pulse = pow(fract(-s * 0.18 + uTime * 0.9), 6.0);
     float shaft = smoothstep(2.8, 7.5, vW.y) * 0.6 + 0.4;
     float ends = smoothstep(0.0, 0.04, vUv.x) * smoothstep(1.0, 0.985, vUv.x);
     col = vec3(0.82, 0.68, 1.0) * pow(facing, 1.3) * (0.55 + pulse * 1.6) * shaft * ends * max(live, 0.0);
-  #elif STYLE == 5
+  } else if (uStyle == 5) {
     col = mix(vec3(0.55, 0.8, 1.0), uTint, 0.3) * (0.05 + fres * fres * 0.7) * (0.6 + 0.4 * uPower) + uTint * 0.04 * uPower;
     alpha = clamp(0.1 + fres * 0.5, 0.0, 1.0);
-  #elif STYLE == 7
+  } else if (uStyle == 7) {
     float n1 = vnp(vec2(s * 1.1 - uTime * 2.2, vUv.y * 8.0), 8.0);
     float n2 = vnp(vec2(s * 2.4 - uTime * 3.6 + 3.0, vUv.y * 16.0), 16.0);
     float band = pow(0.5 + 0.5 * sin(s * 0.9 - uTime * 3.0 + n1 * 2.5), 4.0);
@@ -117,14 +119,14 @@ const conduitFrag = `
     vec3 alive = uTint * (0.5 + 0.9 * n1 + band * 1.3 + fres * 0.4) + vec3(1.0, 0.95, 0.8) * (motes + band * 0.3);
     vec3 dead = uTint * 0.05 * (0.4 + n1) + vec3(0.025);
     col = mix(dead, alive, clamp(live, 0.0, 1.0)) * (live > 1.0 ? live : 1.0);
-  #else
+  } else {
     vec2 c = vUv - 0.5;
     float r = length(c) * 2.0;
     float boil = vnp(vec2(atan(c.y, c.x) * 3.0 + uTime * 0.3, r * 5.0 - uTime * 0.8), 1000.0) * 0.5 + vnp(c * 9.0 + uTime * 0.4, 1000.0) * 0.5;
     vec3 sun = mix(vec3(1.0, 0.55, 0.12), vec3(1.0, 0.95, 0.75), smoothstep(0.9, 0.1, r) * (0.6 + 0.4 * boil));
     vec3 dead = vec3(0.12, 0.06, 0.02) * (0.6 + 0.4 * boil);
     col = mix(dead, sun * (1.3 + 0.5 * boil), clamp(live, 0.0, 1.0));
-  #endif
+  }
     col += uTint * (edge * 2.6 + surge * 1.8) + vec3(surge * surge * 0.4);
     alpha = max(alpha, max(edge, surge * 0.6));
     gl_FragColor = vec4(clamp(col, 0.0, 3.0), alpha);
@@ -166,13 +168,13 @@ const coreFrag = `
     gl_FragColor = vec4(clamp(col, 0.0, 3.0), 1.0);
   }`;
 
-// The feed-conduit material (also used by the Foundry core's pipes): see conduitFrag for STYLE and uniforms.
+// The feed-conduit material (also used by the Foundry core's pipes): see conduitFrag for uStyle and the other uniforms.
 export function conduitMaterial(style, len, extra = {}, tint = 0xffffff) {
   return new THREE.ShaderMaterial({
     vertexShader: conduitVert,
     fragmentShader: conduitFrag,
-    defines: { STYLE: style },
     uniforms: {
+      uStyle: { value: style },
       uTime: { value: Math.random() * 50 }, uPower: { value: 1 }, uFlick: { value: 1 }, uLen: { value: len }, uSeed: { value: Math.random() * 10 },
       uTint: { value: new THREE.Color(tint) }, uCutA: { value: -10 }, uCutB: { value: -10 }, uEdge: { value: 0 }, uSurge: { value: -99 }, uSurgeK: { value: 0 },
     },
