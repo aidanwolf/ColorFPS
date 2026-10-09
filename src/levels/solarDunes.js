@@ -14,7 +14,7 @@
 // swooping in from the flanks and astern, swarms, turrets on the rock spires, scarabs leaping out of the
 // quicksand onto the deck, raider skiffs racing alongside. 60-90 s. Yellow at heart, with red worked in so
 // you keep switching mid-fight (you have red and yellow by now): red drones and scarabs in the mix, skiffs
-// in red shield bubbles, turrets whose lens flips red/yellow between bursts, and the Excavator's vents
+// in red shield bubbles, turrets behind red shields, and the Excavator's vents
 // bolted under red armor plates you blast off before the yellow vents can be hit.
 // Dying mid-run puts you back on the start dock (its checkpoint is taken as you board) with the run reset;
 // landing takes the end dock's checkpoint and the run is saved as done (the sled waits at the end dock).
@@ -966,9 +966,9 @@ class DuneRun {
     this.pos.copy(this.craft.pos);
     this.prev.copy(this.pos);
     this.perches.forEach((t, i) => {
-      // (every other one switches between red and yellow from burst to burst: watch its lens)
-      const colors = i % 2 ? [RED, YELLOW] : [YELLOW];
-      const e = spawnEnemy(this.W, { type: 'turret', pos: t.pos, colors, range: 58, cooldown: 2.4, charge: 1.0, cycle: 1, aggro: false });
+      // (every other one is behind a red shield: crack it with red, then yellow for the turret)
+      const shields = i % 2 ? [RED] : [];
+      const e = spawnEnemy(this.W, { type: 'turret', pos: t.pos, color: YELLOW, shields, range: 58, cooldown: 2.4, charge: 1.0, aggro: false });
       e.perch = t;
       this.turrets.push(e);
     });
