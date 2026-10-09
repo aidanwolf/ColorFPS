@@ -1276,5 +1276,42 @@
   "text": "A huge living tree root arm creaking and groaning as it swings around, a heavy whoosh, ending in a deep wooden slam",
   "dur": 2.0,
   "influence": 0.6
+ },
+ "amb_rain": {
+  "text": "Steady heavy rain falling on metal decks and open water, dense constant downpour, no thunder, seamless ambient loop",
+  "dur": 20,
+  "influence": 0.5,
+  "loop": true
+ },
+ "thunder": {
+  "text": "Close thunderclap: a sharp splitting crack then a deep rolling rumble",
+  "dur": 4,
+  "influence": 0.6
+ },
+ "thunder_far": {
+  "text": "Distant rolling thunder over the sea, low and soft",
+  "dur": 5,
+  "influence": 0.6
+ },
+ "seal_chirp": {
+  "text": "Friendly small robot seal chirp, bright cute electronic squeak, short",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "seal_alarm": {
+  "text": "A small robot seal startled squeal, panicked electronic yelp",
+  "dur": 0.8,
+  "influence": 0.6
+ },
+ "tank_fill": {
+  "text": "Water gushing into a hollow metal tank, sloshing with a rising pitch as it fills, seamless loop",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "breaker_trip": {
+  "text": "Heavy industrial circuit breaker thunk with a sharp electrical pop and crackle",
+  "dur": 1,
+  "influence": 0.6
  }
 }
