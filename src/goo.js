@@ -158,7 +158,7 @@ const surfFrag = `
     float fres = pow(1.0 - clamp(abs(dot(V, nrm)), 0.0, 1.0), 3.0);
     // veins of glow crawling through it
     float vn = abs(noise(q * 2.6 + vec2(uTime * 0.25, -uTime * 0.18) + uSeed) - 0.5);
-    float vein = (1.0 - smoothstep(0.0, 0.05, vn)) * inner;
+    float vein = (1.0 - smoothstep(0.0, 0.03, vn)) * inner * (0.5 + 0.5 * lump);
     // bubbles swelling and popping
     vec2 bc = floor(q * 3.2 + uSeed * 1.3), bf = fract(q * 3.2 + uSeed * 1.3) - 0.5;
     float bph = fract(uTime * (0.35 + 0.4 * hash(bc)) + hash(bc + 2.0));
@@ -167,7 +167,7 @@ const surfFrag = `
     vec3 deep = vec3(0.02, 0.22, 0.05);
     vec3 lime = vec3(0.3, 1.0, 0.4);
     float glow = 0.75 + 0.25 * sin(uTime * 2.0 + uSeed * 4.0) + uPulse;
-    vec3 col = mix(deep, lime * 0.9, h * 0.55) * glow + lime * (vein * 1.5 + bub * 1.1) * (0.6 + uPulse) + vec3(0.75, 1.0, 0.8) * spec * 0.9 + lime * fres * 0.3;
+    vec3 col = mix(deep, lime * 0.9, h * 0.55) * glow + lime * (vein * 0.75 + bub * 0.55) * (0.6 + uPulse) + vec3(0.75, 1.0, 0.8) * spec * 0.9 + lime * fres * 0.3;
     // drying: a dull olive crust, cracked, the glow gone
     float cr = abs(noise(q * 4.5 + uSeed * 2.0) - 0.5);
     float crack = 1.0 - smoothstep(0.0, 0.03, cr);
@@ -285,7 +285,7 @@ export class GooSystem {
     const blobGeo = new THREE.IcosahedronGeometry(1, 2);
     this.clumps = [];
     for (let i = 0; i < CLUMPS; i++) {
-      const mat = new THREE.MeshStandardMaterial({ color: 0x18c040, emissive: 0x1aff5a, emissiveIntensity: 0.8, roughness: 0.07, metalness: 0.1, transparent: true, opacity: 0.88, envMapIntensity: 1.4 });
+      const mat = new THREE.MeshStandardMaterial({ color: 0x18c040, emissive: 0x12c440, emissiveIntensity: 0.45, roughness: 0.07, metalness: 0.1, transparent: true, opacity: 0.88, envMapIntensity: 1.2 });
       const g = hide(new THREE.Group());
       const blobs = [];
       for (let j = 0; j < BLOBS; j++) {
@@ -839,7 +839,7 @@ export class GooSystem {
       const rate = left > 2 ? 3 : left > 1 ? 7 : 14;
       const beat = 0.5 + 0.5 * Math.sin(cl.t * rate);
       const dry = left < 1.5 ? 1 - left / 1.5 : 0;
-      cl.mat.emissiveIntensity = (0.55 + beat * 0.6) * (1 - dry * 0.6) + cl.pop * 1.5;
+      cl.mat.emissiveIntensity = (0.3 + beat * 0.45) * (1 - dry * 0.6) + cl.pop * 0.9;
       cl.mat.color.setRGB(0.09 - dry * 0.04, 0.75 - dry * 0.4, 0.25 - dry * 0.12);
       for (const b of cl.blobs) {
         const w = Math.sin(cl.t * 5 + b.ph) * 0.08;
@@ -898,7 +898,7 @@ export class GooSystem {
     }
     if (!this.count && !this.wading.size) return;
     for (const e of this.world.entities) {
-      if (e.flier || e.dead || !e.pos?.isVector3 || typeof e.onHit !== 'function' || typeof e.hp !== 'number' || typeof e.update !== 'function') continue;
+      if (e.flier || e.dead || !e.pos?.isVector3 || typeof e.onHit !== 'function' || (typeof e.hp !== 'number' && !e.critter) || typeof e.update !== 'function') continue;
       const footY = typeof e.floorY === 'number' ? e.floorY : typeof e.groundY === 'number' ? e.groundY : e.pos.y;
       const inGoo = this.count ? !!this.patchAt(_v.set(e.pos.x, footY, e.pos.z)) : false;
       let w = this.wading.get(e);
