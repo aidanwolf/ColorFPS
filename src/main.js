@@ -497,6 +497,7 @@ class Game {
     // one-off beats already played (before the power-down listeners hear about it: the Atrium reactor asks).
     // A save from before they were kept: a down world's feed counts as blown once the checkpoint is out of it.
     const down = [...(s.powerDown || []), ...(s.beaten || [])];
+    for (const name of s.beaten || []) this.beaten.add(name); // (kept in the next save too)
     for (const e of s.events || []) this.events.add(e);
     if (!s.events) for (const name of down) if (regionOf(new THREE.Vector3(...s.cp.pos)) !== name) this.events.add('feed_' + name);
     // (a guardian beaten but its power source not yet shot counts as shut down: its fight never comes back)
