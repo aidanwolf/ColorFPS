@@ -1506,5 +1506,16 @@
   "text": "Violent splash and plunge into deep ocean water, then muffled churning bubbles and turbulent underwater roar fading",
   "dur": 3.5,
   "influence": 0.6
+ },
+ "slick_rush": {
+  "text": "Continuous high-speed rush of sliding fast across a wet surface: hissing water spray from under the feet, rushing wind past the ears, a slick watery whoosh, seamless loop",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "slick_boost": {
+  "text": "A sudden surging whoosh of speed: a burst of water spray and a rising wind rush as you hit top speed on a slick, punchy and exhilarating",
+  "dur": 1.2,
+  "influence": 0.6
  }
 }

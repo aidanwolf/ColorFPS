@@ -255,6 +255,8 @@
  "shoot_green",
  "shoot_red",
  "shoot_yellow",
+ "slick_boost",
+ "slick_rush",
  "slime_burble",
  "slime_leap",
  "slime_regrow",
