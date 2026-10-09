@@ -2,6 +2,8 @@
 // crouching (for vents), step-up, moving-platform riding, hazards and fall recovery.
 import * as THREE from 'three';
 import { audio } from './audio.js';
+
+audio.manifest?.then(() => audio.prefetch(['slick_boost', 'slick_rush'])); // (a sample that was never fetched plays nothing)
 import { barks } from './combat/barks.js';
 import { ARMOR_IGNORES, ARMOR_COLOR, ShieldFx } from './entities/armor.js';
 import { regionOf } from './levels/regions.js';
@@ -47,8 +49,8 @@ const SAND_TINT = 0xd9b46a;
 // SLICK_BUILD of run speed a second. The build-up carries through the air until you land on dry ground,
 // and a jump off it at full speed is SLICK_LEAP times as strong: sprint jump ≈ 7.6 m, slick leap ≈ 9.3-9.8 m.
 const SLICK_GRIP = 0.12;
-const SLICK_TOP = 1.6;
-const SLICK_BUILD = 0.4;
+const SLICK_TOP = 1.9;
+const SLICK_BUILD = 0.52;
 const SLICK_LEAP = 1.12;
 const DRY_GRACE = 0.35;
 const SLIDE_MAX = (SLICK_TOP * RUN_SPEED) / SPRINT_SPEED - 1; // the boost on top of a sprint
@@ -183,10 +185,21 @@ export class Player {
     else if (this.grounded) this.dryT = (this.dryT || 0) + dt;
     if (slick > 0.3 && this.sprinting && this.speed2d > SPRINT_SPEED * 0.8) this.slideBoost = Math.min(SLIDE_MAX, b + dt * SLICK_BUILD * slick * (RUN_SPEED / SPRINT_SPEED));
     else if (this.grounded && ((slick < 0.3 && this.dryT > DRY_GRACE) || this.speed2d < RUN_SPEED)) this.slideBoost = Math.max(0, b - dt * 0.35);
-    if (slick > 0.3 && this.speed2d > 3 && Math.random() < dt * (6 + this.speed2d)) {
+    const k = this.slideK;
+    if (slick > 0.3 && this.speed2d > 3 && Math.random() < dt * (6 + this.speed2d) * (1 + k * 2)) {
       const fx = this.game.world.fx;
-      fx.burst(_swimT.copy(this.pos).setY(this.pos.y + 0.05), 0xcfeeff, { count: 4, speed: 2.5, life: 0.4, size: 0.12, gravity: 9, dir: _swimF.set(this.vel.x * 0.15, 1.2, this.vel.z * 0.15) });
+      fx.burst(_swimT.copy(this.pos).setY(this.pos.y + 0.05), 0xcfeeff, { count: 4 + Math.round(k * 8), speed: 2.5 + k * 3, life: 0.4 + k * 0.2, size: 0.12 + k * 0.08, gravity: 9, dir: _swimF.set(this.vel.x * (0.15 + k * 0.2), 1.2 + k, this.vel.z * (0.15 + k * 0.2)) });
     }
+    // flat out: a whoosh as the boost tops out (the screen effects and the rush loop are in main.js)
+    if (k > 0.95 && !this.slideTopped) {
+      this.slideTopped = true;
+      audio.sample(audio.sfxOr('slick_boost', 'leviathan_splash'), { gain: 0.8, vary: 0.05 });
+    } else if (k < 0.6) this.slideTopped = false;
+  }
+
+  // the slide boost as 0..1 of its top (drives the speed effects)
+  get slideK() {
+    return (this.slideBoost || 0) / SLIDE_MAX;
   }
 
   updateAir(dt) {
@@ -309,6 +322,19 @@ export class Player {
     this.vel.y -= GRAVITY * dt;
     // updraft columns slow the fall through shielded spike drops
     for (const u of world.updrafts || []) if (u.contains(this.pos) && this.vel.y < -u.cap) this.vel.y = -u.cap;
+    // ladders (world.ladders: { min, max, n } boxes, e.g. levels/verdantKit.js reactor tanks): inside one, Space
+    // or W facing it climbs, S climbs down, and otherwise you hang on where you are
+    for (const l of world.ladders || []) {
+      const q = this.pos;
+      if (q.x < l.min.x || q.x > l.max.x || q.z < l.min.z || q.z > l.max.z || q.y < l.min.y - 0.1 || q.y > l.max.y) continue;
+      const facing = !l.n || fx * -l.n[0] + fz * -l.n[2] > 0.3;
+      const up = input.down('Space') || ((input.down('KeyW') || input.down('ArrowUp')) && facing);
+      const down = input.down('KeyS') || input.down('ArrowDown');
+      this.vel.y = up ? 4.2 : down && !this.grounded ? -3.5 : Math.max(this.vel.y, 0);
+      if (up) this.coyote = 0;
+      this.launched = false;
+      break;
+    }
     if (this.vel.y < -40) this.vel.y = -40;
     }
     this.updateAir(dt);

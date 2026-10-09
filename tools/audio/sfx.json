@@ -1496,5 +1496,91 @@
   "dur": 20,
   "influence": 0.4,
   "loop": true
+ },
+ "rogue_wave": {
+  "text": "A colossal rogue ocean wave approaching: a deep rising roar building to a thunderous crash over a steel offshore deck, torrents of water, metal groaning, cinematic and terrifying",
+  "dur": 6,
+  "influence": 0.55
+ },
+ "underwater_plunge": {
+  "text": "Violent splash and plunge into deep ocean water, then muffled churning bubbles and turbulent underwater roar fading",
+  "dur": 3.5,
+  "influence": 0.6
+ },
+ "slick_rush": {
+  "text": "Continuous high-speed rush of sliding fast across a wet surface: hissing water spray from under the feet, rushing wind past the ears, a slick watery whoosh, seamless loop",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "slick_boost": {
+  "text": "A sudden surging whoosh of speed: a burst of water spray and a rising wind rush as you hit top speed on a slick, punchy and exhilarating",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "glob_charge": {
+  "text": "Rising, gloopy wet energy hum: thick slime bubbling and stretching as a sci-fi charge whine sweeps up in pitch, ending on a tense wobbling sustain.",
+  "dur": 1.0,
+  "influence": 0.6
+ },
+ "glob_ready": {
+  "text": "Short bright wet plip with a glassy ping: a slime cell fully charged.",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "glob_charged": {
+  "text": "Heavy deep pneumatic slime cannon shot: a thick wet THOOMP, springy recoil, gooey splutter.",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "flak_burst": {
+  "text": "Sharp mid-air slime flak airburst: crisp crack-pop, then a wet splattering shower and a fizzing crackle. Punchy, little low end.",
+  "dur": 0.7,
+  "influence": 0.6
+ },
+ "goo_column": {
+  "text": "Geyser of thick green slime erupting from the ground: wet whoosh-glorp rising in pitch, then splattering back down.",
+  "dur": 0.8,
+  "influence": 0.6
+ },
+ "goo_stick": {
+  "text": "Thick sticky slime slapping onto metal and gluing it fast: heavy wet splat with a stretchy tacky squelch.",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "goo_unstick": {
+  "text": "Sticky slime peeling off a surface: tacky stretching rip ending in a wet pop.",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "goo_bridge": {
+  "text": "Slime spreading fast across a gap into a taut rubbery membrane: wet stretching squelch ending in a springy elastic twang.",
+  "dur": 0.8,
+  "influence": 0.6
+ },
+ "goo_burst": {
+  "text": "Hardened slime membrane cracking and bursting: dry crackle, wet rubbery pop, goo dripping away.",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "pad_absorb": {
+  "text": "Organic pod greedily sucking in goo: quick wet slurp-gulp.",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "pad_beat": {
+  "text": "Single deep organic heartbeat thump from a swelling plant pod, wet and resonant, with a faint tonal pulse.",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "pad_bloom": {
+  "text": "Big organic pod inflating explosively: fast rubbery balloon WHUMP, wet pop, leafy rustle.",
+  "dur": 0.7,
+  "influence": 0.6
+ },
+ "pad_launch": {
+  "text": "Springy bio launch: powerful elastic boing-thwump with an upward whoosh.",
+  "dur": 0.6,
+  "influence": 0.6
  }
 }

@@ -8,6 +8,7 @@ import { regionOf, VISIBLE_FROM } from './levels/regions.js';
 import { liquidMaterial, liquidSurface } from './liquid.js';
 import { audio } from './audio.js';
 import { WetSurfaces } from './wet.js';
+import { GooSystem } from './goo.js';
 
 const _v = new THREE.Vector3();
 const _ray = new THREE.Raycaster();
@@ -46,6 +47,7 @@ export class World {
     this.scene.add(this.batchGroup);
     this.fx = new Fx(this.scene);
     this.wet = new WetSurfaces(this); // puddles from the water cannon, shock water (wet.js)
+    this.goo = new GooSystem(this); // the green globs' goo: patches, stuck things, bridged gaps, goo columns (goo.js)
     this.time = 0;
     // Placed lights are virtual: a fixed pool of real PointLights is handed to whichever are nearest the
     // camera. Every lit pixel loops over every real light, and changing their count recompiles every
@@ -497,6 +499,7 @@ export class World {
     }
     this.updateLiquidFx(dt, player);
     this.wet.update(dt, player);
+    this.goo.update(dt, player);
     this.fx.update(dt);
   }
 }
