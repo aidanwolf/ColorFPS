@@ -396,7 +396,7 @@ export class World {
         if (o.userData.noHit) continue;
         bestT = h.distance;
         const n = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : dir.clone().negate();
-        best = { t: h.distance, normal: n, entity: o.userData.hit, part: o.userData.part || null, object: h.object };
+        best = { t: h.distance, normal: n, entity: o.userData.hit, part: o.userData.part || null, object: h.object, instanceId: h.instanceId };
         break;
       }
     }
