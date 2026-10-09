@@ -177,6 +177,7 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
 
   // ---------------------------------------------------------------- traps and obstacles along the passages
   const resets = [];
+  const trapS = []; // where the timed traps are (the boulder eases off while you wait out one just ahead)
   const hazards = []; // functions (player) → death cause or null, checked every frame of the run
   // A breakable obstacle: only a green glob's burst clears it (other colors glance off). styles: planks, rubble,
   // roots, cracked (a cracked granite wall with glowing green seams)
@@ -337,7 +338,7 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
             m.position.set(alongX ? p.x + (i - 1.5) * 0.25 : p.x + off, p.y + hy, alongX ? p.z + off : p.z + (i - 1.5) * 0.25);
           });
           // the dart volume: the plate's strip, chest and head height, while they fly
-          if (k < 1 && player.pos.y < p.y + 2 && Math.abs((alongX ? player.pos.x - p.x : player.pos.z - p.z)) < 0.75 && !game.godMode) player.damage(1, 'dart');
+          if (k < 1 && player.pos.y < p.y + 2 && player.pos.y > p.y - 1 && Math.abs((alongX ? player.pos.x - p.x : player.pos.z - p.z)) < 0.75 && Math.abs((alongX ? player.pos.z - p.z : player.pos.x - p.x)) < W5 / 2 + 0.2 && !game.godMode) player.damage(1, 'dart');
         }
         if (st.t > 0.6) {
           st.t = -1;
@@ -382,6 +383,7 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
     W.scene.add(pivot);
     const st = { t: phase * period, broken: false, paused: false };
     pendulums.push({ s, st, pivot });
+    trapS.push(s);
     // goo freezes it mid-swing (a burst on the log: it hangs there for a few seconds while you slip past)
     const stick = W.goo?.registerStickable({ group: swing }, { box: (out) => out.setFromObject(log), freeze: false, duration: 4, parent: swing, onStick: () => (st.paused = true), onUnstick: () => (st.paused = false) });
     resets.push(() => ((st.broken = false), (pivot.visible = true), (st.t = phase * period), (st.paused = false), stick?.unstick?.()));
@@ -402,7 +404,8 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
         lastSide = side;
         const pp = player.pos;
         const dAlong = alongX ? Math.abs(pp.x - lp.x) : Math.abs(pp.z - lp.z);
-        if (dAlong < 0.85 && pp.y < lp.y + 0.5 && pp.y + 1.75 > lp.y - 0.5 && !game.godMode) player.damage(1, 'crush');
+        const dAcross = alongX ? Math.abs(pp.z - p.z) : Math.abs(pp.x - p.x);
+        if (dAlong < 0.85 && dAcross < W5 / 2 + 0.2 && pp.y < lp.y + 0.5 && pp.y + 1.75 > lp.y - 0.5 && !game.godMode) player.damage(1, 'crush');
       },
     });
   }
@@ -470,6 +473,7 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
     sheet.position.set(p.x, p.y + 1.1, p.z);
     W.scene.add(sheet);
     const st = { t: phase * period };
+    trapS.push(s);
     resets.push(() => (st.t = phase * period));
     W.add({
       update(dt, player) {
@@ -487,7 +491,7 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
           }
           if (c - dt <= period - burn) sfx('fire_whoosh', 'lava_sizzle', { gain: 0.9 * near(sheet.position, 25), rate: 0.8, vary: 0.1 });
           const pp = player.pos;
-          if (Math.abs(alongX ? pp.x - p.x : pp.z - p.z) < 0.85 && pp.y < p.y + 2 && !game.godMode) player.damage(1, 'burn');
+          if (Math.abs(alongX ? pp.x - p.x : pp.z - p.z) < 0.85 && Math.abs(alongX ? pp.z - p.z : pp.x - p.x) < W5 / 2 + 0.2 && pp.y < p.y + 2 && pp.y > p.y - 1 && !game.godMode) player.damage(1, 'burn');
         }
       },
     });
@@ -634,13 +638,14 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
       const gap = run.ps - run.bs;
       // a little faster when you're far ahead, a little slower when it's close, never stopping; it eases off
       // while an obstacle you haven't cleared stands just ahead of you
-      let v = THREE.MathUtils.clamp(6.3 + 0.32 * (gap - 9), 4.6, 11);
+      let v = THREE.MathUtils.clamp(6.0 + 0.3 * (gap - 10), 4.4, 9.5);
       if (run.t < 1.2) v = Math.min(v, 2 + run.t * 4); // (it has to get going)
       for (const o of obstacles) {
         if (o.broken) continue;
         const so = project(o.c, run.ps).s;
         if (so > run.ps - 1 && so < run.ps + 6 && gap < 14) v = Math.min(v, 3.4);
       }
+      for (const ts of trapS) if (ts > run.ps - 0.5 && ts < run.ps + 5 && gap < 14) v = Math.min(v, 3.6);
       run.v += (v - run.v) * Math.min(1, dt * 3);
       const end = total - 0; // (the jam point)
       run.bs = Math.min(end, run.bs + run.v * dt);

@@ -21,6 +21,7 @@ import { Checkpoint, Pickup } from '../entities/misc.js';
 import { SwampAmbush } from './verdantAmbush.js';
 import { ColorSwitch } from '../entities/mechanics.js';
 import { GooPad } from '../entities/gooPad.js';
+import { Brink } from '../entities/globPuzzle.js';
 import { buildVerdantEscape } from './verdantEscape.js';
 
 const PI = Math.PI;
@@ -217,6 +218,24 @@ export function buildVerdantRuin(B, { K, F, trap }) {
   // the red riser at the catwalk's north end: up to the gallery
   const riser = B.riser({ min: [-62.4, Hh.floor + tankH - 0.6, -343.9], max: [-59.6, Hh.floor + tankH, -341.1], rise: Hh.gallery - (Hh.floor + tankH) + 0.05, color: RED, kick: 1.5, back: 1.2, zone: 'green' });
   slab(mats.granite, -63, Hh.floor, -344, -59, Hh.floor + tankH - 0.6, -340.6); // (its plinth)
+  // at the top it latches with a clunk (so the gallery's hole over it stays closed behind you)
+  const riserBack = riser.back;
+  let latched = false;
+  W.add({
+    update() {
+      if (!latched && riser.u >= riser.len - 0.02) {
+        latched = true;
+        riser.back = 0;
+        audio.sample(audio.sfxOr('stone_slam', 'gate_slam'), { gain: 0.6, rate: 1.4, vary: 0 });
+      }
+    },
+  });
+  onRespawn(() => {
+    if (latched && riser.u < riser.len - 0.02) {
+      latched = false;
+      riser.back = riserBack;
+    }
+  });
   say([-62.5, Hh.floor + tankH, -341], [-59.5, Hh.floor + tankH + 3, -338], `A ${R_('red')} lifting block. Stand on it and <b>keep firing ${R_('red')} into it</b> to ride it up to the gallery.`, 6);
   say([-63, Hh.floor, -327], [-58, Hh.floor + 3, -322], 'A ladder up the first reactor. <b>Space</b> (or W facing it) to climb.', 5);
   W.trigger([-70, Hh.gallery, Hh.z1], [-56, Hh.gallery + 3, Hh.z1 + 3.6], () => !locks.red && game.hud.message(`Two dead conduit locks feed the door: the ${R_('red')} one here on the wall, a ${Y_('yellow')} one hanging over the far reactor.`, 6));
@@ -284,7 +303,9 @@ export function buildVerdantRuin(B, { K, F, trap }) {
   // the core in the cradle's grip
   const core = new Pickup(W, { pos: [S.cx, coreY, S.cz], type: 'color', color: GREEN, onCollect: (pk) => takeCore(pk) });
   // the room: the vents the slimes come out of, the algae pools at the pyramid's foot, light shafts from the roof
-  const vents = [[-75.4, 14, -366, [8, 6, 0]], [-75.4, 14, -394, [8, 6, 0]], [-24.6, 14, -366, [-8, 6, 0]], [-24.6, 14, -394, [-8, 6, 0]], [-62, 14, -407.4, [0, 6, 8]], [-38, 14, -407.4, [0, 6, 8]]];
+  // (high in the walls, level with the bridges: the guard is thrown out of them onto the bridges and the pyramid's top)
+  const VY = S.top + 6;
+  const vents = [[-75.4, VY, -372], [-75.4, VY, -388], [-24.6, VY, -372], [-24.6, VY, -388], [-56, VY, -407.4], [-44, VY, -407.4], [-58, VY, -352.6], [-42, VY, -352.6]];
   for (const [x, y, z] of vents) {
     const alongZ = Math.abs(x - S.x1) < 1 || Math.abs(x - S.x2) < 1;
     K.put(mats.pipeDark, alongZ ? boxGeo(0.4, 2.2, 2.2, 0.5) : boxGeo(2.2, 2.2, 0.4, 0.5), x, y, z);
@@ -340,13 +361,16 @@ export function buildVerdantRuin(B, { K, F, trap }) {
     guardDue = true;
     game.unlockColor(GREEN, pk.pos);
   }
-  const vent = (i, color, core, extra = {}) => {
-    const [x, y, z, v] = vents[i];
-    return { type: 'slime', from: 'vent', pos: [x + v[0] * 0.08, y, z + v[2] * 0.08], vel: v, color, core, ...extra };
+  // a slime thrown out of vent i in an arc onto the target spot (on the bridges or the top)
+  const SPOTS = { top: [S.cx + 1.5, S.cz - 1.5], top2: [S.cx - 1.5, S.cz + 1.5], e1: [S.cx + 8, S.cz], e2: [S.cx + 14, S.cz], e3: [S.cx + 20, S.cz], w1: [S.cx - 8, S.cz], w2: [S.cx - 14, S.cz], w3: [S.cx - 20, S.cz] };
+  const vent = (i, spot, color, core, extra = {}) => {
+    const [x, y, z] = vents[i], [tx, tz] = SPOTS[spot], T = 1.25;
+    const vel = [(tx - x) / T, (top + 0.6 - y) / T + 10 * T, (tz - z) / T];
+    return { type: 'slime', from: 'vent', pos: [x, y, z], vel, color, core, range: 30, leapRange: 9, ...extra };
   };
-  const pool = (i, color, core, extra = {}) => {
-    const [x, z] = pools[i];
-    return { type: 'slime', from: 'vent', pos: [x, S.floor + 0.2, z], vel: [(S.cx - x) * 0.25, 9, (S.cz - z) * 0.25], color, core, ...extra };
+  const spider = (spot, color, shields, delay) => {
+    const [x, z] = SPOTS[spot];
+    return { type: 'spider', from: 'tree', pos: [x, top, z], color, shields, ceiling: false, leash: 7, range: 30, delay };
   };
   const guard = new SwampAmbush(W, game, {
     trigger: [[S.x1 + 2, S.ceil - 2, S.z1 + 2], [S.x1 + 3, S.ceil - 1.5, S.z1 + 3]], // (started by taking the core, not by walking in)
@@ -358,23 +382,22 @@ export function buildVerdantRuin(B, { K, F, trap }) {
     checkpoint: { pos: [S.cx + 3, top, S.cz], yaw: EAST },
     waves: [
       { title: 'OUT OF THE VENTS', enemies: [
-        vent(0, GREEN, RED, { delay: 0 }), vent(2, GREEN, YELLOW, { delay: 0.5 }), vent(4, GREEN, RED, { delay: 1 }), vent(1, GREEN, YELLOW, { delay: 1.6, size: 0.85 }), vent(3, GREEN, RED, { delay: 2.2, size: 0.85 }),
+        vent(2, 'e2', GREEN, RED, { delay: 0 }), vent(0, 'w2', GREEN, YELLOW, { delay: 0.6 }), vent(4, 'e1', GREEN, RED, { delay: 1.3 }), vent(7, 'w1', GREEN, YELLOW, { delay: 2, size: 0.85 }),
       ] },
-      { title: 'OUT OF THE POOLS', enemies: [
-        pool(0, GREEN, YELLOW, { delay: 0 }), pool(1, GREEN, RED, { delay: 0.4 }), pool(2, GREEN, RED, { delay: 0.8 }), pool(3, GREEN, YELLOW, { delay: 1.2 }),
-        { type: 'spider', from: 'tree', pos: [-60, S.floor, -372], color: GREEN, shields: [YELLOW], ceiling: false, leash: 14, range: 30, delay: 1.8 },
-        vent(5, YELLOW, GREEN, { delay: 2.4 }),
+      { title: 'FROM EVERY WALL', enemies: [
+        vent(1, 'w3', GREEN, YELLOW, { delay: 0 }), vent(3, 'e3', GREEN, RED, { delay: 0.4 }), vent(5, 'top', GREEN, RED, { delay: 1, size: 0.85 }), vent(6, 'e1', YELLOW, GREEN, { delay: 1.6 }),
+        spider('w2', GREEN, [YELLOW], 2.2),
       ] },
       { title: 'THE BIG ONES', enemies: [
-        pool(0, GREEN, RED, { delay: 0, size: 1.5, slimeHp: 2 }), pool(1, GREEN, YELLOW, { delay: 0.6, size: 1.5, slimeHp: 2 }),
-        vent(0, GREEN, YELLOW, { delay: 1.4, size: 0.8 }), vent(2, GREEN, RED, { delay: 1.6, size: 0.8 }), vent(4, RED, GREEN, { delay: 2, size: 0.8 }), vent(5, GREEN, YELLOW, { delay: 2.4, size: 0.8 }),
-        { type: 'spider', from: 'tree', pos: [-40, S.floor, -390], color: GREEN, shields: [RED], ceiling: false, leash: 14, range: 30, delay: 2.8 },
+        vent(2, 'e2', GREEN, RED, { delay: 0, size: 1.5, slimeHp: 2 }), vent(0, 'w2', GREEN, YELLOW, { delay: 0.6, size: 1.5, slimeHp: 2 }),
+        vent(4, 'w1', GREEN, YELLOW, { delay: 1.4, size: 0.8 }), vent(5, 'e1', RED, GREEN, { delay: 1.8, size: 0.8 }), vent(7, 'top2', GREEN, RED, { delay: 2.3, size: 0.8 }),
+        spider('e3', GREEN, [RED], 2.8),
       ] },
     ],
     onStart: () => {
       cradle.shudder(1.4);
       quake(2.2);
-      setTimeout(() => game.hud.message(`${G_('GLOB LAUNCHER')}: globs arc and <b>burst</b>. One burst blows the goo off a whole clump — then finish the cores. Goo on the floor gums them up.`, 6), 2400);
+      setTimeout(() => game.hud.message(`${G_('GLOB LAUNCHER')}: globs arc and <b>burst</b>, blowing the goo off a whole clump. Finish the cores. A burst beside one at a bridge's edge <b>bowls it off</b>.`, 7), 2400);
     },
     onClear: () => {
       escape.arm();
@@ -385,6 +408,9 @@ export function buildVerdantRuin(B, { K, F, trap }) {
     },
   });
   onRespawn(() => guard.reset());
+  // the bridges' edges: a burst beside a slime bowls it off, down to the sanctum floor (gone)
+  for (const [x1, x2] of [[S.x1, S.cx - 4], [S.cx + 4, S.x2]])
+    for (const sd of [-1, 1]) new Brink(W, { min: [x1, top, sd < 0 ? S.cz - 2.2 : S.cz + 0.6], max: [x2, top + 1.5, sd < 0 ? S.cz - 0.6 : S.cz + 2.2], dir: [0, 0, sd], killY: S.floor + 3 });
   // the fight starts once the cutscene hands control back (and again on respawning after a death mid-fight)
   W.add({
     update(dt, player) {
