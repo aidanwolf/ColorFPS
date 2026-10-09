@@ -293,31 +293,32 @@
   "where": "Solar · the Sun Temple, beside the obelisk",
   "file": "memo_06b",
   "text": "Still here. Nothing on the link but hiss since the countdown. Just me. There's a pillar hanging from the roof, point down, tall as a tower block. I know what it is. A battery. Same conduits as the pit, same sockets as the ring. It held sunlight for the gate. And someone's hung banners on it. Gold leaf. Offerings. Candles burned to nothing. Somebody built a beautiful machine, and somebody else forgot what it was and made it a god. It hummed when I touched it. I hope that was me.",
-  "dur": 38.27,
-  "est": true,
+  "spoken": "[quiet, out of breath] Still here. Nothing on the link but hiss since the countdown. Just me. There's a pillar hanging from the roof, point down, tall as a tower block. I know what it is. A battery. Same conduits as the pit, same sockets as the ring. It held sunlight for the gate. [softly] And someone's hung banners on it. Gold leaf. Offerings. Candles burned to nothing. Somebody built a beautiful machine, and somebody else forgot what it was and made it a god. [whispers] It hummed when I touched it. I hope that was me.",
+  "profile": "expressive",
+  "dur": 42.27,
   "lines": [
    {
-    "t": 0,
+    "t": 0.21,
     "text": "Still here. Nothing on the link but hiss since the countdown. Just me."
    },
    {
-    "t": 5.67,
+    "t": 5.64,
     "text": "There's a pillar hanging from the roof, point down, tall as a tower block. I know what it is."
    },
    {
-    "t": 13.06,
+    "t": 13.04,
     "text": "A battery. Same conduits as the pit, same sockets as the ring. It held sunlight for the gate."
    },
    {
-    "t": 20.44,
+    "t": 21.34,
     "text": "And someone's hung banners on it. Gold leaf. Offerings. Candles burned to nothing."
    },
    {
-    "t": 27.01,
+    "t": 29.24,
     "text": "Somebody built a beautiful machine, and somebody else forgot what it was and made it a god."
    },
    {
-    "t": 34.24,
+    "t": 38.55,
     "text": "It hummed when I touched it. I hope that was me."
    }
   ]
