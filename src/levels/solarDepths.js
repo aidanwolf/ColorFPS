@@ -71,6 +71,8 @@ class Conduit {
     this.k = 0; // 0 dormant → 1 lit
     this.on = false;
     this.t = 0;
+    this.run = 0;
+    this.boost = 0; // 0 → 1: the finale's escalation (brighter, faster pulses)
     this.m4 = new THREE.Matrix4();
     W.add(this);
   }
@@ -90,13 +92,14 @@ class Conduit {
   update(dt, player) {
     if (!this.on) return;
     this.t += dt;
+    this.run += dt * (6 + this.boost * 12);
     if (this.k < 1) this.k = Math.min(1, this.k + dt / 2.5);
-    this.mat.color.copy(DORMANT).lerp(GOLD, this.k).multiplyScalar(1 + this.k * (0.7 + 0.25 * Math.sin(this.t * 3)));
+    this.mat.color.copy(DORMANT).lerp(GOLD, this.k).multiplyScalar((1 + this.k * (0.7 + 0.25 * Math.sin(this.t * (3 + this.boost * 9)))) * (1 + this.boost * 1.3));
     if (player.pos.distanceToSquared(this.pts[this.pts.length - 1]) > 90 * 90) return;
     // pulses running toward the gate (the head of the light runs out along the conduit as it wakes)
     const reach = this.k * this.len;
     for (let i = 0; i < this.n; i++) {
-      const s = ((this.t * 6 + (i / this.n) * this.len) % this.len);
+      const s = ((this.run + (i / this.n) * this.len) % this.len);
       this.pointAt(Math.min(s, reach), _w);
       this.m4.makeTranslation(_w.x, _w.y, _w.z);
       this.pulses.setMatrixAt(i, this.m4);
@@ -154,6 +157,17 @@ class Stargate {
       this.group.add(g);
       this.chevrons.push(m);
     }
+    // four quarter arcs inside the ring: one burns for each leg of the sun relay that's complete
+    this.quarters = [];
+    for (let i = 0; i < 4; i++) {
+      const m = new THREE.MeshBasicMaterial({ color: DORMANT.clone() });
+      const arc = new THREE.Mesh(new THREE.TorusGeometry(radius - 0.5, 0.2, 6, 20, Math.PI / 2 - 0.12), m);
+      arc.rotation.z = Math.PI / 2 - (i + 1) * (Math.PI / 2) + 0.06;
+      arc.position.z = 0.9;
+      this.group.add(arc);
+      this.quarters.push(m);
+    }
+    this.pre = 0; // the heart's charge while the sun's held on it (0..1, before it fires)
     // the event horizon: a shimmering disc that fills the ring as it charges
     this.discMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.8, 0.3), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
     this.disc = new THREE.Mesh(new THREE.CircleGeometry(radius - 1, 48), this.discMat);
@@ -190,6 +204,19 @@ class Stargate {
     }
   }
 
+  // one more leg of the relay: its quarter of the ring ignites
+  quarter(i, instant = false) {
+    const m = this.quarters[i];
+    if (!m || m.userData.on) return;
+    m.userData.on = true;
+    m.userData.flash = instant ? 0 : 1;
+    if (!instant) {
+      audio.sample('servo_heavy', { gain: 0.8, rate: 0.6 });
+      audio.sample('ring_wave', { gain: 0.6, rate: 0.5 + i * 0.1 });
+      setTimeout(() => audio.sample('energy_crackle', { gain: 0.7, rate: 0.7 }), 250);
+    }
+  }
+
   charge(onFire) {
     if (this.state !== 'dormant') return;
     this.state = 'charging';
@@ -204,6 +231,7 @@ class Stargate {
     this.state = 'fired';
     this.lit = 3;
     for (const m of this.chevrons) m.userData.on = true;
+    for (const m of this.quarters) m.userData.on = true;
   }
 
   update(dt, player) {
@@ -216,13 +244,32 @@ class Stargate {
       if (m.userData.on) m.color.copy(GOLD).multiplyScalar(1.6 + f * 3 + 0.3 * Math.sin(this.t * 2.5));
       else m.color.copy(DORMANT);
     }
-    const k = this.lit / 3;
-    let charge = this.state === 'charging' ? Math.min(1, this.chargeT / 5.2) : this.state === 'fired' ? 0.25 : 0;
+    let q = 0;
+    for (const m of this.quarters) {
+      const f = m.userData.flash || 0;
+      if (f > 0) m.userData.flash = Math.max(0, f - dt * 0.7);
+      if (m.userData.on) q++;
+      if (m.userData.on) m.color.copy(GOLD).multiplyScalar(1.7 + f * 3.5 + this.pre * 1.5 + 0.35 * Math.sin(this.t * 3 + q));
+      else m.color.copy(DORMANT);
+    }
+    const k = this.lit / 3 + q / 8;
+    let charge = this.state === 'charging' ? Math.min(1, this.chargeT / 5.2) : this.state === 'fired' ? 0.25 : this.pre * 0.35;
     this.seamMat.color.copy(DORMANT).lerp(GOLD, Math.min(1, k * 0.8 + charge)).multiplyScalar(1 + k * 0.6 + charge * 3);
     this.segMat.color.copy(DORMANT).lerp(GOLD, Math.min(1, k * 0.5 + charge)).multiplyScalar(0.8 + charge * 2.5 + (this.state === 'fired' ? 0.6 : 0));
-    this.hum.setGain(near ? Math.min(0.9, k * 0.18 + charge * 0.8) : 0);
-    this.hum.setRate(0.7 + charge * 0.8);
+    this.hum.setGain(near ? Math.min(0.9, k * 0.18 + charge * 0.8 + this.pre * 0.3) : 0);
+    this.hum.setRate(0.7 + charge * 0.8 + this.pre * 0.3);
     this.light.intensity = k * 4 + charge * 30;
+    if (this.state === 'dormant' && this.pre > 0.01) {
+      // the heart drinking the sun: the horizon flickers into being, arcs crawl round the ring
+      this.discMat.opacity = this.pre * 0.45 * (0.7 + 0.3 * Math.sin(this.t * 30));
+      this.disc.scale.setScalar(0.15 + this.pre * 0.55);
+      this.arcMat.opacity = this.pre * 0.7;
+      if (Math.random() < dt * 20) this.buildArcs(this.pre * 0.4);
+      player.shake = Math.max(player.shake || 0, this.pre * 0.12);
+    } else if (this.state === 'dormant') {
+      this.discMat.opacity = 0;
+      this.arcMat.opacity = 0;
+    }
     if (this.state === 'charging') {
       this.chargeT += dt;
       this.discMat.opacity = Math.min(0.75, charge * 0.85) * (0.8 + 0.2 * Math.sin(this.t * 40));
@@ -314,14 +361,122 @@ class PitScarab extends Scarab {
   }
 }
 
+// A sweeping sunbeam: a bronze lens drum that swings a deadly beam to and fro between yaw a0 and a1 (the
+// player's yaw: 0 faces north, π/2 west) at its own height — duck under a head-high one, jump a knee-high
+// one. on / off.
+class Sweeper {
+  constructor(W, { pos, a0, a1, period = 7, phase = 0, width = 0.4, near = 75 }) {
+    this.W = W;
+    this.pos = new THREE.Vector3(...pos);
+    this.a0 = a0;
+    this.a1 = a1;
+    this.period = period;
+    this.t = phase * period;
+    this.beam = new SunBeam(W, { from: pos, dir: [-Math.sin(a0), 0, -Math.cos(a0)], width, deadly: true, enabled: false, near, bounces: 1 });
+    const brass = new THREE.MeshStandardMaterial({ color: 0xb08840, metalness: 0.8, roughness: 0.35, emissive: 0x2a1a06 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x2a2620, metalness: 0.7, roughness: 0.45 });
+    this.head = new THREE.Group();
+    this.head.position.copy(this.pos);
+    const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.46, 0.62, 14), brass);
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.42, 0.5), dark);
+    hood.position.z = -0.38;
+    this.eyeMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.85, 0.5) });
+    const eye = new THREE.Mesh(new THREE.CircleGeometry(0.17, 14), this.eyeMat);
+    eye.position.z = -0.64;
+    eye.rotation.y = Math.PI;
+    this.head.add(drum, hood, eye);
+    this.head.rotation.y = a0;
+    W.scene.add(this.head);
+    W.add(this);
+  }
+
+  get on() {
+    return this.beam.enabled;
+  }
+
+  set on(v) {
+    this.beam.enabled = v;
+  }
+
+  update(dt) {
+    const k = this.beam.I;
+    this.eyeMat.color.setRGB(1, 0.85, 0.5).multiplyScalar(0.25 + k * 2.4);
+    if (!this.beam.enabled && k < 0.01) return;
+    this.t += dt;
+    const s = 0.5 - 0.5 * Math.cos((this.t / this.period) * Math.PI * 2);
+    const a = this.a0 + (this.a1 - this.a0) * s;
+    _v.set(-Math.sin(a), 0, -Math.cos(a));
+    this.beam.setDir(_v);
+    this.beam.from.copy(this.pos).addScaledVector(_v, 0.66);
+    this.beam.traceT = 0;
+    this.head.rotation.y = a;
+  }
+}
+
+// Sand pouring from the roof as the machine wakes (a streaked, scrolling curtain; puffs where it lands).
+let sandTex = null;
+function sandFallTex() {
+  if (sandTex) return sandTex;
+  const c = document.createElement('canvas');
+  c.width = 32;
+  c.height = 128;
+  const g = c.getContext('2d');
+  for (let i = 0; i < 80; i++) {
+    const x = Math.random() * 32, y = Math.random() * 128, l = 6 + Math.random() * 30, w = 1 + Math.random() * 2;
+    g.fillStyle = `rgba(226,192,132,${0.25 + Math.random() * 0.55})`;
+    g.fillRect(x, y, w, l);
+    g.fillRect(x, y - 128, w, l);
+  }
+  sandTex = new THREE.CanvasTexture(c);
+  sandTex.wrapS = sandTex.wrapT = THREE.RepeatWrapping;
+  return sandTex;
+}
+class SandFall {
+  constructor(W, { x, z, top, bottom, r = 0.3 }) {
+    this.W = W;
+    this.k = 0;
+    this.on = false;
+    this.p = new THREE.Vector3(x, bottom, z);
+    const h = top - bottom;
+    const tex = sandFallTex().clone();
+    tex.needsUpdate = true;
+    tex.repeat.set(1, h / 6);
+    this.mat = new THREE.MeshBasicMaterial({ map: tex, color: 0xd8b07a, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+    this.mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.7, h, 10, 1, true), this.mat);
+    this.mesh.position.set(x, (top + bottom) / 2, z);
+    this.mesh.visible = false;
+    W.scene.add(this.mesh);
+    this.puffT = Math.random();
+    W.add(this);
+  }
+
+  start(instant = false) {
+    this.on = true;
+    if (instant) this.k = 1;
+    this.mesh.visible = true;
+  }
+
+  update(dt, player) {
+    if (!this.on) return;
+    if (this.k < 1) this.k = Math.min(1, this.k + dt / 2);
+    this.mat.opacity = 0.6 * this.k;
+    this.mat.map.offset.y += dt * 1.7;
+    if ((this.puffT -= dt) <= 0) {
+      this.puffT = 0.3;
+      if (player.pos.distanceToSquared(this.p) < 60 * 60) this.W.fx.burst(this.p, 0xb89060, { count: 3, speed: 1.6, life: 1.2, size: 0.9, gravity: -0.3, drag: 1.2, mode: 'puff' });
+    }
+  }
+}
+
 // ================================================================ the build
 export function buildSolarDepths(B, K) {
   const { W, game, level, plat, hint, devStart, blocker, light, guideStrip, glowEdge, area, zoneTitle, onRespawn } = B;
   const { R, M, F, D, G, PG, quick, lamp, pipe, cable, droop, scaffold, machinePlate, glyphs, pylon, strata, ck, mood, has, beams, lights, zone, SKY, S, amber, dglow, DZ, skyLens } = K;
   const ev = (id) => game.events.has(id);
   const doorLink = (seal) => ({ activate: () => seal.open(), deactivate: () => {} });
+  const st = { finalOn: false };
   const deepMood = () => {
-    game.setMusic(has(YELLOW) ? 'music_yellow' : 'music_haunt');
+    game.setMusic(has(YELLOW) ? 'music_yellow' : st.finalOn ? 'music_combat' : 'music_haunt');
     game.setAmbient('amb_wind');
     game.setAtmosphere('solarDeep');
   };
@@ -522,7 +677,11 @@ export function buildSolarDepths(B, K) {
   R(-125, -92, -100, -115, -64, -94);
   R(-125, -56, -100, -115, S, -94);
   // the north wall's doorways (annex below, upper landing above): the wall boxes round them
-  R(-142, -92, -134, -110, ROOF, -130);
+  R(-142, -92, -134, -131.9, ROOF, -130);
+  R(-130.5, -92, -134, -110, ROOF, -130);
+  R(-131.9, -92, -134, -130.5, -47.4, -130); // (the sun relay's switch sits in a sight-tube cut here)
+  R(-131.9, -45.4, -134, -130.5, ROOF, -130);
+  R(-131.9, -47.4, -134, -130.5, -45.4, -133.4);
   R(-104, -92, -134, -100, ROOF, -130);
   R(-110, -92, -134, -104, -78.8, -130);
   R(-110, -75.4, -134, -108, ROOF, -130);
@@ -554,34 +713,35 @@ export function buildSolarDepths(B, K) {
   F(-136, -92, -130, -104, -78.8, -126);
   glowEdge(-136, -130, -104, -126, -78.8, dglow, DZ);
   const bridge2 = new PhasePlatform(W, { min: [-134, -79.2, -126], max: [-131, -78.8, -118], on: false, zone });
-  // the two final pylons in the pit and the lens in the roof (shut until three nodes run)
-  for (const x of [-110, -120]) {
-    R(x - 0.9, -92, -108.9, x + 0.9, -67.3, -107.1);
-    for (const y of [-72, -80]) D(x - 0.95, y, -108.95, x + 0.95, y + 0.3, -107.05);
-  }
-  const f1 = new RotMirror(W, { pos: [-110, -65.5, -108], yaw: 0, start: 0, tilt: Math.PI / 4, size: [2.6, 2], post: 1.8, color: RED });
-  const f2 = new RotMirror(W, { pos: [-120, -65.5, -108], yaw: 0, start: 3, size: [2.6, 2], post: 1.8, color: RED });
+  // the sun relay's pit pylons (S5): the mirror obelisk under the roof lens (its broad capital hides its
+  // mirror from the gallery below) and the last pylon, whose mirror sends the sun into the ring's heart;
+  // the lens in the roof stays shut until three nodes run
+  R(-110.9, -92, -108.9, -109.1, -46.4, -107.1);
+  R(-112, -46.4, -110, -108, -45.3, -106);
+  D(-112.15, -46.75, -110.15, -107.85, -46.4, -105.85, 'metal');
+  for (const y of [-80, -72, -62, -54]) D(-110.95, y, -108.95, -109.05, y + 0.3, -107.05);
+  R(-120.9, -92, -116.9, -119.1, -67.3, -115.1);
+  for (const y of [-80, -72]) D(-120.95, y, -116.95, -119.05, y + 0.3, -115.05);
   const oculus = new SunBeam(W, { from: [-110, -30.4, -108], dir: [0, -1, 0], source: 'lens', width: 0.6, enabled: false, near: 90 });
   beams.push(oculus);
-  lights.push(f1, f2);
   // the gate
   const gate = new Stargate(W, game, { center: [-120, -67, -128.6], radius: 7 });
   R(-124, -92, -130, -116, -76, -128.4); // its plinth
   R(-128.6, -76, -130, -111.4, -74.8, -128.8);
   // the stargate's heart: a crystal that drinks the sun (it only fires on a full charge)
-  const heart = new LightReceiver(W, { pos: [-120, -65.5, -127.6], face: '+z', accept: 'sun', size: 2.0 });
+  const heart = new LightReceiver(W, { pos: [-120, -65.5, -127.6], face: '+z', accept: 'sun', size: 2.0, mode: 'hold', fill: 0.2 });
   lights.push(heart);
   // the upper gallery (y -64): east arm and south arm, the hole's ledge in the middle of the south arm
   F(-108, -66, -130, -102, -64, -100);
-  F(-138, -66, -104, -108, -64, -100);
+  F(-134, -66, -104, -108, -64, -100);
   glowEdge(-108, -130, -102, -104, -64, dglow, DZ);
-  glowEdge(-138, -104, -108, -100, -64, dglow, DZ);
+  glowEdge(-134, -104, -108, -100, -64, dglow, DZ);
   // a light rail along the gallery's edges (a top bar on posts: you can shoot down past it)
   M(-108.15, -63.55, -130, -107.95, -63.4, -104);
-  M(-138, -63.55, -104.15, -108, -63.4, -103.95);
+  M(-134, -63.55, -104.15, -108, -63.4, -103.95);
   for (let z = -129; z <= -105; z += 3) M(-108.12, -64, z - 0.06, -107.98, -63.55, z + 0.06);
-  for (let x = -137; x <= -109; x += 3) M(x - 0.06, -64, -104.12, x + 0.06, -63.55, -103.98);
-  for (let x = -136; x <= -110; x += 4) pipe([x, -66, -103], [x, -86, -103], 0.14);
+  for (let x = -133; x <= -109; x += 3) M(x - 0.06, -64, -104.12, x + 0.06, -63.55, -103.98);
+  for (let x = -132; x <= -110; x += 4) pipe([x, -66, -103], [x, -86, -103], 0.14);
   for (let z = -128; z <= -106; z += 4) pipe([-105, -66, z], [-105, -79.6, z], 0.14);
   // the plug in the south wall: cracked, seamed sandstone that the gate will blow out
   const plug = { solid: W.addSolid(new THREE.Vector3(-125, -64, -100), new THREE.Vector3(-115, -56, -94), { kind: 'rock' }) };
@@ -628,13 +788,13 @@ export function buildSolarDepths(B, K) {
   }
   const hallLight = light(-120, -70, -112, 0xffc070, 0, 34);
   droop([-102.2, -40, -112], [-137.8, -40, -112.5], 2.2, 12);
-  droop([-102.2, -46, -128], [-137.8, -46, -127], 1.6, 12);
+  droop([-102.2, -35, -126], [-137.8, -35, -125], 1.6, 12);
   glyphs('-x', HX2, -122, -70, 3.6, 1.6);
   glyphs('+x', HX1, -106, -71, 3.6, 1.6);
   glyphs('+z', HZ1, -132, -60, 3, 1.4);
   glyphs('+z', HZ1, -108, -60, 3, 1.4);
   new LightShaft(W, { top: [-128, ROOF + 0.05, -110], bottom: [-128, PIT, -110], r: 0.7, intensity: 0.22 });
-  new LightShaft(W, { top: [-106, ROOF + 0.05, -124], bottom: [-106, -79.6, -124], r: 0.6, intensity: 0.2 });
+  new LightShaft(W, { top: [-114, ROOF + 0.05, -121], bottom: [-114, PIT, -121], r: 0.6, intensity: 0.2 });
   // the yellow scarabs nesting in the matrix (the red blaster can't touch them)
   scarab([-134, -78.8, -108]);
   scarab([-120, -78.8, -128.2], { patrol: 3 });
@@ -725,10 +885,107 @@ export function buildSolarDepths(B, K) {
   glyphs('-z', AZ2, -128, -70, 3, 1.4);
   hint([-112, -80, -138], [-104, -76, -134], 'The corner mirror <b>creeps back</b> when it\'s left alone, and the second one rides a <b>cart</b>. The catcher only sees the sun as the cart goes by.', 8);
 
-  // ================================================================ S5 THE STARGATE (upper gallery)
+  // ================================================================ S5 THE SUN RELAY (the stargate's finale)
+  // Three nodes woke the matrix; the roof lens opens, and its sun must be relayed round the hall's high
+  // balconies (y -48), mirror to mirror, into the ring. Every leg that reaches the next mirror ignites a
+  // quarter of the ring (saved: solar_g1..g4), and the hall wakes harder each time: the conduits blaze,
+  // sand pours from the roof, the quicksand churns, sweeping sunbeams start to scythe the balconies. The
+  // relay's own beam runs at y -43.5, out of reach of a jumping head; only the sweepers burn. A fall lands
+  // in the pit's quicksand: the recovery lift (south-west) climbs to the gallery, the piston to the balconies.
+  //   1 THE OBELISK: up the piston and the crumbling planks; turn the obelisk mirror west (its capital hides
+  //     it from the gallery below).
+  //   2 THE SHUTTLE: a mirror rides a shuttle along the west wall and creeps back when left alone: set it
+  //     as it passes through the beam (ride it and shoot it on the way). It stops there; gangways form.
+  //   3 THE PERCH: the corner mirror's driven by a red switch deep in the north wall, seen only from a
+  //     crumbling perch (and a knee-high sweeper crosses it: jump).
+  //   4 THE CREEP: two mirrors that creep back (one hangs from the roof): set both before either drifts,
+  //     while a head-high sweeper scythes the east balcony (duck).
+  //   5 THE HEART: the last mirror sends the sun into the ring's heart, but creeps back every few seconds:
+  //     keep turning it back until the gate is charged, with sweepers on every level. Then it fires.
   ck([-105, -64, -128], Math.PI, [4, 3, 4]);
   devStart('solar6', [-105, -64, -126], Math.PI * 0.9, [RED], 'The stargate (upper gallery)');
-  hint([-108, -64, -134], [-102, -61, -126], 'The roof lens is open. Turn the <b>two pylon mirrors</b> so the sun runs <b>into the ring</b>.', 7);
+  const HB = -48, YB = -43.5;
+  const hb = (x1, z1, x2, z2) => {
+    F(x1, HB - 1, z1, x2, HB, z2);
+    glowEdge(x1, z1, x2, z2, HB, dglow, DZ);
+  };
+  hb(-108, -110, -102, -104); // the piston's landing (south-east)
+  hb(-108, -130, -102, -117); // the east balcony
+  hb(-124, -130, -108, -127); // the north balcony, over the ring
+  hb(-121.5, -127, -118.5, -124.8); // the mirror's dais off it
+  hb(-138, -130, -134.5, -120); // the north-west balcony
+  hb(-138, -104, -134.5, -100); // the shuttle's far dock (south-west)
+  // corbels carrying them on the walls
+  const corbel = (x, z, wall) => (wall === 'x' ? D(x - 0.6, HB - 2.8, z - 0.35, x + 0.6, HB - 1, z + 0.35) : D(x - 0.35, HB - 2.8, z - 0.6, x + 0.35, HB - 1, z + 0.6));
+  for (const z of [-128, -124, -120, -108, -105]) corbel(-102.6, z, 'x');
+  for (const x of [-122, -116, -110, -136.3]) corbel(x, -129.4, 'z');
+  for (const z of [-127, -122, -102]) corbel(-137.4, z, 'x');
+  // up from the gallery: a piston in its south-east corner, then crumbling planks to the east balcony
+  const piston = new MovingPlatform(W, { min: [-107.8, -64.4, -103.6], max: [-104.3, -64, -100.1], offset: [0, 16, 0], speed: 2.6, pause: 2.2, zone, kind: 'grate' });
+  for (const z of [-103.9, -100.4]) M(-108.2, -64, z - 0.15, -107.9, HB - 1, z + 0.15);
+  B.crumble({ min: [-107.4, HB - 0.3, -112.6], max: [-105.2, HB, -111.4], delay: 0.45, respawn: 3, zone });
+  B.crumble({ min: [-104.8, HB - 0.3, -115.6], max: [-102.6, HB, -114.4], delay: 0.45, respawn: 3, zone });
+  // 1: the obelisk's mirror (on its capital, under the roof lens)
+  const mA = new RotMirror(W, { pos: [-110, YB, -108], yaw: 0, start: 6, tilt: Math.PI / 4, size: [2.6, 2], post: 1.8, color: RED });
+  // 2: the shuttle and its mirror (it waits at the north-west balcony until the obelisk's beam runs)
+  const shuttle = new MovingPlatform(W, { min: [-138, HB - 0.4, -120], max: [-134.5, HB, -116.5], offset: [0, 0, 12.5], speed: 1.7, pause: 2.4, active: false, zone, kind: 'grate' });
+  M(-138, HB - 1.2, -120, -137.75, HB - 0.6, -104); // its rail along the wall
+  const mB = new RotMirror(W, { pos: [-136.25, YB, -118.25], yaw: 0, start: 5, size: [2.6, 2], post: 4.5, color: RED, follow: shuttle, followOffset: [1.75, 4.9, 1.75], drift: 3.5, home: 5 });
+  const gangN = new PhasePlatform(W, { min: [-138, HB - 0.4, -120], max: [-134.5, HB, -109.75], on: false, zone });
+  const gangS = new PhasePlatform(W, { min: [-138, HB - 0.4, -106.25], max: [-134.5, HB, -104], on: false, zone });
+  B.armor([-136.2, HB, -101.6]); // a shield on the far dock
+  // 3: the corner mirror and its switch in the north wall's sight-tube; the perches; a hanging stone screen
+  // hides the switch from the south
+  const mC = new RotMirror(W, { pos: [-136.6, YB, -126], yaw: Math.PI / 4, step: Math.PI / 2, count: 4, start: 0, size: [2.6, 2], post: 4.5, color: RED, armored: true });
+  R(-137.1, HB, -126.5, -136.1, HB + 0.5, -125.5);
+  const swC = new ColorSwitch(W, { pos: [-131.2, -46.4, -133.3], color: RED, face: '+z', mode: 'pulse', size: 1, zone, links: [{ activate: () => mC.turn(1) }], light: false });
+  D(-131.9, -47.4, -133.4, -130.5, -47.35, -130, 'metal');
+  B.crumble({ min: [-127.6, HB - 0.3, -129.6], max: [-125.4, HB, -127.4], delay: 0.6, respawn: 4, zone });
+  B.crumble({ min: [-132.3, HB - 0.3, -129.6], max: [-130.1, HB, -127.4], delay: 1.7, respawn: 5, zone }); // the perch
+  R(-133.5, -50, -124.6, -129, ROOF, -124.2);
+  glyphs('+z', -124.2, -131.2, -46, 2.2, 1.2);
+  // 4: the dais mirror and the one hanging from the roof (both creep back)
+  const mD = new RotMirror(W, { pos: [-120, YB, -126], yaw: 0, start: 1, size: [2.6, 2], post: 4.5, color: RED, drift: 7, home: 1 });
+  R(-120.5, HB, -126.5, -119.5, HB + 0.5, -125.5);
+  const mE = new RotMirror(W, { pos: [-120, YB, -116], yaw: 0, start: 2, tilt: -Math.PI / 4, size: [2.6, 2], post: 13.5, color: RED, drift: 7, home: 2, hang: true });
+  // 5: the last pylon's mirror (it creeps once the heart is drinking)
+  const mF = new RotMirror(W, { pos: [-120, -65.5, -116], yaw: 0, start: 2, tilt: Math.PI / 4, size: [2.6, 2], post: 1.8, color: RED, home: 2 });
+  lights.push(mA, mB, mC, mD, mE, mF);
+  // the sweepers: knee-high from the north-west corner (along the perches and the shuttle dock), head-high
+  // from the north-east corner (down the east balcony), head-high over the gallery for the finale
+  const sweepLo = new Sweeper(W, { pos: [-137.4, HB + 0.35, -129.4], a0: Math.PI, a1: Math.PI * 1.5, period: 7 });
+  blocker([-138, HB, -130], [-136.8, HB + 1.2, -128.8]);
+  const sweepHi = new Sweeper(W, { pos: [-102.6, HB + 1.5, -129.4], a0: Math.PI - 0.7, a1: Math.PI, period: 6 });
+  R(-103.2, HB, -130, -102, HB + 1.1, -128.8);
+  const sweepGal = new Sweeper(W, { pos: [-102.6, -62.5, -100.6], a0: 0, a1: Math.PI / 2, period: 7.5 });
+  R(-103.2, -64, -101.2, -102, -62.9, -100);
+  const sweepers = [sweepLo, sweepHi, sweepGal];
+  for (const sw of sweepers) beams.push(sw.beam);
+  // the recovery lift: from the pit's quicksand (south-west corner) up to the gallery, always running
+  F(-138, -92, -104, -134, -86.2, -100);
+  const recLift = new MovingPlatform(W, { min: [-137.8, -86, -103.8], max: [-134.2, -85.6, -100.2], offset: [0, 21.6, 0], speed: 3, pause: 2.5, zone, kind: 'grate' });
+  for (const [x, z] of [[-137.9, -104.1], [-134.1, -104.1]]) M(x - 0.15, -86, z - 0.15, x + 0.15, -62, z + 0.15);
+  lamp(-133, -64, -101, { h: 2.2, pool: 0 });
+  // the escalation: sand pours from the roof, the quicksand churns
+  const falls = [[-130, -114, 0], [-114, -122, 0], [-126, -120, 1], [-131, -104.6, 1], [-116, -111, 2], [-124, -104.6, 2], [-106.5, -113, 3], [-128, -110, 3]]
+    .map(([x, z, at]) => Object.assign(new SandFall(W, { x, z, top: ROOF, bottom: PIT, r: 0.22 + Math.random() * 0.18 }), { at }));
+  let churnT = 0;
+  W.add({
+    update(dt, player) {
+      const n = relayDone();
+      if (!n || blown || player.pos.distanceToSquared(_w.set(-120, -70, -115)) > 70 * 70) return;
+      if ((churnT -= dt) > 0) return;
+      churnT = 1.2 / (n + (st.finalOn ? 2 : 0));
+      _v.set(-136 + Math.random() * 32, PIT + 0.06, -128 + Math.random() * 26);
+      W.fx.ring(_v, new THREE.Vector3(0, 1, 0), 0xb08a58, { size: 0.4, end: 2.4 + n * 0.5, life: 1.4, thick: 0.25, k: 0.5 });
+      W.fx.burst(_v, 0x9a7a50, { count: 4, speed: 2, life: 1, size: 0.6, gravity: 2, mode: 'puff' });
+      if (Math.random() < 0.3) audio.sample('sand_sink', { gain: 0.25, rate: 0.6 + Math.random() * 0.3, vary: 0.1 });
+    },
+  });
+  hint([-108, -64, -134], [-102, -61, -126], 'The roof lens is open. Its sun must be <b>relayed</b> round the high balconies into the ring: the <b>piston</b> climbs to them.', 7);
+  hint([-108, HB, -110], [-102, HB + 3, -104], 'Turn the <b>obelisk\'s mirror</b> (its capital hides it from below) to throw the sun <b>west</b>.', 6);
+  hint([-138, HB, -124], [-134.5, HB + 3, -120], 'The <b>shuttle</b> carries a mirror through the beam. Set it as it passes — it <b>creeps back</b> if you\'re early.', 7);
+  hint([-132.3, HB, -129.6], [-130.1, HB + 3, -127.4], 'From this perch you can see a <b style="color:#ff3344">red switch</b> deep in the wall. It drives the corner mirror — <b>quick</b>, the perch is crumbling!', 4);
 
   // ================================================================ the network: nodes → conduits → chevrons
   const conduits = [
@@ -778,6 +1035,122 @@ export function buildSolarDepths(B, K) {
     game.hud.message(say, 5);
   };
   nodes.forEach((n, i) => (n.recv.onOn = () => solve(i)));
+
+  // ---------------------------------------------------------------- the sun relay's legs
+  // A leg is done when the roof lens's beam reaches the next mirror; they go in order, and each one locks
+  // its mirrors, ignites a quarter of the ring and wakes the hall a notch.
+  const near = (p, q, r) => !!p && p.distanceToSquared(q) < r * r;
+  const reaches = (m) => oculus.enabled && oculus.I > 0.9 && oculus.path.some((p, i) => i > 0 && near(p, m.pos, 2.2));
+  const relay = [
+    { id: 'solar_g1', mirrors: [mA], correct: [2], test: () => mA.index === 2 && mA.t >= 1 && oculus.I > 0.9 && near(oculus.path[1], mA.pos, 2.2) },
+    { id: 'solar_g2', mirrors: [mB], correct: [7], test: () => reaches(mC) },
+    { id: 'solar_g3', mirrors: [mC], correct: [2], test: () => reaches(mD) },
+    { id: 'solar_g4', mirrors: [mD, mE], correct: [3, 0], test: () => reaches(mF) },
+  ];
+  const relayDone = () => relay.filter((r) => r.done).length;
+  // the checkpoint each leg opens (where the next one starts); the progress a start there implies
+  const RELAY_CK = [
+    { pos: [-105, HB, -121], yaw: Math.PI / 2 + 0.4, label: 'The sun relay: the high balconies (stage 2)' },
+    { pos: [-136.2, HB, -123], yaw: -Math.PI / 2 - 0.3, label: 'The sun relay: the crumbling perch (stage 3)' },
+    { pos: [-113, HB, -128.5], yaw: Math.PI * 0.85, label: 'The sun relay: the creeping mirrors (stage 4)' },
+    { pos: [-112, -64, -102], yaw: -0.4, label: 'The sun relay: the gate\'s heart (finale)' },
+  ];
+  RELAY_CK.forEach((c, i) => devStart('solar' + (7 + i), c.pos, c.yaw, [RED], c.label));
+  // park a platform at a point of its run (eased), carrying whoever stands on it
+  const park = (pl, e) => {
+    let lo = 0, hi = 1;
+    for (let k = 0; k < 30; k++) {
+      const m = (lo + hi) / 2;
+      if (m * m * (3 - 2 * m) < e) lo = m;
+      else hi = m;
+    }
+    pl.u = lo;
+    const next = pl.base.clone().addScaledVector(pl.offset, e);
+    pl.solid.delta.subVectors(next, pl.cur);
+    pl.cur.copy(next);
+    pl.solid.min.copy(next);
+    pl.solid.max.copy(next).add(pl.size);
+    pl.mesh.position.copy(next);
+    pl.active = false;
+  };
+  const escalate = (instant) => {
+    const n = relayDone();
+    for (const c of conduits) c.boost = Math.min(1, n * 0.2 + (st.finalOn ? 0.3 : 0));
+    for (const f of falls) if (f.at < n && !f.on) f.start(instant);
+    hallLight.intensity = 27 + n * 7 + (st.finalOn ? 10 : 0);
+    if (!instant) game.player.shake = Math.max(game.player.shake || 0, 0.35 + n * 0.1);
+  };
+  const solveLeg = (i) => {
+    const leg = relay[i];
+    if (leg.done) return;
+    leg.done = true;
+    leg.mirrors.forEach((m, j) => {
+      if (restoring) m.setIndex(leg.correct[j]);
+      m.lock();
+    });
+    gate.quarter(i, restoring);
+    if (i === 0) {
+      shuttle.active = true;
+      sweepLo.on = true;
+    }
+    if (i === 1) {
+      park(shuttle, (-108 - -118.25) / 12.5);
+      gangN.set(true, restoring);
+      gangS.set(true, restoring);
+    }
+    if (i === 2) sweepHi.on = true;
+    if (i === 3) startFinal();
+    const c = RELAY_CK[i];
+    if (!c.ck) c.ck = ck(c.pos, c.yaw, [3, 3, 3]);
+    if (!game.events.has(leg.id)) {
+      game.events.add(leg.id);
+      game.save();
+    }
+    escalate(restoring);
+    if (restoring) return;
+    audio.sample('reactor_hum', { gain: 0.7, rate: 0.55 + i * 0.08 });
+    audio.sample('hydraulic_hiss', { gain: 0.5, rate: 0.7 });
+    audio.sample('floor_collapse', { gain: 0.35, rate: 1.4 });
+    game.hud.message([
+      'The sun runs <b>west</b> — and the ring\'s first quarter burns. Somewhere a <b>shuttle</b> grinds into motion.',
+      'The shuttle locks in the beam; <b>hard-light gangways</b> span the west wall. Half the ring burns.',
+      'The corner mirror takes it <b>east</b>. Three quarters — the hall shakes, sand pours from the roof.',
+      'The ring is whole. The sun falls onto the <b>last mirror</b>… now hold it on the <b>heart</b>!',
+    ][i], 5);
+  };
+  // 5: the heart. Each second the sun's on it the gate fills; off it, it drains. The last mirror creeps
+  // back every few seconds: keep turning it back.
+  const HOLD = 8;
+  let charge = 0;
+  function startFinal() {
+    if (st.finalOn || blown) return;
+    st.finalOn = true;
+    mF.drift = 3;
+    sweepGal.on = true;
+    sweepHi.on = true;
+    if (!restoring) {
+      game.setMusic('music_combat');
+      audio.sample('titan_charge', { gain: 0.6, rate: 0.5 });
+    }
+  }
+  W.add({
+    update(dt) {
+      if (!game.player || game.state !== 'playing') return;
+      if (!blown && !st.finalOn) {
+        const leg = relay.find((r) => !r.done);
+        if (leg?.test()) solveLeg(relay.indexOf(leg));
+      }
+      if (!st.finalOn || blown || gate.state !== 'dormant') return;
+      const lit = heart.feed < 0.15 && reaches(mF);
+      charge = lit ? Math.min(1, charge + dt / HOLD) : Math.max(0, charge - dt / 18);
+      gate.pre = charge;
+      for (const c of conduits) c.boost = 0.8 + charge * 0.2;
+      if (charge >= 1) {
+        mF.lock();
+        gate.charge(() => blow(false));
+      }
+    },
+  });
   // the gate fires: the heart only takes the sun once all three chevrons burn
   let blown = false;
   const blow = (instant) => {
@@ -787,9 +1160,13 @@ export function buildSolarDepths(B, K) {
     plug.mesh.visible = false;
     plug.rubble.visible = true;
     plug.shaft.k = 1;
-    f2.root.visible = false;
-    W.removeHittable(f2.root);
+    mF.root.visible = false;
+    W.removeHittable(mF.root);
     oculus.enabled = false;
+    st.finalOn = false;
+    for (const sw of sweepers) sw.on = false;
+    for (const c of conduits) c.boost = 0.4;
+    gate.pre = 0;
     gate.spent();
     if (!game.events.has('solar_gate')) {
       game.events.add('solar_gate');
@@ -814,24 +1191,23 @@ export function buildSolarDepths(B, K) {
     audio.sample('floor_collapse', { gain: 1, rate: 0.8 });
     setTimeout(() => audio.sample('shatter', { gain: 0.8, rate: 0.5 }), 120);
     setTimeout(() => game.hud.message('The gate\'s blast tore the south wall open — <b>daylight</b> beyond.', 5), 1400);
-  };
-  heart.onOn = () => {
-    if (blown) return;
-    if (gate.lit < 3) return void setTimeout(() => heart.reset(), 0);
-    gate.charge(() => blow(false));
+    setTimeout(() => game.setMusic('music_haunt'), 2600);
   };
   // the hole: its sill is the gallery's floor; a checkpoint just inside it
   ck([-120, -64, -98], Math.PI, [8, 3, 4]);
 
   // ================================================================ persistence and starts
-  // A start position past a node counts it done (Select Location starts, a save at a later checkpoint).
+  // Progress: 0 none, 1-3 nodes woken, 4-7 relay legs done, 8 the gate blown. A start position (Select
+  // Location, a save at a later checkpoint) implies the progress of the place; the relay's checkpoints only
+  // appear once their leg is done, so standing on one means it is.
   const stageAt = (p) => {
     const inBox = (x1, x2, z1, z2, y1, y2) => p.x >= x1 && p.x <= x2 && p.z >= z1 && p.z <= z2 && p.y >= y1 && p.y <= y2;
+    for (let i = RELAY_CK.length - 1; i >= 0; i--) if (near(p, _v.set(...RELAY_CK[i].pos), 1.6)) return 4 + i;
     if (p.x > -25 || inBox(-64, -25, -134, -96, -1, 40) || inBox(-102, -60, -134, -96, -95, 40)) return 0; // entry, balcony, sinkhole
     if (inBox(-138, -100, -130, -100, -95, -66) || inBox(-164, -138, -132, -96, -95, -40)) return p.z < -126 && p.y > -80 ? 2 : 1; // the hall's lower level, the west vault
     if (inBox(-140, -100, -154, -134, -95, -66)) return 2; // the annex below
-    if (inBox(-140, -100, -154, -100, -66, -40)) return inBox(-126, -114, -102, -94, -66, -56) ? 4 : 3; // the upper gallery
-    return 4; // anywhere past the gate
+    if (inBox(-140, -100, -154, -100, -66, -40)) return inBox(-126, -114, -102, -94, -66, -56) ? 8 : 3; // the gallery and balconies (the hole: past the gate)
+    return 8; // anywhere past the gate
   };
   const applySaved = (stage) => {
     restoring = true;
@@ -841,7 +1217,9 @@ export function buildSolarDepths(B, K) {
       n.recv.keep = true;
       n.recv.setOn(true, null, true);
     });
-    if (ev('solar_gate') || stage >= 4) blow(true);
+    const legs = Math.max(stage - 4, ...relay.map((r, i) => (ev(r.id) ? i + 1 : 0)));
+    relay.forEach((r, i) => i < legs && solveLeg(i));
+    if (ev('solar_gate') || stage >= 8) blow(true);
     restoring = false;
   };
   let first = true;
@@ -853,7 +1231,10 @@ export function buildSolarDepths(B, K) {
       }
     },
   });
-  onRespawn(() => applySaved(0));
+  onRespawn(() => {
+    applySaved(0);
+    charge = 0; // (the heart starts over)
+  });
   wakeUp();
 
   // the HUD objective for this stretch
@@ -870,7 +1251,17 @@ export function buildSolarDepths(B, K) {
     }
     if (inBox(-164, -138, -132, -96, -95, -40)) return nodes[1].done ? 'Node two runs. Back to the hall: the <b>hard-light bridge</b> under the ring.' : 'Send the sun from the corner mirror (its <b style="color:#ff3344">red switch</b> is in the north wall) to the south mirror, then <b>east</b> onto the catcher.';
     if (inBox(-140, -100, -154, -134, -95, -60)) return nodes[2].done ? 'Ride the <b>lift</b> up to the gallery.' : 'Throw the sun <b>east</b> from the corner mirror onto the mirror on the <b>cart</b>, and turn that one <b>south</b>: the catcher lights as the cart goes by.';
-    if (inBox(-140, -100, -134, -100, -66, -40)) return blown ? 'Through the <b>hole</b> in the south wall.' : `Turn the two <b>pylon mirrors</b>: the roof lens's sun must run <b>west</b>, then <b>north</b> into the ring's ${Y}heart${E}.`;
+    if (inBox(-140, -100, -134, -100, -66, -40)) {
+      if (blown) return 'Through the <b>hole</b> in the south wall.';
+      if (st.finalOn) return `Hold the sun on the ring's ${Y}heart${E}: turn the last mirror back each time it <b>creeps</b> — ${Y}${Math.round(charge * 100)}%${E}`;
+      const n = relayDone();
+      return [
+        'Up the <b>piston</b> to the high balconies. Turn the <b>obelisk\'s mirror</b> to send the roof lens\'s sun <b>west</b>.',
+        'Set the <b>shuttle\'s mirror</b> to throw the sun <b>north</b> as it rides through the beam (it creeps back if you\'re early).',
+        'Turn the <b>corner mirror</b> east: its <b style="color:#ff3344">red switch</b> is deep in the north wall — find the perch that sees it.',
+        'Two mirrors <b>creep back</b>: the one on the dais and the one hanging from the roof. Set them both — <b>fast</b> — so the sun falls on the last pylon.',
+      ][n];
+    }
     if (inBox(-140, -100, -134, -100, -95, -66)) {
       if (!nodes[1].done) return 'West: hop the <b>planks</b>, take the <b>cable car</b>, and find the vault beyond the machine slab.';
       if (!nodes[2].done) return 'Cross the <b>hard-light bridge</b> under the ring to the <b>annex door</b> in the north wall.';
@@ -880,5 +1271,5 @@ export function buildSolarDepths(B, K) {
   };
   const player = () => game.player;
 
-  return { nodes, gate, heart, f1, f2, m1, m2a, m2b, m3a, m3b, recv1, recv2, recv3, lift, car, cart, bridge2, oculus, door1, sw2, plug, conduits, objective, get blown() { return blown; }, stageAt };
+  return { relay, mA, mB, mC, mD, mE, mF, shuttle, piston, gangN, gangS, swC, sweepers, recLift, falls, RELAY_CK, get charge() { return charge; }, get finalOn() { return st.finalOn; }, nodes, gate, heart, m1, m2a, m2b, m3a, m3b, recv1, recv2, recv3, lift, car, cart, bridge2, oculus, door1, sw2, plug, conduits, objective, get blown() { return blown; }, stageAt };
 }

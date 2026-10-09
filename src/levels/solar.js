@@ -12,32 +12,37 @@
 //            red blaster can't hurt shove you about)
 //  [solar4]  THE WEST VAULT (node 2): a switch-driven mirror seen only from a crumbling perch; the bridge
 //  [solar5]  THE NORTH ANNEX (node 3): a creeping mirror, a mirror on a cart; the lift (it cycles once powered)
-//  [solar6]  THE STARGATE: the roof lens opens; turn the pylon mirrors into the ring's heart — it charges and
-//            blasts the south wall open
-//  [solar7]  THE SUNKEN COURT (chasm floor, y -70): silent; the YELLOW core in its ring on the dais; the
+//  [solar6]  THE STARGATE (gallery y -64): the roof lens opens; its sun must be RELAYED round the high
+//            balconies (y -48) into the ring — four legs, each lights a quarter (solarDepths.js S5):
+//  [solar7]  the shuttle mirror (set it as it rides through the beam; it creeps back)
+//  [solar8]  the corner mirror's red switch, seen only from a crumbling perch (a knee-high sweeper)
+//  [solar9]  two mirrors that creep back, one hanging from the roof (a head-high sweeper)
+//  [solar10] THE HEART: hold the sun on the ring's heart (the last mirror keeps creeping) under sweeping
+//            sunbeams — it charges and blasts the south wall open
+//  [solar11] THE SUNKEN COURT (chasm floor, y -70): silent; the YELLOW core in its ring on the dais; the
 //            ambush from every side (yellow bodies, red shields)
-//  [solar8]  THE SUN TEMPLE DOORS: the stair is a sheer cut face — four yellow sun-disc targets raise it
+//  [solar12] THE SUN TEMPLE DOORS: the stair is a sheer cut face — four yellow sun-disc targets raise it
 //            flight by flight; the vestibule's prism beam-lock (the gun + prism puzzles start here)
-//  [solar9]  THE TEMPLE CLIMB: ledges over the quicksand pit, hard-light steps summoned by sun-discs, fights
+//  [solar13] THE TEMPLE CLIMB: ledges over the quicksand pit, hard-light steps summoned by sun-discs, fights
 //            on the landings, beam-locks (a hooded prism, a gliding prism, two rotatable prisms) each waking
 //            more of the temple
-//  [solar10] THE APEX: the crystal throws a pillar of light into the sky; out onto the north balcony
-//  [solar11] THE HIGH CROSSING: columns over the court, a sun lance, a timed hard-light bridge, crumbling and
+//  [solar14] THE APEX: the crystal throws a pillar of light into the sky; out onto the north balcony
+//  [solar15] THE HIGH CROSSING: columns over the court, a sun lance, a timed hard-light bridge, crumbling and
 //            chroma stones (restored from the old Solar) to the west rim → the passage west
-//  [solar12] THE PANEL COURT (light puzzle): turn three panels so the sky-lens's beam reaches the gate's
+//  [solar16] THE PANEL COURT (light puzzle): turn three panels so the sky-lens's beam reaches the gate's
 //            sun-catcher
-//  [solar13] THE GLASS CANYON: aim the lens beam at the sand-glass wall (it boils away), then turn the next
+//  [solar17] THE GLASS CANYON: aim the lens beam at the sand-glass wall (it boils away), then turn the next
 //            panel onto the catcher that wakes the jump pad
-//  [solar14] THE SUN BRIDGES (platforming + light): pillars over a deep quicksand chasm; turn the panel on
+//  [solar18] THE SUN BRIDGES (platforming + light): pillars over a deep quicksand chasm; turn the panel on
 //            each pillar onto its catcher to raise the next hard-light bridge; time the lance
-//  [solar15] THE SINKING FLATS: the only way on is down — drop into the quicksand basin and struggle to the lip
-//  [solar16] THE DOCK YARD (combat + light): turn the heliostat to sweep the sunbeam through the attackers
-//  [solar17] THE HOVER DOCK → the hovercraft dune run (solarDunes.js: buildDuneRun) over the dune sea →
-//  [solar18] THE SUN QUAY (puzzle): two heavy sun discs block the bridge over a quicksand channel — every two
+//  [solar19] THE SINKING FLATS: the only way on is down — drop into the quicksand basin and struggle to the lip
+//  [solar20] THE DOCK YARD (combat + light): turn the heliostat to sweep the sunbeam through the attackers
+//  [solar21] THE HOVER DOCK → the hovercraft dune run (solarDunes.js: buildDuneRun) over the dune sea →
+//  [solar22] THE SUN QUAY (puzzle): two heavy sun discs block the bridge over a quicksand channel — every two
 //            YELLOW hits turn one a quarter turn; turn both notches down — then the lift up the court mesa
-//  [solar19] THE SUN COURT: the Sphinx (sphinxArena.js) and the sun-lens it guards: the world's POWER SOURCE.
+//  [solar23] THE SUN COURT: the Sphinx (sphinxArena.js) and the sun-lens it guards: the world's POWER SOURCE.
 //            Shoot it YELLOW → game.shutDownWorld('solar'): the sun is eclipsed, dusk falls, the beams die.
-//  [solar20] SUNSET CAUSEWAY (y 12) → Hub west balcony port (z -136, y 12); one-way (a 4 m drop).
+//  [solar24] SUNSET CAUSEWAY (y 12) → Hub west balcony port (z -136, y 12); one-way (a 4 m drop).
 // Two kinds of light puzzle, never mixed: BIG MIRRORS carry the captive SUN's beams (you turn them by
 // shooting them; the pit's are turned RED, the surface's YELLOW); small glass PRISMS carry your own YELLOW
 // GUN's beam (the temple). Before the core: no fights (the pit's yellow scarabs only shove). From the core
@@ -521,7 +526,7 @@ export function buildSolar(B) {
   new Drone(W, { pos: [-150, -3, -64], color: YELLOW, range: 24 });
   new Drone(W, { pos: [-146, -2.5, -74], color: YELLOW, shields: [RED], range: 24 });
   ck([-140, S, -64], Math.PI / 2, [4, 3, 6]);
-  devStart('solar12', [-140, S, -64], Math.PI / 2, [0, YELLOW], 'Light puzzle: the Panel Court');
+  devStart('solar16', [-140, S, -64], Math.PI / 2, [0, YELLOW], 'Light puzzle: the Panel Court');
   area([-138, -8.5, -67], [-134, -4.5, -61], mood);
   hint([-142, S, -68], [-138, -4, -60], 'A <b>sky-lens</b> pours the sun onto that tilted panel. Turn the panels to carry the beam <b>west</b>, <b>north</b>, then <b>east</b> into the gate\'s <b>sun-catcher</b>.', 8);
 
@@ -562,7 +567,7 @@ export function buildSolar(B) {
   new Drone(W, { pos: [-151, -2.5, -122], color: YELLOW, range: 22 });
   B.scarab([-152, S, -127], { color: YELLOW, shields: [RED], range: 12 });
   ck([-151, S, -86], 0, [6, 3, 4]);
-  devStart('solar13', [-151, S, -85], 0, [0, YELLOW], 'Light puzzle: the Glass Canyon');
+  devStart('solar17', [-151, S, -85], 0, [0, YELLOW], 'Light puzzle: the Glass Canyon');
   hint([-155, S, -90], [-145, -4, -84], 'A wall of fused <b>sand-glass</b>. Shots glance off — but <b>focused sunlight</b> would boil it away. Aim the lens beam at it.', 7);
   hint([-155, S, -110], [-145, -4, -104], 'Through! Time the <b>sun lances</b>, then turn the beam onto the <b>catcher</b> by the dead jump pad.', 6);
 
@@ -603,7 +608,7 @@ export function buildSolar(B) {
   new Drone(W, { pos: [-166, 2, -146], color: YELLOW, range: 26 });
   new Drone(W, { pos: [-186, 2.5, -136], color: YELLOW, shields: [RED], range: 26 });
   ck([-147, -4, -138], Math.PI / 2, [5, 3, 6]);
-  devStart('solar14', [-147, -4, -138], Math.PI / 2, [0, YELLOW], 'The Sun Bridges');
+  devStart('solar18', [-147, -4, -138], Math.PI / 2, [0, YELLOW], 'The Sun Bridges');
   ck([-173, -3.2, -138.6], Math.PI / 2, [3, 3, 3]);
   area([-150, -4.5, -152], [-144, 0, -134], mood);
   hint([-150, -4, -146], [-144, 0, -134], 'The <b>Sun Bridges</b>. Each lens pours on a panel; turn it <b>west</b> onto the catcher ahead and a hard-light bridge rises. The chasm is <b>deep</b>.', 7);
@@ -632,7 +637,7 @@ export function buildSolar(B) {
   guideStrip([[-197, -4, -124], [-197, -4, -116.6]], amber, { spacing: 1.2 });
   G(-200, -4.05, -116.1, -194, -3.95, -116);
   ck([-197, -4, -127], Math.PI, [6, 3, 5]);
-  devStart('solar15', [-197, -4, -127], Math.PI, [0, YELLOW], 'The Sinking Flats (quicksand drop)');
+  devStart('solar19', [-197, -4, -127], Math.PI, [0, YELLOW], 'The Sinking Flats (quicksand drop)');
   area([-200, -4.5, -132], [-194, 0, -116], mood);
   hint([-200, -4, -122], [-194, 0, -116], 'Dead end — except <b>down</b>. The quicksand will catch you; then <b>mash JUMP</b> and fight your way to the <b>lip</b> at the far end.', 7);
   B.scarab([-196, -13.6, -95.5], { color: YELLOW, shields: [RED], range: 10 });
@@ -708,7 +713,7 @@ export function buildSolar(B) {
     onClear: () => game.hud.message('The <b>hover dock</b> is open. West, across the dune sea, to the <b>Sun Court</b>.', 5),
   });
   ck([-196, S, -82], Math.PI, [8, 3, 4]);
-  devStart('solar16', [-196, S, -82], Math.PI, [0, YELLOW], 'The Dock Yard (arena)');
+  devStart('solar20', [-196, S, -82], Math.PI, [0, YELLOW], 'The Dock Yard (arena)');
   area([-200, -8.5, -86], [-192, -4, -82], mood);
   hint([-200, S, -84], [-192, -4, -80], 'The <b>Dock Yard</b>. That low heliostat throws the lens beam across the yard: <b>turn it</b> to sweep the sunbeam through whatever comes.', 7);
 
@@ -717,7 +722,7 @@ export function buildSolar(B) {
   // the Sun Quay, which a lift climbs to the Sun Court's west door. Its docks are 8 × 10 m platforms whose open
   // east edge lies 4 m east of the dock point: dock points at x -216 butt them against Solar's west edge (x -212).
   const DUNE_START = [-216, S, -56], DUNE_END = [-216, -6, -200];
-  devStart('solar17', [-208, S, -56], Math.PI / 2, [0, YELLOW], 'The hover dock (dune run)');
+  devStart('solar21', [-208, S, -56], Math.PI / 2, [0, YELLOW], 'The hover dock (dune run)');
   let duneDone = false;
   const quay = { lift: null };
   const buildRun = duneModule?.buildDuneRun || standInDuneRun;
@@ -799,7 +804,7 @@ export function buildSolar(B) {
     W.scene.add(new THREE.Mesh(mergeBoxes(shapes), shadowMat));
   }
   ck([-207, -6, -200], -Math.PI / 2, [4, 3, 6]);
-  devStart('solar18', [-207, -6, -200], -Math.PI / 2, [0, YELLOW], 'The Sun Quay');
+  devStart('solar22', [-207, -6, -200], -Math.PI / 2, [0, YELLOW], 'The Sun Quay');
   area([-212, -6.5, -210], [-184, -2, -190], mood);
   hint([-188, -6, -203], [-184, -3, -197], 'The <b>lift</b> climbs to the <b>Sun Court</b> — the guardian and its sun-lens.', 5);
 
@@ -818,7 +823,7 @@ export function buildSolar(B) {
   B.armor([-129.5, 20.6, -200]);
   area([-179.5, 16, -201.5], [-173.5, 19.2, -198.5], mood);
   area([-151.5, 16, -176.5], [-148.5, 19.2, -170.5], mood);
-  devStart('solar19', court.checkpoint, court.checkpointYaw, [0, YELLOW], 'The Sun Court (the Sphinx)');
+  devStart('solar23', court.checkpoint, court.checkpointYaw, [0, YELLOW], 'The Sun Court (the Sphinx)');
   const lensPos = [COURT[0], COURT[1] + 15, COURT[2]];
   const beam = new PowerBeam(W, lensPos, [-25.15, 27.6, -117]);
   // the collector array: one field on the terrace under the causeway, one on the north flats
@@ -853,7 +858,7 @@ export function buildSolar(B) {
   blocker([-61.8, 12, -134.5], [-38, SKY, -134.1]);
   area([-151.5, 12, -170.5], [-148.5, 15, -165], mood);
   ck([-150, 12, -165], Math.PI, [3, 3, 4]);
-  devStart('solar20', [-150, 12, -165], Math.PI, [0, YELLOW], 'The Sunset Causeway');
+  devStart('solar24', [-150, 12, -165], Math.PI, [0, YELLOW], 'The Sunset Causeway');
   const gateX = (x, y, cz, w = 3, h = 4.7) => {
     M(x - 0.4, y - 3, cz - w / 2 - 1, x + 0.4, y + h + 0.8, cz - w / 2);
     M(x - 0.4, y - 3, cz + w / 2, x + 0.4, y + h + 0.8, cz + w / 2 + 1);

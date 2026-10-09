@@ -3,7 +3,8 @@
 //
 // RotMirror     { pos (the panel's pivot), yaw: 0, step: π/4, count: 8, start: 0, tilt: 0, size: [2.4, 1.8],
 //                 look: 'mirror' | 'pv', post: 1.6 (support height under the pivot; 0 = none), color: YELLOW, onTurn(i),
-//                 reflectShots: false, drift: 0, home: start, follow: null, followOffset: [0, 0, 0], armored: false }
+//                 reflectShots: false, drift: 0, home: start, follow: null, followOffset: [0, 0, 0], armored: false,
+//                 hang: false }
 //    A mirror (or a glossy photovoltaic panel) that turns about the vertical when shot `color` (YELLOW: it runs
 //    on sunlight; null = any color) on its back, frame, yoke or post: one `step` per hit, with a clunk, sparks
 //    and a little overshoot. Other colors glance off (its turntable flickers). Facing
@@ -17,7 +18,8 @@
 //    then race before the sun drifts off). lock(): solved, it clunks but won't turn again (unlock()).
 //    follow: a platform-like object with `cur` (a MovingPlatform / Elevator): the mirror rides along with
 //    it at followOffset from its min corner (a mirror on a track). armored: hits never turn it; something
-//    else does (a switch linked to { activate: () => mirror.turn(1) }).
+//    else does (a switch linked to { activate: () => mirror.turn(1) }). hang: it hangs from a ceiling (the
+//    turntable and yoke above the panel, a rod `post` m up from the pivot), so a beam can leave it downward.
 //    index / normal / turn(dir) / setIndex(i) / reset().
 // LightReceiver { pos (centre of the lens), face: '+x' | '-x' | '+z' | '-z' | 'up' | 'down', accept: 'light' |
 //                 'sun', color: YELLOW, mode: 'latch' | 'hold' | 'timed', fill: 0.5 (s of beam to light it),
@@ -37,11 +39,14 @@
 //    it until it boils away (a dissolve with a glowing rim, steam and embers) and the way is open for good.
 //    burned / burn().
 // SunBeam       { from, dir, range: 140, width: 0.45, bounces: 8, enabled: true, near: 90, source: null |
-//                 'lens' | 'crack' }
+//                 'lens' | 'crack', deadly: false }
 //    Focused sunlight: a beam from `from` along `dir`, bouncing off mirror solids and anything whose
 //    reflects(hit) says so, ending on whatever it strikes: onBeam(dt, hit) with hit.sun = true, or (for
 //    things with only onHit, like enemies and yellow barriers) onHit(YELLOW, hit) ticks at the blaster's
-//    rate. It doesn't touch the player. path (points) / end (the last hit) / enabled.
+//    rate. path (points) / end (the last hit) / enabled. deadly: it scorches the player (sunburn() below):
+//    a white-hot core, burning motes and a sizzle; a graze hurts and throws you clear, a shield takes the
+//    first touch, and staying in it kills. (Without deadly it doesn't touch the player.)
+// sunburn(player, dt, away, world) — the scorch itself (any hot light can call it).
 // SunEmitter    { pos, dir, time: 2.6, size: 0.9 } — a focusing prism: shoot it YELLOW (or hold the beam on it)
 //    and it throws a SunBeam along `dir` for `time` s (kept alight while you keep feeding it).
 // Prism         { pos (the crystal's centre), out: [x, y, z] (a fixed prism's exit) | rotatable: true with yaw: 0,
@@ -113,23 +118,32 @@ let mirrorTex = null;
 function mirrorTexture() {
   if (mirrorTex) return mirrorTex;
   const c = document.createElement('canvas');
-  c.width = c.height = 128;
+  c.width = c.height = 256;
   const g = c.getContext('2d');
-  const grad = g.createLinearGradient(0, 0, 0, 128);
-  grad.addColorStop(0, '#fff6e0');
-  grad.addColorStop(0.5, '#e8c98a');
-  grad.addColorStop(1, '#9a8a70');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 128, 128);
-  const sg = g.createLinearGradient(10, 128, 118, 0);
-  sg.addColorStop(0.4, 'rgba(255,255,255,0)');
-  sg.addColorStop(0.5, 'rgba(255,255,255,0.9)');
-  sg.addColorStop(0.6, 'rgba(255,255,255,0)');
+  // a 3 x 3 grid of facets, each its own slightly different reflection of a bright sky over dark ground
+  for (let i = 0; i < 3; i++)
+    for (let j = 0; j < 3; j++) {
+      const x = (i * 256) / 3, y = (j * 256) / 3, s = 256 / 3;
+      const grad = g.createLinearGradient(x, y, x + s * 0.3, y + s);
+      const k = (i * 7 + j * 3) % 5;
+      grad.addColorStop(0, ['#fffaf0', '#fff2d8', '#f8f4ec', '#ffefd0', '#fbf7f0'][k]);
+      grad.addColorStop(0.45, ['#e6d2a8', '#dcc59a', '#e9d7b4', '#d8be8c', '#e2cfa6'][k]);
+      grad.addColorStop(1, ['#6a5a44', '#5e503c', '#73624a', '#56483a', '#665640'][k]);
+      g.fillStyle = grad;
+      g.fillRect(x, y, s, s);
+    }
+  const sg = g.createLinearGradient(0, 256, 256, 0);
+  sg.addColorStop(0.36, 'rgba(255,255,255,0)');
+  sg.addColorStop(0.47, 'rgba(255,255,255,0.95)');
+  sg.addColorStop(0.53, 'rgba(255,255,255,0.95)');
+  sg.addColorStop(0.64, 'rgba(255,255,255,0)');
   g.fillStyle = sg;
-  g.fillRect(0, 0, 128, 128);
-  g.strokeStyle = 'rgba(60,45,25,0.5)';
-  g.lineWidth = 2;
-  for (const x of [43, 85]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 128); g.stroke(); }
+  g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = 'rgba(40,30,18,0.85)';
+  g.lineWidth = 3;
+  for (const t of [256 / 3, 512 / 3]) {
+    g.beginPath(); g.moveTo(t, 0); g.lineTo(t, 256); g.moveTo(0, t); g.lineTo(256, t); g.stroke();
+  }
   mirrorTex = new THREE.CanvasTexture(c);
   mirrorTex.colorSpace = THREE.SRGBColorSpace;
   return mirrorTex;
@@ -206,7 +220,7 @@ function beamCast(world, origin, dir, far) {
 
 // ------------------------------------------------------------------ RotMirror
 export class RotMirror {
-  constructor(world, { pos, yaw = 0, step = Math.PI / 4, count = 8, start = 0, tilt = 0, size = [2.4, 1.8], look = 'mirror', post = 1.6, color = YELLOW, onTurn = null, time = 0.45, reflectShots = false, drift = 0, home = null, follow = null, followOffset = [0, 0, 0], armored = false }) {
+  constructor(world, { pos, yaw = 0, step = Math.PI / 4, count = 8, start = 0, tilt = 0, size = [2.4, 1.8], look = 'mirror', post = 1.6, color = YELLOW, onTurn = null, time = 0.45, reflectShots = false, drift = 0, home = null, follow = null, followOffset = [0, 0, 0], armored = false, hang = false }) {
     this.world = world;
     this.color = color;
     this.armored = armored; // turned only by what drives it (a switch's link: turn()), never by a hit
@@ -243,12 +257,25 @@ export class RotMirror {
     this.root.userData.beamRadius = Math.max(w, h) + post + 1;
     // the post (pos.y - post is the floor) up to a turntable under the panel, and a yoke up its sides to
     // the pivot (the panel's centre)
-    const tableY = -h / 2 - 0.3;
-    if (post + tableY > 0.05) {
+    const tableY = hang ? h / 2 + 0.3 : -h / 2 - 0.3;
+    if (hang) {
+      const ph = Math.max(0.2, post - tableY);
+      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, ph, 10), mats.dark);
+      rod.position.y = tableY + ph / 2;
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.5, 0.3, 12), mats.dark);
+      cap.position.y = post - 0.15;
+      this.root.add(rod, cap);
+    } else if (post + tableY > 0.05) {
       const ph = post + tableY;
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.24, ph, 10), mats.steel);
+      const heavy = look === 'mirror';
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(heavy ? 0.24 : 0.16, heavy ? 0.36 : 0.24, ph, 10), heavy ? mats.dark : mats.steel);
       p.position.y = -post + ph / 2;
-      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.7, 0.25, 12), mats.dark);
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(heavy ? 0.7 : 0.55, heavy ? 0.95 : 0.7, heavy ? 0.4 : 0.25, 12), mats.dark);
+      if (heavy) {
+        const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.18, 12), mats.brass);
+        collar.position.y = -post + 0.48;
+        this.root.add(collar);
+      }
       foot.position.y = -post + 0.12;
       this.root.add(p, foot);
     }
@@ -259,12 +286,13 @@ export class RotMirror {
     this.yawG.add(table);
     this.arrowMat = mats.arrow.clone();
     const arrows = new THREE.Mesh(mergeGeos(arrowRing(0.32)), this.arrowMat);
-    arrows.position.y = tableY + 0.085;
+    arrows.position.y = tableY + (hang ? -0.085 : 0.085);
+    if (hang) arrows.rotation.x = Math.PI;
     this.yawG.add(arrows);
     for (const s of [-1, 1]) {
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.12, -tableY + 0.1, 0.14), mats.steel);
+      const arm = new THREE.Mesh(look === 'mirror' ? new THREE.BoxGeometry(0.2, Math.abs(tableY) + 0.16, 0.26) : new THREE.BoxGeometry(0.12, Math.abs(tableY) + 0.1, 0.14), look === 'mirror' ? mats.brass : mats.steel);
       arm.position.set(s * (w / 2 + 0.12), tableY / 2, 0);
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.2, 10), mats.brass);
+      const hub = new THREE.Mesh(look === 'mirror' ? new THREE.CylinderGeometry(0.2, 0.2, 0.3, 12) : new THREE.CylinderGeometry(0.13, 0.13, 0.2, 10), mats.brass);
       hub.rotation.z = Math.PI / 2;
       hub.position.set(s * (w / 2 + 0.12), 0, 0);
       this.yawG.add(arm, hub);
@@ -279,8 +307,20 @@ export class RotMirror {
     const back = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.12), mats.dark);
     back.position.z = 0.07;
     this.tiltG.add(back);
-    for (const [fx, fy, fw, fh] of [[0, h / 2, w + 0.16, 0.1], [0, -h / 2, w + 0.16, 0.1], [w / 2, 0, 0.1, h], [-w / 2, 0, 0.1, h]]) {
-      const f = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, 0.18), look === 'pv' ? mats.steel : mats.chrome);
+    if (look === 'mirror') {
+      // ribs across the back (it's a heavy thing)
+      for (const rx of [-w / 4, w / 4]) {
+        const rib = new THREE.Mesh(new THREE.BoxGeometry(0.12, h * 0.94, 0.16), mats.steel);
+        rib.position.set(rx, 0, 0.2);
+        this.tiltG.add(rib);
+      }
+      const spine = new THREE.Mesh(new THREE.BoxGeometry(w * 0.94, 0.14, 0.16), mats.steel);
+      spine.position.z = 0.2;
+      this.tiltG.add(spine);
+    }
+    const fT = look === 'mirror' ? 0.2 : 0.1;
+    for (const [fx, fy, fw, fh] of [[0, h / 2, w + fT * 1.6, fT], [0, -h / 2, w + fT * 1.6, fT], [w / 2, 0, fT, h], [-w / 2, 0, fT, h]]) {
+      const f = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, look === 'mirror' ? 0.26 : 0.18), look === 'pv' ? mats.steel : mats.brass);
       f.position.set(fx, fy, 0.04);
       this.tiltG.add(f);
     }
@@ -823,8 +863,9 @@ const BEAM_FS = `
 const beamGeo = new THREE.CylinderGeometry(1, 1, 1, 10, 1, true);
 
 export class SunBeam {
-  constructor(world, { from, dir, range = 140, width = 0.45, bounces = 8, enabled = true, near = 90, source = null }) {
+  constructor(world, { from, dir, range = 140, width = 0.45, bounces = 8, enabled = true, near = 90, source = null, deadly = false }) {
     this.world = world;
+    this.deadly = deadly;
     this.from = v3(from);
     this.dir = v3(dir).normalize();
     this.range = range;
@@ -967,7 +1008,7 @@ export class SunBeam {
       _v.addVectors(a, b).multiplyScalar(0.5);
       _w.subVectors(b, a).normalize();
       _q.setFromUnitVectors(UP, _w);
-      for (const [m, wk, k] of [[s.core, 1, 1.3], [s.glow, 3.2, 0.35]]) {
+      for (const [m, wk, k] of this.deadly ? [[s.core, 1.1, 1.9], [s.glow, 3.8, 0.5]] : [[s.core, 1, 1.3], [s.glow, 3.2, 0.35]]) {
         m.position.copy(_v);
         m.quaternion.copy(_q);
         m.scale.set(this.width * wk * 0.5, len, this.width * wk * 0.5);
@@ -1002,8 +1043,77 @@ export class SunBeam {
       }
     }
     const g = nearGain(this.world, endP, 30) * 0.4 + nearGain(this.world, this.from, 30) * 0.2;
-    this.roar.setGain(g * this.I);
+    this.roar.setGain(g * this.I * (this.deadly ? 1.6 : 1));
+    if (this.deadly && this.enabled && this.I > 0.6) this.scorch(dt, player);
   }
+
+  // a deadly beam: motes burning along it, and the player's body tested against every leg
+  scorch(dt, player) {
+    const pts = this.path;
+    if (pts.length < 2) return;
+    if ((this.moteT = (this.moteT || 0) - dt) <= 0) {
+      this.moteT = 0.05;
+      const i = Math.floor(Math.random() * (pts.length - 1));
+      _v.lerpVectors(pts[i], pts[i + 1], Math.random());
+      if (_v.distanceToSquared(player.pos) < 30 * 30) this.world.fx.ember(_v, (Math.random() - 0.5) * 1.2, 0.6 + Math.random() * 1.4, (Math.random() - 0.5) * 1.2, Math.random() < 0.5 ? 0xffe0a0 : 0xff9a30, 0.7, 0.05);
+    }
+    if (player.dead) return;
+    const b = player.bounds();
+    const r = this.width * 0.5 + 0.32;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], c = pts[i + 1];
+      // quick reject on the leg's box
+      if (Math.max(a.x, c.x) + r < b.min.x || Math.min(a.x, c.x) - r > b.max.x || Math.max(a.z, c.z) + r < b.min.z || Math.min(a.z, c.z) - r > b.max.z || Math.max(a.y, c.y) + r < b.min.y || Math.min(a.y, c.y) - r > b.max.y) continue;
+      // three points up the body's axis against the leg
+      for (const k of [0.15, 0.5, 0.88]) {
+        _p.set((b.min.x + b.max.x) / 2, b.min.y + (b.max.y - b.min.y) * k, (b.min.z + b.max.z) / 2);
+        _w.subVectors(c, a);
+        const t = clamp(_v.subVectors(_p, a).dot(_w) / Math.max(1e-6, _w.lengthSq()), 0, 1);
+        _v.copy(a).addScaledVector(_w, t);
+        if (_v.distanceTo(_p) < r) {
+          _w.subVectors(_p, _v).setY(0);
+          if (_w.lengthSq() < 1e-4) _w.set(Math.random() - 0.5, 0, Math.random() - 0.5);
+          sunburn(player, dt, _w.normalize(), this.world);
+          return;
+        }
+      }
+    }
+  }
+}
+
+// The scorch of focused sunlight on the player (lava-like, but light): the first touch hurts, throws you
+// clear and sizzles (a shield takes it, with its own moment of grace); staying in it kills ('sunburn').
+// away: the horizontal direction out of the beam.
+const SUN_GRACE = 0.55;
+export function sunburn(player, dt, away, world) {
+  const game = world.game;
+  if (player.dead || game.godMode || game.rulesPaused) return;
+  const now = world.time;
+  const fresh = now - (player.sunLast ?? -9) > 0.6;
+  player.sunLast = now;
+  if (fresh) {
+    player.sunT = 0;
+    player.vel.x += away.x * 7.5;
+    player.vel.z += away.z * 7.5;
+    player.vel.y = Math.max(player.vel.y, 3.5);
+    player.grounded = false;
+    player.shake = Math.max(player.shake || 0, 0.4);
+    game.hud.hurt?.(30);
+    audio.sample('lava_sizzle', { gain: 0.9, rate: 1.3, vary: 0.1 });
+    audio.sample('incinerator_ignite', { gain: 0.4, rate: 1.6 });
+    world.fx.burst(player.pos.clone().setY(player.pos.y + 1), 0xffc060, { count: 30, speed: 6, life: 0.5, size: 0.2, gravity: -1 });
+    if (!player.warnedSun) {
+      player.warnedSun = true;
+      game.hud.message('<b style="color:#ffd23a">SUNBEAM</b> — focused sunlight <b>burns</b>. Duck under it, jump over it, or turn it aside.', 3.5);
+    }
+    if (player.armor > 0 && player.invuln <= 0) player.damage(1, 'sunburn'); // (the shield takes the first touch)
+    return;
+  }
+  if (player.invuln > 0) return;
+  player.sunT = (player.sunT || 0) + dt;
+  game.hud.burning?.(player.sunT / SUN_GRACE);
+  if (Math.random() < dt * 10) audio.sample('lava_sizzle', { gain: 0.5, vary: 0.2 });
+  if (player.sunT >= SUN_GRACE) player.damage(1, 'sunburn');
 }
 
 // ------------------------------------------------------------------ SunEmitter

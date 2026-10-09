@@ -245,7 +245,7 @@ export function buildSolarTemple(B, K, depths) {
   }
   const corePick = new Pickup(W, { pos: [-112, -67.4, -80], type: 'color', color: YELLOW, onCollect: (pk) => game.unlockColor(YELLOW, pk.pos) });
   ck([-120, -64, -92], Math.PI, [6, 3, 4]);
-  devStart('solar7', [-120, -64, -92], Math.PI, [RED], 'The sunken courtyard (the gate blown open)');
+  devStart('solar11', [-120, -64, -92], Math.PI, [RED], 'The sunken courtyard (the gate blown open)');
   zoneTitle([-128, -66, -94], [-112, -60, -89], 'SOLAR · THE CHASM', 'THE SUNKEN COURT', '#ffd23a');
   // eerily silent until the core is taken and the court wakes
   const silence = () => {
@@ -353,7 +353,7 @@ export function buildSolarTemple(B, K, depths) {
   let restoringStairs = false;
   K.lights.push(...targets);
   hint([-120, FLOOR, -76], [-104, -66, -68], 'No stair — just a sheer cut face. Those <b style="color:#ffd23a">sun discs</b> in its flanks… hold the <b style="color:#ffd23a">yellow beam</b> on them.', 6);
-  devStart('solar8', [-112, T0, -62.8], Math.PI, [RED, YELLOW], 'The Sun Temple doors (stair raised)');
+  devStart('solar12', [-112, T0, -62.8], Math.PI, [RED, YELLOW], 'The Sun Temple doors (stair raised)');
 
   // ================================================================ THE SUN TEMPLE: the shell
   const TOP = -10; // the apex chamber's floor
@@ -569,7 +569,7 @@ export function buildSolarTemple(B, K, depths) {
   F(TX1 + 2, L2 - 0.6, TZ1 + 2, -119, L2, -55);
   glowEdge(TX1 + 2, TZ1 + 2, -119, -55, L2, glow, zone);
   ck([-123, L2, -58.5], 0, [5, 3, 5]);
-  devStart('solar9', [-123, L2, -58.5], Math.PI, [RED, YELLOW], 'The Sun Temple climb (halfway)');
+  devStart('solar13', [-123, L2, -58.5], Math.PI, [RED, YELLOW], 'The Sun Temple climb (halfway)');
   B.encounter({
     trigger: [[-128, L2, -62], [-118, L2 + 4, -55]],
     seals: [],
@@ -662,7 +662,7 @@ export function buildSolarTemple(B, K, depths) {
   const apexDoor = new Seal(W, { min: [-104, TOP, TZ1], max: [-100, TOP + 3.4, TZ1 + 0.6], color: YELLOW, zone, closed: true });
   K.lights.push(apexCrystal);
   ck([-108, TOP, -58], Math.PI / 2, [6, 3, 5]);
-  devStart('solar10', [-108, TOP, -58], Math.PI / 2, [RED, YELLOW], 'The Sun Temple apex');
+  devStart('solar14', [-108, TOP, -58], Math.PI / 2, [RED, YELLOW], 'The Sun Temple apex');
   // the light pillar: a colossal beam out of the apex into the sky, visible from the whole chasm
   const pillarMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.82, 0.4), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
   const pillar = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 3.4, 400, 20, 1, true), pillarMat);
@@ -699,7 +699,7 @@ export function buildSolarTemple(B, K, depths) {
   column(-104.5, -86.5, -101, -83, -8.8);
   column(-110, -90, -104.5, -85, -8.4); // the corner landing
   ck([-107, -8.4, -87.5], Math.PI / 2, [4, 3, 4]);
-  devStart('solar11', [-103, TOP, -66], 0, [RED, YELLOW], 'The high crossing (over the court)');
+  devStart('solar15', [-103, TOP, -66], 0, [RED, YELLOW], 'The high crossing (over the court)');
   // (the lance burns only up here, over the jump: its column never reaches the court)
   lanceRig(-104, -82.5, -98, -79.5, -40, -1, { period: 3.4, on: 1.3, warn: 0.7 }, FLOOR, '+x');
   const bridgeC = new PhasePlatform(W, { min: [-125.5, -8.8, -88.5], max: [-110, -8.4, -86.5], on: false, zone });
@@ -756,7 +756,7 @@ export function buildSolarTemple(B, K, depths) {
   // ================================================================ persistence and starts
   const stageAt = (p) => {
     const inB = (x1, x2, z1, z2, y1, y2) => p.x >= x1 && p.x <= x2 && p.z >= z1 && p.z <= z2 && p.y >= y1 && p.y <= y2;
-    if (depths.stageAt(p) < 4) return 0;
+    if (depths.stageAt(p) < 8) return 0;
     if (inB(CX1, CX2, CZ1, TZ1 - 0.5, -95, -50) && p.y < -60) return 0; // the courtyard itself
     if (inB(TX1, TX2, -70, TZ2, -70, -57)) return 1; // the doors, the vestibule, L0
     if (inB(TX1, TX2, TZ1, TZ2, -57, -40)) return 2; // stage 1, L1
