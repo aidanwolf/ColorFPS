@@ -1,18 +1,21 @@
 // Where Wren Ashby's seventeen audio logs wait (scripts: tools/audio/logs.json, story: src/story/STORY.md).
-// One table, mostly in story order: the Atrium first, then Solar, Verdant, Azure and the Prism Core. Her voice
+// One table, in story order: the Atrium first, then Solar, Verdant, Azure and the Prism Core. Her voice
 // is first heard in the Prism Atrium: no log goes in the cell block or the Crimson Foundry (or its annex).
 //   world: which area it belongs to · pos: the floor point the recorder hovers over (1.15 m up)
 //   yaw: which way the recorder faces at first (it slowly turns) · provisional: a placeholder spot
-// Every spot but the two provisional Solar ones is final: the color worlds' were picked by their rebuilds.
+// Every spot is final: the color worlds' were picked by their rebuilds to match each script.
 const LOGS = [
   // THE PRISM ATRIUM (final): wonder, on the first visit
   { id: '01', world: 'hub', pos: [-4.3, 4, -105.6], yaw: Math.PI / 4 }, // just in from the red door, south-west of the walk in: the dais, the Prism and the reactor straight ahead
   { id: '02', world: 'hub', pos: [-3.7, 2.8, -127.7], yaw: Math.PI / 4 }, // down in the dais, its north-west corner between the green and yellow locks, right under the reactor heart, where all four feeds can be seen
   { id: '03', world: 'hub', pos: [23.2, 12, -128], yaw: -Math.PI / 2 }, // the east gallery, just off the lift, by Azure's glass conduit
-  // SOLAR (final, the rebuilt world): her nine seconds; she dims the captive star
-  { id: '04', world: 'solar', pos: [-59.5, 4, -121.5], yaw: Math.PI / 2 }, // the lookout balcony off the overlook's north-west corner, facing the captive sun
-  { id: '05', world: 'solar', pos: [-107.5, -19.6, -99], yaw: 0 }, // the dig gallery: the ledge off the scaffold tower (walk the side plank), facing the cut's fused sand-glass bands
-  { id: '06', world: 'solar', pos: [-206, -6, -193.5], yaw: -Math.PI / 2 }, // the Sun Quay under the court mesa (after the dune run): the ring of standing stones by the sun discs, shadows burned into the stone
+  // SOLAR: Wren's team in the buried matrix, trying to work out how to get into the power source (each spot
+  // has a clear 4 x 4 m patch beside it for her ghost, out of every puzzle's beam path)
+  { id: '04', world: 'solar', pos: [-93, -79.6, -121.5], yaw: Math.PI / 2 }, // Under the Sand: the sinkhole's lip, north end, just after the drop, by the first dormant conduit
+  { id: '04b', world: 'solar', pos: [-93, -79.6, -106], yaw: -Math.PI / 2 }, // The Ring: the lip's south end, the pit and the first mirror on its island under the lens's beam
+  { id: '05', world: 'solar', pos: [-105, -79.6, -108.5], yaw: Math.PI / 4 }, // Mirrors: the gate hall's entry gallery, the first full view of the dormant stargate and its mirrors
+  { id: '05b', world: 'solar', pos: [-129.5, -78.8, -127.8], yaw: -Math.PI / 2 }, // Full: under the ring, beside the west capacitor bank, where the hard-light bridge lands
+  { id: '06', world: 'solar', pos: [-105, -64, -125], yaw: Math.PI / 2 }, // Here We Go: the upper gallery off the annex lift, just before the stargate puzzle
   // VERDANT (final, the rebuilt world): lonely, then frightened
   { id: '07', world: 'verdant', pos: [25.5, 4, -163.5], yaw: Math.PI / 2 }, // the Rain Court, east end of the south terrace: moss, gold light, drizzle
   { id: '08', world: 'verdant', pos: [27, 4.5, -212.2], yaw: Math.PI / 2 }, // the Ruin Bank's east rim over the sludge lake, roots grown through two skeletons
@@ -25,10 +28,6 @@ const LOGS = [
   // PRISM CORE (final; prism.js isn't being rebuilt): resolve, and the last note
   { id: '14', world: 'prism', pos: [-7.5, -48, -97.5], yaw: Math.PI / 4 }, // the antechamber, among the crystals, south-west corner
   { id: '15', world: 'prism', pos: [7, -48, -112], yaw: -Math.PI / 4 }, // the antechamber's north-east corner, by the way to the arena
-  // SOLAR, the two added with the pit rewrite (provisional: open floor beside 04 and 05 until the pit rebuild
-  // places them along the network). Story order comes from logdata.json, not from this table.
-  { id: '04b', world: 'solar', pos: [-55.5, 4, -117.5], yaw: 0, provisional: true }, // The Ring
-  { id: '05b', world: 'solar', pos: [-107.5, -19.6, -105], yaw: 0, provisional: true }, // Full
 ];
 
 export function placeLogs(B) {

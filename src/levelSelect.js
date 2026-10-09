@@ -48,7 +48,7 @@ const LABELS = {
 // the four guardians and the finale, wherever their starts are (first match wins)
 const BOSSES = [
   { start: ['red7'], label: 'The Forge Titan', area: 'red' },
-  { start: ['solar15'], label: 'The Sphinx', area: 'solar' },
+  { start: ['solar19'], label: 'The Sphinx', area: 'solar' },
   { start: ['verdant12'], label: 'The Thornmaw', area: 'verdant' },
   { start: ['cistern'], label: 'The Leviathan', area: 'azure' },
   { start: ['boss'], label: 'The Prism Warden', area: 'prism' },
