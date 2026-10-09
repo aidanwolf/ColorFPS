@@ -1084,7 +1084,7 @@ export class SunBeam {
 // The scorch of focused sunlight on the player (lava-like, but light): the first touch hurts, throws you
 // clear and sizzles (a shield takes it, with its own moment of grace); staying in it kills ('sunburn').
 // away: the horizontal direction out of the beam.
-const SUN_GRACE = 0.55;
+const SUN_GRACE = 0.75;
 export function sunburn(player, dt, away, world) {
   const game = world.game;
   if (player.dead || game.godMode || game.rulesPaused) return;

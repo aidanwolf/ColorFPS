@@ -365,8 +365,9 @@ class PitScarab extends Scarab {
 // player's yaw: 0 faces north, π/2 west) at its own height — duck under a head-high one, jump a knee-high
 // one. on / off.
 class Sweeper {
-  constructor(W, { pos, a0, a1, period = 7, phase = 0, width = 0.4, near = 75 }) {
+  constructor(W, { pos, a0, a1, period = 7, phase = 0, width = 0.4, near = 75, spin = 0 }) {
     this.W = W;
+    this.spin = spin; // rad/s: a lighthouse that turns round and round instead of swinging
     this.pos = new THREE.Vector3(...pos);
     this.a0 = a0;
     this.a1 = a1;
@@ -404,7 +405,7 @@ class Sweeper {
     if (!this.beam.enabled && k < 0.01) return;
     this.t += dt;
     const s = 0.5 - 0.5 * Math.cos((this.t / this.period) * Math.PI * 2);
-    const a = this.a0 + (this.a1 - this.a0) * s;
+    const a = this.spin ? this.a0 + this.t * this.spin : this.a0 + (this.a1 - this.a0) * s;
     _v.set(-Math.sin(a), 0, -Math.cos(a));
     this.beam.setDir(_v);
     this.beam.from.copy(this.pos).addScaledVector(_v, 0.66);
@@ -555,6 +556,13 @@ export function buildSolarDepths(B, K) {
   B.secretRoom([-50.5, 4, -126], [-43.5, 7.5, -119.5], 'Sunshade Grotto');
   B.hintEvery([-50.5, 4, -120.5], [-43.5, 7, -119], 'Sealed with <b style="color:#46ff7a">GREEN</b> energy — come back later.', 25, 5, () => !has(GREEN));
   blocker([-55, 9, -132], [-38, SKY, -119]);
+  for (const x of [-54.4, -51.1, -42.9, -38.6]) R(x - 0.45, 4, -119, x + 0.45, 9.6, -118.5);
+  R(-55.4, 9, -119.5, -38, 9.7, -118.4);
+  K.sunRelief('+z', -119, -52.75, 6.6, 1);
+  K.sunRelief('+z', -119, -40.75, 6.6, 1);
+  K.glyphStrip('+z', -119, -55, -50.6, 8.4);
+  K.glyphStrip('+z', -119, -43.4, -38, 8.4);
+  for (const z of [-121, -129]) K.banner('+x', -55, z, 8.8, 1.6, 4);
   guideStrip([[-38.5, 4, -112], [-63, 4, -112]], amber, { spacing: 1.6, scale: 1.2 });
   hint([-50, 4, -117], [-44, 7, -107], 'The <b>Sunward Balcony</b>. The old bridge to the temple courtyard fell in long ago — and far below, <b>quicksand</b>. It breaks a fall… any fall.', 7);
 
@@ -611,7 +619,8 @@ export function buildSolarDepths(B, K) {
   const SAND = -80;
   quick(-96, -130, -64, -100, SAND, -86, false);
   R(-100, -90, -134, -60, S, -130); // north
-  R(-100, -90, -100, -60, S, -96); // south
+  R(-100, -90, -100, -60, S, -98); // south (its far face is the sun yard's terraced wall)
+  R(-100, -90, -98, -60, -46, -96);
   R(-102, -90, -134, -96, S, -114); // west, the tunnel to the gate hall cut in it
   R(-102, -90, -110, -96, S, -96);
   R(-102, -90, -114, -96, -79.6, -110);
@@ -673,7 +682,12 @@ export function buildSolarDepths(B, K) {
   R(-142, ROOF, -134, -100, -10, -96); // the rock over the hall
   // the south wall (and the chasm's north wall), with the plug the gate will blow out
   R(-142, -92, -100, -125, S, -94);
-  R(-115, -92, -100, -86, S, -94);
+  R(-115, -92, -100, -100, S, -94);
+  R(-100, -92, -100, -86, -24, -94); // (over the sun yard it steps back as it rises, like the yard's wall)
+  R(-100, -24, -100, -86, -16, -96.6);
+  R(-100, -16, -100, -86, S, -98);
+  R(-100, -24, -96, -86, -23.4, -95.6);
+  R(-100, -16, -96.6, -86, -15.4, -96.2);
   R(-125, -92, -100, -115, -64, -94);
   R(-125, -56, -100, -115, S, -94);
   // the north wall's doorways (annex below, upper landing above): the wall boxes round them
@@ -979,14 +993,14 @@ export function buildSolarDepths(B, K) {
   // 5: the last pylon's mirror (it creeps once the heart is drinking)
   const mF = new RotMirror(W, { pos: [-120, -65.5, -116], yaw: 0, start: 2, tilt: Math.PI / 4, size: [2.6, 2], post: 1.8, color: RED, home: 2 });
   lights.push(mA, mB, mC, mD, mE, mF);
-  // the sweepers: knee-high from the north-west corner (along the perches and the shuttle dock), head-high
+  // the sweepers (their arcs stop short of the walls, so a beam never parks along a walkway): knee-high from the north-west corner (along the perches and the shuttle dock), head-high
   // from the north-east corner (down the east balcony), head-high over the gallery for the finale
-  const sweepLo = new Sweeper(W, { pos: [-137.4, HB + 0.35, -129.4], a0: Math.PI, a1: Math.PI * 1.5, period: 7 });
+  const sweepLo = new Sweeper(W, { pos: [-137.4, HB + 0.35, -129.4], a0: Math.PI + 0.14, a1: Math.PI * 1.5 - 0.14, period: 7 });
   blocker([-138, HB, -130], [-136.8, HB + 1.2, -128.8]);
-  const sweepHi = new Sweeper(W, { pos: [-102.6, HB + 1.5, -129.4], a0: Math.PI - 0.7, a1: Math.PI, period: 6 });
+  const sweepHi = new Sweeper(W, { pos: [-102.6, HB + 1.5, -129.4], a0: Math.PI - 0.75, a1: Math.PI - 0.14, period: 6 });
   R(-103.2, HB, -130, -102, HB + 1.1, -128.8);
-  const sweepGal = new Sweeper(W, { pos: [-102.6, -62.5, -100.6], a0: 0, a1: Math.PI / 2, period: 7.5 });
-  R(-103.2, -64, -101.2, -102, -62.9, -100);
+  const sweepGal = new Sweeper(W, { pos: [-120, -62.5, -116], a0: 0, spin: 0.62 }); // over the last pylon: it sweeps both gallery arms
+  M(-120.15, -64.6, -116.6, -119.85, -62.9, -116.3); // its mast, off the pylon's cap
   const sweepers = [sweepLo, sweepHi, sweepGal];
   for (const sw of sweepers) beams.push(sw.beam);
   // the recovery lift: from the pit's quicksand (south-west corner) up to the gallery, always running

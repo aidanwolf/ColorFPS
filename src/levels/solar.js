@@ -254,11 +254,11 @@ export function buildSolar(B) {
   const ck = (pos, yaw, size = [4, 3, 4]) => new Checkpoint(W, game, { pos, yaw, size });
   // the excavation's mood: quiet, dark, dusty (and once you hold yellow, the Solar theme comes back)
   level.atmospheres.solarDeep = {
-    fog: 0x0b0603, fogNear: 4, fogFar: 64,
-    skyTop: [0.02, 0.014, 0.01], skyMid: [0.04, 0.028, 0.018], skyHorizon: [0.07, 0.05, 0.03], aurora: 0, stars: 0,
-    hemiSky: 0xa88660, hemiGround: 0x140c06, hemiIntensity: 0.13,
-    sunColor: 0xffc890, sunIntensity: 0.05, sunDir: [0.2, 1, 0.1],
-    exposure: 0.98, bloom: 0.85,
+    fog: 0x070402, fogNear: 2, fogFar: 46,
+    skyTop: [0.012, 0.008, 0.005], skyMid: [0.022, 0.014, 0.008], skyHorizon: [0.035, 0.022, 0.012], aurora: 0, stars: 0,
+    hemiSky: 0x9a6a40, hemiGround: 0x0c0603, hemiIntensity: 0.07,
+    sunColor: 0xffc080, sunIntensity: 0.03, sunDir: [0.2, 1, 0.1],
+    exposure: 0.92, bloom: 0.95,
   };
   const deep = (min, max) =>
     W.trigger(min, max, () => {

@@ -123,7 +123,7 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
   };
   level.atmospheres.solarFlare = {
     ...level.atmospheres.solarYard,
-    fog: 0xfff4dc, fogNear: 0, fogFar: 160, hemiSky: 0xffffff, hemiIntensity: 2.4, exposure: 3.4, bloom: 2.4,
+    fog: 0xfff4dc, fogNear: 0, fogFar: 220, hemiSky: 0xffffff, hemiIntensity: 2.0, exposure: 2.6, bloom: 1.8,
   };
   level.atmospheres.solarGatehouse = {
     fog: 0x120a06, fogNear: 4, fogFar: 46,
@@ -194,9 +194,14 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
   R(-44.5, -46, -86, -38.5, YF, -58);
   R(-38.5, -46, -96, -36, YF, -58);
   // the north wall (the gate hall's and the sinkhole's walls carry it west of x -86)
-  R(-86, -46, -96, -36, S, -94);
-  R(-60, -46, -100, -36, S, -96);
-  strata(-100, Z1, -48, Z1 + 0.3, [-33, -26, -18, -12]);
+  R(-86, -46, -96, -36, YF + 14, -94);
+  R(-86, YF + 14, -96.6, -36, YF + 22, -96);
+  R(-86, YF + 22, -98, -36, S, -96.6);
+  R(-60, -46, -100, -36, S, -98);
+  R(-86, YF + 14, -96, -36, YF + 14.6, -95.6); // the terraces' lips
+  R(-86, YF + 22, -96.6, -36, YF + 22.6, -96.2);
+  strata(-100, Z1, -48, Z1 + 0.3, [-34, -28]);
+  strata(-100, -98, -48, -97.7, [-14, -10]);
   // the shelf's south cliff, down into the haze; the mesa's cliffs either side of the drop
   R(-134, -118, -60, -36, -46, -58);
   R(-138, -118, -58, -134, -10, -40);
@@ -230,13 +235,35 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
   glyphStrip('-x', -48, -82, -60, YF + 4);
   // the portal: dark inside, blazing out; stepping through it the light floods your eyes
   W.trigger([-47, YF, -93], [-37, YF + 7, -79], () => game.setAtmosphere('solarGatehouse'), { once: false });
-  let flareT = -9;
+  let flareT = -9, flareK = 0;
+  const lerpPreset = (a, b, k) => {
+    const o = {};
+    for (const key of Object.keys(b)) {
+      const va = a[key], vb = b[key];
+      if (Array.isArray(vb)) o[key] = vb.map((v, i) => v + ((va?.[i] ?? v) - v) * k);
+      else if (typeof vb === 'number' && /fog$|Sky$|Ground$|Color$/.test(key)) o[key] = new THREE.Color(vb).lerp(new THREE.Color(va ?? vb), k).getHex();
+      else if (typeof vb === 'number') o[key] = vb + ((va ?? vb) - vb) * k;
+      else o[key] = vb;
+    }
+    return o;
+  };
+  W.add({
+    update(dt) {
+      if (flareK <= 0) return;
+      flareK = Math.max(0, flareK - dt / 1.0);
+      const e = flareK * flareK;
+      level.atmospheres.solarFlareT = lerpPreset(level.atmospheres.solarFlare, level.atmospheres.solarYard, e);
+      game.setAtmosphere('solarFlareT', true);
+      if (flareK <= 0) courtMood();
+    },
+  });
   W.trigger([-49.6, YF, -90], [-48.2, YF + 6, -82], () => {
     const pl = game.player;
     if (pl.vel.x > 0.5 || W.time - flareT < 6) return;
     flareT = W.time;
+    // the eyes adjust in about a second: a white flare that eases back to the yard's light
+    flareK = 1;
     game.setAtmosphere('solarFlare', true);
-    setTimeout(() => courtMood(), 140);
     audio.sample('wind_gust', { gain: 0.6, rate: 0.9 });
   }, { once: false });
   zoneTitle([-56, YF, -92], [-48, YF + 6, -80], 'SOLAR · THE MESA', 'THE SUN YARD', '#ffd23a');
@@ -245,14 +272,17 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
   // ================================================================ THE SUN YARD
   // the south side: a colonnade on the shelf's lip (a parapet between its columns; nobody goes over)
   R(X1, YF, -59.4, X2, YF + 0.7, -58.6);
-  for (let x = -97; x <= -51; x += 4) {
-    R(x - 0.7, YF, -60.3, x + 0.7, YF + 0.5, -58.7); // base
-    R(x - 0.55, YF + 0.5, -60.15, x + 0.55, YF + 7, -58.85);
-    for (let y = YF + 1.6; y < YF + 6.6; y += 1.4) D(x - 0.58, y, -60.18, x + 0.58, y + 0.08, -58.82);
-    R(x - 0.85, YF + 7, -60.45, x + 0.85, YF + 7.5, -58.55); // capital
+  // (no colonnade across it any more: the south side lies wide open to the lowland; a few sun posts stand on
+  // the parapet, far apart, and a pair of obelisks marks its ends)
+  for (let x = -94; x <= -54; x += 10) {
+    R(x - 0.6, YF + 0.7, -59.6, x + 0.6, YF + 2.6, -58.4);
+    G(x - 0.62, YF + 2.2, -59.62, x + 0.62, YF + 2.35, -58.38);
   }
-  R(X1, YF + 7.5, -60.6, X2, YF + 8.4, -58.4); // the architrave
-  G(X1, YF + 7.8, -60.65, X2, YF + 7.95, -60.6);
+  for (const x of [-99, -49.5]) {
+    R(x - 1.1, YF, -60.2, x + 1.1, YF + 1, -58);
+    for (let k = 0; k < 4; k++) R(x - 0.7 + k * 0.1, YF + 1 + k * 2.4, -59.8 + k * 0.1, x + 0.7 - k * 0.1, YF + 3.4 + k * 2.4, -58.4 - k * 0.1);
+    G(x - 0.32, YF + 10.6, -59.42, x + 0.32, YF + 10.75, -58.78);
+  }
   blocker([X1, YF + 0.7, -60], [X2, SKY, -58]);
   // the north wall: ledges the watchers come down from, reliefs, glyph bands, banners, niches
   for (const [x1, x2] of [[-94, -86], [-66, -58]]) {
@@ -262,12 +292,12 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
   }
   for (const x of [-80, -72]) sunRelief('+z', Z1, x, YF + 10, 2);
   glyphStrip('+z', Z1, -99, -50, YF + 3.2);
-  glyphStrip('+z', Z1, -99, -50, YF + 15);
+  glyphStrip('+z', -96.6, -99, -50, YF + 18);
   for (const x of [-96, -84, -64, -52]) banner('+z', Z1, x, YF + 14, 2.2, 8);
   for (const x of [-90, -76, -62]) {
     // niches cut in the wall (the cliff city's lowest homes)
-    R(x - 1.6, YF + 18, Z1, x + 1.6, YF + 18.4, Z1 + 0.8);
-    D(x - 1.2, YF + 18.4, Z1 - 0.01, x + 1.2, YF + 22, Z1 + 0.02, 'ceil');
+    R(x - 1.6, YF + 24, -98, x + 1.6, YF + 24.4, -97.2);
+    D(x - 1.2, YF + 24.4, -98.01, x + 1.2, YF + 28, -97.98, 'ceil');
   }
   // the dais and the core: the yellow core floating in an upright stone ring, a sun-ray inlay round it
   const CX = -70, CZ = -77;
@@ -369,8 +399,8 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
       { title: 'THE WATCHERS DESCEND', enemies: [
         { type: 'mummy', pos: [-90, YF + 6, -92.6], color: YELLOW, shieldColor: RED },
         { type: 'mummy', pos: [-62, YF + 6, -92.6], color: YELLOW, shieldColor: RED, delay: 0.6 },
-        { type: 'turret', pos: [-85, YF + 8.4, -59.5], color: YELLOW, shields: [RED], delay: 1.2 },
-        { type: 'turret', pos: [-63, YF + 8.4, -59.5], color: YELLOW, delay: 1.6 },
+        { type: 'turret', pos: [-84, YF + 2.6, -59], color: YELLOW, shields: [RED], delay: 1.2 },
+        { type: 'turret', pos: [-64, YF + 2.6, -59], color: YELLOW, delay: 1.6 },
         { type: 'scarab', pos: [-74, YF, -70], color: YELLOW, shields: [RED], burrow: true, delay: 2.2 },
       ] },
       [
@@ -440,7 +470,6 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
   glyphStrip('+x', FACE, -68.6, -58, TF - 1.2);
   // the facade's outer dressing (on the temple's front wall line, never inside it): pilasters, a sun disc
   // over the door, glyph bands
-  for (const z of [-91, -85, -67, -61]) R(-100, TF, z - 0.7, -99.4, TF + (z < -82 ? 26 : 44), z + 0.7);
   sunRelief('+x', -100, -76, TF + 9, 2.6);
   glyphStrip('+x', -100, -84, -68, TF + 6.4);
   hint([-96, YF, -86], [-84, YF + 4, -66], 'No stair — just a sheer cut face. Those <b style="color:#ffd23a">sun discs</b> in its flanks… hold the <b style="color:#ffd23a">yellow beam</b> on them.', 6);
