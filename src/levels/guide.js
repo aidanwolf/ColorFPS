@@ -8,17 +8,20 @@ import { regionOf } from './regions.js';
 const tag = (c, text) => `<b style="color:${COLORS[c].css}">${text}</b>`;
 const FLOOR = 4;
 
-// Floor paths in the Hub (x, z), skirting the raised dais at x -5..5, z -105..-115.
-// Where the floor path ends for each goal (just inside its doorway), the raised dais to route around,
-// and the Hub's return gallery (y 12): from up there the path leads to the edge nearest the goal.
-const TARGETS = { solar: [-23, -112], verdant: [-10, -146.5], azure: [23, -112], dais: [0, -104.6], red: [0, -101.5] };
-const DAIS = { x1: -6.4, x2: 6.4, z1: -116.4, z2: -103.6 };
+// Floor paths in the Hub (x, z), skirting the Prism lift in the middle of the sunken dais (x -2..2,
+// z -126..-122: sealed, then a hole while the car is away).
+// Where the floor path ends for each goal (just inside its doorway; for the dais, at the lift's edge on
+// your side), the lift to route around, and the Hub's return gallery (y 12): from up there the path leads
+// to the edge nearest the goal.
+const PZ = -124; // the Atrium's centre: the dais, the lift, the Prism, the reactor
+const TARGETS = { solar: [-23, -112], verdant: [-10, -146.5], azure: [23, -112], dais: [0, PZ + 2.9], red: [0, -101.5] };
+const DAIS = { x1: -2.7, x2: 2.7, z1: PZ - 2.7, z2: PZ + 2.7 };
 const GALLERY_Y = 12;
 export const DOORS = {
   solar: { pos: [-24.6, -112], color: YELLOW },
   verdant: { pos: [-10, -148.2], color: GREEN },
   azure: { pos: [24.6, -112], color: BLUE },
-  dais: { pos: [0, -110], color: null },
+  dais: { pos: [0, PZ], color: null },
   red: { pos: [0, -100.2], color: RED }, // (only when the Foundry's core was left burning: see STILL_RUNNING)
 };
 // After the last color: a world whose engine still runs keeps the Warden asleep, so send the player back.
@@ -274,8 +277,8 @@ export function currentObjective(game) {
     return { html: `The Warden sleeps while ${names} still feed${running.length > 1 ? '' : 's'} the machine. Ride the lift back up and <b>shut ${running.length > 1 ? 'them' : 'it'} down</b>.` };
   }
   if (where === 'prism') return { html: boss?.active ? '' : 'Follow the light down the corridor into the arena. <b>The Warden waits.</b>' };
-  if (game.level.prismElevator?.enabled) return { html: 'The Prism Core is open: step onto the lift in the middle of the dais and ride it down.', door: 'dais' };
-  return { html: 'Shoot each <b>color lock</b> on the central dais with its own color, then ride the lift down to the <b>Prism Core</b>.', door: 'dais' };
+  if (game.level.prismElevator?.enabled) return { html: 'The Prism Core is open: step onto the lift in the middle of the dais, under the reactor, and ride it down.', door: 'dais' };
+  return { html: 'Shoot each <b>color lock</b> around the lift in the sunken dais with its own color, then ride the lift down to the <b>Prism Core</b>.', door: 'dais' };
 }
 
 export function buildGuide(W, game) {
@@ -345,7 +348,13 @@ export function buildGuide(W, game) {
       pts = [[gx, gz], e];
       y0 = player.pos.y;
     } else {
-      pts = route([player.pos.x, player.pos.z], tgt);
+      let end = tgt;
+      if (goal === 'dais') {
+        // to the middle of the lift's nearest edge (a lock sits on each one's channel, just beyond it)
+        const dx = player.pos.x, dz = player.pos.z - PZ, k = 2.9;
+        end = Math.abs(dx) > Math.abs(dz) ? [Math.sign(dx) * k, PZ] : [0, PZ + (dz < 0 ? -k : k)];
+      }
+      pts = route([player.pos.x, player.pos.z], end);
       y0 = player.pos.y;
     }
     marks = [];

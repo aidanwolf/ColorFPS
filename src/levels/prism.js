@@ -1,6 +1,7 @@
 // PRISM CORE — a vast crystalline chamber beneath the Hub, where the Prism Warden waits.
-//   The Hub's Prism elevator (hub.js SHAFT, x -2..2, z -112..-108) drops through the ceiling of the
-//   antechamber grotto (x -10..10, z -95..-115, floor y -48, 18 m tall) → short corridor north →
+//   The Hub's Prism lift leaves the dais at the Atrium's centre (hub.js LIFT, z -126..-122), runs south under
+//   the Atrium floor, then plunges down the shaft (hub.js SHAFT, x -2..2, z -112..-108) through the ceiling of
+//   the antechamber grotto (x -10..10, z -95..-115, floor y -48, 18 m tall) → short corridor north →
 //   the sealed arena (56×56 m, x -28..28, z -118.5..-174.5, floor y -48, ceiling y -10).
 import * as THREE from 'three';
 import { JumpPad, Checkpoint } from '../entities/misc.js';
