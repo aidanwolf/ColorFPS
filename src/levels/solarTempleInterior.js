@@ -49,7 +49,7 @@ import { audio } from '../audio.js';
 import { setLogSpot } from './logs.js';
 import {
   frame, Builder, templeMats, beamGeo, bannerGeo, flagStringGeo, sagGeos, CLOTH_CLOCK, SAND_HEX,
-  Brazier, Censer, SlideBlock, VLift, Drawbridge, StoneRing, Gong, BurnRope, SupportJoint, DustClouds, Debris, Launch,
+  Brazier, brazierFlicker, Censer, SlideBlock, VLift, Drawbridge, StoneRing, Gong, BurnRope, SupportJoint, DustClouds, Debris, Launch,
 } from './templeKit.js';
 
 const SOUNDS = ['obelisk_crack', 'obelisk_fall', 'temple_rumble', 'energy_surge_stone', 'servo_heavy', 'hydraulic_land', 'floor_collapse', 'incinerator_ignite', 'sun_hum', 'energy_crackle', 'titan_charge', 'boss_slam', 'elevator_start', 'door_slam', 'rotor_turn', 'rotor_lock', 'lava_sizzle', 'crumble_break', 'shatter', 'mirror_hit', 'mummy_alert', 'phase_in', 'titan_groan_big', 'sand_sink', 'reactor_hum', 'warp_whoosh', 'land_hard', 'switch_on'];
@@ -118,21 +118,21 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
 
   // ================================================================ THE ENCLOSURE
   // (outer faces: x ±18, z 0 and 31; the shell above y 30 only x -6..18 — the sun's sightline over the north)
-  blk('sand', -18, 0, 0, -3, 31.5, 1.5); // the front wall, the doorway in it
-  blk('sand', 3, 0, 0, 18, 31.5, 1.5);
+  blk('sand', -18, 0, 0, -3, 31.5, 1.5, { occ: true }); // the front wall, the doorway in it
+  blk('sand', 3, 0, 0, 18, 31.5, 1.5, { occ: true });
   blk('sand', -3, 5, 0, 3, 31.5, 1.5);
-  blk('sand', -6, 31.5, 0, 18, 50, 1.5);
-  blk('sand', -18, -12, 0, -17, 31.5, 31); // north wall (the lower hall)
-  blk('sand', 17, -12, 0, 18, 50, 31); // south wall
-  blk('sand', -18, -12, 30, 17, 31.5, 31); // back wall
-  blk('sand', -6, 31.5, 30, 17, 50, 31);
-  blk('sandDark', -18, -12, 31, 18, 18, 34); // the back block (the terrace on top)
+  blk('sand', -6, 31.5, 0, 18, 50, 1.5, { occ: true });
+  blk('sand', -18, -12, 0, -17, 31.5, 31, { occ: true }); // north wall (the lower hall)
+  blk('sand', 17, -12, 0, 18, 50, 31, { occ: true }); // south wall
+  blk('sand', -18, -12, 30, 17, 31.5, 31, { occ: true }); // back wall
+  blk('sand', -6, 31.5, 30, 17, 50, 31, { occ: true });
+  blk('sandDark', -18, -12, 31, 18, 18, 34, { occ: true }); // the back block (the terrace on top)
   blk('floor', -18, 17.6, 31, 18, 18, 34, { solid: false });
-  blk('sand', -18, 30, 1.5, -5, 31.5, 30); // the north aisle's roof (a terrace outside)
-  blk('sand', -6, 31.5, 1.5, -5, 50, 30); // the tower's north wall, standing on it
+  blk('sand', -18, 30, 1.5, -5, 31.5, 30, { occ: true }); // the north aisle's roof (a terrace outside)
+  blk('sand', -6, 31.5, 1.5, -5, 50, 30, { occ: true }); // the tower's north wall, standing on it
   // the tower's ceiling, the oculus over the obelisk
-  blk('sand', -6, CEIL, 1.5, 17, 50, 11.75);
-  blk('sand', -6, CEIL, 19.75, 17, 50, 30);
+  blk('sand', -6, CEIL, 1.5, 17, 50, 11.75, { occ: true });
+  blk('sand', -6, CEIL, 19.75, 17, 50, 30, { occ: true });
   blk('sand', -6, CEIL, 11.75, 2, 50, 19.75);
   blk('sand', 10, CEIL, 11.75, 17, 50, 19.75);
   // the floor under everything: L0's terrace rock, the pit's bed and its quicksand
@@ -240,6 +240,14 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
     og('darkBronze', new THREE.BoxGeometry(hwAt(CAP0) * 2 + 0.6, 0.8, hwAt(CAP0) * 2 + 0.6).translate(0, CAP0 - 0.3, 0));
     for (const [nx, nz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const ry = Math.atan2(nx, nz);
+      og('gold', new THREE.CylinderGeometry(1.1, 1.1, 0.12, 24).rotateX(Math.PI / 2).rotateY(ry).translate(nx * 4.06, CAP0 + 2.5, nz * 4.06));
+      for (let r = 0; r < 12; r++) {
+        const a = (r / 12) * Math.PI * 2;
+        og('gold', new THREE.BoxGeometry(0.1, 0.45, 0.06).rotateZ(a - Math.PI / 2).translate(Math.cos(a) * 1.5, Math.sin(a) * 1.5, 0).rotateY(ry).translate(nx * 4.06, CAP0 + 2.5, nz * 4.06));
+      }
+    }
+    for (const [nx, nz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const ry = Math.atan2(nx, nz);
       for (const u of [-2.2, 2.2]) {
         const cx = nx * 4 + (nz ? u : 0), cz = nz * 4 + (nx ? u : 0), cy = CAP0 + 2.5;
         og('bronze', new THREE.CylinderGeometry(0.55, 0.55, 0.5, 14).rotateX(Math.PI / 2).rotateY(ry).translate(cx + nx * 0.2, cy, cz + nz * 0.2));
@@ -317,7 +325,7 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
     const keep = k === 'cloth' ? ['position', 'normal', 'uv', 'sway'] : ['position', 'normal', 'uv'];
     for (const g of list) for (const a of Object.keys(g.attributes)) if (!keep.includes(a)) g.deleteAttribute(a);
     const merged = mergeG(list);
-    const mesh = new THREE.Mesh(merged, k === 'flame' ? flameMat : M[k]);
+    const mesh = new THREE.Mesh(merged, k === 'flame' ? flameMat : k === 'capital' ? M.obelisk : M[k]); // (the capital wears the same carved, grooved skin)
     obelisk.add(mesh);
     obMeshes[k] = mesh;
   }
@@ -458,7 +466,7 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
   candles(OX, L0, 12.6, 5, 0.6);
   B.armor(P(OX, L0, 18.6));
   // braziers on the terrace (lit when the gate opens)
-  const brz = (x, y, z, o = {}) => new Brazier(W, P(x, y, z), { onLit: (b, byPlayer) => byPlayer && rouseNear(b.pos, 14), ...o });
+  const brz = (x, y, z, o = {}) => new Brazier(W, P(x, y, z), { bd: Bd, at: [x, y, z], onLit: (b, byPlayer) => byPlayer && rouseNear(b.pos, 14), ...o });
   const braziers = [[], [], [], [], [], []];
   braziers[1].push(brz(-9, L0, 8.6, { real: true }), brz(9, L0, 8.6, { real: true }));
   // the pit's stair (along the south wall) back up to the terrace
@@ -565,8 +573,8 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
   candles(13.2, 16, 22, 4, 0.4);
   // a timed sun-disc on the back wall: hard-light steps up to L2
   const hl2 = [
-    new PhasePlatform(W, { ...(() => { const [a, b] = F.box(9.6, 16.8, 18.6, 12, 17.2, 21); return { min: a, max: b }; })(), on: false, zone }),
-    new PhasePlatform(W, { ...(() => { const [a, b] = F.box(9.6, 18.0, 14.6, 12, 18.4, 17); return { min: a, max: b }; })(), on: false, zone }),
+    new PhasePlatform(W, { ...(() => { const [a, b] = F.box(9.6, 16.8, 18.6, 12, 17.2, 21); return { min: a, max: b }; })(), on: false, zone, color: YELLOW }),
+    new PhasePlatform(W, { ...(() => { const [a, b] = F.box(9.6, 18.0, 14.6, 12, 18.4, 17); return { min: a, max: b }; })(), on: false, zone, color: YELLOW }),
   ];
   const act2 = new LightReceiver(W, { pos: P(11, 18.4, 29.9), face: F.face('-z'), color: YELLOW, size: 1.2, look: 'disc', mode: 'timed', time: 6, fill: 0.35, links: hl2 });
   K.lights.push(act2);
@@ -590,7 +598,7 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
   obelisk.add(new THREE.Mesh(mergeG(sockThroat.map((t) => new THREE.BoxGeometry(t[3] - t[0], t[4] - t[1], t[5] - t[2]).translate((t[0] + t[3]) / 2 - OX, (t[1] + t[4]) / 2, (t[2] + t[5]) / 2 - OZ).toNonIndexed())), M.bronze));
   K.lights.push(rt3);
   // its reward: hard light up onto the obelisk's collar
-  const hl3 = [new PhasePlatform(W, { ...(() => { const [a, b] = F.box(10.4, 20.4, 11, 12.6, 20.8, 13.6); return { min: a, max: b }; })(), on: false, zone })];
+  const hl3 = [new PhasePlatform(W, { ...(() => { const [a, b] = F.box(10.4, 20.4, 11, 12.6, 20.8, 13.6); return { min: a, max: b }; })(), on: false, zone, color: YELLOW })];
   hintL(13, L2, 4.2, 17, L2 + 3, 17, 'Behind the obelisk a prism glides on a rail. On its back, an old <b>cable socket</b>: the gliding prism lines up with it only at the <b>end of its run</b> — hold the beam on it as it pauses there.', 8);
 
   // ================================================================ STAGE 3: round the obelisk (y 22 → 29.2)
@@ -694,12 +702,9 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
   worshipper(-13.6, L1, 15.6, 'bow');
   worshipper(-13, L1, 19.4, 'raise', { shield: null });
   worshipper(14.2, 16, 20.6, 'tend', { face: yawTo(14.2, 20.6, 15.9, 21.4), shield: null });
-  worshipper(15.3, L2, 6, 'raise', { notice: 6 });
-  worshipper(15.5, L2, 9, 'bow', { shield: null, notice: 6 });
-  worshipper(15.5, L3, 13.4, 'raise', { shield: null, notice: 6 });
-  worshipper(16, L3, 16.4, 'kneel', { notice: 6 });
-  worshipper(9, L4, 3, 'bow', { shield: null });
-  worshipper(12.6, L4, 3.2, 'raise');
+  worshipper(15.4, L2, 7.5, 'raise', { notice: 6 });
+  worshipper(15.6, L3, 14.4, 'kneel', { notice: 6 });
+  worshipper(10.5, L4, 3, 'raise');
   // scarabs nest in the galleries' corners
   for (const [x, y, z, sh] of [[-15.5, L1, 21, null], [16, L2, 4.8, RED], [15.6, L4, 4, null]]) B.scarab(P(x, y, z), { color: YELLOW, shields: sh ? [sh] : undefined, range: 9, burrow: false });
   // two drones keep the apex
@@ -757,9 +762,9 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
   // braziers by storey, the seams, the frieze's gold, the obelisk's grooves, the darkness lifting
   // shafts of sunlight let in through slits in the roof as the temple wakes
   const shafts = [
-    { at: 1, s: new LightShaft(W, { top: P(-11, 29.9, 6), bottom: P(-11, L0 + 0.05, 6), r: 1.1, intensity: 0.3 }) },
-    { at: 2, s: new LightShaft(W, { top: P(12, CEIL - 0.1, 21), bottom: P(12, L3 + 0.05, 21), r: 1.3, intensity: 0.34 }) },
-    { at: 3, s: new LightShaft(W, { top: P(-11, 29.9, 25), bottom: P(-11, L1 + 0.05, 25), r: 0.9, intensity: 0.28 }) },
+    { at: 1, s: new LightShaft(W, { top: P(-11, 29.9, 6), bottom: P(-11, L0 + 0.05, 6), r: 1.1, intensity: 0.17 }) },
+    { at: 2, s: new LightShaft(W, { top: P(12, CEIL - 0.1, 21), bottom: P(12, L3 + 0.05, 21), r: 1.3, intensity: 0.2 }) },
+    { at: 3, s: new LightShaft(W, { top: P(-11, 29.9, 25), bottom: P(-11, L1 + 0.05, 25), r: 0.9, intensity: 0.16 }) },
   ];
   for (const sh of shafts) {
     sh.s.k = 0;
@@ -771,7 +776,7 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
     update(dt, player) {
       for (const p of incense) {
         if (Math.random() > dt * 3 || p.distanceToSquared(player.pos) > 28 * 28) continue;
-        W.fx.puff(p, rnd(-0.08, 0.08), rnd(0.35, 0.6), rnd(-0.08, 0.08), _smoke, 0.4, rnd(3, 5), 0.18, 4);
+        W.fx.puff(p, rnd(-0.08, 0.08), rnd(0.35, 0.6), rnd(-0.08, 0.08), _smoke, 0.12, rnd(3, 5), 0.16, 4);
       }
     },
   });
@@ -804,7 +809,8 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
   });
   // the obelisk's energy stirring: its grooves pulse brighter with every awakening, a deep hum near it
   const hum = audio.createLoop('reactor_hum', { gain: 0, rate: 0.5 });
-  let surge = 0, clock = 0;
+  let surge = 0, clock = 0, envOwned = false;
+  const ENV0 = game.scene.environmentIntensity; // (the world's usual ambient, put back as you leave)
   const reliefMat = M.relief, goldMat = M.gold;
   W.add({
     update(dt, player) {
@@ -813,15 +819,24 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
       surge = Math.max(0, surge - dt * 0.6);
       const k = wakeLevel / 5;
       const pulse = 0.5 + 0.5 * Math.sin(clock * (1.2 + k * 2.5));
-      glowEnergy.emissiveIntensity = collapsed ? 0.05 : 0.12 + k * 1.1 + pulse * (0.08 + k * 0.5) + surge * 2.5;
+      glowEnergy.emissiveIntensity = collapsed ? 0.05 : 0.1 + k * 0.5 + pulse * (0.05 + k * 0.25) + surge * 1.5;
       if (!collapsed && inTemple(player.pos)) placePulses(dt, Math.min(1, k + surge * 0.5));
       M.edge.color.setRGB(1, 0.7, 0.3).multiplyScalar(0.45 + k * 0.6);
       seamMat.color.setRGB(1, 0.55, 0.15).multiplyScalar(0.05 + k * 0.9 + pulse * 0.12 * k + surge * 0.8);
       reliefMat.emissiveIntensity = 0.04 + k * 0.7 + surge * 0.8;
       goldMat.emissiveIntensity = 0.3 + k * 0.5;
       flameMat.opacity = 0.75 + 0.25 * Math.sin(clock * 13) * Math.sin(clock * 5.3);
+      brazierFlicker(clock);
       const lp = F.local(player.pos, _v);
       const inside = inTemple(player.pos);
+      // the sky's ambient light (the scene's environment map) doesn't reach in here: dark until it wakes
+      const sc = game.scene;
+      if (inside || envOwned) {
+        const want = inside ? 0.05 + k * 0.17 : ENV0;
+        sc.environmentIntensity += (want - sc.environmentIntensity) * Math.min(1, dt * 1.5);
+        envOwned = inside || Math.abs(sc.environmentIntensity - ENV0) > 0.005;
+        if (!envOwned) sc.environmentIntensity = ENV0;
+      }
       const d = Math.hypot(lp.x - OX, lp.z - OZ) + Math.max(0, Math.abs(lp.y - 28) - 18);
       hum.setGain(inside && !collapsed ? (0.08 + k * 0.25) * Math.max(0, 1 - d / 30) + surge * 0.3 : 0);
     },
@@ -1012,7 +1027,7 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
         }
         if (u < 0.08) return null;
         if (u < 0.5) return [F.V(OX, Math.max(SAND, TIP - (falling?.y || 0) + 8), OZ, _lk), Math.min(1, (u - 0.08) * 6) * 0.8];
-        return [F.V(landing[0] + 2, ROOF - 2, landing[2] - 8, _lk), Math.min(1, (u - 0.5) * 3) * 0.6];
+        return [F.V(landing[0] + 12, ROOF - 4, landing[2] + 6, _lk), Math.min(1, (u - 0.5) * 3) * 0.6]; // (toward the crossing down the south flank)
       },
       onDone: () => {
         p.grounded = true;
@@ -1060,14 +1075,15 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
           launchPlayer();
         }
         // the blast up the shaft: the capstone goes, light floods in
-        if (!f.blast && f.t > 0.9) {
+        if (!f.blast && f.t > 0.6) {
           f.blast = true;
           capSolid.enabled = false;
-          f.cap = { v: new THREE.Vector3(...F.D(1.2, 26, -1.5)), s: new THREE.Vector3(rnd(-2, 2), rnd(-1, 1), rnd(-2, 2)) };
+          f.cap = { v: new THREE.Vector3(...F.D(-9, 24, -7)), s: new THREE.Vector3(rnd(-2, 2), rnd(-1, 1), rnd(-2, 2)) }; // (flung away to the north-east, clear of your way out)
           oculusShaft.k = 1;
           plume.visible = true;
           audio.sample('boss_slam', { gain: 1, rate: 0.5 });
           for (let k = 0; k < 24; k++) dust.puff(FV(OX + rnd(-3, 3), CEIL, OZ + rnd(-3, 3)), _v.set(rnd(-3, 3), rnd(12, 24), rnd(-3, 3)), rnd(1.5, 3), rnd(2, 4), 0xc0a070, 3.5, { drag: 0.8 });
+          for (let k = 0; k < 6; k++) dust.jet(FV(OX + rnd(-3, 3), CEIL + 1, OZ + rnd(-3, 3)), [rnd(-0.25, 0.25), 1, rnd(-0.25, 0.25)], 5, rnd(24, 36), 1.2, 0xd0b080);
         }
         // platforms it passes shatter: dust bursts off the walls at its height
         if (Math.random() < dt * 30) {
@@ -1164,7 +1180,7 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
       deco('bronze', 23.3, 49.8, 11.6, 23.9, ROOF + 0.7, 12.2);
     }
     wallLedge(13, 16, 45.2);
-    const bridgeC = new PhasePlatform(W, { ...(() => { const [a, b] = F.box(18.8, 44.8, 16, 20.6, 45.2, 24); return { min: a, max: b }; })(), on: false, zone });
+    const bridgeC = new PhasePlatform(W, { ...(() => { const [a, b] = F.box(18.8, 44.8, 16, 20.6, 45.2, 24); return { min: a, max: b }; })(), on: false, zone, color: YELLOW });
     // its sun-disc hangs from an arm off the roof, over the bridge's far end
     deco('bronze', 17.5, ROOF + 0.4, 19.2, 21.4, ROOF + 0.8, 19.8);
     deco('bronze', 21.0, 48.6, 19.3, 21.3, ROOF + 0.4, 19.7);
