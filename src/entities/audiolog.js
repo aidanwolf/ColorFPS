@@ -124,6 +124,7 @@ function assets() {
 // formants, gated into phrases, with a faint glassy shimmer), panned toward it, through the world loops bus
 // (so it hushes while paused).
 const whisper = { best: Infinity, pos: new THREE.Vector3(), frame: -1, nodes: null };
+export const WHISPER = whisper; // (tests read its level)
 function whisperNodes() {
   const ctx = audio.ctx;
   if (whisper.nodes || !ctx || !audio.loopBus || !audio.noiseBuf) return whisper.nodes;

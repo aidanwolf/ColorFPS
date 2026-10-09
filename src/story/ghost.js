@@ -180,6 +180,9 @@ const smooth = (a, b, x) => {
 };
 const EMPTY = [];
 const SIDES = [1, -1];
+const AHEAD = [0, 14, -14, 28, -28, 40, -40]; // placement angles off the view direction (degrees)
+const WIDE = [55, -55, 75, -75, 100, -100];
+const DISTS = [1, 0.85, 1.2, 1.45, 0.65]; // ... and distances, times the vignette's
 const LR = ['l', 'r'];
 const bf = { x: 0, z: 0, y: 0, s: 0, c: 1 }; // the body frame this frame: position, sin/cos of its yaw
 // a body-frame point → stage
@@ -358,13 +361,14 @@ export class Ghost {
     const base = Math.atan2(_v.x, _v.z);
     const dist = (c.dist || 3.6) + 0.5; // (a little farther than the stage needs: she stands clear of the log card)
     const view = (c.view ?? 28) * D2R;
-    const tryFit = (strict) => {
-      for (const da of [0, 16, -16, 32, -32, 50, -50, 72, -72, 100, -100]) {
-        for (const k of [1, 0.8, 1.25, 0.62, 1.5]) {
+    const tryFit = (strict, wide) => {
+      // the right distance a little off-centre beats dead ahead but cramped
+      for (const k of DISTS) {
+        for (const da of wide ? WIDE : AHEAD) {
           const a = base + da * D2R, d = dist * k;
           const cx = p.x + Math.sin(a) * d, cz = p.z + Math.cos(a) * d;
-          const g = this.groundAt(cx, p.y + 1.2, cz);
-          if (!(g > p.y - 2.5)) continue;
+          const g = this.groundAt(cx, p.y + 0.45, cz); // (never up on a crate or a rail)
+          if (!(g > p.y - 1.5)) continue;
           if (!this.clearAt(cx, g, cz)) continue;
           // the stage faces the player, turned a little so we see her three-quarters on
           const yaw = Math.atan2(p.x - cx, p.z - cz) + view;
@@ -393,10 +397,15 @@ export class Ghost {
       }
       return false;
     };
-    if (!tryFit(true) && !tryFit(false)) {
-      // nowhere clear: right where you're looking, a couple of metres out, at your feet's height
-      this.group.position.set(p.x + _v.x * 2.4, p.y, p.z + _v.z * 2.4);
-      this.group.rotation.set(0, base + Math.PI + view, 0);
+    // in view with room for the whole vignette; else in view, just room for her; else (a tight space) right
+    // where you're looking, a couple of metres out at your feet's height; else off to one side
+    if (!tryFit(true, false) && !tryFit(false, false)) {
+      let look = 2.4;
+      while (look > 1.3 && !(this.clearAt(p.x + _v.x * look, p.y, p.z + _v.z * look) && this.world.lineOfSight(cam.position, _v3.set(p.x + _v.x * look, p.y + 1.2, p.z + _v.z * look)))) look -= 0.5;
+      if (look > 1.3 || (!tryFit(true, true) && !tryFit(false, true))) {
+        this.group.position.set(p.x + _v.x * Math.max(look, 1.4), p.y, p.z + _v.z * Math.max(look, 1.4));
+        this.group.rotation.set(0, base + Math.PI + view, 0);
+      }
     }
     this.group.updateMatrixWorld(true);
     _gq.setFromEuler(this.group.rotation);

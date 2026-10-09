@@ -134,7 +134,10 @@ void main() {
     a = (1.0 - r) * 0.16 + smoothstep(0.82, 0.92, r) * (1.0 - smoothstep(0.92, 1.0, r)) * 0.32;
     a *= 0.7 + 0.3 * sin(uTime * 3.1 + r * 9.0);
     col = uColA;
+    a *= clamp(uReveal * 3.0, 0.0, 1.0) * (1.0 - uDissolve);
     h = 1.0;
+    edge = 0.0;
+    dEdge = 0.0;
   } else if (vKind > 2.5) {
     // set pieces: a little dimmer than her, more outline
     a = (0.04 + 0.75 * rim) * scan + band * 0.08;

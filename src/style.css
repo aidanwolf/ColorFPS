@@ -365,13 +365,14 @@ body.touch #boss-bar { width: min(520px, 60vw); }
 /* ---------- Audio logs (src/story/recorder.js) ---------- */
 #logcard {
   position: fixed; left: 50%; bottom: 104px; transform: translateX(-50%); z-index: 11; pointer-events: none;
-  width: min(680px, 86vw); padding: 10px 16px 9px; background: rgba(6, 14, 22, 0.8); border-left: 3px solid #8fe6ff;
+  width: min(680px, 86vw); padding: 10px 16px 9px; background: linear-gradient(90deg, rgba(6, 16, 26, 0.84), rgba(6, 16, 26, 0.62)); border-left: 3px solid #8fe6ff;
   box-shadow: 0 0 24px rgba(143, 230, 255, 0.12); transition: opacity 0.5s; opacity: 1;
 }
 #logcard.out { opacity: 0; }
 #logcard .log-head { display: flex; align-items: center; gap: 10px; font-size: 11px; letter-spacing: 3px; color: #8fe6ff; text-transform: uppercase; }
-#logcard .log-rec { width: 8px; height: 8px; border-radius: 50%; background: #ff3a3a; box-shadow: 0 0 8px #ff3a3a; animation: log-rec 1.4s steps(1) infinite; }
-@keyframes log-rec { 50% { opacity: 0.15; } }
+/* her hologram's heartbeat: a soft spectral glow breathing, not a REC light */
+#logcard .log-rec { width: 8px; height: 8px; border-radius: 50%; background: #c8f6ff; box-shadow: 0 0 10px 2px #8fe6ff; animation: log-rec 2.6s ease-in-out infinite; }
+@keyframes log-rec { 50% { opacity: 0.25; box-shadow: 0 0 4px 0 #8fe6ff; } }
 #logcard .log-tag { font-weight: 700; }
 #logcard .log-title { color: var(--ink); letter-spacing: 2px; }
 #logcard .log-skip {
