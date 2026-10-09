@@ -32,6 +32,11 @@ const _lf = { f: 0, s: 0 };
 // the ground enemies currently awake (near the player), so they can keep from walking into each other
 const AWAKE = new Set();
 
+// Solar's quicksand: a floor box of the liquid kind that drags you down rather than kills (player.js sinkIn),
+// so it carries no lethal `hazard` flag. Ground enemies treat it as no floor (they stop at its edge, and one
+// that lands in it is swallowed) unless they set `wadesQuicksand` (the Mummy's stilts).
+export const isQuicksand = (s) => !!s && (!!s.quicksand || (s.kind === 'acid' && !s.hazard));
+
 // 1 inside `near`, fading linearly to 0 at `far`
 export const falloff = (d, near, far) => THREE.MathUtils.clamp(1 - (d - near) / (far - near), 0, 1);
 export const rnd = (a, b) => a + Math.random() * (b - a);
@@ -381,20 +386,27 @@ export class GroundEnemy {
   }
 
   // ---- ground probing ----
-  // The floor a walker standing at (x, y, z) would be on: the same level, a step up or a step down.
-  // Hazards (lava, acid) and walls count as no floor.
+  // Can it stand on this solid? Hazards (lava, acid) never; quicksand only if it wades.
+  footing(s) {
+    return isQuicksand(s) ? !!this.wadesQuicksand : !s.hazard;
+  }
+
+  // The floor a walker standing at (x, y, z) would be on: the same level, a step up or a step down
+  // (`stepUp` / `stepDown` m: a long-legged walker sets them higher). Hazards and walls count as no floor.
   groundAt(x, y, z) {
     const W = this.world;
+    const up = this.stepUp ?? STEP_UP, down = this.stepDown ?? 0.5;
     let s = W.pointInSolid(_g.set(x, y + 0.45, z));
-    if (s) return s.max.y <= y + STEP_UP && !s.hazard ? s : null;
+    if (s) return s.max.y <= y + up && this.footing(s) ? s : null;
     s = W.pointInSolid(_g.set(x, y - 0.05, z)) || W.pointInSolid(_g.set(x, y - 0.5, z));
-    return s && !s.hazard ? s : null;
+    if (!s && down > 0.5) s = W.pointInSolid(_g.set(x, y - (down + 0.5) / 2, z)) || W.pointInSolid(_g.set(x, y - down, z));
+    return s && this.footing(s) ? s : null;
   }
 
   // Would its body overlap a solid standing at (x, y, z)? (Anything lower than a step is walked onto.)
   blocked(x, y, z) {
     const r = this.radius, W = this.world;
-    const y1 = y + r + STEP_UP;
+    const y1 = y + r + (this.stepUp ?? STEP_UP);
     if (W.pointInSolid(_b.set(x, y1, z), r)) return true;
     const y2 = y + this.height - r;
     return y2 > y1 + 0.2 && !!W.pointInSolid(_b.set(x, y2, z), r);
@@ -491,7 +503,7 @@ export class GroundEnemy {
       if (this.vel.y <= 0) {
         const s = this.world.pointInSolid(_g.set(p.x, ny, p.z));
         if (s) {
-          if (s.hazard) return this.onHazard();
+          if (s.hazard || !this.footing(s)) return this.onHazard(s);
           const impact = -this.vel.y;
           p.y = Math.max(ny, s.max.y);
           this.grounded = true;
@@ -664,11 +676,17 @@ export class GroundEnemy {
     return 'immune';
   }
 
-  // fell into lava/acid or off the world: gone for good (restockable)
-  onHazard() {
+  // fell into lava/acid (or quicksand it can't wade) or off the world: gone for good (restockable)
+  onHazard(s = null) {
     const fx = this.world.fx;
-    fx.burst(this.pos, 0xff7a1a, { count: 20, speed: 4, life: 0.6, size: 0.3, gravity: 5 });
-    fx.burst(this.pos, 0x3a3a44, { count: 8, speed: 1, life: 1.2, size: 0.6, gravity: -1.5 });
+    if (isQuicksand(s)) {
+      // swallowed: a gout of sand and a ripple where it went under
+      fx.burst(this.pos, 0xc9a26a, { count: 26, speed: 4.5, life: 0.7, size: 0.28, gravity: 10, dir: UP });
+      fx.ring(_g.copy(this.pos).setY(this.pos.y + 0.05), UP, 0xa88758, { size: 0.3, end: 2.2, life: 0.5, thick: 0.25, k: 0.6 });
+    } else {
+      fx.burst(this.pos, 0xff7a1a, { count: 20, speed: 4, life: 0.6, size: 0.3, gravity: 5 });
+      fx.burst(this.pos, 0x3a3a44, { count: 8, speed: 1, life: 1.2, size: 0.6, gravity: -1.5 });
+    }
     this.vanish();
   }
 
