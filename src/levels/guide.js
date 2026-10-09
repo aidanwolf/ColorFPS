@@ -115,10 +115,12 @@ function azureAfter(p, game) {
     if (storm && storm.state === 'cleared') return 'Dive through the <b>moon pool</b> and swim <b>up</b> past the air bell to the crew deck.';
     return 'Clear the dome.';
   }
-  if (p.y < -9.5 && p.y > -64 && inBox(p, 90, 112, -127, -105) && !inBox(p, 91.5, 108.5, -123.5, -111.5, -22.5, -15)) return 'Swim <b>up</b> along the lights: the <b>air bell</b>, then the crew deck\'s moon pool.' + swimHint(p);
+  if (p.y < -9.5 && p.y > -64 && inBox(p, 90, 112, -127, -105) && !inBox(p, 91.5, 112.5, -123.5, -111.5, -22.5, -15)) return 'Swim <b>up</b> along the lights: the <b>air bell</b>, then the crew deck\'s moon pool.' + swimHint(p);
   if (inBox(p, 91.5, 112.5, -123.5, -111.5, -22.5, -15)) return storm && storm.state === 'cleared' ? 'Through the hatch <b>east</b>, into the hull.' : 'The hatch is locked until the dome is clear.';
   // (the corridor out of the Ballast Shaft lies inside the Flooded Depths' box)
   if (inBox(p, 107, 126, -149, -145, -26, -21)) return 'Out of the deep: on to the <b>Archive</b>.';
+  // (the trench crossing's last stretch to the hull lies inside the Flooded Depths' box)
+  if (inBox(p, 80, 112.2, -152, -140, -64, -40)) return 'Swim <b>east</b> across the trench to the hull: the <b>air bell</b> halfway has air. When the intake <b>pulses</b>, shelter behind a wreck.' + swimHint(p);
   // the Flooded Depths
   if (inBox(p, 108, 162, -153, -100, -63, 8)) {
     if (inBox(p, 108, 147, -127, -100, -31.5)) {
@@ -143,6 +145,7 @@ function azureAfter(p, game) {
   }
   if (inBox(p, 50, 66, -182, -158, -47, -17)) return `Work down the rock pillars over the brine to the hole, blast its ${tag(RED, 'red')} grate and sink down the flooded pipe: shoot ${tag(YELLOW, 'yellow')}, then ${tag(GREEN, 'green')}.`;
   if (p.y < -50 && p.z < -157.5 && p.x < 67 && !(st.vaultDoor && st.vaultDoor.openT >= 0)) return `Free the vault door: fire ${tag(YELLOW, 'yellow')} over the glass in the west alcove; the azure panels carry it to the target.`;
+  if (p.y < -50 && p.z < -150.5 && p.x < 67) return 'The vault door is open: through it, to the <b>generator hall</b>.'; // (dry ground: not the swim line below)
   if (inBox(p, 52, 80.5, -158, -121, -57, -41)) {
     const d = st.dynamo;
     if (d && !d.defeated && d.state !== 'dormant') return d.state === 'stunned' ? `It's overloaded: ${W('hose its core')}!` : `Soak the floor where the Dynamo walks, then ${W('hose a conduit')} to short the surge into it.`;
