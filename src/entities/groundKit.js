@@ -16,6 +16,11 @@ import { esfx } from './enemySfx.js';
 export { esfx, barks };
 
 export const GRAVITY = 22;
+// slipping on puddles (world.wet): grip lost on a full slick, the chance a second (× slick, more when
+// running) of going down, and how long it's down for
+const SLIP_GRIP_LOSS = 0.93;
+const SLIP_CHANCE = 1.3;
+const SLIP_DOWN = 1.2;
 const STEP_UP = 0.47; // the tallest ledge a walker steps straight onto
 const AXES = ['x', 'z'];
 const UP = new THREE.Vector3(0, 1, 0);
@@ -458,7 +463,9 @@ export class GroundEnemy {
         this.move.x += (d2 ? dx / d : Math.random() - 0.5) * push;
         this.move.z += (d2 ? dz / d : Math.random() - 0.5) * push;
       }
-      const k = Math.min(1, this.accel * dt / Math.max(0.5, this.vel.distanceTo(this.move)));
+      // (on a puddle the feet barely grip: it skids on with the speed it had; see slip)
+      const grip = this.slick ? 1 - SLIP_GRIP_LOSS * this.slick : 1;
+      const k = Math.min(1, this.accel * grip * dt / Math.max(0.5, this.vel.distanceTo(this.move)));
       this.vel.x += (this.move.x - this.vel.x) * k;
       this.vel.z += (this.move.z - this.vel.z) * k;
       this.vel.y = 0;
@@ -623,12 +630,17 @@ export class GroundEnemy {
       this.lastSeen.copy(player.pos);
       this.onAlert?.(player);
     }
-    this.think(dt, player);
+    // puddles (world.wet): only looked at while there's water about
+    if (this.slipT || this.world.wet?.count) this.slip(dt);
+    else if (this.slick) this.slick = 0;
+    if (this.slipT > 0) this.move.set(0, 0, 0); // down: no thinking until it's back up
+    else this.think(dt, player);
     if (this.dead) return;
     this.physics(dt);
     if (this.dead) return;
     this.sync();
     this.animate(dt, player);
+    if (this.slipT || this.slipTilt) this.poseSlip(dt);
     this.flash = Math.max(0, this.flash - dt * 6);
     this.immuneFlash = Math.max(0, this.immuneFlash - dt * 5);
     this.updateLoops();
@@ -637,6 +649,59 @@ export class GroundEnemy {
   sync() {
     this.group.position.copy(this.pos);
     this.group.rotation.y = this.yaw;
+  }
+
+  // ---- slipping on water (world.wet) ----
+  // On a puddle it loses its grip (physics), skids on and can't stop or turn well; running across one
+  // there's a fair chance its feet go out from under it: it crashes onto its back for SLIP_DOWN s
+  // (helpless) and gets back up.
+  slip(dt) {
+    const wet = this.world.wet;
+    this.slick = this.grounded && wet?.count ? wet.slickAt(this.pos) : 0;
+    if (this.slipT > 0) {
+      this.slipT = Math.max(0, this.slipT - dt);
+      return;
+    }
+    this.slipCool = Math.max(0, (this.slipCool || 0) - dt);
+    const speed = Math.hypot(this.vel.x, this.vel.z);
+    if (this.slick > 0.4 && speed > 1.6 && !this.slipCool && Math.random() < dt * SLIP_CHANCE * this.slick * Math.min(2, speed / 3)) {
+      this.slipT = SLIP_DOWN;
+      this.slipCool = SLIP_DOWN + 1.5;
+      this.slipDir = Math.random() < 0.5 ? -1 : 1;
+      director.release(this);
+      this.interrupt?.();
+      this.group.rotation.order = 'YXZ';
+      const fx = this.world.fx;
+      fx.splash?.(_g.copy(this.pos).setY(this.pos.y + 0.05), 6);
+      esfx('robot_pain_light', this.pos, 0.8, (this.voicePitch ?? 1) * 1.3);
+      sfx('slime_splat', 0.5 * falloff(this.dist, 6, 40), { rate: 1.3, alt: 'land', altRate: 0.8 });
+    }
+  }
+
+  // tipped over backward (and a little to one side) while down, rocking back up at the end
+  poseSlip(dt) {
+    const want = this.slipT > 0.3 ? 1 : this.slipT > 0 ? this.slipT / 0.3 : 0;
+    this.slipTilt = THREE.MathUtils.damp(this.slipTilt || 0, want, want > (this.slipTilt || 0) ? 14 : 8, dt);
+    if (this.slipTilt < 0.002 && !this.slipT) this.slipTilt = 0;
+    const k = this.slipTilt;
+    this.group.rotation.x = -1.25 * k;
+    this.group.rotation.z = 0.25 * k * (this.slipDir || 1) + (this.slipT > 0.3 ? Math.sin(this.t * 30) * 0.03 * k : 0);
+    this.group.position.y = this.pos.y + 0.15 * k;
+  }
+
+  // Shock water (world.wet): electrocuted where it stands.
+  onShock() {
+    if (this.dead || this.dying || this.debris) return;
+    const c = this.center(new THREE.Vector3());
+    const fx = this.world.fx;
+    fx.sparks(c, UP, 0xcfe8ff, { count: 26, speed: 9, spread: 1.6, life: 0.45, hot: 0.9 });
+    fx.flash(c, 0x9fd0ff, { size: 1.6, life: 0.15, k: 2 });
+    sfx('joint_sparks', 0.9 * falloff(this.dist, 6, 40), { alt: 'energy_crackle' });
+    // it goes down however it's armored: shields drop, the last hit lands
+    this.shieldUp && this.dropShield?.(false);
+    this.hp = Math.min(this.hp, 1);
+    const dir = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
+    this.onHit(this.color, { kind: 'shock', point: c, normal: UP.clone(), dir });
   }
 
   updateLoops() {}

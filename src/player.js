@@ -39,6 +39,15 @@ const SINK_FREE = 0.18;
 const SINK_SHIELD = 0.85;
 const SINK_DEATH = 1.4;
 const SAND_TINT = 0xd9b46a;
+// Wet ground (world.wet puddles): the grip left on a full slick (it keeps your momentum: hard to stop or
+// turn), and the speed a sprint across a long slick builds up to (× run speed; sprint is 1.38×) at
+// SLICK_BUILD of run speed a second. The build-up carries through the air until you land on dry ground,
+// and a jump off it at full speed is SLICK_LEAP times as strong: sprint jump ≈ 7.5 m, slick leap ≈ 9.8 m.
+const SLICK_GRIP = 0.12;
+const SLICK_TOP = 1.6;
+const SLICK_BUILD = 0.22;
+const SLICK_LEAP = 1.12;
+const SLIDE_MAX = (SLICK_TOP * RUN_SPEED) / SPRINT_SPEED - 1; // the boost on top of a sprint
 export const AIR_MAX = 14; // seconds of breath
 const _down = new THREE.Vector3(0, -1, 0);
 const _swimF = new THREE.Vector3(), _swimT = new THREE.Vector3(); // m below the last ground: you've fallen off the world
@@ -100,6 +109,7 @@ export class Player {
     this.inLava = false;
     this.inSand = false;
     this.sinkDepth = 0;
+    this.slideBoost = 0;
     if (this.armor) this.setArmor(0); // a respawn (or any reset) starts unarmored
   }
 
@@ -158,6 +168,18 @@ export class Player {
     this.sprinting = false;
     this.launched = false;
     this.fallTop = this.pos.y; // no fall damage carried through water
+  }
+
+  // On a puddle: sprinting flat out builds the slide boost. It holds through the air and bleeds off over
+  // about half a second back on dry ground (or once you slow down). Spray kicks up from your feet.
+  slide(slick, dt) {
+    const b = this.slideBoost || 0;
+    if (slick > 0.3 && this.sprinting && this.speed2d > SPRINT_SPEED * 0.85) this.slideBoost = Math.min(SLIDE_MAX, b + dt * SLICK_BUILD * slick * (RUN_SPEED / SPRINT_SPEED));
+    else if (this.grounded && (slick < 0.3 || this.speed2d < RUN_SPEED)) this.slideBoost = Math.max(0, b - dt * 0.35);
+    if (slick > 0.3 && this.speed2d > 3 && Math.random() < dt * (6 + this.speed2d)) {
+      const fx = this.game.world.fx;
+      fx.burst(_swimT.copy(this.pos).setY(this.pos.y + 0.05), 0xcfeeff, { count: 4, speed: 2.5, life: 0.4, size: 0.12, gravity: 9, dir: _swimF.set(this.vel.x * 0.15, 1.2, this.vel.z * 0.15) });
+    }
   }
 
   updateAir(dt) {
@@ -245,10 +267,13 @@ export class Player {
     // Shift sprints (forward-ish only); a fully pushed touch stick sprints too
     const stickFull = input.stick && Math.hypot(input.stick.f, input.stick.r) > 0.97;
     this.sprinting = !this.crouching && f > 0 && (input.down('ShiftLeft') || input.down('ShiftRight') || stickFull);
-    const speed = (this.crouching && this.grounded ? CROUCH_SPEED : this.sprinting ? SPRINT_SPEED : RUN_SPEED) * (this.inLava ? LAVA_SLOW : 1) * (this.sinkDepth ? Math.max(0.12, 0.5 - this.sinkDepth * 0.45) : 1);
+    // puddles (world.wet): slick underfoot; a sprint across one builds speed (slide)
+    const slick = this.grounded && world.wet?.count ? world.wet.slickAt(this.pos) : 0;
+    if (slick || this.slideBoost) this.slide(slick, dt);
+    const speed = (this.crouching && this.grounded ? CROUCH_SPEED : this.sprinting ? SPRINT_SPEED : RUN_SPEED) * (this.inLava ? LAVA_SLOW : 1) * (this.sinkDepth ? Math.max(0.12, 0.5 - this.sinkDepth * 0.45) : 1) * (this.slideBoost ? 1 + this.slideBoost : 1);
     const tx = mx * speed, tz = mz * speed;
     // (after a jump pad, steering is weaker so holding a key can't cancel the pad's throw)
-    const accel = this.grounded ? GROUND_ACCEL : AIR_ACCEL * (this.launched ? 0.3 : 1);
+    const accel = this.grounded ? GROUND_ACCEL * (slick ? 1 - (1 - SLICK_GRIP) * slick : 1) : AIR_ACCEL * (this.launched ? 0.3 : 1);
     const dvx = tx - this.vel.x, dvz = tz - this.vel.z;
     const dvl = Math.hypot(dvx, dvz);
     // in the air, don't brake momentum from jump pads unless the player steers
@@ -263,7 +288,7 @@ export class Player {
     // (stuck in quicksand, jump is a haul upward instead: sinkIn)
     this.buffer = input.hit('Space') && !(this.inSand && this.sinkDepth > SINK_FREE) ? BUFFER : this.buffer - dt;
     if (this.buffer > 0 && this.coyote > 0) {
-      this.vel.y = JUMP_V;
+      this.vel.y = JUMP_V * (this.slideBoost ? 1 + (SLICK_LEAP - 1) * Math.min(1, this.slideBoost / SLIDE_MAX) : 1);
       this.buffer = 0;
       this.coyote = 0;
       this.grounded = false;

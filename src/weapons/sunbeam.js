@@ -51,8 +51,8 @@ export class SunBeam {
     this.mirrorsWas = new Set();
     this.mirrorsNow = new Set();
     // a wide soft haze round a tight bright beam with a white-hot core
-    this.haze = new TubePool(scene, MAX_BOUNCES + 2, { additive: true, r0: 0.05, r1: 0.34, taper: 7, color: new THREE.Color(0.9, 0.42, 0.06).multiplyScalar(0.55), core: 0x000000, soft: 2, coreP: 40, freq: 0.5, speed: 14, noise: 0.7, wob: 0.18, alpha: 0.6 });
-    this.core = new TubePool(scene, MAX_BOUNCES + 2, { additive: true, r0: 0.02, r1: 0.085, taper: 4, color: GOLD, core: CORE.clone().multiplyScalar(1.9), soft: 1.3, coreP: 9, freq: 0.9, speed: 30, noise: 0.55, wob: 0.12, alpha: 1 });
+    this.haze = new TubePool(scene, MAX_BOUNCES + 2, { additive: true, r0: 0.06, r1: 0.42, taper: 7, color: new THREE.Color(0.95, 0.45, 0.06).multiplyScalar(0.7), core: 0x000000, soft: 2, coreP: 40, freq: 0.5, speed: 14, noise: 0.7, wob: 0.18, alpha: 0.6 });
+    this.core = new TubePool(scene, MAX_BOUNCES + 2, { additive: true, r0: 0.024, r1: 0.11, taper: 4, color: GOLD, core: CORE.clone().multiplyScalar(1.9), soft: 1.3, coreP: 9, freq: 0.9, speed: 30, noise: 0.55, wob: 0.12, alpha: 1 });
     this.light = this.game.world.addLight(0xffb040, 0, 9, 1.4);
     this.hum = null;
     this.buzz = null;
@@ -192,7 +192,7 @@ export class SunBeam {
       const u1 = this.core.seg(_from, _end, phase, this.now);
       if (u1) {
         u1.uAlpha.value = ignite * dim;
-        u1.uR1.value = 0.085 * (0.7 + 0.3 * ignite);
+        u1.uR1.value = 0.11 * (0.7 + 0.3 * ignite);
       }
       const u2 = this.haze.seg(_from, _end, phase, this.now);
       if (u2) u2.uAlpha.value = 0.6 * ignite * dim * flick;

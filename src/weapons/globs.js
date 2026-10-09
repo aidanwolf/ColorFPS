@@ -328,14 +328,16 @@ export function blast(world, at, radius, color, { direct = null, normal = null, 
     }
     if (typeof e.onSplash === 'function') e.onSplash(point, radius, color);
   }
-  // the player: a shove (no harm), mostly upward from below, so a glob at your feet as you jump lifts you
+  // the player: a shove (no harm), mostly upward from below, so a glob at your feet as you jump lifts you.
+  // Standing on the ground it only nudges you (globbing a riser you're riding mustn't bounce you off it).
   if (push > 0 && !pl.dead) {
     _p.copy(pl.pos).setY(pl.pos.y + 0.9);
     const d = _p.distanceTo(point), reach = radius * 1.35;
     if (d < reach && world.lineOfSight(point, _p)) {
-      const k = push * (1 - d / reach);
+      const below = point.y < pl.pos.y + 0.6;
+      const k = push * (1 - d / reach) * (pl.grounded && below ? 0.25 : 1);
       _v.subVectors(_p, point).normalize();
-      if (point.y < pl.pos.y + 0.6) _v.y = Math.max(_v.y, 0.6);
+      if (below) _v.y = pl.grounded ? 0 : Math.max(_v.y, 0.6);
       _v.normalize();
       pl.vel.x += _v.x * k;
       pl.vel.z += _v.z * k;

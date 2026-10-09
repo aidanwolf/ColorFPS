@@ -40,6 +40,7 @@ const MERGE_GAP = 0.4; // m: water landing this close to a puddle's edge feeds i
 const SHOCK_EVERY = 0.2;
 const SHOCK_REACH = 0.3; // m a shocker's box reaches out to touch a puddle
 const ARCS = 18;
+audio.manifest?.then(() => audio.prefetch(['energy_crackle', 'joint_sparks']));
 const _v = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
 const _p0 = new THREE.Vector3(), _p1 = new THREE.Vector3(), _pn = new THREE.Vector3(), _pp = new THREE.Vector3(), _j = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
@@ -89,12 +90,16 @@ const fragmentShader = `
       float ph = fract(uTime * 0.45 + fi * 0.37 + uSeed);
       vec2 c = uCenter.xz + (vec2(hash(vec2(fi, floor(uTime * 0.45 + fi * 0.37 + uSeed))), hash(vec2(floor(uTime * 0.45 + fi * 0.37 + uSeed), fi + 7.0))) - 0.5) * uR * 1.2;
       float rr = length(w - c) - ph * 1.4;
-      rip += (1.0 - smoothstep(0.0, 0.07, abs(rr))) * (1.0 - ph) * (1.0 - ph);
+      rip += (1.0 - smoothstep(0.0, 0.035, abs(rr))) * (1.0 - ph) * (1.0 - ph);
     }
     float ndv = clamp(V.y, 0.0, 1.0);
     float fres = pow(1.0 - ndv, 3.0);
-    float glint = smoothstep(0.82, 0.98, noise(w * 7.0 + vec2(uTime * 0.3, -uTime * 0.2))) * (0.4 + fres);
-    vec3 col = vec3(0.025, 0.04, 0.06) + uSky * (0.18 + 0.9 * fres) + vec3(0.7, 0.85, 1.0) * (rip * 0.35 + glint * 0.8);
+    // glints: a twinkling point of light in some of the cells of a fine grid
+    vec2 gc = floor(w * 4.0), gf = fract(w * 4.0) - 0.5;
+    vec2 go = vec2(hash(gc + uSeed), hash(gc + 9.1 + uSeed)) - 0.5;
+    float tw = max(0.0, sin(uTime * (1.5 + 2.0 * hash(gc + 3.3)) + hash(gc) * 6.28));
+    float glint = (1.0 - smoothstep(0.0, 0.07, length(gf - go * 0.6))) * step(0.6, hash(gc + 5.7)) * tw * tw * (0.3 + fres);
+    vec3 col = vec3(0.025, 0.04, 0.06) + uSky * (0.18 + 0.9 * fres) + vec3(0.7, 0.85, 1.0) * (rip * 0.22 + glint * 1.2);
     float alpha = edge * uWet * (0.5 + 0.4 * fres + rip * 0.2);
     if (uShock > 0.0) {
       // arcs: thin ridges of two drifting noise fields, flickering
@@ -102,7 +107,7 @@ const fragmentShader = `
       float n2 = abs(noise(w * 4.1 + vec2(-uTime * 5.1, uTime * 7.7) + 3.0) - 0.5);
       float bolt = (1.0 - smoothstep(0.0, 0.035, n1)) + 0.7 * (1.0 - smoothstep(0.0, 0.025, n2));
       float flick = 0.55 + 0.45 * step(0.3, hash(vec2(floor(uTime * 24.0), uSeed)));
-      col += vec3(0.25, 0.55, 1.0) * 0.5 * uShock + vec3(0.75, 0.9, 1.0) * bolt * 3.0 * flick * uShock;
+      col += vec3(0.2, 0.5, 1.0) * 0.6 * uShock + vec3(0.55, 0.8, 1.0) * bolt * 2.4 * flick * uShock;
       alpha = max(alpha, edge * uShock * (0.55 + bolt * 0.45));
     }
     gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.92));
@@ -253,6 +258,9 @@ export class WetSurfaces {
       const d = Math.hypot(q.pos.x - p.pos.x, q.pos.z - p.pos.z);
       if (d > (p.r + q.r) * 0.7) continue;
       const a1 = Math.PI * p.r * p.r, a2 = Math.PI * q.r * q.r;
+      // (two that would make more than one full-size puddle stay as they are, overlapping: a long slick
+      // sprayed along a path is a chain of them)
+      if (a1 + a2 > Math.PI * PUDDLE_MAX * PUDDLE_MAX) continue;
       p.pos.x = (p.pos.x * a1 + q.pos.x * a2) / (a1 + a2);
       p.pos.z = (p.pos.z * a1 + q.pos.z * a2) / (a1 + a2);
       p.wet = Math.max(p.wet, q.wet);
