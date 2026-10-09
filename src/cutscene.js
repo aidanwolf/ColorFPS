@@ -119,6 +119,7 @@ export class UnlockCutscene {
     g.blaster.gun.visible = false;
     g.hud.cinematic(true);
     g.hud.zone.classList.remove('show');
+    audio.hush(); // (the music falls away for the power-up: see absorb)
     audio.absorb();
   }
 
@@ -141,7 +142,7 @@ export class UnlockCutscene {
     this.shock.visible = true;
     g.hud.whiteFlash();
     g.player.shake = 0.7;
-    audio.fanfare(this.color);
+    audio.powerUp(this.color);
     g.hud.zoneTitle('CHROMA UNLOCKED', COLORS[this.color].name, COLORS[this.color].css, 4.5);
   }
 
@@ -217,6 +218,7 @@ export class UnlockCutscene {
   }
 
   finish() {
+    audio.unhush(0.3); // (a safety net: the power-up jingle normally brings the music back itself)
     const g = this.game;
     this.active = false;
     this.suit.visible = false;

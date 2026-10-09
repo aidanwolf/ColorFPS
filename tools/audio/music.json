@@ -82,5 +82,9 @@
  "music_finale_heart": {
   "prompt": "Apocalyptic final boss climax, full orchestra and choir with heavy guitars and glittering prismatic synths, every theme colliding, triumphant and desperate, instrumental, seamless loop",
   "ms": 90000
+ },
+ "powerup_get": {
+  "prompt": "Mysterious ethereal sci-fi item acquisition jingle in the style of atmospheric late-90s alien-planet adventure game soundtracks: rising out of silence, a hushed shimmering crystalline arpeggio, airy wordless choir and glassy synth pads swelling with awe into a reverent, otherworldly major-key resolution, sparkling chimes, sense of discovering ancient alien power, no drums, instrumental",
+  "ms": 8000
  }
 }

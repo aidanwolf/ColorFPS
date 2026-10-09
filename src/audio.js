@@ -8,7 +8,7 @@ const SFX_FILES = [
   'shoot', 'shatter', 'ricochet', 'hit', 'drone_explode', 'enemy_shot', 'hurt', 'death',
   'step_metal1', 'step_metal2', 'step_metal3', 'step_grass1', 'step_grass2', 'jump', 'land', 'switch',
   'health', 'secret', 'checkpoint', 'jump_pad', 'absorb', 'door_slam', 'door_open', 'target',
-  'boss_roar', 'boss_slam', 'boss_sweep', 'boss_step', 'charge_up', 'shield_break', 'boss_death', 'fanfare',
+  'boss_roar', 'boss_slam', 'boss_sweep', 'boss_step', 'charge_up', 'shield_break', 'boss_death', 'fanfare', 'powerup_get',
   'shoot_red', 'shoot_yellow', 'shoot_green', 'shoot_blue', 'amb_foundry', 'amb_wind', 'amb_jungle', 'amb_core',
   'heartbeat', 'spike_hit', 'acid', 'crouch', 'respawn', 'maxhp', 'ui_click', 'game_start', 'glass_hit', 'mirror_hit',
   'barrier_reform', 'orb_pop', 'drone_alert', 'boss_land', 'boss_orbs', 'boss_charge', 'boss_limb_break', 'boss_phase',
@@ -1146,6 +1146,42 @@ class Audio {
   fanfare(color) {
     if (this.stinger('fanfare')) return;
     this.colorUnlocked(color);
+  }
+
+  // A chroma pickup: the music and the world's loops fall away to near silence while the core is drawn
+  // in (hush), then the power-up jingle plays alone in the quiet and the level music eases back after it.
+  hush() {
+    if (!this.ctx || !this.musicDuck) return;
+    for (const g of [this.musicDuck.gain, this.loopBus?.gain].filter(Boolean)) {
+      hold(g, this.t);
+      g.setTargetAtTime(g === this.musicDuck.gain ? 0.0 : 0.12, this.t, 0.14);
+    }
+    this.hushed = true;
+  }
+
+  powerUp(color) {
+    const buf = this.ctx && this.buffers.get('powerup_get');
+    if (!buf) {
+      this.unhush(3);
+      return this.fanfare(color);
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const g = this.ctx.createGain();
+    g.gain.value = 1.5;
+    src.connect(g).connect(this.master);
+    src.start(this.t);
+    this.unhush(buf.duration - 0.6);
+  }
+
+  // the music (and loops) come back up, starting `after` seconds from now
+  unhush(after = 0) {
+    if (!this.ctx || !this.musicDuck || !this.hushed) return;
+    this.hushed = false;
+    for (const g of [this.musicDuck.gain, this.loopBus?.gain].filter(Boolean)) {
+      hold(g, this.t + after);
+      g.setTargetAtTime(1, this.t + after, 0.9);
+    }
   }
   doorOpen() {
     if (this.sample('door_open', { gain: 0.8 })) return;

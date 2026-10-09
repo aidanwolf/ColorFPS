@@ -179,6 +179,7 @@
  "phase_in",
  "phase_out",
  "pod_burst",
+ "powerup_get",
  "radio_squelch",
  "reactor_heartbeat",
  "reactor_hum",
