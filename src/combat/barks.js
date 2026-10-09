@@ -42,8 +42,27 @@ const SPEAKER_COOL = 4;
 const HIDE_T = 3.5; // s of nobody seeing you (while they're hunting you) before they call it out
 const SCAN = 0.5;
 const SUB_HOLD = 0.9; // s a subtitle stays up after its line
+// The mix: barks have their own bus (audio.voiceBus) and must cut through combat music and gunfire.
+// Each persona's chain (filters, ring-mod, drive) leaves it at a different loudness, so a trim after the
+// chain brings every persona to the same level (measured on the output: ≈ -12.5..-14.5 LUFS at 6-15 m, a
+// good 7 dB over the music they duck). Distance only shades it: full up to VOICE_NEAR, easing to
+// VOICE_FLOOR at VOICE_FAR and beyond (the radio carries; the voice bus's leveller evens it further).
+const VOICE_TRIM = { foundry: 1.5, solar: 2.6, verdant: 13, azure: 11, lumen: 3 };
+const VOICE_NEAR = 8;
+const VOICE_FAR = 36;
+const VOICE_FLOOR = 0.55;
+const VOICE_ROOM = 0.35; // their send into the room reverb
+const DUCK = 0.5; // music level under a bark (about -6 dB)
 
 const isTalker = (e) => e && e.barkPersona && !e.dead && !e.dying && e.pos;
+
+// cancel a param's automation, holding where it is
+function hold(param, t) {
+  if (param.cancelAndHoldAtTime) return param.cancelAndHoldAtTime(t);
+  const v = param.value;
+  param.cancelScheduledValues(t);
+  param.setValueAtTime(v, t);
+}
 
 class Barks {
   constructor() {
@@ -170,7 +189,7 @@ class Barks {
     for (const e of game.world.entities) {
       if (!isTalker(e)) continue;
       const d = audio.distTo(e.pos);
-      if (d < 70 && !this.prefetched.has(e.barkPersona)) this.prefetch(e.barkPersona);
+      if (d < 150 && !this.prefetched.has(e.barkPersona)) this.prefetch(e.barkPersona); // (well out of earshot: the first line shouldn't be the stand-in babble)
       if (e.aggro) {
         if (e.sees) seen = true;
         if (d < hd) {
@@ -239,15 +258,15 @@ class Barks {
     if (slice && audio.available?.has(name) && !buf) audio.prefetch([name]);
     const words = line.text.split(/\s+/).length;
     const dur = buf ? slice[1] : Math.min(2.6, Math.max(0.8, 0.3 + words * 0.3));
-    const c = { line, speaker, prio, end: this.time + dur + 0.1, src: null, g: null, pan: null, babble: [] };
+    const c = { line, speaker, prio, end: this.time + dur + 0.1, src: null, g: null, chain: null, babble: [] };
     this.cur = c;
     const ctx = audio.ctx;
-    if (ctx && audio.sfxBus) {
-      const chain = this.chain(line.persona);
+    if (ctx && audio.voiceBus) {
+      const chain = (c.chain = this.chain(line.persona));
       c.g = ctx.createGain();
-      c.pan = ctx.createStereoPanner();
-      c.g.connect(c.pan).connect(chain);
+      c.g.connect(chain.input);
       this.place(c, true);
+      audio.duck('bark', DUCK);
       const t0 = ctx.currentTime + 0.06;
       esfx('radio_squelch', speaker.pos, 1, 1);
       if (buf) {
@@ -287,20 +306,25 @@ class Barks {
     }
   }
 
-  // pan and level from the speaker (called every frame while it talks)
+  // pan and level from the speaker (called every frame while it talks). Both sit after the persona's
+  // chain, so distance changes only the level, never how hard the voice drives the robot distortion.
   place(c, snap = false) {
     if (!c.g) return;
     const p = c.speaker.pos;
     const d = audio.distTo(p);
-    const g = 0.35 + 0.65 * Math.max(0, Math.min(1, 1 - (d - 5) / 35));
-    const pan = audio.panOf(p);
+    const u = Math.max(0, Math.min(1, (d - VOICE_NEAR) / (VOICE_FAR - VOICE_NEAR)));
+    const g = 1 - (1 - VOICE_FLOOR) * u * (2 - u); // eases out: most of the drop is over by mid-range
+    const pan = audio.panOf(p) * 0.85;
+    const { post, pan: pn } = c.chain;
+    const t = audio.ctx.currentTime;
+    hold(post.gain, t);
+    hold(pn.pan, t);
     if (snap) {
-      c.g.gain.value = g;
-      c.pan.pan.value = pan;
+      post.gain.setValueAtTime(g, t);
+      pn.pan.setValueAtTime(pan, t);
     } else {
-      const t = audio.ctx.currentTime;
-      c.g.gain.setTargetAtTime(g, t, 0.08);
-      c.pan.pan.setTargetAtTime(pan, t, 0.08);
+      post.gain.setTargetAtTime(g, t, 0.08);
+      pn.pan.setTargetAtTime(pan, t, 0.08);
     }
   }
 
@@ -308,7 +332,8 @@ class Barks {
     const c = this.cur;
     this.cur = null;
     this.quietUntil = this.time + GAP + (c.line.event === 'idle' ? 2 : 0);
-    if (c.g) setTimeout(() => c.pan.disconnect(), 400);
+    audio.duck('bark', 1);
+    if (c.g) setTimeout(() => c.g.disconnect(), 400);
   }
 
   // stop the line now (a log started, it was outranked); `lost`: the speaker died: static and a cut-off
@@ -317,6 +342,7 @@ class Barks {
     if (!c) return;
     this.cur = null;
     this.quietUntil = this.time + 0.6;
+    audio.duck('bark', 1);
     if (c.g && audio.ctx) {
       const t = audio.ctx.currentTime;
       c.g.gain.cancelScheduledValues(t);
@@ -327,8 +353,8 @@ class Barks {
         /* already stopped */
       }
       for (const o of c.babble) try { o.stop(t + 0.1); } catch { /* done */ }
-      if (lost) audio.noise({ dur: 0.25, gain: 0.08, freq: 3000, q: 0.5 });
-      setTimeout(() => c.pan.disconnect(), 500);
+      if (lost) audio.noise({ dur: 0.25, gain: 0.16, freq: 3000, q: 0.5 });
+      setTimeout(() => c.g.disconnect(), 500);
     }
     if (this.el) {
       if (lost && this.subT > 0) {
@@ -342,8 +368,8 @@ class Barks {
   }
 
   // One robot chain per persona, built on first use: highpass → ring-mod (dry/wet) → formant peak →
-  // drive / crush → optional temple comb echo (solar) or warble (azure) → lowpass → the sfx bus (so it
-  // gets the room reverb).
+  // drive / crush → optional temple comb echo (solar) or warble (azure) → lowpass → level trim → distance
+  // (post) → pan → the voice bus, plus a send into the room reverb.
   chain(persona) {
     if (this.chains[persona]) return this.chains[persona];
     const ctx = audio.ctx, fx = PERSONAS[persona].fx;
@@ -413,10 +439,14 @@ class Barks {
     lp.type = 'lowpass';
     lp.frequency.value = fx.lp;
     const out = ctx.createGain();
-    out.gain.value = fx.gain;
-    tail.connect(lp).connect(out).connect(audio.sfxBus);
-    this.chains[persona] = input;
-    return input;
+    out.gain.value = fx.gain * (VOICE_TRIM[persona] ?? 2);
+    const post = ctx.createGain();
+    const pan = ctx.createStereoPanner();
+    tail.connect(lp).connect(out).connect(post).connect(pan).connect(audio.voiceBus);
+    const room = ctx.createGain();
+    room.gain.value = VOICE_ROOM;
+    pan.connect(room).connect(audio.verbIn);
+    return (this.chains[persona] = { input, post, pan });
   }
 
   // ---------------------------------------------------------------- subtitles

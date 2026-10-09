@@ -9,15 +9,16 @@
 import { audio } from '../audio.js';
 
 export const ENEMY_SFX = {
-  // humanoids (the Welder, the Mummy) and the Brute
+  // humanoids (the Welder, the Mummy) and the Brute (their pain / effort grunts sit a few dB over the
+  // area music at 10 m: they're the enemies' voices too)
   servo_heavy: { gain: 0.42, near: 3, far: 26, gap: 0.12, fb: 'crouch', fbRate: 0.78, fbGain: 0.9, cut: 0.32 },
   servo_light: { gain: 0.34, near: 3, far: 22, gap: 0.1, fb: 'crouch', fbRate: 1.3, fbGain: 0.75, cut: 0.22 },
   mummy_creak: { gain: 0.3, near: 3, far: 20, gap: 0.12, fb: 'rotor_turn', fbRate: 1.7, fbGain: 0.45, cut: 0.2 },
   hydraulic_hiss: { gain: 0.5, near: 3, far: 28, gap: 0.15, fb: 'gate_open', fbRate: 1.15, fbGain: 0.7, cut: 0.45 },
   hydraulic_land: { gain: 0.55, near: 3, far: 30, gap: 0.12, fb: 'land_hard', fbRate: 0.85, fbGain: 0.5, cut: 0.5 },
-  robot_pain_heavy: { gain: 0.6, near: 4, far: 34, gap: 0.22, fb: 'rotor_jam', fbRate: 0.82, fbGain: 0.75, cut: 0.42 },
-  robot_pain_light: { gain: 0.5, near: 4, far: 30, gap: 0.18, fb: 'combo_fail', fbRate: 1.15, fbGain: 0.55, cut: 0.4 },
-  robot_effort: { gain: 0.5, near: 3, far: 28, gap: 0.2, fb: 'mover_step', fbRate: 0.9, fbGain: 0.7, cut: 0.4 },
+  robot_pain_heavy: { gain: 0.9, near: 4, far: 34, gap: 0.22, fb: 'rotor_jam', fbRate: 0.82, fbGain: 0.75, cut: 0.42 },
+  robot_pain_light: { gain: 1.3, near: 4, far: 30, gap: 0.18, fb: 'combo_fail', fbRate: 1.15, fbGain: 0.55, cut: 0.4 },
+  robot_effort: { gain: 0.65, near: 3, far: 28, gap: 0.2, fb: 'mover_step', fbRate: 0.9, fbGain: 0.7, cut: 0.4 },
   welder_vent: { gain: 0.55, near: 3, far: 30, gap: 0.5, fb: 'elevator_stop', fbRate: 1.25, fbGain: 0.4, cut: 0.9 },
   robot_idle_click: { gain: 0.22, near: 2, far: 16, gap: 0.35, fb: 'switch_off', fbRate: 1.35, fbGain: 0.35, cut: 0.2 },
   robot_idle_hum: { gain: 0.22, near: 2, far: 16, gap: 0.6, fb: 'barrier_reform', fbRate: 0.5, fbGain: 0.25, cut: 0.8 },
