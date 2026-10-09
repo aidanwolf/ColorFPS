@@ -161,7 +161,7 @@ export class Player {
     if (t.lengthSq() > 1) t.normalize();
     t.multiplyScalar(speed);
     t.y += (up - down) * SWIM_SPEED * 0.8;
-    const eyeOut = this.pos.y + this.eye - water.max.y; // > 0: head above the surface
+    const eyeOut = this.pos.y + this.eye - (water.top ?? water.max.y); // > 0: head above the surface (top: the real surface over a cut-up sea, see azureOcean.js)
     if (!up && !down && Math.abs(f) + Math.abs(r) < 0.01) t.y = -0.6; // idle: drift slowly down
     // float at the surface: you can't swim up out of the water, only leap out with Space at the edge
     if (eyeOut > -0.15 && t.y > 0) t.y = Math.min(t.y, (0.25 - eyeOut) * 4);
@@ -264,8 +264,8 @@ export class Player {
     const water = this.waterAt(world);
     const wasSwimming = this.swimming;
     this.swimming = !!water;
-    this.headUnder = !!water && this.pos.y + this.eye < water.max.y;
-    if (water && !wasSwimming && this.vel.y < -5) this.game.world.fx.splash?.(this.pos.clone().setY(water.max.y), -this.vel.y);
+    this.headUnder = !!water && this.pos.y + this.eye < (water.top ?? water.max.y);
+    if (water && !wasSwimming && this.vel.y < -5) this.game.world.fx.splash?.(this.pos.clone().setY(water.top ?? water.max.y), -this.vel.y);
     if (water) this.swim(dt, input, water);
     else {
     // ---- horizontal movement ----

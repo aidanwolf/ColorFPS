@@ -1,15 +1,15 @@
-// AZURE — THE FLOODED DEPTHS. The water heart of the Cold Deep: a flooded wing of the station behind the
-// chasm's east cliff, spliced into the descent between the turbine deck and the Cryo Lab (azure.js):
-//   turbine deck (y -21) → entry tunnel through the cliff → THE SUMP (a sinkhole flooded to y -22.4, open
-//   to the rain; a robo-squid and a school of robo-fish; the pipe in its floor is hatched shut, and its
+// AZURE — THE FLOODED DEPTHS. The water heart of the Drowned Reach: a flooded wing inside the station's
+// hull, spliced into the route between the crew deck and the Archive (azure.js):
+//   crew deck (y -21) → entry tunnel through the hull → THE SUMP (a well flooded to y -22.4, open to the
+//   storm overhead; a robo-squid and a school of robo-fish; the pipe in its floor is hatched shut, and its
 //   valve stands on a shelf only the sump's maintenance seal can reach: hose it a wet path) → the DOWNPIPE (a slow fall down a flooded pipe on a downward current, with
 //   a breather niche halfway) → THE BELL (an air pocket with a dry ledge: checkpoint) → the KELP GALLERY
 //   (flooded to the ceiling; air pockets in ceiling recesses, the first with a checkpoint ledge; a
 //   sub-drone) → a choice: on along the gallery (a second pocket, past the drone) or through the INTAKE
 //   DUCT (a current sweeps you round a spiked corner) → the BALLAST LAB (a sub-drone; the ballast valve
 //   sits under glass and only a shot banked off a mirror reaches it) → the valve floods the BALLAST SHAFT
-//   and you ride the rising water 22 m up to the exit (y -25) → back through the cliff onto the Cryo Lab
-//   porch.
+//   and you ride the rising water 22 m up to the exit (y -25) → back out of the hull into the Archive's
+//   glass porch.
 // Water volumes (B.water): each box's max.y is the true surface above it, boxes that overlap agree on it,
 // and where they overlap the first one registered wins (so a current only acts inside its own pipe).
 // Swims are sized for 14 s of air: every stretch between air is well under 30 m, with the route marked by
@@ -42,7 +42,7 @@ export function buildAzureFlooded(B) {
   const zone = 'blue';
   const rng = mulberry32(0xf100d);
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  const DEEP = { music: 'music_blue', ambient: 'amb_abyss', atmosphere: 'azureDeep' };
+  const DEEP = { music: 'music_azure', ambient: 'amb_abyss', atmosphere: 'azureDeep' };
   const box = (x1, y1, z1, x2, y2, z2, kind = 'wall') => W.box(x1, y1, z1, x2, y2, z2, kind, zone);
   const deco = (x1, y1, z1, x2, y2, z2, kind = 'glow3') => W.deco(x1, y1, z1, x2, y2, z2, kind, zone);
   const color = (c) => new THREE.Color(c);
@@ -105,7 +105,7 @@ export function buildAzureFlooded(B) {
   }
 
   // Light shafts: open cones hanging from (x, yTop, z), additive, brightest at the top and soft at the
-  // edges. Sky light through the sinkhole is cool; the light falling out of an air pocket is warm.
+  // edges. Sky light down the well is cool; the light falling out of an air pocket is warm.
   const shaftGeos = [];
   function lightShaft(x, yTop, z, len, r0, r1, tint, tiltX = 0, tiltZ = 0) {
     const g = new THREE.CylinderGeometry(r0, r1, len, 18, 1, true).translate(0, -len / 2, 0).rotateX(tiltX).rotateZ(tiltZ).translate(x, yTop, z);
@@ -126,8 +126,8 @@ export function buildAzureFlooded(B) {
     for (let i = 0; i < n; i++) kelp(x1 + rng() * (x2 - x1), y, z1 + rng() * (z2 - z1), h0 + rng() * (h1 - h0));
   }
 
-  // Ice crystals (frosted and glowing), like the chasm's, merged per material.
-  const iceGeos = { ice: [], glow: [] };
+  // Growths (dark basalt spires and glowing coral fronds), like the trench's, merged per material.
+  const iceGeos = { rock: [], glow: [] };
   function shard(x, y, z, h, r, tx, tz, kind) {
     const g = new THREE.OctahedronGeometry(1, 0);
     g.scale(r, h / 2, r);
@@ -138,7 +138,7 @@ export function buildAzureFlooded(B) {
     g.translate(x, y, z);
     iceGeos[kind].push(g);
   }
-  function cluster(x, y, z, s, kind = 'ice', tx = 0, tz = 0, n = 4) {
+  function cluster(x, y, z, s, kind = 'rock', tx = 0, tz = 0, n = 4) {
     shard(x, y, z, s, s * 0.17, tx, tz, kind);
     for (let i = 1; i < n; i++) {
       const a = rng() * Math.PI * 2, d = s * (0.1 + rng() * 0.2);
@@ -195,10 +195,10 @@ export function buildAzureFlooded(B) {
     return b;
   }
 
-  // ------------------------------------------------------------------ entry tunnel (from the turbine deck)
-  // It leaves the turbine deck's east edge (x 108) at the deck's height and runs through the cliff.
+  // ------------------------------------------------------------------ entry tunnel (from the crew deck)
+  // It leaves the crew deck's east wall (x 108) at the deck's height and runs into the hull.
   corridorX({ xStart: 108, xEnd: 124, y: -21, zone, cz: -114.6 });
-  // a hazard-striped hatch frame on the cliff face, lit so it's seen from across the deck
+  // a hazard-striped hatch frame on the hull wall, lit so it's seen from across the crew deck
   deco(108, -17.95, -116.2, 108.25, -17.7, -113, 'hazard');
   deco(108, -21, -116.25, 108.25, -17.7, -116.05, 'glow3');
   deco(108, -21, -113.15, 108.25, -17.7, -112.95, 'glow3');
@@ -208,7 +208,7 @@ export function buildAzureFlooded(B) {
   area([108.5, -21, -116.1], [111, -18, -113.1], DEEP);
   hint([111, -21, -116.1], [114, -18, -113.1], 'The lower station is <b>flooded</b>. You can swim: look where you want to go, <b>Space</b> rises, <b>C</b> dives, <b>Shift</b> swims faster.', 6);
 
-  // ------------------------------------------------------------------ THE SUMP: a flooded sinkhole open to the sky
+  // ------------------------------------------------------------------ THE SUMP: a flooded well in the hull, open to the storm
   // interior x 124..146, z -104..-126; floor y -30; the water's surface at y -22.4.
   const SURF = -22.4;
   room({ x1: 124, x2: 146, zS: -104, zN: -126, y: -30, h: 36, zone, ceiling: false, floor: false, trim: false, wallKind: 'rock', w: [{ c: -114.6, w: 3, h: CH, y0: 9 }] });
@@ -290,8 +290,8 @@ export function buildAzureFlooded(B) {
   chevron(PCX + 0.6, SURF + 1.2, PCZ, [0, -1, 0], [-1, 0, 0], toMarker, 0.8);
   chevron(PCX - 0.6, SURF + 1.2, PCZ, [0, -1, 0], [1, 0, 0], toMarker, 0.8);
   lightShaft(PCX, SURF + 0.4, PCZ, 8, 1.2, 1.8, color(0x6fe6ff).multiplyScalar(0.8));
-  // a sub-drone patrols the sinkhole (you can always surface here to fight it)
-  // a robo-squid haunts the sinkhole (meet it here, where the open sky is always overhead): it jets off in
+  // a sub-drone patrols the well (you can always surface here to fight it)
+  // a robo-squid haunts the well (meet it here, where the open sky is always overhead): it jets off in
   // a cloud of ink when you aim at it, and its slow ink torpedoes can be shot down
   B.roboSquid([134, -26.5, -109], { color: BLUE, hp: 4, orbit: 3 });
   // and a school of robo-piranhas works the kelp on the far side (they leap at you on the pier, too)
@@ -315,19 +315,19 @@ export function buildAzureFlooded(B) {
   for (let i = 0; i < 14; i++) {
     const side = i % 4, t = rng();
     const y = -29 + rng() * 26;
-    if (side === 0) cluster(124.2, y, -105 - t * 20, 1.5 + rng() * 2.5, i % 3 ? 'ice' : 'glow', 1.1, 0);
-    else if (side === 1) cluster(145.8, y, -105 - t * 20, 1.5 + rng() * 2.5, i % 3 ? 'ice' : 'glow', -1.1, 0);
-    else if (side === 2) (t < 0.5 || y > -17) && cluster(125 + t * 20, y, -125.8, 1.5 + rng() * 2.5, i % 3 ? 'ice' : 'glow', 0, 1.1); // (clear of the seal's shelf)
-    else cluster(125 + t * 20, y, -104.2, 1.5 + rng() * 2.5, i % 3 ? 'ice' : 'glow', 0, -1.1);
+    if (side === 0) cluster(124.2, y, -105 - t * 20, 1.5 + rng() * 2.5, i % 3 ? 'rock' : 'glow', 1.1, 0);
+    else if (side === 1) cluster(145.8, y, -105 - t * 20, 1.5 + rng() * 2.5, i % 3 ? 'rock' : 'glow', -1.1, 0);
+    else if (side === 2) (t < 0.5 || y > -17) && cluster(125 + t * 20, y, -125.8, 1.5 + rng() * 2.5, i % 3 ? 'rock' : 'glow', 0, 1.1); // (clear of the seal's shelf)
+    else cluster(125 + t * 20, y, -104.2, 1.5 + rng() * 2.5, i % 3 ? 'rock' : 'glow', 0, -1.1);
   }
-  for (const [x, z, s] of [[125.5, -124.5, 4], [144.5, -124.6, 3.5], [125.5, -105.5, 3], [144.6, -105.4, 4.5]]) cluster(x, -30, z, s, 'ice', x < 135 ? 0.3 : -0.3, z < -115 ? 0.3 : -0.3, 5);
-  // the sinkhole's rim far above, and daylight slanting down through the water
+  for (const [x, z, s] of [[125.5, -124.5, 4], [144.5, -124.6, 3.5], [125.5, -105.5, 3], [144.6, -105.4, 4.5]]) cluster(x, -30, z, s, 'rock', x < 135 ? 0.3 : -0.3, z < -115 ? 0.3 : -0.3, 5);
+  // the well's rim far above, and daylight slanting down through the water
   for (const [x, z, tx, tz] of [[128, -108, 0.12, 0.08], [137, -121, -0.1, 0.12], [142, -109, 0.08, -0.1], [131, -119, -0.12, -0.06], [138.5, -113.5, 0.05, 0.05]]) {
     lightShaft(x, 6, z, 36, 1.1, 2.4, SKY, tx, tz);
   }
   for (let x = 125; x < 146; x += 3 + rng() * 2) {
-    cluster(x, 6, -125.6, 3 + rng() * 3, 'ice', 0, 0.4);
-    cluster(x, 6, -104.4, 3 + rng() * 3, 'ice', 0, -0.4);
+    cluster(x, 6, -125.6, 3 + rng() * 3, 'rock', 0, 0.4);
+    cluster(x, 6, -104.4, 3 + rng() * 3, 'rock', 0, -0.4);
   }
 
   // ------------------------------------------------------------------ the DOWNPIPE: a slow fall on a downward current
@@ -469,7 +469,7 @@ export function buildAzureFlooded(B) {
   kelpBed(152.4, -140, 154, -134, -60, 8, 1.5, 4.5);
   kelpBed(158, -146, 159.6, -134, -60, 10, 1.5, 4.5);
   kelpBed(152.4, -151.5, 159.6, -148, -60, 10, 1.5, 4);
-  for (const [x, z, tx, tz] of [[152.3, -109, 0.5, -0.3], [159.7, -127, -0.5, 0], [152.3, -151.5, 0.4, 0.4], [159.7, -151.7, -0.4, 0.4], [159.7, -109, -0.4, -0.3]]) cluster(x, -60, z, 2 + rng() * 1.5, rng() < 0.5 ? 'glow' : 'ice', tx, tz);
+  for (const [x, z, tx, tz] of [[152.3, -109, 0.5, -0.3], [159.7, -127, -0.5, 0], [152.3, -151.5, 0.4, 0.4], [159.7, -151.7, -0.4, 0.4], [159.7, -109, -0.4, -0.3]]) cluster(x, -60, z, 2 + rng() * 1.5, rng() < 0.5 ? 'glow' : 'rock', tx, tz);
   for (const z of [-114, -120, -138, -150]) lightShaft(156, GC, z, 8, 0.25, 1.3, color(0x5fc8ff).multiplyScalar(0.55));
   for (const z of [-114, -120, -138, -150]) deco(155.6, GC - 0.06, z - 0.4, 156.4, GC, z + 0.4, 'trimWhite');
 
@@ -624,11 +624,11 @@ export function buildAzureFlooded(B) {
     },
   });
 
-  // ------------------------------------------------------------------ the exit: back through the cliff to the Cryo Lab porch
+  // ------------------------------------------------------------------ the exit: back out of the hull to the Archive's porch
   corridorX({ xStart: 108, xEnd: 125.5, y: -25, zone, cz: -147 });
   for (let x = 124.5; x > 109; x -= 1.6) chevron(x, -24.96, -147, [-1, 0, 0], [0, 1, 0], 210 + (124.5 - x), 0.7);
   area([108, -25, -148.5], [114, -22, -145.5], DEEP);
-  hint([118, -25, -148.5], [124, -22, -145.5], 'Out of the deep. <b>The Cryo Lab</b> is just ahead.', 4);
+  hint([118, -25, -148.5], [124, -22, -145.5], 'Out of the deep. <b>The Archive</b> is just ahead.', 4);
 
   // ------------------------------------------------------------------ meshes
   const trailMat = new THREE.ShaderMaterial({
@@ -705,8 +705,8 @@ export function buildAzureFlooded(B) {
       transformed.x += sin(uTime * 1.1 + position.z * 0.7 + position.y * 0.45) * 0.4 * kh;
       transformed.z += cos(uTime * 0.85 + position.x * 0.6 + position.y * 0.35) * 0.32 * kh;`);
   };
-  const iceMat = new THREE.MeshStandardMaterial({ color: 0xa9d4ff, emissive: 0x2a66ff, emissiveIntensity: 0.4, roughness: 0.18, metalness: 0.15, flatShading: true });
-  const glowMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x46e0ff).multiplyScalar(1.1) });
+  const iceMat = new THREE.MeshStandardMaterial({ color: 0x2e3a3a, roughness: 0.85, metalness: 0.05, flatShading: true });
+  const glowMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x46e8d8).multiplyScalar(1.05) });
   const add = (geos, m, renderOrder = 0) => {
     if (!geos.length) return;
     const mesh = new THREE.Mesh(mergeGeometries(geos), m);
@@ -718,7 +718,7 @@ export function buildAzureFlooded(B) {
   add(markGeos, trailMat);
   add(shaftGeos, shaftMat, 4);
   add(kelpGeos, kelpMat);
-  add(iceGeos.ice, iceMat);
+  add(iceGeos.rock, iceMat);
   add(iceGeos.glow, glowMat);
 
   // animation: the pulses, the shimmer, the kelp, bubble vents and current motes

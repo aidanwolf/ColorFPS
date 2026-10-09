@@ -18,7 +18,7 @@ Every world is an **engine**, built to extract one kind of energy and themed by 
 | Crimson Foundry | red | **geothermal**: a tap driven into a planet's core; the heat is piped north |
 | Sunscorch Mesa (Solar) | yellow | **a captive sun**: a real star dragged in on a track; mirrors and panels drink it; the world is burned down and rerun (4,000+ summers layered in the glass). Under the pit, an ancient-feeling buried network (glassy conduits, huge half-buried mirrors, capacitor banks brim-full of stored sunlight) runs to a giant stone ring that hums when the sun moves: turn the mirrors right and light runs node by node into the ring until it discharges |
 | Emerald Hollow (Verdant) | green | **biomass**: a valley-sized forest grown in a day, cut and fed in; no animals, nothing that wouldn't burn well |
-| The Cold Deep (Azure) | blue | **water**: moonless tides and the weight of a bottomless ocean, turned to power by a drowned station |
+| The Drowned Reach (Azure) | blue | **water**: the tides and storms of an endless tropical ocean, the weight of a trench full of sea, drunk by a harvest rig and the drowned station under it |
 
 **The Prism Atrium** is the junction where the four rivers of power meet and are routed. **The Prism Core**
 beneath it is where everything converges: the machine's heart, guarded by the **Prism Warden** (only every
@@ -86,7 +86,7 @@ Her arc, in the order the player finds the logs:
 | Atrium | giddy, wonder | day one at the station with the team: the kettle, the cake, a heart beating overhead that gives out four times what goes in ("we are not calling it Big Fridge"), home for Bea's birthday; four rivers of power meet here; she taps a trickle (oops) and dreams of powering a city |
 | Solar | curious → uneasy → nervous | with the team on the link from the station: glassy conduits under 4,000 summers of glass, leading down into a pit; a stone ring that hums when the sun moves (Priya: a capacitor; Wren: a gate); failed tries to bounce sunlight into it with her compact mirror, while the huge buried mirrors "have to face the right way"; capacitor banks full of more stored sunlight than she can bear to work out; the link keeps dropping; "what if the machine wanted someone to find this?"; the countdown before she talks to the star through the ring |
 | Verdant | lonely → frightened | a biomass farm, no birds; the link silent since the countdown, and she keeps talking to Priya anyway (a wren and no other birds); roots through fresh bodies, a bus pass from her own city (but only the team came through, and they never left the station); something follows her "ever since the star" |
-| Azure | homesick → devastated | the last engine; ten minutes, home by seven, Bea's birthday; in the flooded Bell she reads the Lumen's record of the anomaly (her nine seconds, classified threat); in the Cryo Lab the catalogue: everyone from home, taken the day after; Mum, Bea, and not Priya, not Tomas, not Maja: it didn't keep the team |
+| Azure | homesick → devastated | soaked to the bone in a station at the bottom of a stormy tropical ocean: the last engine; holed up in the warm crew quarters: ten minutes, home by seven, Bea's birthday; in the flooded Bell she reads the Lumen's record of the anomaly (her nine seconds, classified threat); in the Archive the catalogue: everyone from home, taken the day after; Mum, Bea, and not Priya, not Tomas, not Maja: it didn't keep the team |
 | Prism Core | resolve → hope | the four rivers end at the heart: if they go dark, the loop lets go; "I broke it, so I fix it"; the guardian hunts her; she goes for the white door, recorder left on for the company |
 
 **Final note (open for the ending):** "Mum. Bea. If you dream at all in there... dream about cake.
@@ -127,9 +127,9 @@ haunted, warbling, reverberant chain (`src/story/voice.js`).
 | 07 | No Birds | Verdant · the Root Court |
 | 08 | Roots | Verdant · the rim of the Great Hollow |
 | 09 | Something Follows | Verdant · the root island |
-| 10 | The Last Engine | Azure · the Rim Deck |
-| 11 | Ten Minutes | Azure · inside the pump hut |
+| 10 | The Last Engine | Azure · the Aquarium's observation gallery |
+| 11 | Ten Minutes | Azure · the crew deck |
 | 12 | Anomaly | Azure · the Bell, in the Flooded Depths |
-| 13 | The Catalogue | Azure · the Cryo Lab |
+| 13 | The Catalogue | Azure · the Archive |
 | 14 | The Rule | Prism Core · among the crystals |
 | 15 | Leave It On | Prism Core · the way to the arena |

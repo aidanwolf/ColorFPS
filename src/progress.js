@@ -17,7 +17,7 @@ const SPAN = {
 };
 const WORLDS = ['red', 'solar', 'verdant', 'azure'];
 export const AREA_NAMES = {
-  red: 'Crimson Foundry', hub: 'The Prism Atrium', solar: 'Sunscorch Mesa', verdant: 'Emerald Hollow', azure: 'The Cold Deep',
+  red: 'Crimson Foundry', hub: 'The Prism Atrium', solar: 'Sunscorch Mesa', verdant: 'Emerald Hollow', azure: 'The Drowned Reach',
   prism: 'Prism Core', fin_red: 'Prism Core', fin_solar: 'Prism Core', fin_verdant: 'Prism Core', fin_azure: 'Prism Core', fin_heart: 'Prism Core',
 };
 export const AREA_COLORS = {

@@ -1,14 +1,15 @@
-// AZURE — set dressing: the look of a drowned research station and its water engine, laid over the
+// AZURE — set dressing: the look of a drowned harvest station and its water engine, laid over the
 // gameplay geometry of azure.js / azureFlooded.js / azureSpillway.js without touching any of it (nothing
 // here is solid unless it says so, and nothing stands on a route).
 //   · wet metal pipe runs with flanges, glowing bands and valve wheels; hanging cables
 //   · bulkhead frames, stencilled signage (one canvas atlas, one draw per cluster)
-//   · windows and portholes onto the dark sea: deep gradients, drifting specks, slow bioluminescent shapes
-//   · caustic light on walls and ceilings by the water, cold mist on the surfaces, water pouring from
+//   · windows and portholes onto the sea: blue-green depths, sun-rays from far above, drifting specks,
+//     slow bioluminescent shapes
+//   · caustic light on walls and ceilings by the water, warm haze over the pools, water pouring from
 //     outlets (with splashes), light shafts, drips
-//   · machine-hall pieces: pump housings, sluice gates; Cryo sleeper tanks with silhouettes inside
-//   · the chasm: plankton drifting in the abyss, great jellies pulsing far below, waterfalls from
-//     broken mains on the cliffs, conduits down the cliff faces
+//   · machine-hall pieces: pump housings, sluice gates; the Archive's stasis tanks with sleepers inside
+//   · the trench: plankton drifting in the deep, great jellies pulsing over its floor, a broken main
+//     pouring out of the hull into the sea
 // All static pieces are merged per material per ~60 m cluster (so distance culling still works); the
 // animated surfaces share a handful of shader materials driven by one clock. dress.dimOnShutdown() is
 // called by the aftermath (azureSpillway.js): the glow bands sink and the pours stop.
@@ -82,16 +83,19 @@ const shaders = {
       float fade = 1.0 - smoothstep(25.0, 60.0, vDist);
       gl_FragColor = vec4(vec3(0.35, 0.8, 1.0) * c * 0.4 * uPower * fade, 1.0);
     }`,
-  // a window onto the dark sea: auv 0..1 across the pane
+  // a window onto the sea: auv 0..1 across the pane (vW.y: deeper windows look out into darker water)
   ocean: `
     uniform float uTime;
     varying vec2 vUv; varying float vSeed; varying vec3 vW; varying float vDist;
     ${HASH}
     void main() {
       vec2 uv = vUv;
-      vec3 col = mix(vec3(0.0, 0.006, 0.02), vec3(0.01, 0.06, 0.13), smoothstep(0.0, 1.0, uv.y));
-      // god rays from far above
-      col += vec3(0.02, 0.07, 0.12) * pow(max(0.0, sin(uv.x * 9.0 + vSeed * 4.0 + uv.y * 2.0 + uTime * 0.07)), 6.0) * uv.y;
+      float depth = clamp((-9.5 - vW.y) / 60.0, 0.0, 1.0);
+      vec3 low = mix(vec3(0.02, 0.16, 0.2), vec3(0.0, 0.04, 0.08), depth), high = mix(vec3(0.12, 0.62, 0.66), vec3(0.03, 0.2, 0.3), depth);
+      vec3 col = mix(low, high, smoothstep(0.0, 1.0, uv.y));
+      // sun-rays slanting down from the surface far above, and the shimmer of caustic light
+      col += vec3(0.1, 0.3, 0.3) * pow(max(0.0, sin(uv.x * 9.0 + vSeed * 4.0 + uv.y * 2.0 + uTime * 0.07)), 6.0) * uv.y * (1.2 - depth);
+      col += vec3(0.05, 0.12, 0.12) * vn(uv * vec2(14.0, 6.0) + vec2(uTime * 0.4, -uTime * 0.3)) * vn(uv * 9.0 - uTime * 0.2) * (1.0 - depth);
       // drifting specks (marine snow), in three depths
       for (int k = 0; k < 3; k++) {
         float s = 9.0 + float(k) * 7.0;
@@ -101,22 +105,24 @@ const shaders = {
         vec2 o = vec2(r - 0.5, h1(id + 7.0) - 0.5) * 0.6;
         float d = length(f - o);
         float tw = 0.5 + 0.5 * sin(uTime * (1.0 + r * 2.0) + r * 30.0);
-        col += vec3(0.5, 0.85, 1.0) * smoothstep(0.06, 0.0, d) * step(0.72, r) * tw * (0.25 + 0.2 * float(k));
+        col += vec3(0.6, 0.9, 0.9) * smoothstep(0.06, 0.0, d) * step(0.72, r) * tw * (0.2 + 0.15 * float(k));
       }
-      // two slow bioluminescent shapes far out
+      // a shoal flickering past, far out, and two slow bioluminescent shapes in the deeper water
+      float sh = step(0.8, h1(floor(vec2(uv.x * 30.0 - uTime * 0.8 + vSeed * 5.0, uv.y * 14.0)))) * smoothstep(0.35, 0.55, uv.y) * smoothstep(0.75, 0.55, uv.y);
+      col += vec3(0.5, 0.7, 0.7) * sh * 0.12 * (1.0 - depth);
       for (int k = 0; k < 2; k++) {
         float fk = float(k);
         vec2 c = vec2(fract(uTime * (0.006 + 0.004 * fk) + vSeed * (0.37 + fk * 0.21)) * 1.6 - 0.3, 0.35 + 0.3 * sin(uTime * 0.05 + fk * 2.0 + vSeed));
         float d = length((uv - c) * vec2(1.6, 1.0));
         float pulse = 0.6 + 0.4 * sin(uTime * (0.8 + fk * 0.5) + vSeed * 9.0);
-        col += mix(vec3(0.1, 0.9, 1.0), vec3(0.6, 0.4, 1.0), fk) * (0.05 / (d * d * 40.0 + 0.4)) * pulse * 0.6;
+        col += mix(vec3(0.1, 0.9, 1.0), vec3(0.6, 0.4, 1.0), fk) * (0.05 / (d * d * 40.0 + 0.4)) * pulse * 0.6 * depth;
       }
-      // the glass: a cold rim and a faint reflection streak
+      // the glass: a bright rim and a faint reflection streak
       float rim = smoothstep(0.08, 0.0, min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y)));
-      col += vec3(0.25, 0.5, 0.7) * rim * 0.25 + vec3(0.06, 0.1, 0.14) * smoothstep(0.02, 0.0, abs(uv.x - uv.y * 0.6 - 0.25));
+      col += vec3(0.25, 0.6, 0.6) * rim * 0.25 + vec3(0.06, 0.12, 0.12) * smoothstep(0.02, 0.0, abs(uv.x - uv.y * 0.6 - 0.25));
       gl_FragColor = vec4(col, 1.0);
     }`,
-  // cold mist over water: auv in metres
+  // a warm haze over the water: auv in metres
   mist: `
     uniform float uTime, uPower;
     varying vec2 vUv; varying float vSeed; varying vec3 vW; varying float vDist;
@@ -125,7 +131,7 @@ const shaders = {
       vec2 p = vW.xz * 0.18;
       float n = vn(p + vec2(uTime * 0.05, uTime * 0.03)) * 0.6 + vn(p * 2.3 - vec2(uTime * 0.07, 0.0)) * 0.4;
       float near = smoothstep(1.0, 5.0, vDist) * (1.0 - smoothstep(30.0, 55.0, vDist));
-      gl_FragColor = vec4(vec3(0.6, 0.8, 0.95) * pow(n, 2.5) * 0.16 * near * uPower, 1.0);
+      gl_FragColor = vec4(vec3(0.55, 0.85, 0.82) * pow(n, 2.5) * 0.12 * near * uPower, 1.0);
     }`,
   // falling water: auv.x 0..1 across, auv.y metres down from the lip
   pour: `
@@ -154,10 +160,11 @@ const additive = { transparent: true, blending: THREE.AdditiveBlending, depthWri
 
 // ---------------------------------------------------------------- the signage atlas
 const SIGNS = [
-  'AZURE STATION', 'DECK 01  RIM', 'PUMP STATION 2', 'TURBINE 4', 'CRYO 3  SLEEPER STORAGE', 'RECORDS', 'BRINE WELL',
-  'VAULT', 'CORE SANCTUM', 'DECK 07  UNDERCROFT', 'UNDERCROFT  CISTERN 1', 'DUCT  >', 'SLUICE 2', 'LOCK 1', 'LOCK 2',
-  'ENGINE  >', '<  SPILLWAY', 'PRESSURE LOCK', 'EMERGENCY PADS', 'NO SWIMMING', 'DANGER  COLD BRINE', 'KEEP CLEAR', 'B-7', 'CRANE 2',
-  'BRINE WELL  >', 'BREAKER HALL', 'DANGER  LIVE WATER', 'STORM DECK 3', 'DANGER  HIGH VOLTAGE', 'WINCH  DUCT GATE', 'MAINTENANCE SEAL',
+  'AZURE STATION', 'DECK 01  RIM', 'AQUARIUM', 'AIRLOCK  A1', 'ARCHIVE 3  SLEEPER INDEX', 'RECORDS', 'BRINE WELL',
+  'VAULT', 'GENERATOR HALL', 'DECK 07  UNDERCROFT', 'UNDERCROFT  CISTERN 1', 'DUCT  >', 'SLUICE 2', 'LOCK 1', 'LOCK 2',
+  'ENGINE  >', '<  SPILLWAY', 'PRESSURE LOCK', 'EMERGENCY PADS', 'MOON POOL', 'DANGER  SCALDING BRINE', 'KEEP CLEAR', 'B-7', 'CREW DECK',
+  'BRINE WELL  >', 'BREAKER HALL', 'DANGER  LIVE WATER', 'DIVE LINE', 'DANGER  HIGH VOLTAGE', 'WINCH  DUCT GATE', 'MAINTENANCE SEAL',
+  'OBSERVATION', 'SEA DOOR', 'INTAKE  >',
 ];
 let atlas = null;
 function signAtlas() {
@@ -199,13 +206,13 @@ export function makeDressing(B, { zone }) {
     dark: new THREE.MeshStandardMaterial({ color: 0x0b1118, metalness: 0.5, roughness: 0.55 }),
     rust: new THREE.MeshStandardMaterial({ color: 0x5a2a1e, metalness: 0.7, roughness: 0.45 }),
     glow: new THREE.MeshBasicMaterial({ color: new THREE.Color(0x5fd6ff).multiplyScalar(1.7) }),
-    frost: new THREE.MeshStandardMaterial({ color: 0xd6ecff, metalness: 0.1, roughness: 0.12, transparent: true, opacity: 0.26, depthWrite: false, emissive: 0x0d2e4a, emissiveIntensity: 0.8 }),
+    tankGlass: new THREE.MeshStandardMaterial({ color: 0xbff0ff, metalness: 0.15, roughness: 0.05, transparent: true, opacity: 0.18, depthWrite: false, emissive: 0x0a3a44, emissiveIntensity: 0.7 }),
     tankGlow: new THREE.MeshBasicMaterial({ color: new THREE.Color(0x3a9fd8).multiplyScalar(0.55), transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }),
     shadow: new THREE.MeshBasicMaterial({ color: 0x020a12 }),
     puddle: new THREE.MeshStandardMaterial({ color: 0x04070b, metalness: 1, roughness: 0.04, envMapIntensity: 2 }),
     sign: new THREE.MeshBasicMaterial({ map: signAtlas().tex, color: new THREE.Color(0xcfe6ff).multiplyScalar(0.9), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
   };
-  M.frost.renderOrder = 2;
+  M.tankGlass.renderOrder = 2;
   const S = {};
   for (const k of Object.keys(shaders)) {
     S[k] = new THREE.ShaderMaterial({ uniforms: { uTime: time, uPower: power }, vertexShader: COMMON_V, fragmentShader: shaders[k], ...(k === 'ocean' ? { side: THREE.DoubleSide } : additive) });
@@ -349,7 +356,7 @@ export function makeDressing(B, { zone }) {
     caustic([x2, cy, (z1 + z2) / 2], '-x', z2 - z1, h);
     if (ceiling !== null) caustic([(x1 + x2) / 2, ceiling, (z1 + z2) / 2], 'down', x2 - x1, z2 - z1);
   }
-  // cold mist hanging over a water surface
+  // haze hanging over a water surface
   function mist(x1, z1, x2, z2, y, layers = [0.25, 0.9]) {
     for (const dy of layers) {
       const g = new THREE.PlaneGeometry(x2 - x1, z2 - z1).rotateX(-Math.PI / 2).translate((x1 + x2) / 2, y + dy, (z1 + z2) / 2);
@@ -394,13 +401,13 @@ export function makeDressing(B, { zone }) {
     for (const s of [-1, 1]) put('dark', place(new THREE.BoxGeometry(0.35, h + 1.5, 0.6).translate(s * (w / 2 + 0.2), 0.75, 0.3), P, N), P);
     put('glow', place(new THREE.BoxGeometry(w, 0.06, 0.06).translate(0, h / 2 + 0.05, 0.45), P, N), P);
   }
-  // a sleeper tank on floor y: frosted glass round a body in the cold light
+  // a stasis tank on floor y: clear glass round a sleeper in the blue-green glow
   function tank(x, y, z, h = 3, r = 0.75, body = true) {
     const P = V(x, y, z);
     put('metal', new THREE.CylinderGeometry(r + 0.12, r + 0.18, 0.45, 16).translate(x, y + 0.225, z), P);
     put('metal', new THREE.CylinderGeometry(r + 0.12, r + 0.08, 0.35, 16).translate(x, y + h - 0.175, z), P);
     put('glow', new THREE.CylinderGeometry(r + 0.13, r + 0.13, 0.05, 16).translate(x, y + 0.47, z), P);
-    put('frost', new THREE.CylinderGeometry(r, r, h - 0.8, 18, 1, true).translate(x, y + h / 2, z), P);
+    put('tankGlass', new THREE.CylinderGeometry(r, r, h - 0.8, 18, 1, true).translate(x, y + h / 2, z), P);
     put('tankGlow', new THREE.CylinderGeometry(r * 0.92, r * 0.92, h - 0.85, 14, 1, true).translate(x, y + h / 2, z), P);
     if (body) {
       // a sleeper: head bowed, arms at its sides (dark against the glow)
@@ -436,7 +443,7 @@ export function makeDressing(B, { zone }) {
   const drip = (x, y, z, every = 1.2) => drips.push({ p: V(x, y, z), every, t: rng() * every });
 
   // ---------------------------------------------------------------- the chasm's living dark
-  // plankton drifting in the abyss (one draw), and great jellies pulsing far below
+  // plankton drifting in the trench (one draw), and great jellies pulsing over its floor
   function abyss() {
     const N = 1400, pos = new Float32Array(N * 3), seed = new Float32Array(N);
     for (let i = 0; i < N; i++) {
@@ -527,7 +534,7 @@ export function makeDressing(B, { zone }) {
         const mesh = new THREE.Mesh(merged, keyMat[key]);
         mesh.matrixAutoUpdate = false;
         mesh.raycast = () => {};
-        if (['frost', 'tankGlow', 'caustic', 'mist', 'pour', 'shaft', 'sign', 'signHaz'].includes(key)) mesh.renderOrder = 3;
+        if (['tankGlass', 'tankGlow', 'caustic', 'mist', 'pour', 'shaft', 'sign', 'signHaz'].includes(key)) mesh.renderOrder = 3;
         W.scene.add(mesh);
       }
     }
@@ -558,7 +565,7 @@ export function makeDressing(B, { zone }) {
   }
 
   const dimOnShutdown = (instant) => {
-    // the glow bands sink, the pours stop and the sea's light goes cold
+    // the glow bands sink, the pours stop and the sea's light dims
     const target = 0.25;
     if (instant) {
       M.glow.color.multiplyScalar(target);
@@ -594,59 +601,38 @@ export function dressAzure(B, { zone }) {
   const win = d.window;
   const solid = (a, b) => W.addSolid(V(...a), V(...b), { static: true, kind: 'metal' });
 
-  // ---------------------------------------------------------------- the chasm
+  // ---------------------------------------------------------------- the trench
   d.abyss();
-  // broken mains pour from the cliffs into the abyss
-  pipe([[70, 14, -66], [70, 14, -69.4]], { r: 0.85, flange: 1.2 });
-  pour([70, 13.4, -69.6], -72, 2.2, '+z', { splash: false, mistAt: false });
-  pipe([[60, 18, -196], [60, 18, -192.6]], { r: 0.9, flange: 1.2 });
-  pour([60, 17.4, -192.4], -72, 2.4, '-z', { splash: false, mistAt: false });
+  // a broken main pours out of the hull into the sea
   pipe([[113, 8, -136], [110.4, 8, -136]], { r: 0.7, flange: 1 });
-  pour([110.2, 7.5, -136], -72, 1.8, '-x', { splash: false, mistAt: false });
-  // conduits down the cliff faces, banded with light
-  for (const x of [48, 88]) pipe([[x, 30, -69.3], [x, -78, -69.3]], { r: 0.75, flange: 6, band: 9 });
-  for (const x of [82, 100]) pipe([[x, 30, -192.7], [x, -78, -192.7]], { r: 0.75, flange: 6, band: 9 });
+  pour([110.2, 7.5, -136], -9.5, 1.8, '-x', { splash: false, mistAt: false });
 
-  // ---------------------------------------------------------------- entry and Rim Deck
+  // ---------------------------------------------------------------- entry and the rig deck
   pipe([[25.6, 6.85, -113.2], [43.9, 6.85, -113.2]], { r: 0.12, flange: 2.4, band: 4.8 });
   pipe([[25.6, 6.85, -110.8], [43.9, 6.85, -110.8]], { r: 0.09, flange: 3, band: 0 });
   sign('AZURE STATION', [29.4, 5.7, -113.5], '+z', 0.36);
   sign('DECK 01  RIM', [45.9, 4.55, -117.18], '+z', 0.2);
-  cable([56.85, 12.4, -119.15], [44.15, 5.1, -119.85], 1.2);
-  pipe([[52.15, 2.3, -114.35], [52.15, -52.2, -114.35]], { r: 0.24, flange: 5, band: 7 });
-  pipe([[56.85, 2.3, -109.65], [56.85, -52.2, -109.65]], { r: 0.2, flange: 5 });
+  sign('DIVE LINE', [57.4, 4.6, -109.1], '+z', 0.22);
   puddle(49, 4, -115.5, 0.8);
   puddle(53.5, 4, -106.2, 0.55);
+  puddle(51, 4, -111, 0.65);
 
-  // ---------------------------------------------------------------- the Shelf and the crane
-  sign('CRANE 2', [91.5, 3.25, -89.38], '+z', 0.32);
-  for (const [a, b] of [[85, 89.5], [89.5, 94], [94, 98.8]]) cable([a, 3, -89.75], [b, 3, -89.75], 0.8, 0.03);
-  cable([99.35, 3, -89.75], [102, -1, -79], 2.5);
-
-  // ---------------------------------------------------------------- Pump Station
-  sign('PUMP STATION 2', [103.48, -1.25, -84], '-x', 0.28);
-  pump(108, -4.5, -93, 1.05, 1.8);
-  solid([106.9, -4.5, -94.1], [109.1, -2.2, -91.9]);
-  pipe([[108, -3.2, -91.9], [108, -3.2, -88.55]], { r: 0.14, flange: 1.5 });
-  valve([106.6, -3.0, -88.55], '-z', 0.35);
-  pipe([[103, -5.6, -86.2], [103, -40, -86.2]], { r: 0.3, flange: 4, band: 6 });
-  pipe([[105.2, -5.6, -88.4], [105.2, -40, -88.4]], { r: 0.22, flange: 4 });
-  puddle(101, -4.5, -82, 0.7);
-  drip(103.6, -1.1, -80.6, 1.4);
-
-  // ---------------------------------------------------------------- Turbine Deck
-  sign('TURBINE 4', [104.48, -17.4, -120.6], '-x', 0.3);
-  pipe([[107.5, -17.4, -117.1], [112, -17.4, -117.1]], { r: 0.2, flange: 1.5, band: 3 });
-  pipe([[107.5, -19.6, -120.6], [112, -19.6, -120.6]], { r: 0.28, flange: 1.5 });
-  cable([106.2, -16, -120.6], [104.2, -6, -110.9], 1.6);
-  puddle(99, -21, -119.5, 0.9);
-  puddle(101.6, -21, -114.4, 0.5);
-  drip(100.6, -6.2, -111, 1.1);
-
-  // ---------------------------------------------------------------- the Storm Deck
-  sign('STORM DECK 3', [61.92, -17.6, -122.4], '+x', 0.36);
-  sign('DANGER  HIGH VOLTAGE', [61.92, -18.4, -100.6], '+x', 0.26, 'hazard');
-  for (const [a, b] of [[[61.6, -13.2, -122.4], [82.4, -13.2, -122.4]], [[61.6, -13.2, -100.6], [82.4, -13.2, -100.6]], [[61.6, -13.2, -122.4], [61.6, -13.2, -100.6]]]) cable(a, b, 1.6, 0.045);
+  // ---------------------------------------------------------------- the Aquarium
+  sign('AIRLOCK  A1', [49, -56.6, -88.4], '-z', 0.22);
+  sign('OBSERVATION', [49, -56.5, -98.6], '+z', 0.24);
+  sign('AQUARIUM', [75.6, -56.4, -103.8], '-x', 0.3);
+  sign('MOON POOL', [102.8, -58.4, -111.05], '+z', 0.22);
+  for (const [x, z] of [[86, -89], [86, -119], [105, -89]]) caustic([x, -59.97, z], 'up', 6, 6);
+  pipe([[76.4, -55.4, -88.4], [109.6, -55.4, -88.4]], { r: 0.16, flange: 3, band: 6 });
+  pipe([[76.4, -55.4, -119.6], [109.6, -55.4, -119.6]], { r: 0.16, flange: 3, band: 6 });
+  // the crew deck: portholes onto the sea, pipes, warmth
+  porthole([92.02, -19, -116], '+x', 0.55);
+  porthole([92.02, -19, -120.5], '+x', 0.55);
+  sign('CREW DECK', [99.5, -18.2, -112.05], '+z', 0.26);
+  pipe([[92.4, -17.2, -112.4], [107.6, -17.2, -112.4]], { r: 0.12, flange: 2.5 });
+  pipe([[106.9, -18.8, -121.5], [106.9, -16.9, -121.5]], { r: 0.18, flange: 1 });
+  puddle(97.6, -21, -113, 0.5);
+  drip(101, -16.9, -112.4, 1.6);
 
   // ---------------------------------------------------------------- the Flooded Depths
   causticRoom(124, -126, 146, -104, -25, -19);
@@ -659,7 +645,7 @@ export function dressAzure(B, { zone }) {
   for (const x of [130, 136.5, 147.5]) porthole([x, -55.2, -136.02], '-z', 0.5);
   pipe([[126.5, -50.6, -136.5], [151, -50.6, -136.5]], { r: 0.15, flange: 3, band: 5 });
 
-  // ---------------------------------------------------------------- the Cryo Lab and its records room
+  // ---------------------------------------------------------------- the Archive and its records room
   for (const x of [90.6, 93.4, 96.2, 99, 101.8, 104.6]) {
     tank(x, -25, -173.4, 3.2, 0.72);
     solid([x - 0.9, -25, -174.4], [x + 0.9, -21.8, -172.5]);
@@ -669,7 +655,7 @@ export function dressAzure(B, { zone }) {
     solid([88, -25, z - 0.8], [90.2, -21.8, z + 0.8]);
   }
   win([88.02, -21.6, -164.6], '+x', 3.6, 2.2);
-  sign('CRYO 3  SLEEPER STORAGE', [100, -21.25, -153.02], '-z', 0.32);
+  sign('ARCHIVE 3  SLEEPER INDEX', [100, -21.25, -153.02], '-z', 0.32);
   sign('RECORDS', [107.98, -21.9, -160.75], '-x', 0.28);
   pipe([[88.5, -17.6, -154.2], [107.5, -17.6, -154.2]], { r: 0.17, flange: 3, band: 4 });
   pipe([[88.5, -17.55, -174.6], [107.5, -17.55, -174.6]], { r: 0.22, flange: 3, band: 4 });
@@ -688,7 +674,7 @@ export function dressAzure(B, { zone }) {
   sign('DANGER  LIVE WATER', [80, -22.4, -163.05], '-z', 0.3, 'hazard');
   sign('DANGER  LIVE WATER', [76, -22.4, -176.95], '+z', 0.3, 'hazard');
   mist(68.2, -177, 84.2, -163, -24.95, [0.3]);
-  sign('DANGER  COLD BRINE', [65.98, -23.2, -173.6], '-x', 0.24, 'hazard');
+  sign('DANGER  SCALDING BRINE', [65.98, -23.2, -173.6], '-x', 0.24, 'hazard');
   mist(50, -182, 66, -158, -46.05);
   pipe([[50.4, -20, -176], [50.4, -46, -176]], { r: 0.3, flange: 4, band: 5 });
   pipe([[50.4, -20, -164.5], [50.4, -46, -164.5]], { r: 0.22, flange: 4 });
@@ -697,12 +683,11 @@ export function dressAzure(B, { zone }) {
 
   // ---------------------------------------------------------------- vault and sanctum
   sign('VAULT', [54, -52.35, -158.02], '-z', 0.32);
-  sign('CORE SANCTUM', [60, -52.6, -149.98], '+z', 0.34);
+  sign('GENERATOR HALL', [60, -52.6, -149.98], '+z', 0.34);
 
-  // ---------------------------------------------------------------- the Blue Span
+  // ---------------------------------------------------------------- the crossing
   sign('DECK 07  UNDERCROFT', [111.98, -52.2, -146], '-x', 0.32);
-  cable([92, -52.5, -139.6], [103.3, -51.4, -151.1], 1.4);
-  cable([103.3, -51.4, -151.1], [111.9, -50, -149], 1.2);
+  sign('SEA DOOR', [79.98, -52.4, -148.6], '-x', 0.24);
 
   // ---------------------------------------------------------------- the Undercroft: a flooded machine hall
   const HW = -57.3;

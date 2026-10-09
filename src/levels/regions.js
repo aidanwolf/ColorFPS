@@ -22,7 +22,7 @@ export const VISIBLE_FROM = {
   hub: new Set(['red', 'hub', 'solar', 'verdant', 'azure', 'prism']),
   solar: new Set(['solar', 'hub', 'red', 'verdant']),
   verdant: new Set(['verdant', 'hub', 'solar', 'azure']),
-  azure: new Set(['azure', 'hub', 'red', 'verdant']),
+  azure: new Set(['azure', 'hub']), // (the Drowned Reach is open sea to the horizon: the other worlds stay out of sight)
   prism: new Set(['prism', 'hub']),
 };
 

@@ -21,10 +21,10 @@ const LOGS = [
   { id: '08', world: 'verdant', pos: [27, 4.5, -212.2], yaw: Math.PI / 2 }, // the Ruin Bank's east rim over the sludge lake, roots grown through two skeletons
   { id: '09', world: 'verdant', pos: [-2.4, 21, -268.4], yaw: 0 }, // the hidden nest under the crown deck's south edge (drop through the rail gap; a pad brings you back)
   // AZURE (final, the rebuilt world): homesick, then the truth
-  { id: '10', world: 'azure', pos: [55.5, 4, -117.5], yaw: 2.36 }, // the Rim Deck by the antenna mast, first view of the cold sea
-  { id: '11', world: 'azure', pos: [107.2, -4.5, -82.3], yaw: 1.08 }, // inside the warm pump hut, by the boiler
+  { id: '10', world: 'azure', pos: [46.4, -60, -110.6], yaw: 2.36 }, // the Aquarium's observation gallery, at the north-west window: the first look out into the deep
+  { id: '11', world: 'azure', pos: [105.4, -21, -121.4], yaw: 1.57 }, // the warm crew deck, by the boiler
   { id: '12', world: 'azure', pos: [136, -52.3, -120.5], yaw: -Math.PI / 2 }, // the Flooded Depths: the Bell's dry ledge, an air pocket underwater
-  { id: '13', world: 'azure', pos: [113.4, -25, -160.8], yaw: Math.PI / 2 }, // the records room off the Cryo Lab, in front of the index terminal
+  { id: '13', world: 'azure', pos: [113.4, -25, -160.8], yaw: Math.PI / 2 }, // the Archive's records room, in front of the index terminal (the catalogue)
   // PRISM CORE (final; prism.js isn't being rebuilt): resolve, and the last note
   { id: '14', world: 'prism', pos: [-7.5, -48, -97.5], yaw: Math.PI / 4 }, // the antechamber, among the crystals, south-west corner
   { id: '15', world: 'prism', pos: [7, -48, -112], yaw: -Math.PI / 4 }, // the antechamber's north-east corner, by the way to the arena
