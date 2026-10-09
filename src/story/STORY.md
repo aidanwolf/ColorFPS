@@ -27,24 +27,39 @@ the valve on what it produces; whoever carries one can make that color's walls l
 
 **Humanity is part of the machinery, and that is recent.** For as long as anyone can tell, the Lumen
 ignored humanity: too small to be worth harvesting, too far from its rivers to matter. That changed when
-a human reached into the Atrium, drew power from it, and turned a captive sun down for nine seconds. The
-Lumen filed it as an anomaly, classification **threat**, and answered the way a machine answers: it
-reached back through the breach she came in by and took everyone. Every person from her world is now
-asleep inside the loop, catalogued, entered on the same day, kept until needed: put to work on the
-collectors, left in the light, composted into the forest. The cells in the Foundry are the waiting room.
+a team of humans came through into the Atrium, drew power from it, and one of them turned a captive sun
+down for nine seconds. The Lumen filed it as an anomaly, classification **threat**, and answered the way a
+machine answers: a burn out of the reactor swept the Atrium and killed the team at their field station, and
+the day after it reached back through the breach they had come in by and took everyone. Every person from
+her world is now asleep inside the loop, catalogued, entered on the same day, kept until needed: put to
+work on the collectors, left in the light, composted into the forest. (Not the team: it didn't keep them.)
+The cells in the Foundry are the waiting room.
 There is no malice in it at all, and that is the horror. Beneath the core is a door that opens only to
 **white light** (all four colors combined): where the loop begins and the Lumen itself lives.
 
 ## Dr. Wren Ashby (the researcher)
 
-Late twenties, a physicist on the small team that found the Atrium's frequency and opened a breach "from
-home". She argued to go first because she wanted it to be her: ten minutes, just a look, and she'd be
-only a bit late for her sister Bea's birthday dinner. The breach closed behind her, but for a while a thin
-link home still worked: the team (Priya loudest) follows along and argues with her over it, until it starts
-dropping out in Solar and, after her nine seconds, goes dead. She carries a
-handheld field recorder and a probe that can clip onto the conduits and speak to the worlds' frequencies.
-Warm, quick, funny, nosy, a bit of a show-off, lives on granola bars; talks to herself out loud. Her mum
-talks to her tomatoes. Her colleague Priya "is going to scream".
+Late twenties, a physicist on the small team (eight of them, Priya Nair, Tomas Okafor and Maja Lindqvist among
+them) that found the Atrium's frequency and opened a breach "from home". On day one they all came
+through together (the whiteboard: "09:12 breach open", "09:40 ATRIUM !!!") and set up a field station
+round the edge of the hall: desks with name plates, a kettle, a WELCOME TEAM banner and a cake. Wren
+argued to be the one who went out through the doors into the worlds, because she wanted it to be her: ten
+minutes, just a look, and home by seven for her sister Bea's birthday dinner (it's on the whiteboard too).
+The others stayed at the station and followed her over a radio link (Priya loudest), arguing with her,
+until it starts dropping out in Solar and, as her nine seconds end, goes dead for good. She
+carries a handheld field recorder and a probe that can clip onto the conduits and speak to the worlds'
+frequencies. Warm, quick, funny, nosy, a bit of a show-off, lives on granola bars; talks to herself out
+loud. Her mum talks to her tomatoes. Her colleague Priya "is going to scream".
+
+**The station.** The Lumen's answer to her nine seconds came at once, and it came out of the reactor: a
+burn that swept the Atrium. Everyone at the station died where they were (hubOffices.js): chairs shoved
+back and turned toward the dais, the panes facing it blown in, papers blown away from it, a few people left
+only as colour-fringed shadows on the walls, seven skeletons in lab coats with their ID badges; the party
+table with the cake still on it, the banner half down. Wren's desk is there, her plate and her login, and
+she isn't among the dead: she was out under the Solar pit. She doesn't go back to it. All she has
+is the silence on the link (in Verdant she keeps talking to Priya anyway, and tells herself the team never
+left the station) until the catalogue in Azure: Mum's name, Bea's, and not one of the team's. It didn't keep
+them. The player knows before she does: her first log plays at that party table, among the bones.
 
 **Her logs are hers.** Private voice notes to her recorder and to herself ("note to self", "breathe,
 Wren"). They never address or mention the player: she doesn't know the player exists. We first hear her
@@ -52,22 +67,23 @@ in the Prism Atrium; there are no logs in the cell block or the Foundry.
 
 **Her mistake.** In the Atrium she sips a trickle of power off a conduit to prove it can be tapped (the
 room blinks; "somewhere off to the south, a door went pfft": that is the moment the player's cell field
-fails). Under the Solar pit she and the team puzzle out the buried network: the conduits, the ring (a
+fails). Under the Solar pit she and the team (on the link) puzzle out the buried network: the conduits, the ring (a
 gate? a capacitor?), the mirrors that have to face the right way. Uneasy at how much sunlight is stored
 down there, and half-wondering whether the machine wanted it found, she charges the ring anyway: the plan
 is for the probe to talk to the captive star through it and turn it down, "just for a few seconds, just to
 prove we can". Her last Solar log is the countdown. She did it: the star went dim for nine seconds (we only
-learn that for certain in the Lumen's own records, in Azure). That is what the Lumen notices. She is the reason humanity became a threat, and so the reason it was
-taken.
+learn that for certain in the Lumen's own records, in Azure). That is what the Lumen notices. She is the
+reason humanity became a threat, and so the reason it was taken, and the reason her team died at the station
+while she lived.
 
 Her arc, in the order the player finds the logs:
 
 | world | mood | what she learns |
 |---|---|---|
-| Atrium | giddy, wonder | standing in it; the reactor heart overhead beats and hums like a fridge; four rivers of power meet here; she taps a trickle (oops) and dreams of powering a city |
-| Solar | curious → uneasy → nervous | with the team on the link: glassy conduits under 4,000 summers of glass, leading down into a pit; a stone ring that hums when the sun moves (Priya: a capacitor; Wren: a gate); failed tries to bounce sunlight into it with her compact mirror, while the huge buried mirrors "have to face the right way"; capacitor banks full of more stored sunlight than she can bear to work out; the link keeps dropping; "what if the machine wanted someone to find this?"; the countdown before she talks to the star through the ring |
-| Verdant | lonely → frightened | a biomass farm, no birds (a wren and no other birds); roots through fresh bodies, a bus pass from her own city; something follows her "ever since the star" |
-| Azure | homesick → devastated | the last engine; ten minutes and Bea's birthday; in the flooded Bell she reads the Lumen's record of the anomaly (her nine seconds, classified threat); in the Cryo Lab the catalogue: everyone from home, taken the day after |
+| Atrium | giddy, wonder | day one at the station with the team: the kettle, the cake, a heart beating overhead that gives out four times what goes in ("we are not calling it Big Fridge"), home by seven for Bea; four rivers of power meet here; she taps a trickle (oops) and dreams of powering a city |
+| Solar | curious → uneasy → nervous | with the team on the link from the station: glassy conduits under 4,000 summers of glass, leading down into a pit; a stone ring that hums when the sun moves (Priya: a capacitor; Wren: a gate); failed tries to bounce sunlight into it with her compact mirror, while the huge buried mirrors "have to face the right way"; capacitor banks full of more stored sunlight than she can bear to work out; the link keeps dropping; "what if the machine wanted someone to find this?"; the countdown before she talks to the star through the ring |
+| Verdant | lonely → frightened | a biomass farm, no birds; the link silent since the countdown, and she keeps talking to Priya anyway (a wren and no other birds); roots through fresh bodies, a bus pass from her own city (but only the team came through, and they never left the station); something follows her "ever since the star" |
+| Azure | homesick → devastated | the last engine; ten minutes, home by seven, Bea's birthday; in the flooded Bell she reads the Lumen's record of the anomaly (her nine seconds, classified threat); in the Cryo Lab the catalogue: everyone from home, taken the day after; Mum, Bea, and not Priya, not Tomas, not Maja: it didn't keep the team |
 | Prism Core | resolve → hope | the four rivers end at the heart: if they go dark, the loop lets go; "I broke it, so I fix it"; the guardian hunts her; she goes for the white door, recorder left on for the company |
 
 **Final note (open for the ending):** "Mum. Bea. If you dream at all in there... dream about cake.
@@ -97,7 +113,7 @@ haunted, warbling, reverberant chain (`src/story/voice.js`).
 
 | id | title | where |
 |---|---|---|
-| 01 | Hello, Atrium | Atrium · beside the Prism dais |
+| 01 | Day One | Atrium · the day-1 station, by the party table |
 | 02 | Four Rivers | Atrium · the sunken plaza |
 | 03 | Borrowed Light | Atrium · the east gallery |
 | 04 | Under the Sand | Solar · the buried conduits |
