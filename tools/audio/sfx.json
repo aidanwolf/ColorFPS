@@ -1750,5 +1750,48 @@
   "dur": 20,
   "influence": 0.4,
   "loop": true
+ },
+ "airlock_cycle": {
+  "text": "Heavy submarine airlock cycling: a thud as the door seals, rushing water draining with gurgles, a hiss of air, then a clank.",
+  "dur": 4,
+  "influence": 0.55
+ },
+ "air_refill": {
+  "text": "Gasping first breath after surfacing in an air pocket, with a hiss of air from a valve.",
+  "dur": 1.5,
+  "influence": 0.6
+ },
+ "bubble_vent": {
+  "text": "Steady underwater stream of bubbles rising from a seabed vent, a soft burbling loop.",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "glass_creak": {
+  "text": "Thick underwater glass corridor creaking and groaning under pressure, deep and slow, with a faint tick of a crack.",
+  "dur": 3,
+  "influence": 0.55
+ },
+ "seabed_machine": {
+  "text": "A huge distant underwater machine grinding along the sea floor, low clanks and hydraulic groans, muffled by water, loop.",
+  "dur": 6,
+  "influence": 0.5,
+  "loop": true
+ },
+ "turbine_pulse": {
+  "text": "A colossal underwater turbine spinning up and sucking water: a rising roar and a deep whoosh.",
+  "dur": 3,
+  "influence": 0.55
+ },
+ "turbine_loop": {
+  "text": "A giant underwater turbine idling, a deep slow thrum with water churning, loop.",
+  "dur": 5,
+  "influence": 0.5,
+  "loop": true
+ },
+ "harvester_pass": {
+  "text": "A massive submarine passing slowly overhead underwater, deep engine drone with doppler, propeller wash.",
+  "dur": 8,
+  "influence": 0.55
  }
 }
