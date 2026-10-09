@@ -27,6 +27,7 @@ import { LightReceiver } from '../entities/sunlight.js';
 import { mat, boxGeo } from '../materials.js';
 import { audio } from '../audio.js';
 import { mergeBoxes } from './solarSky.js';
+import { buildSolarSkyline } from './solarSkyline.js';
 
 const SOUNDS = ['servo_heavy', 'hydraulic_land', 'floor_collapse', 'elevator_start', 'wind_gust'];
 audio.manifest?.then(() => audio.prefetch(SOUNDS));
@@ -326,7 +327,7 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
   // whose mirror caps still catch the sun
   for (const [x, z, h, cap] of [[-92, -66, 3.2], [-88, -88, 5.4, true], [-58, -66, 2.2], [-80, -63.5, 1.4], [-60, -91, 2.8], [-94, -80, 4.2, true]]) brokenPillar(x, YF, z, h, cap);
   drum(-84, YF, -70, true);
-  drum(-62, YF, -72, false);
+  drum(-58, YF, -76, false);
   drum(-76, YF, -90, true, 2.2);
   for (const [x, z, w, d] of [[-90, -73, 6, 4], [-60, -84, 5, 5], [-78, -64, 7, 3], [-52, -70, 6, 3], [-96, -88, 5, 3]]) drift(x, YF, z, w, d);
   for (const [x, z] of [[-97, -92], [-51, -92], [-97, -62], [-51, -62]]) pylon(x, YF, z, 7);
@@ -357,8 +358,8 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
   };
   sphinx(-88, -84, 1);
   sphinx(-88, -68, -1);
-  sphinx(-55.5, -84, 1);
-  sphinx(-55.5, -68, -1);
+  sphinx(-61.5, -86, 1);
+  sphinx(-61.5, -66, -1);
   // eerily silent until the core is taken and the yard wakes
   const silence = () => {
     game.musicTrack = 'silence';
@@ -433,7 +434,7 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
     });
   }
   const courtWon = () => ambush.state === 'cleared';
-  B.armor([-96, YF, -91]);
+  B.armor([-84, YF, -92]);
   B.armor([-52, YF, -64]);
   B.armor([-90, YF + 6, -93]);
 
@@ -466,14 +467,97 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
     },
   }));
   K.lights.push(...targets);
-  glyphStrip('+x', FACE, -94, -83.4, TF - 1.2);
-  glyphStrip('+x', FACE, -68.6, -58, TF - 1.2);
-  // the facade's outer dressing (on the temple's front wall line, never inside it): pilasters, a sun disc
-  // over the door, glyph bands
-  sunRelief('+x', -100, -76, TF + 9, 2.6);
-  glyphStrip('+x', -100, -84, -68, TF + 6.4);
+  glyphStrip('+x', FACE, -88, -83.4, TF - 1.2);
+  glyphStrip('+x', FACE, -68.6, -64, TF - 1.2);
   hint([-96, YF, -86], [-84, YF + 4, -66], 'No stair — just a sheer cut face. Those <b style="color:#ffd23a">sun discs</b> in its flanks… hold the <b style="color:#ffd23a">yellow beam</b> on them.', 6);
   devStart('solar12', [DOOR[0] + 1.6, TF, DOOR[2]], Math.PI / 2, [RED, YELLOW], 'The Sun Temple doors (stair raised)');
+
+  // ================================================================ THE TEMPLE'S FACE (its outside only)
+  // The temple itself is solarTempleInterior.js; out here it gets its face: a sandstone skin over its walls,
+  // battered pylons flanking the door, a winged sun over the doorway, glyph bands and prayer banners, two
+  // seated colossi before the cut face, a cornice and gold trim round the tower's crown and, on its south
+  // part, a giant gold sun on the roof (the north shoulder stays low: the sun sits just over it from the
+  // gatehouse). Built in temple coordinates (origin the door's threshold, +z into the temple, +x south).
+  {
+    const tl = (x, y, z) => [DOOR[0] - z, DOOR[1] + y, DOOR[2] + x];
+    const skin = (x1, y1, z1, x2, y2, z2, kind = 'rock') => W.deco(DOOR[0] - z2, DOOR[1] + y1, DOOR[2] + x1, DOOR[0] - z1, DOOR[1] + y2, DOOR[2] + x2, kind, zone);
+    const solid = (x1, y1, z1, x2, y2, z2) => R(DOOR[0] - z2, DOOR[1] + y1, DOOR[2] + x1, DOOR[0] - z1, DOOR[1] + y2, DOOR[2] + x2);
+    const gold = [];
+    const goldBox = (x1, y1, z1, x2, y2, z2) => gold.push(new THREE.BoxGeometry(z2 - z1, y2 - y1, x2 - x1).translate(DOOR[0] - (z1 + z2) / 2, DOOR[1] + (y1 + y2) / 2, DOOR[2] + (x1 + x2) / 2));
+    // the sandstone skin (0.2 m proud of the walls; the doorway left open)
+    skin(-18, 0, -0.2, -3, 31.5, 0);
+    skin(3, 0, -0.2, 18, 31.5, 0);
+    skin(-3, 5, -0.2, 3, 31.5, 0);
+    skin(-6, 31.5, -0.2, 18, 50, 0); // the tower's front
+    skin(-6.2, 31.5, -0.2, -6, 50, 31.2); // its north face over the terrace
+    skin(18, -12, -0.2, 18.2, 50, 31.2); // the south face over the drop
+    skin(-18.2, 30, -0.2, -6, 31.7, 0.6); // the terrace's front lip
+    // battered pylons either side of the stair (outside the stair targets), from the yard to y 36
+    for (const s of [-1, 1]) {
+      const xo = 18 * s, xi = 12 * s;
+      for (let k = 0; k < 6; k++) {
+        const i = k * 0.45, y = -12 + k * 8;
+        solid(Math.min(xo - s * i, xi), y, -4 + i * 0.5, Math.max(xo - s * i, xi), y + 8, -0.2);
+      }
+      solid(Math.min(xo - s * 3, xi - s * 0.4), 36, -3.2, Math.max(xo - s * 3, xi - s * 0.4), 37.4, -0.2); // its cornice
+      goldBox(Math.min(xo - s * 3, xi - s * 0.4), 36.6, -3.32, Math.max(xo - s * 3, xi - s * 0.4), 36.85, -3.2);
+      // a tall slot of glyphs and a sun disc down each pylon's face
+      for (let y = -6; y < 30; y += 6) {
+        const fz = -4 + Math.floor((y + 12) / 8) * 0.225; // (the course's face)
+        const a = tl(15 * s - 0.4, y, fz - 0.05), b = tl(15 * s + 0.4, y + 3.6, fz);
+        G(Math.min(a[0], b[0]), a[1], Math.min(a[2], b[2]), Math.max(a[0], b[0]), b[1], Math.max(a[2], b[2]));
+      }
+    }
+    // the winged sun over the doorway
+    {
+      const [cx, cy, cz] = tl(0, 9.6, -0.32);
+      gold.push(new THREE.CylinderGeometry(2.6, 2.6, 0.3, 32).rotateZ(Math.PI / 2).translate(cx, cy, cz));
+      for (const s of [-1, 1]) {
+        for (let k = 0; k < 4; k++) {
+          const x1 = s * 2.8, x2 = s * (11 - k * 1.6), y = 9.9 - k * 0.55;
+          goldBox(Math.min(x1, x2), y - 0.24, -0.4, Math.max(x1, x2), y + 0.24, -0.22);
+        }
+        // the uraei: a cobra rising either side of the disc
+        goldBox(s * 2.7 - 0.3, 7.4, -0.5, s * 2.7 + 0.3, 11.2, -0.25);
+      }
+    }
+    // glyph bands across the front, and prayer banners
+    for (const y of [3.6, 14, 24]) {
+      glyphStrip('+x', DOOR[0] + 0.2, DOOR[2] - 11.6, DOOR[2] - 3.6, DOOR[1] + y);
+      glyphStrip('+x', DOOR[0] + 0.2, DOOR[2] + 3.6, DOOR[2] + 11.6, DOOR[1] + y);
+    }
+    for (const x of [-7.5, 7.5]) banner('+x', DOOR[0] + 0.2, DOOR[2] + x, DOOR[1] + 22, 2.4, 11);
+    for (const x of [-1.8, 4.2, 10.2, 16.2]) banner('+x', DOOR[0] + 0.2, DOOR[2] + x, DOOR[1] + 47, 2, 9);
+    // the tower's crown: a cornice with gold trim, and the giant sun on its south part
+    skin(-6.6, 50, -0.6, 18.6, 51.4, 0.6);
+    skin(-6.6, 50, 30.4, 18.6, 51.4, 31.6);
+    skin(-6.6, 50, 0.6, -5.4, 51.4, 30.4);
+    skin(17.4, 50, 0.6, 18.6, 51.4, 30.4);
+    goldBox(-6.7, 51.4, -0.7, 18.7, 51.65, -0.45);
+    goldBox(18.45, 51.4, -0.7, 18.7, 51.65, 31.7);
+    skin(-6.6, 31.5, -0.5, 18.6, 32.6, 0); // a cornice band where the tower rises off the hall
+    goldBox(-6.6, 32.6, -0.55, 18.6, 32.8, -0.45);
+    {
+      // the plinth and the disc: 7 m across, sixteen rays, facing east down the yard
+      solid(8, 50, -1.2, 14, 52.4, 0.8); // (on the front cornice: the roof behind stays clear)
+      solid(9.4, 52.4, -0.8, 12.6, 54.5, 0.4);
+      const [cx, cy, cz] = tl(11, 61.5, -0.2);
+      gold.push(new THREE.CylinderGeometry(6.6, 6.6, 0.5, 40).rotateZ(Math.PI / 2).translate(cx, cy, cz));
+      for (let k = 0; k < 16; k++) {
+        const a = (k / 16) * Math.PI * 2, r = 8.4, len = k % 2 ? 2.2 : 3.4;
+        gold.push(new THREE.BoxGeometry(0.4, len, 0.7).rotateX(a).translate(cx, cy + Math.cos(a) * r, cz + Math.sin(a) * r));
+      }
+    }
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffc860, metalness: 0.95, roughness: 0.25, emissive: 0x4a3008 });
+    const gm = new THREE.Mesh(mergeBoxes(gold.map((g) => (g.index ? g.toNonIndexed() : g))), goldMat);
+    gm.userData.noCull = true;
+    W.scene.add(gm);
+    // the seated colossi before the cut face, either side of the stair
+    const sk = buildSolarSkyline(B, K);
+    sk.colossus(-93, YF, DOOR[2] - 15.6, '+x', 0.36);
+    sk.colossus(-93, YF, DOOR[2] + 15.6, '+x', 0.36);
+    sk.finish();
+  }
 
   // ================================================================ THE EXPANSE (scenery past the colonnade)
   // the cliff city: a massif east of the lowland, its face carved into terraces, doorways and seated
