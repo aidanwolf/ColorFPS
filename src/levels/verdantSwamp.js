@@ -26,6 +26,7 @@ import { makeVerdantKit } from './verdantKit.js';
 import { makeFlora } from './verdantFlora.js';
 import { buildVerdantRuin } from './verdantRuin.js';
 import { SwampAmbush } from './verdantAmbush.js';
+import { creatureKit } from '../entities/verdantCreatures.js';
 
 const PI = Math.PI;
 const NORTH = 0, SOUTH = PI, EAST = -PI / 2, WEST = PI / 2;
@@ -40,6 +41,7 @@ export function buildVerdantSwamp(B, ctx = {}) {
   const { W, game, level, hint, area, devStart, onRespawn } = B;
   const K = makeVerdantKit(B, { seed: 11 });
   const F = makeFlora(K);
+  const C = creatureKit(B);
   const { mats, R, rand } = K;
   const WM = { deep: mats.swampDeep, shallow: mats.swampShallow };
   const RY = [RED, YELLOW];
@@ -56,6 +58,10 @@ export function buildVerdantSwamp(B, ctx = {}) {
   audio.manifest?.then(() => audio.prefetch(['amb_swamp', 'trapdoor_fall', 'trapdoor_drop', 'temple_rumble', 'crumble_crack', 'crumble_break', 'leviathan_splash', 'vine_whip', 'slime_splat', 'root_rumble', 'swamp_burst', 'leaf_rustle', 'mire_suck', 'sand_sink']));
 
   const mud = new THREE.MeshStandardMaterial({ color: 0x2a2316, roughness: 1, flatShading: true });
+  // the swamp's stone: the kit's granite, wet and mossy-dark out here
+  const wetStone = mats.granite.clone(), wetGlyph = mats.glyph.clone();
+  wetStone.color.set(0x7c8676);
+  wetGlyph.color.set(0x76806e);
   const mudWet = new THREE.MeshStandardMaterial({ color: 0x1c1a10, roughness: 0.35, metalness: 0.1, flatShading: true });
   const trees = [], brush = [], A = [], Bm = []; // (A / Bm: the meshes of each half, shown only near it)
   const paths = []; // polylines the scatter keeps clear: [[x, z], ...] with a clearance
@@ -147,7 +153,7 @@ export function buildVerdantSwamp(B, ctx = {}) {
   // a granite stepping stone: an old carved block, tipped and half sunk, moss on top
   function stone(x, z, w, top, { d = w, glyph = false } = {}) {
     const tilt = R(-0.04, 0.04);
-    K.put(glyph ? mats.glyph : mats.granite, boxGeo(w, top + 1.2, d, 0.5).rotateZ(tilt).rotateY(R(-0.1, 0.1)), x, (top - 1.2) / 2, z);
+    K.put(glyph ? wetGlyph : wetStone, boxGeo(w, top + 1.2, d, 0.5).rotateZ(tilt).rotateY(R(-0.1, 0.1)), x, (top - 1.2) / 2, z);
     K.put(mats.moss, new THREE.IcosahedronGeometry(w * 0.4, 1).scale(1, 0.18, d / w), x + R(-0.2, 0.2), top + 0.01, z + R(-0.2, 0.2));
     solid(x - w / 2, -1.5, z - d / 2, x + w / 2, top, z + d / 2, 'stone');
   }
@@ -166,8 +172,17 @@ export function buildVerdantSwamp(B, ctx = {}) {
     mesh.matrixAutoUpdate = false;
     W.scene.add(mesh);
     list.push(mesh);
-    solid(x1, -1.5, z1, x2, MIRE_TOP, z2, 'mud', { hazard: 'acid', mire: true });
+    // (the mire round any hole: the trapdoor's shaft goes straight through it)
+    const cut = holesIn.find(([a, b, c, d]) => a > x1 && c < x2 && b > z1 && d < z2);
+    const mire = (a, b, c, d) => c - a > 0.01 && d - b > 0.01 && solid(a, -1.5, b, c, MIRE_TOP, d, 'mud', { hazard: 'acid', mire: true });
+    if (!cut) return mire(x1, z1, x2, z2);
+    const [hx1, hz1, hx2, hz2] = cut;
+    mire(x1, z1, x2, hz1);
+    mire(x1, hz2, x2, z2);
+    mire(x1, hz1, hx1, hz2);
+    mire(hx2, hz1, x2, hz2);
   }
+  const holesIn = [[ISLAND[0] - 2.5, ISLAND[2] - 2.5, ISLAND[0] + 2.5, ISLAND[2] + 2.5]];
   // a tree, kept off the path (scatter adds the rest)
   const tree = (x, z, kind = 'giant', s = 1, y = null) => trees.push({ x, z, kind, s, y: y ?? (kind === 'mangrove' ? MIRE_TOP : MIRE_TOP - 0.2) });
   // keep the scatter clear of the route
@@ -190,29 +205,29 @@ export function buildVerdantSwamp(B, ctx = {}) {
   // open stone ahead of it), the swamp opening out below in the fog.
   {
     const top = 4;
-    K.put(mats.granite, boxGeo(14, 5.5, 12, 0.5), -10, top - 2.75, -164.5);
+    K.put(wetStone, boxGeo(14, 5.5, 12, 0.5), -10, top - 2.75, -164.5);
     solid(-17, -1.5, -170.5, -3, top, -158.5, 'stone');
-    K.put(mats.glyph, boxGeo(14.2, 0.5, 0.4, 0.5), -10, top - 0.3, -170.6);
+    K.put(wetGlyph, boxGeo(14.2, 0.5, 0.4, 0.5), -10, top - 0.3, -170.6);
     for (let i = 0; i < 26; i++) {
       // cracked paving: tipped slabs, moss in the joints
       const x = R(-16.4, -3.6), z = R(-170, -159);
       if (Math.abs(x + 10) < 2.6 && z > -168) continue; // (the walking line stays clear)
-      K.put(rand() < 0.6 ? mats.moss : mats.granite, boxGeo(R(0.6, 1.5), 0.08, R(0.6, 1.5), 0.5).rotateX(R(-0.08, 0.08)).rotateZ(R(-0.08, 0.08)), x, top + 0.04, z);
+      K.put(rand() < 0.6 ? mats.moss : wetStone, boxGeo(R(0.6, 1.5), 0.08, R(0.6, 1.5), 0.5).rotateX(R(-0.08, 0.08)).rotateZ(R(-0.08, 0.08)), x, top + 0.04, z);
     }
     // broken pillars and a fallen lintel framing the view north
     for (const [x, z, h] of [[-16, -169.5, 4.8], [-4, -169.5, 3.1], [-16, -159.5, 2.2]]) {
-      K.put(mats.granite, boxGeo(1.2, h, 1.2, 0.5), x, top + h / 2, z);
-      K.put(mats.glyph, boxGeo(1.25, 0.6, 1.25, 0.5), x, top + h * 0.55, z);
+      K.put(wetStone, boxGeo(1.2, h, 1.2, 0.5), x, top + h / 2, z);
+      K.put(wetGlyph, boxGeo(1.25, 0.6, 1.25, 0.5), x, top + h * 0.55, z);
       K.mossCap(x, top + h, z, 0.8, 0.35);
       solid(x - 0.6, top, z - 0.6, x + 0.6, top + h, z + 0.6, 'stone');
       for (let k = 0; k < 3; k++) K.hangMoss(x + R(-0.6, 0.6), top + h, z + R(-0.6, 0.6), R(0.8, 2));
     }
-    K.put(mats.granite, boxGeo(5.5, 0.9, 1.1, 0.5).rotateZ(0.25), -6.5, top + 0.7, -167.5);
+    K.put(wetStone, boxGeo(5.5, 0.9, 1.1, 0.5).rotateZ(0.25), -6.5, top + 0.7, -167.5);
     solid(-9.2, top, -168.05, -3.8, top + 1.0, -166.95, 'stone');
     // steps down off the north edge into the shallows
     for (let i = 0; i < 4; i++) {
       const y = top - 0.6 * (i + 1);
-      K.put(mats.granite, boxGeo(6, 0.6, 1.1, 0.5), -10, y + 0.3 - 0.6 + 0.3, -171.1 - i * 1.1);
+      K.put(wetStone, boxGeo(6, 0.6, 1.1, 0.5), -10, y + 0.3 - 0.6 + 0.3, -171.1 - i * 1.1);
       solid(-13, -1.5, -171.65 - i * 1.1, -7, y + 0.3, -170.55 - i * 1.1, 'stone');
     }
     // the drizzle and the gold light, mist on the water below
@@ -279,7 +294,7 @@ export function buildVerdantSwamp(B, ctx = {}) {
     if (fliesDone) return;
     fliesDone = true;
     setTimeout(() => {
-      creature('rotfly', [9, 5.5, -205], { count: 3 });
+      C.rotflies([8.5, 2.2, -205.5], { count: 3, colors: RY, respawn: 0, hive: true, aggro: true });
       game.hud.message(`<b>Rotflies</b> rise out of the reeds. They dart in and out of the fog: track them, ${R_('red')} and ${Y_('yellow')}.`, 5);
     }, 900);
   });
@@ -333,13 +348,15 @@ export function buildVerdantSwamp(B, ctx = {}) {
   // the river bank: the snapjaw (first of its kind) rooted at the path's edge
   bank(-48, -252, -38.5, -238, 2.7, { brushN: 0.08 });
   K.harvestTower([-45, 2.7, -240.5], 10, { r: 1.8 });
+  C.snapjaw([-46.4, 2.7, -250.4], { color: RED, yaw: -2.5, reach: 5.5 });
   let snapDone = false;
   W.trigger([-41, 2.5, -246], [-38, 6, -238], () => {
     if (snapDone) return;
     snapDone = true;
-    creature('snapjaw', [-46.4, 2.7, -250.4], {});
-    setTimeout(() => game.hud.message(`A <b>snapjaw</b> rooted at the water's edge. It can't follow you, but it bites anything that passes: kill it from range.`, 5), 300);
+    game.hud.message(`A <b>snapjaw</b> rooted at the water's edge. It can't follow you, but it snaps at anything in reach and spits: kill it from range with ${R_('red')}. (Hit its open mouth to stun it.)`, 6);
   });
+  // ... and its cousins under the water by the log, waiting (they rear out as you cross)
+  C.snapjaw([-51.5, WATER_Y, -255.2], { color: YELLOW, emerge: true, yaw: -1.2, reach: 5 });
   cp([-40, 2.7, -244], WEST, [4, 3, 5]);
   // a giant fallen log across the river, a pipeline drowned beside it
   log([-46.5, -251.5], [-53.5, -263], 2.7, 0.8);
@@ -364,13 +381,12 @@ export function buildVerdantSwamp(B, ctx = {}) {
   mound(-63, -275, 2.4, 2.4);
   mound(-59.5, -279.5, 2.2, 2.5);
   log([-70, -273], [-68, -283], 2.1, 0.9, { fungi: 6 });
+  C.borer([-68.15, 1.5, -278], [1, 0, 0], { color: YELLOW, range: 12 });
   let borerDone = false;
   W.trigger([-65, 2.2, -277], [-57, 6, -272], () => {
     if (borerDone) return;
     borerDone = true;
-    creature('borer', [-66.5, 2.4, -278.5], {});
-    W.fx.burst(new THREE.Vector3(-68.5, 2.4, -278), 0x5a4a2a, { count: 30, speed: 5, life: 1, size: 0.25, gravity: 9 });
-    setTimeout(() => game.hud.message(`A <b>borer</b> tears out of the rotten log! It tunnels and resurfaces — watch the ground.`, 5), 200);
+    game.hud.message(`Something in the rotten log: a <b>borer</b>. It bursts out to bite and hangs there a moment: hit its head with ${Y_('yellow')}.`, 5);
   });
   // the pipeline back east over the river (walk it)
   K.pipe([[-58, 3.0, -282], [-50, 3.0, -282], [-42.5, 3.0, -282]], { r: 0.6, walk: true, leak: [0.3, 0.7], ground: WATER_Y, supports: 4 });
@@ -404,7 +420,7 @@ export function buildVerdantSwamp(B, ctx = {}) {
         { type: 'slime', from: 'water', pos: [-45, 2.6, -289], to: [-41.5, 2.6, -288], color: YELLOW, core: RED, delay: 0.4 },
         { type: 'slime', from: 'water', pos: [-29, 2.6, -288], to: [-32.5, 2.6, -287], color: RED, core: YELLOW, delay: 0.8 },
         { type: 'spider', from: 'tree', pos: [-35, 3, -284.9], color: RED, shields: [YELLOW, RED], ceiling: true, leash: 8, range: 26, delay: 1.4 },
-        ...creatureSpecs('snapjaw', [-31.8, 2.6, -278.4], { delay: 1.8 }),
+        ...creatureSpecs('snapjaw', [-29.6, WATER_Y, -279.4], { color: YELLOW, emerge: true, yaw: 1.6, delay: 1.8 }),
       ] },
     ],
     onClear: () => setTimeout(() => game.hud.message('Quiet again. The stones lead <b>west</b>, out to the little island where the river ends.', 6), 2400),
@@ -436,13 +452,13 @@ export function buildVerdantSwamp(B, ctx = {}) {
   // east face (verdantEscape.js), vines down its face, fog over its top. Nobody climbs it.
   {
     const cliff = (x1, y1, z1, x2, y2, z2) => {
-      K.put(mats.granite, boxGeo(x2 - x1, y2 - y1, z2 - z1, 0.12), (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
+      K.put(wetStone, boxGeo(x2 - x1, y2 - y1, z2 - z1, 0.12), (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
       solid(x1, y1, z1, x2, y2, z2, 'rock');
     };
     cliff(-100.5, -1.5, -306, 0, 44, -302);
     for (let x = -98; x < -2; x += R(4, 8)) {
       const w = R(3, 7), h = R(8, 30);
-      K.put(mats.granite, boxGeo(w, h, R(1, 3), 0.12), x, h / 2 - 1, -301.4 + R(-0.3, 0.3));
+      K.put(wetStone, boxGeo(w, h, R(1, 3), 0.12), x, h / 2 - 1, -301.4 + R(-0.3, 0.3));
       K.mossCap(x, h - 1, -301.2, w * 0.5, 0.3);
       for (let k = 0; k < 5; k++) F.vineStrand(x + R(-w / 2, w / 2), h - 1, -300.4, R(3, h * 0.8), 0.16);
     }
@@ -578,23 +594,13 @@ export function buildVerdantSwamp(B, ctx = {}) {
     for (let i = 0; i < 3; i++) K.limb([[x + R(-1, 1), y - 0.3, z + R(-1, 1)], [x + R(-0.3, 0.3), y + 0.35, z + R(-0.3, 0.3)], [x + R(-1, 1), y - 0.2, z + R(-1, 1)]], 0.1, 0.05, mats.bark, 5);
   }
 
-  // ---------------------------------------------------------------- the creatures (placeholders)
-  // Snapjaw (giant flytrap), Rotfly (giant fly) and Borer (giant tree worm) are being built in
-  // entities/verdantCreatures.js. Until they land, each spawns a robot stand-in that plays the same role:
-  // the rotfly cloud is a swarm, the snapjaw a floor turret, the borer a burrowing scarab. Swap here.
+  // ---------------------------------------------------------------- the creatures (entities/verdantCreatures.js)
+  // red / yellow ones only before the gun; as encounter data: { type: 'rotflies' | 'snapjaw' | 'borer', ... }
   function creatureSpecs(kind, pos, o = {}) {
-    if (kind === 'rotfly') return [{ type: 'swarm', pos, color: RY, count: o.count ?? 4, delay: o.delay }];
-    if (kind === 'snapjaw') return [{ type: 'turret', pos, color: RED, shields: [YELLOW], mount: 'floor', delay: o.delay }];
-    if (kind === 'borer') return [{ type: 'scarab', pos, color: YELLOW, delay: o.delay }];
+    if (kind === 'rotfly') return [{ type: 'rotflies', pos, colors: RY, count: o.count ?? 4, respawn: 0, hive: false, delay: o.delay }];
+    if (kind === 'snapjaw') return [{ type: 'snapjaw', pos, color: o.color ?? RED, shields: o.shields, emerge: !!o.emerge, yaw: o.yaw ?? 0, delay: o.delay }];
     return [];
   }
-  function creature(kind, pos, o = {}) {
-    const [spec] = creatureSpecs(kind, pos, o);
-    if (!spec) return null;
-    const { type, delay, ...rest } = spec;
-    return type === 'scarab' ? B.scarab(pos, { color: YELLOW, burrow: true, range: 30 }) : B.enemy(type, pos, { ...rest, aggro: true });
-  }
-
   // ---------------------------------------------------------------- the trapdoor island
   function buildTrapdoorIsland() {
     const [ix, iy, iz] = ISLAND;
@@ -615,7 +621,7 @@ export function buildVerdantSwamp(B, ctx = {}) {
     const tiles = [];
     for (let gx = 0; gx < 4; gx++)
       for (let gz = 0; gz < 4; gz++) {
-        const m = new THREE.Mesh(boxGeo(0.96, 0.4, 0.96, 0.5), (gx + gz) % 3 ? mats.granite : mats.glyph);
+        const m = new THREE.Mesh(boxGeo(0.96, 0.4, 0.96, 0.5), (gx + gz) % 3 ? wetStone : wetGlyph);
         m.position.set(-1.5 + gx, -0.2, -1.5 + gz);
         m.rotation.set(R(-0.02, 0.02), R(-0.05, 0.05), R(-0.02, 0.02));
         trapGroup.add(m);
@@ -627,10 +633,10 @@ export function buildVerdantSwamp(B, ctx = {}) {
     W.scene.add(trapGroup);
     const trapSolid = solid(H.x1, iy - 0.4, H.z1, H.x2, iy, H.z2, 'stone');
     // the marker: a squat granite stele, glyph-banded, a jade eye, strangled in roots, at the trap's north edge
-    K.put(mats.granite, boxGeo(1.6, 2.2, 1.0, 0.5), ix, iy + 1.1, iz - 3.3);
-    K.put(mats.glyph, boxGeo(1.65, 0.7, 1.05, 0.5), ix, iy + 1.3, iz - 3.3);
+    K.put(wetStone, boxGeo(1.6, 2.2, 1.0, 0.5), ix, iy + 1.1, iz - 3.3);
+    K.put(wetGlyph, boxGeo(1.65, 0.7, 1.05, 0.5), ix, iy + 1.3, iz - 3.3);
     K.put(mats.jade, new THREE.SphereGeometry(0.22, 10, 8), ix, iy + 1.75, iz - 2.75);
-    K.put(mats.granite, boxGeo(2.2, 0.4, 1.4, 0.5), ix, iy + 2.4, iz - 3.3);
+    K.put(wetStone, boxGeo(2.2, 0.4, 1.4, 0.5), ix, iy + 2.4, iz - 3.3);
     solid(ix - 0.8, iy, iz - 3.8, ix + 0.8, iy + 2.6, iz - 2.8, 'stone');
     for (let i = 0; i < 5; i++) K.limb([[ix + R(-1.5, 1.5), iy - 0.2, iz - 3.3 + R(-1.2, 1.2)], [ix + R(-0.9, 0.9), iy + R(1.2, 2.2), iz - 3.3 + R(-0.6, 0.6)], [ix + R(-0.7, 0.7), iy + R(2.4, 3.2), iz - 3.3 + R(-0.4, 0.4)]], R(0.12, 0.2), 0.05, mats.bark, 5);
     K.mossCap(ix, iy + 2.65, iz - 3.3, 1, 0.3);
@@ -644,7 +650,7 @@ export function buildVerdantSwamp(B, ctx = {}) {
     B.light(ix, iy + 3.5, iz - 2, 0x9dffb0, 8, 9);
     // the shaft down through the swamp bed to the cistern (granite, dark), its sides seen as you fall
     for (const [x1, z1, x2, z2] of [[H.x1 - 0.5, H.z1 - 0.5, H.x2 + 0.5, H.z1], [H.x1 - 0.5, H.z2, H.x2 + 0.5, H.z2 + 0.5], [H.x1 - 0.5, H.z1, H.x1, H.z2], [H.x2, H.z1, H.x2 + 0.5, H.z2]]) {
-      K.put(mats.granite, boxGeo(x2 - x1, iy - 0.4 + 2, z2 - z1, 0.5), (x1 + x2) / 2, (iy - 0.4 - 2) / 2, (z1 + z2) / 2);
+      K.put(wetStone, boxGeo(x2 - x1, iy - 0.4 + 2, z2 - z1, 0.5), (x1 + x2) / 2, (iy - 0.4 - 2) / 2, (z1 + z2) / 2);
       solid(x1, -2, z1, x2, iy - 0.4, z2, 'stone');
     }
 

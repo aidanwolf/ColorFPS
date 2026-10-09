@@ -478,7 +478,7 @@ export function makeVerdantKit(B, { seed = 1 } = {}) {
     let lad = null;
     if (ladder) {
       const dx = -Math.sin(ladderYaw), dz = -Math.cos(ladderYaw); // the side the ladder is on (yaw 0 = north side)
-      const ox = x + dx * (r * 1.05 + 0.25), oz = z + dz * (r * 1.05 + 0.25);
+      const ox = x + dx * (r * 1.05 + 0.5), oz = z + dz * (r * 1.05 + 0.5);
       const sx = Math.abs(dz) > 0.5 ? 0.3 : 0, sz = Math.abs(dx) > 0.5 ? 0.3 : 0;
       rod(mats.pipeDark, [ox - sx, y, oz - sz], [ox - sx, top + 0.6, oz - sz], 0.04, 0.04, 5);
       rod(mats.pipeDark, [ox + sx, y, oz + sz], [ox + sx, top + 0.6, oz + sz], 0.04, 0.04, 5);

@@ -52,14 +52,14 @@ export function floraMats() {
   })();
   FMATS = {
     blob,
-    fungus: new THREE.MeshBasicMaterial({ color: new THREE.Color(0x9dff6a).multiplyScalar(1.25) }),
-    fungusTeal: new THREE.MeshBasicMaterial({ color: new THREE.Color(0x5dffd0).multiplyScalar(1.15) }),
+    fungus: new THREE.MeshBasicMaterial({ color: new THREE.Color(0x9dff6a).multiplyScalar(0.95) }),
+    fungusTeal: new THREE.MeshBasicMaterial({ color: new THREE.Color(0x5dffd0).multiplyScalar(0.9) }),
     stalk: new THREE.MeshStandardMaterial({ color: 0x8a8a62, roughness: 0.9, flatShading: true }),
     capDull: new THREE.MeshStandardMaterial({ color: 0x6a5a3a, roughness: 0.8, flatShading: true, emissive: 0x1a1a08 }),
     reed: new THREE.MeshStandardMaterial({ color: 0x4a5a2a, roughness: 1, flatShading: true, side: THREE.DoubleSide }),
     lily: new THREE.MeshStandardMaterial({ color: 0x3a6a2a, roughness: 0.6, flatShading: true }),
     shaft: new THREE.MeshBasicMaterial({ map: shaftTex, color: 0xe8ffb8, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }),
-    mist: new THREE.MeshBasicMaterial({ map: blob, color: 0xb8d8a8, transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
+    mist: new THREE.MeshBasicMaterial({ map: blob, color: 0x8aa080, transparent: true, opacity: 0.035, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
   };
   return FMATS;
 }

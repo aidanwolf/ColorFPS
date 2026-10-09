@@ -172,8 +172,8 @@ export function buildVerdantRuin(B, { K, F, trap }) {
     tanks.push(K.reactorTank([x, Hh.floor, z], tankH, { r: 1.8, ladder: i === 0, ladderYaw: EAST, cap: !west }));
     if (west) {
       // a flat grated lid you can walk on
-      slab(mats.grate, x - 2.2, Hh.floor + tankH - 0.15, z - 2.2, x + 2.2, Hh.floor + tankH, z + 2.2, true, 'metal');
-      K.put(mats.pipeDark, new THREE.CylinderGeometry(2.1, 2.1, 0.3, 16), x, Hh.floor + tankH - 0.3, z);
+      slab(mats.grate, x - 1.85, Hh.floor + tankH - 0.15, z - 1.85, x + 1.85, Hh.floor + tankH, z + 1.85, true, 'metal');
+      K.put(mats.pipeDark, new THREE.CylinderGeometry(1.84, 1.84, 0.3, 16), x, Hh.floor + tankH - 0.3, z);
     }
     // feed pipes from each reactor up to the ceiling manifold, and down into the floor
     K.pipe([[x, Hh.floor + tankH + (west ? 0 : 0.6), z], [x + (west ? -2 : 2), Hh.floor + tankH + 2.5, z], [x + (west ? -6 : 6), Hh.floor + tankH + 4, z], [x + (west ? -8.4 : 8.4), Hh.floor + tankH + 4.5, z]], { r: 0.3, moss: true, flanges: true });
@@ -463,7 +463,15 @@ export function buildVerdantRuin(B, { K, F, trap }) {
   // (the ruin's dressing is drawn only once you're out of the swamp)
   F.groupVisible(K.flush(), (p) => !(p.y > -2 && p.z > -301.5));
 
-  return { objective, onFall: () => cisternCp, door, locks, guard, core, cradle, escape, riser, tanks };
+  return {
+    objective,
+    onFall: () => {
+      // (you've fallen in: this is your checkpoint now, even before you've climbed out onto the ledge)
+      if (game.checkpoint?.ref === cisternCp) return;
+      game.checkpoint?.ref?.setActive?.(false);
+      cisternCp.setActive(true);
+      game.setCheckpoint(cisternCp.pos, NORTH, cisternCp);
+    }, door, locks, guard, core, cradle, escape, riser, tanks };
 
   // ---------------------------------------------------------------- a granite door that grinds down into the floor
   function stoneDoor(min, max) {
