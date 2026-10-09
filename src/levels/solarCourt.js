@@ -200,10 +200,14 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
       const lp = lift.cur, moving = lift.active && lift.wait <= 0;
       rumble.setGain(moving ? 0.28 * Math.max(0, 1 - (Math.hypot(player.pos.x - lp.x - 2.9, player.pos.y - lp.y, player.pos.z - lp.z - 2.9) - 3) / 24) : 0);
       const p = player.pos, near = p.x > -50 && p.x < -36 && p.z > -95 && p.z < -83 && p.y > -66 && p.y < YF + 6;
-      if (near) lift.active = true;
+      const over = p.x > -44.9 && p.x < -38.1 && p.z > -92.4 && p.z < -85.6 && p.y < YF + 3;
+      // it leaves an end only with you on it; from the other end it comes to fetch you (it used to climb as
+      // soon as you neared the bottom, so you walked into the empty shaft and waited for it to come back)
+      const top = lift.cur.y + lift.size.y, onIt = over && p.y > top - 0.3 && p.y < top + 1.5;
+      const low = p.y < (-64 + YF) / 2;
+      if (near) lift.active = onIt || !((lift.u <= 0 && low) || (lift.u >= 1 && !low));
       else if (lift.u <= 0 && lift.wait > 0) lift.active = false; // (back at the bottom: it rests)
       // (it closes once the lift has left the top, unless you're riding it down: then it waits till you're out)
-      const over = p.x > -44.9 && p.x < -38.1 && p.z > -92.4 && p.z < -85.6 && p.y < YF + 3;
       const away = lift.cur.y + lift.size.y < YF - 0.3;
       if (!away || (over && p.y < YF - 0.2)) lid.enabled = false;
       else if (!over) lid.enabled = true;
@@ -343,7 +347,7 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
     R(CX - 0.5, YF + 0.4, CZ - 2.2, CX + 0.5, YF + 0.7, CZ + 2.2); // its foot
   }
   const corePick = new Pickup(W, { pos: [CX, YF + 2.6, CZ], type: 'color', color: YELLOW, onCollect: (pk) => game.unlockColor(YELLOW, pk.pos) });
-  ck([-55, YF, -92], Math.PI / 2, [6, 3, 4]);
+  ck([-55, YF, -92], Math.PI / 2, [8, 3, 18]); // (deep enough to catch you walking out of the gatehouse portal, z -89…-83)
   devStart('solar11', [-55, YF, -92], Math.PI / 2, [RED], 'The sun yard (the gate blown open)');
   // dressing: the old sun court's look — broken pillars, fallen drums, drifts, sensor pylons, two obelisks
   // whose mirror caps still catch the sun
@@ -615,7 +619,7 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
   const Y = '<b style="color:#ffd23a">', E = '</b>';
   const objective = (p) => {
     const inB = (x1, x2, z1, z2, y1, y2) => p.x >= x1 && p.x <= x2 && p.z >= z1 && p.z <= z2 && p.y >= y1 && p.y <= y2;
-    if (inB(-127, -36, -94, -84, -66, -50)) return 'Follow the tunnel <b>east</b> to the <b>lift</b>.';
+    if (inB(-127, -36, -100.5, -84, -66, -50)) return 'Follow the tunnel <b>east</b> to the <b>lift</b>.'; // (from the hole's sill on)
     if (inB(-48, -36, -96, -79, YF - 1, YF + 8)) return 'Out into the light: <b>west</b>, into the yard.';
     if (!inYard(p)) return null;
     if (!has(YELLOW)) return `Take the ${Y}yellow core${E} from its ring on the dais.`;

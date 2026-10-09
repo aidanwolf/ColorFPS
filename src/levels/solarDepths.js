@@ -1385,7 +1385,7 @@ export function buildSolarDepths(B, K) {
       return nodes[0].done ? 'The tunnel is open: <b>west</b>, into the dark.' : `Turn the <b>mirror</b> (shoot it <b style="color:#ff3344">red</b>) to throw the sun onto the <b>sun-catcher</b> by the sealed tunnel.`;
     }
     if (inBox(-164, -138, -132, -96, -95, -40)) return nodes[1].done ? 'Node two runs. Back to the hall: the <b>hard-light bridge</b> under the ring.' : 'Send the sun from the corner mirror (its <b style="color:#ff3344">red switch</b> is in the north wall) to the south mirror, then <b>east</b> onto the catcher.';
-    if (inBox(-140, -100, -154, -134, -95, -60)) return nodes[2].done ? 'Ride the <b>lift</b> up to the gallery.' : 'Throw the sun <b>east</b> from the corner mirror onto the mirror on the <b>cart</b>, and turn that one <b>south</b>: the catcher lights as the cart goes by.';
+    if (inBox(-140, -100, -154, -134, -95, -60)) return nodes[2].done ? (p.y > -65 ? 'Out onto the <b>gallery</b>, south.' : 'Ride the <b>lift</b> up to the gallery.') : 'Throw the sun <b>east</b> from the corner mirror onto the mirror on the <b>cart</b>, and turn that one <b>south</b>: the catcher lights as the cart goes by.';
     if (inBox(-140, -100, -134, -100, -66, -40)) {
       if (blown) return 'Through the <b>hole</b> in the south wall.';
       if (st.finalOn) return `Hold the sun on the ring's ${Y}heart${E}: turn the last mirror back each time it <b>creeps</b> — ${Y}${Math.round(charge * 100)}%${E}`;
