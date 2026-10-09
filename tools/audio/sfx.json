@@ -1261,5 +1261,20 @@
   "text": "Negative 'uh-oh' video game sting: a short descending dissonant synth-brass stab with a low distorted robotic growl swelling under it, menacing, punchy, sci-fi enemy enraged cue",
   "dur": 1.4,
   "influence": 0.6
+ },
+ "bulb_open": {
+  "text": "A wet organic spore bulb bursting open: a soft juicy pop, then a puff of spores and a bright rising magical chime, video game puzzle success",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "bramble_tear": {
+  "text": "Thick thorny vines torn apart by an explosion: woody snaps, leafy shredding, splintering, debris pattering down",
+  "dur": 1.4,
+  "influence": 0.6
+ },
+ "root_swing": {
+  "text": "A huge living tree root arm creaking and groaning as it swings around, a heavy whoosh, ending in a deep wooden slam",
+  "dur": 2.0,
+  "influence": 0.6
  }
 }
