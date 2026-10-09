@@ -3,9 +3,11 @@
 // VineSwing { anchor: [x, y, z], length, sway: [dx, dz] (idle sway direction), swayAmp: 0.08 (rad), grab: 3.2 }
 //   A long vine hanging from a bough, a glowing grip bulb near its end. Jump into its lower part and you grab
 //   it (no button): from then on Player.update hands its frame to vine.carry() (the player.mount hook the
-//   hover-sled uses). You hang as the bob of a pendulum: your run carries into the swing, W pumps it toward
-//   where you look (S brakes), A/D lean it sideways, and JUMP lets go with the swing's velocity plus a kick
-//   (the launch keeps its arc: player.launched). C drops you. While you hang, a faint dotted arc shows where
+//   hover-sled uses). You hang as the bob of a pendulum: your run carries into the swing, holding W pumps it
+//   (it drives the swing along the way it's already going, so it grows; from rest it starts one toward where
+//   you look) while the look direction steers the swing's plane round toward itself, S brakes, A/D lean it
+//   sideways, and JUMP lets go with the swing's velocity plus a kick (the launch keeps its arc:
+//   player.launched). C drops you. While you hang, a faint dotted arc shows where
 //   letting go now would carry you, a ring where it lands. The view sways and rolls with the swing; the vine
 //   creaks at the end of each arc and whooshes through the bottom. Let go and it swings on, empty, then
 //   settles back to its idle sway. A vine you just left can't be re-grabbed for a moment (others can).
@@ -36,9 +38,8 @@ const ARC_DOTS = 26;
 const SOUNDS = ['vine_creak', 'vine_whoosh', 'vine_whip', 'branch_groan', 'leaves_rustle', 'fall_wind'];
 audio.manifest?.then(() => audio.prefetch(SOUNDS));
 
-const UP = new THREE.Vector3(0, 1, 0);
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _u = new THREE.Vector3(), _f = new THREE.Vector3(), _r = new THREE.Vector3();
-const _q = new THREE.Quaternion(), _e = new THREE.Euler();
+const _e = new THREE.Euler();
 const _down = new THREE.Vector3(0, -1, 0);
 
 // shared look (made once)
