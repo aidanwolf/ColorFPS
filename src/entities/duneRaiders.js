@@ -13,6 +13,7 @@ import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
 import { Orb } from './drone.js';
 import { Enemy, Parts, Beam, Blast, MAT, GEO, glowMat, additive, converge, falloff, sfx } from './enemyKit.js';
+import { scarabRig } from './solarEnemies.js';
 import { esfx, edeath, reach } from './enemySfx.js';
 
 const _v = new THREE.Vector3();
@@ -372,43 +373,19 @@ export class DuneScarab extends Pooled {
     this.lungeTo = new THREE.Vector2();
     this.from = new THREE.Vector3();
     this.deckSpot = new THREE.Vector2();
-    const gold = (this.goldMat = new THREE.MeshStandardMaterial({ color: 0xc9a040, metalness: 0.85, roughness: 0.32, flatShading: true }));
-    const lapis = (this.lapisMat = new THREE.MeshStandardMaterial({ color: 0x1d3a8a, metalness: 0.5, roughness: 0.4, flatShading: true }));
-    this.mats.push(gold, lapis);
+    // the robot scarab (the same machine as the Mesa's burrowers), a size up: it has to read at speed
     this.body = new THREE.Group();
-    const p = new Parts()
-      .add(gold, new THREE.SphereGeometry(0.5, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), [0, 0, 0.05], [0, 0, 0], [0.9, 0.75, 1.2])
-      .add(MAT.dark, new THREE.SphereGeometry(0.46, 10, 4, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), [0, 0, 0.05], [0, 0, 0], [0.85, 0.35, 1.15])
-      .add(lapis, new THREE.TorusGeometry(0.43, 0.03, 4, 16, Math.PI), [0, 0, -0.12], [0, 0, 0], [1, 0.78, 1])
-      .add(lapis, new THREE.TorusGeometry(0.4, 0.03, 4, 16, Math.PI), [0, 0, 0.2], [0, 0, 0], [1, 0.75, 1])
-      .add(this.glow, new THREE.TorusGeometry(0.5, 0.025, 4, 18, Math.PI), [0, 0, 0.05], [0, Math.PI / 2, 0], [1.2, 0.76, 1])
-      .add(lapis, new THREE.SphereGeometry(0.3, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), [0, 0, -0.62], [0, 0, 0], [1.1, 0.7, 0.8])
-      .add(gold, new THREE.ConeGeometry(0.06, 0.32, 5), [0, 0.12, -0.86], [-0.9, 0, 0]);
-    for (const s of [-1, 1]) {
-      p.add(this.glow, new THREE.SphereGeometry(0.05, 6, 4), [s * 0.16, 0.06, -0.84]);
-      p.add(MAT.dark, new THREE.BoxGeometry(0.05, 0.05, 0.3), [s * 0.14, -0.05, -0.95], [0, s * 0.4, 0]); // mandibles
-    }
-    p.build(this.body);
-    // six legs that paddle
-    this.legs = [];
-    for (const s of [-1, 1]) {
-      for (const z of [-0.35, 0.05, 0.4]) {
-        const leg = new THREE.Group();
-        leg.position.set(s * 0.36, -0.05, z);
-        const m = new THREE.Mesh(GEO.chunk, MAT.dark);
-        m.scale.set(0.5, 0.05, 0.06);
-        m.position.x = s * 0.25;
-        m.rotation.z = s * -0.5;
-        leg.add(m);
-        this.body.add(leg);
-        this.legs.push(leg);
-      }
-    }
-    this.body.scale.setScalar(1.35);
+    const rig = scarabRig(this.glow);
+    rig.root.scale.multiplyScalar(1.3);
+    rig.root.position.y = -0.42;
+    rig.root.rotation.y = Math.PI; // (the rig faces +z; this beetle's front is -z)
+    this.body.add(rig.root);
+    this.mats.push(rig.wing);
+    this.legs = rig.legs;
     this.group.add(this.body);
     // a forgiving hit sphere
     const hb = new THREE.Mesh(GEO.ico, MAT.hidden);
-    hb.scale.setScalar(0.85);
+    hb.scale.setScalar(1.15);
     this.group.add(hb);
     this.group.visible = false;
     this.gone = this.dead = true;

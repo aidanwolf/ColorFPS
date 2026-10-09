@@ -906,9 +906,12 @@ class DuneRun {
     this.rails.point(this.leg, Math.min(this.s + ahead, this.legLen() - 1), _a);
     this.rails.tangent(this.leg, Math.min(this.s + ahead, this.legLen() - 1), _t);
     k.spawn(_a.x - _t.z * lat, _a.z + _t.x * lat, color);
-    if (!this.warnedScarab) {
-      this.warnedScarab = true;
-      k.onLatch = () => this.message('<b style="color:#ffd23a">SCARAB ON DECK</b> — shoot it off before it lunges!', 2.5);
+    // (the first of each color says how to deal with it)
+    this.warnedScarab ??= {};
+    if (!this.warnedScarab[color]) {
+      this.warnedScarab[color] = true;
+      const name = color === RED ? 'RED' : 'YELLOW', hex = color === RED ? '#ff3344' : '#ffd23a';
+      k.onLatch = () => this.message(`<b style="color:${hex}">SCARAB ON DECK</b> — shoot it with <b style="color:${hex}">${name}</b> before it lunges!`, 3);
     } else k.onLatch = null;
     this.spawned();
   }
@@ -939,6 +942,7 @@ class DuneRun {
     this.t0 = this.t;
     this.craft.board(p);
     this.setBerth(null);
+    if (!p.armor) p.giveArmor(); // a free shield for the ride: a chance against the first hit
     // the start dock's beacon becomes your checkpoint, so a death out there brings you back here
     const cp = this.startCp;
     if (this.game.checkpoint?.ref !== cp) {
