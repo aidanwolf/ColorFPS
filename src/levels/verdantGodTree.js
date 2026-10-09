@@ -732,6 +732,25 @@ export function buildGodTree(B, ctx = {}) {
     void reach;
     void h;
   }
+  // THE LANDING: the rope bridge from the monkey temple's mouth ends at its west edge: a 6 x 6 m block of
+  // old granite on a root-wrapped pillar out of the mist, top at LAND[1]
+  {
+    const [lx, ly, lz] = LAND;
+    W.box(lx - 3, ly - 1.2, lz - 3, lx + 3, ly, lz + 3, 'rock', zone);
+    W.box(lx - 2.5, -30, lz - 2.5, lx + 2.5, ly - 1.2, lz + 2.5, 'rock', zone);
+    W.box(lx - 3.05, ly - 0.05, lz - 3.05, lx + 3.05, ly + 0.02, lz + 3.05, 'grass', zone, { solid: false });
+    B.glowEdge(lx - 3, lz - 3, lx + 3, lz + 3, ly, 'glow2', zone, 0.06);
+    // roots coiling up the pillar and over the block's edges, moss hanging off it
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * PI * 2 + 0.3;
+      const pts = [];
+      for (let k = 0; k <= 6; k++) pts.push([lx + Math.cos(a + k * 0.5) * 2.9, ly - 22 + k * 3.6, lz + Math.sin(a + k * 0.5) * 2.9]);
+      pts.push([lx + Math.cos(a + 3.2) * 2.4, ly + 0.15, lz + Math.sin(a + 3.2) * 2.4]);
+      limb(curveOf(pts), 0.55, 0.3, { seg: 7, knob: 0.15 });
+    }
+    for (let i = 0; i < 8; i++) curtain(lx + R(-3, 3), ly - 1, lz + (i % 2 ? 3.05 : -3.05), R(3, 9), R(1.2, 2.2), 0);
+    area([lx - 3, ly - 1, lz - 3], [lx + 3, ly + 4, lz + 3], MOOD_VIEW);
+  }
   // THE SURFACE ROOT: the walkable one, from the landing to the Root Gate (with one broken stretch to jump)
   const L0 = [LAND[0] + 3.4, LAND[1], LAND[2] - 1.2];
   const ROOT_A = [L0, [39, 18.3, -336.5], [44.5, 18.7, -342.5], [48.6, 19.1, -348]]; // to the break
@@ -1491,47 +1510,43 @@ export function buildGodTree(B, ctx = {}) {
   flush('climb');
 
   // ================================================================ THE AQUEDUCT HOME (y 12) — moved here from verdant.js
-  // From the harvest line's foot south along the aqueduct over the court to the Hub's north balcony port.
-  // Low parapets with invisible walls over them; three gates to blast, each its own color; the gatehouse
-  // door into the Hub is one-way (it opens as you come home).
+  // From the harvest line's foot (the aqueduct head, x 10, z -239..-246) south over the swamp to the Hub's
+  // north balcony port (x 10, y 12): blast each gate with its color; the gatehouse door opens one way, as you
+  // come home. This file owns the strip x 8..12 above y 11 along z -246..-148.5.
   let homeDoor = null;
   {
     const GLOW = B.GLOW;
-    // the line's foot: a relay tower over the aqueduct's head, a deck to land on
+    const AMOOD = { music: 'music_green', ambient: 'amb_jungle', atmosphere: 'verdant' };
+    // the line's foot: a deck to land on at the aqueduct's head, a relay frame holding the cable's end
     W.box(8.5, 11, -246, 11.5, 12, -237.5, 'floor', zone);
     W.box(8, 12, -246.5, 8.5, 13, -237.5, 'wall', zone);
-    W.box(11.5, 12, -246.5, 12, 13, -237.5, 'wall', zone);
+    W.box(11.5, 12, -246.5, 12, 13, -240.5, 'wall', zone);
     W.box(8, 12, -246.5, 12, 13, -246, 'wall', zone);
+    W.box(9, -1.5, -245.5, 11, 11, -243.5, 'wall', zone);
     blocker([8, 12, -246.5], [8.5, 40, -237.5]);
-    blocker([11.5, 12, -246.5], [12, 40, -237.5]);
+    blocker([11.5, 12, -246.5], [12, 40, -240.5]);
     blocker([8, 12, -246.5], [12, 40, -246]);
-    W.box(9, -29, -245.5, 11, 11, -243.5, 'wall', zone);
-    for (const sx of [8.2, 11.8]) K.rod(KM.pipeDark, [sx, 12, -245.2], [10 + (sx - 10) * 0.3, 18.2, -243.6], 0.16, 0.12, 6);
-    K.rod(KM.pipeDark, [9.2, 18.2, -243.6], [10.8, 18.2, -243.6], 0.18, 0.18, 6);
-    area([8.5, 12, -246], [11.5, 15, -238], { music: 'music_green', ambient: 'amb_jungle', atmosphere: 'verdant' });
+    for (const sx of [8.2, 11.8]) K.rod(KM.pipeDark, [sx, 12, -245.6], [10 + (sx - 10) * 0.3, 18.6, -243.4], 0.16, 0.12, 6);
+    K.rod(KM.pipeDark, [9.2, 18.6, -243.4], [10.8, 18.6, -243.4], 0.18, 0.18, 6);
+    put(KM.rust, new THREE.TorusGeometry(0.6, 0.1, 6, 14), 10, 17.9, -243.4);
+    area([8.5, 12, -246], [11.5, 15, -240.5], AMOOD);
+    // the aqueduct south
+    blocker([8, 12, -240.5], [8.5, 40, -158.5]);
+    blocker([11.5, 12, -237.5], [12, 40, -158.5]);
     W.box(8.5, 11, -237.5, 11.5, 12, -158.5, 'floor', zone);
     W.deco(8.45, 11.7, -237.5, 8.5, 11.8, -158.5, GLOW[zone], zone);
     W.deco(11.5, 11.7, -237.5, 11.55, 11.8, -158.5, GLOW[zone], zone);
-    for (let z = -160; z > -236; z -= R(3, 5)) {
-      const l = Math.min(R(1.5, 3.5), z + 237);
-      W.box(8.2, 12, z - l, 8.5, 12 + R(0.6, 0.95), z, 'wall', zone);
-      W.box(11.5, 12, z - l * R(0.6, 1), 11.8, 12 + R(0.6, 0.95), z, 'wall', zone);
+    let seed = 7;
+    const rnd = (a, b) => ((seed = (seed * 9301 + 49297) % 233280), a + (b - a) * (seed / 233280));
+    for (let z = -160; z > -236; z -= rnd(3, 5)) {
+      const l = Math.min(rnd(1.5, 3.5), z + 237);
+      W.box(8.2, 12, z - l, 8.5, 12 + rnd(0.6, 0.95), z, 'wall', zone);
+      W.box(11.5, 12, z - l * rnd(0.6, 1), 11.8, 12 + rnd(0.6, 0.95), z, 'wall', zone);
     }
-    blocker([8, 12, -237.5], [8.5, 40, -158.5]);
-    blocker([11.5, 12, -237.5], [12, 40, -158.5]);
-    const vineRun = (x1, z1, x2, z2, top, n, maxLen) => {
-      for (let i = 0; i < n; i++) {
-        const t = rand(), x = x1 + (x2 - x1) * t, z = z1 + (z2 - z1) * t, len = R(0.6, maxLen);
-        put(KM.vine, new THREE.BoxGeometry(0.06, len, 0.06), x, top - len / 2, z);
-      }
-    };
-    vineRun(8.25, -236, 8.3, -159, 11, 40, 5);
-    vineRun(11.7, -236, 11.75, -159, 11, 40, 5);
-    for (const [zc, base] of [[-166, 4], [-187, 1], [-206.5, 4.5], [-222, -29]]) {
-      W.box(9, base, zc - 1, 11, 11, zc + 1, 'wall', zone);
+    for (const zc of [-166, -187, -206.5, -222]) {
+      W.box(9, -1.5, zc - 1, 11, 11, zc + 1, 'wall', zone);
       W.box(8.4, 10.3, zc - 1.4, 11.6, 11, zc + 1.4, 'metal', zone);
       W.deco(8.98, 9.6, zc - 1.02, 11.02, 9.68, zc + 1.02, GLOW[zone], zone);
-      vineRun(8.95, zc - 1, 9, zc + 1, 10.3, 3, 6);
     }
     const gateArch = (z, color) => {
       W.box(7.6, 11, z - 0.45, 8.4, 16.2, z + 0.45, 'wall', zone);
@@ -1543,10 +1558,10 @@ export function buildGodTree(B, ctx = {}) {
     gateArch(-226, GREEN);
     gateArch(-196, YELLOW);
     gateArch(-176, RED);
-    area([8.5, 12, -237.5], [11.5, 15, -236], { music: 'music_green', ambient: 'amb_jungle', atmosphere: 'verdant' });
-    // the gatehouse into the Hub's north balcony port (x 10, y 12): one-way, it opens as you come home
+    area([8.5, 12, -240.5], [11.5, 15, -236], AMOOD);
+    // the gatehouse into the Hub's north balcony port: one-way, it opens as you come home
+    W.box(8, 3.5, -158.5, 12, 11, -148.5, 'rock', zone); // the plinth under it
     B.corridor({ zStart: -148.5, zEnd: -158.5, y: 12, zone, cx: 10 });
-    vineRun(8.6, -158.4, 11.4, -149, 15.2, 8, 1.2);
     W.box(7.5, 15.7, -158.9, 12.5, 16, -148.5, 'grass', zone);
     homeDoor = new SlidingDoor(W, { min: [8.5, 12, -155.2], max: [11.5, 15.2, -154.8], color: GREEN, zone });
     W.trigger([8.5, 12, -175], [11.5, 15, -156], () => homeDoor.open());
@@ -1554,6 +1569,11 @@ export function buildGodTree(B, ctx = {}) {
       if (homeDoor.openT >= 0) return;
       game.hud.message('Sealed from this side: this is <b>Verdant\'s way out</b>. Its entrance is the <b style="color:#ffd23a">yellow gate</b> on the Nexus floor below.', 6);
     }, { once: false });
+    level.verdantAqueduct = { homeDoor };
+    for (let i = 0; i < 40; i++) {
+      const side = i % 2 ? 11.72 : 8.27, z = -159 - rand() * 77, len = R(0.6, 4);
+      put(KM.vine, new THREE.BoxGeometry(0.06, len, 0.06), side, 11 - len / 2, z);
+    }
     flush('home');
   }
 

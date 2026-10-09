@@ -53,7 +53,7 @@ export function buildVerdantCreatureRange(B) {
   C.snapjaw([604, -0.4, -549], { emerge: true, color: BLUE, depth: 4.5 }); // lurking in the pool
   C.snapjaw([572, 0, -585], { uproot: { speed: 0.8, leash: 10 }, color: GREEN });
   // a snap pad flings you up onto the ledge north of it
-  C.snapPad([600, 0, -577], { push: [0, -5.5], power: 17.5 });
+  C.snapPad([600, 0, -577], { push: [0, -8.5], power: 18.5, carry: false });
   box(594, 0, -594, 606, 6, -585);
   devStart('verdantCreatures', [575, 0, -506], 0, ALL, 'Verdant creatures: the snapjaw garden');
 

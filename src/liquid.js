@@ -1,6 +1,6 @@
 // Animated hazard liquids. Every 'acid' box gets a subdivided surface on top whose vertices roll in slow
 // waves and whose shader draws, per area: glowing lava with drifting crust (Foundry, Prism), shifting
-// quicksand swirling into sink holes (Solar), bubbling toxic sludge (Verdant) and cold brine (Azure).
+// quicksand swirling into sink holes (Solar), bubbling toxic sludge (Verdant) and scalding brine (Azure).
 // Bubbles pop near the player (see LiquidFx).
 import * as THREE from 'three';
 
@@ -86,11 +86,11 @@ export function liquidMaterial(zone, surface, styleOverride = null) {
           float glint = pow(max(0.0, 1.0 - abs(sin(k * 11.0 - t * 1.4))), 8.0);
           c = mix(vec3(0.03, 0.22, 0.32), vec3(0.1, 0.5, 0.65), k) + vec3(0.6, 0.9, 1.0) * glint * 0.5;
         #else
-          // brine: deep cold blue with drifting caustic light
+          // brine: hot turquoise, steaming, with drifting caustic light
           float k = lfbm(p * 0.4 + vec2(t * 0.06, -t * 0.05));
           float caustic = pow(max(0.0, 1.0 - abs(sin(k * 9.0 + t))), 6.0);
-          c = mix(vec3(0.02, 0.1, 0.25), vec3(0.15, 0.55, 1.2), k);
-          c += vec3(0.5, 1.2, 1.8) * caustic * 0.6;
+          c = mix(vec3(0.02, 0.16, 0.2), vec3(0.18, 0.95, 0.9), k);
+          c += vec3(0.9, 1.5, 1.3) * caustic * 0.6;
         #endif
         gl_FragColor = vec4(clamp(c, 0.0, 3.0), STYLE == 4 ? 0.62 : 1.0);
         #include <fog_fragment>

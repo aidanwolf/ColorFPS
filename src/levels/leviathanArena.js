@@ -1,4 +1,4 @@
-// THE DROWNED CISTERN — the Azure mini-boss arena: a 50×50 m chamber flooded 22 m deep under a ceiling
+// THE INTAKE — the Azure mini-boss arena (the drowned harvest station's intake chamber): a 50×50 m chamber flooded 22 m deep under a ceiling
 // slab, home of CHARYBDIS (entities/leviathan.js), which guards the AZURE ENGINE: a colossal turbine on
 // the floor that churns the sea into power for the machine god (and drives the cistern's currents).
 //   Entry (+z side): a doorway → an alcove with a shore ledge (checkpoint) and a small pool; dive in and
@@ -452,7 +452,7 @@ export function buildLeviathanArena(B, { center, size = 50, depth = 22, colors =
   B.water([X(-4), Y(D - 6), Z(H)], [X(4), Y(D), Z(A0 + 4.5)]);
   light(X(0), Y(D + 3.6), Z(A0 + 7), 0x9bf6ff, 22, 16);
   new Checkpoint(W, game, { pos: [X(0), Y(AY), Z(A0 + 8.5)], yaw: 0, size: [8, 4, 3] });
-  zoneTitle([X(-4), Y(AY), Z(A0 + 5)], [X(4), Y(AY + 4), Z(A1)], 'AZURE ENGINE', 'THE DROWNED CISTERN', COLORS[BLUE].css);
+  zoneTitle([X(-4), Y(AY), Z(A0 + 5)], [X(4), Y(AY + 4), Z(A1)], 'AZURE ENGINE', 'THE INTAKE', COLORS[BLUE].css);
   hint([X(-4), Y(AY), Z(A0 + 4.5)], [X(4), Y(AY + 4), Z(A0 + 6.5)], 'Something vast circles the engine below. Dive in — <b>Space</b> up, <b>C</b> down, <b>Shift</b> to swim fast.', 6);
   let still = false;
   W.trigger([X(-4), Y(D - 7), Z(H)], [X(4), Y(D + 4.5), Z(A1)], () => {

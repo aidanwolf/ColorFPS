@@ -78,14 +78,13 @@ const STEPS = {
 function stepSurface(solid, pos) {
   const k = solid?.kind;
   const r = pos ? regionOf(pos) : 'red';
-  const icy = r === 'azure';
   if (k === 'grass') return 'grass';
-  if (k === 'floor') return icy ? 'icetile' : 'tile';
+  if (k === 'floor') return 'tile';
   if (k === 'grate') return 'grate';
-  if (k === 'rock') return r === 'solar' ? 'sand' : icy ? 'ice' : 'stone';
-  // standing on top of walls: masonry out in the wilds, plating indoors
-  if (k === 'wall' || k === 'ceil' || k === 'door') return r === 'solar' || r === 'verdant' ? 'stone' : icy ? 'ice' : 'metal';
-  return icy ? 'ice' : 'metal'; // metal, plat, lifts and elevators, anything unnamed
+  if (k === 'rock') return r === 'solar' ? 'sand' : 'stone'; // (Azure's sea floor and reefs: stone)
+  // standing on top of walls: masonry out in the wilds, plating indoors (Azure's rig and habitats: plating)
+  if (k === 'wall' || k === 'ceil' || k === 'door') return r === 'solar' || r === 'verdant' ? 'stone' : 'metal';
+  return 'metal'; // metal, plat, lifts and elevators, anything unnamed
 }
 
 // ---- room acoustics ----

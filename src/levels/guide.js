@@ -84,13 +84,15 @@ function foundryObjective(game) {
 
 // ---- Azure (azure.js / azureFlooded.js / azureSpillway.js): name the next step for the stretch you're in
 const inBox = (p, x1, x2, z1, z2, y1 = -99, y2 = 99) => p.x >= x1 && p.x <= x2 && p.z >= z1 && p.z <= z2 && p.y >= y1 && p.y <= y2;
-// before the core: the descent through the rain, platforming only
-function azureBefore(p) {
-  if (p.y > 2) return `Hop down the ice ledges east: clear the ${tag(GREEN, 'green spikes')} from the deck first; the first ledge crumbles under you.`;
-  if (inBox(p, 58, 99, -107, -80, -4.6)) return `Ride the crane trolley across: keep shooting it ${tag(YELLOW, 'yellow')}.`;
-  if (inBox(p, 98, 123, -97, -77, -6, 1)) return `Shoot the freight lift ${tag(GREEN, 'green')} to work it down to the turbine deck.`;
-  if (inBox(p, 91, 109, -123, -98, -23, -5)) return `Take the ${tag(BLUE, 'AZURE core')} from the dais on the turbine deck.`;
-  return 'Make your way down the station through the rain.';
+// before the core: the rig, the wave, the swim to the Aquarium and the way to its dome
+const swimHint = (p) => (p.y < -9.5 ? ' Watch your <b>air</b>: breathe in the gold-lit bells and bubble vents.' : '');
+function azureBefore(p, game) {
+  const st = game.level.azure || {};
+  if (p.y > 2 && p.x < 60) return st.waveDone?.() ? 'Dive off the deck\'s east edge and follow the <b>dive line</b> down: its air bells lead to the Aquarium.' : 'Step out onto the rig\'s deck.';
+  if (p.y < -9.5 && p.y > -64.5 && inBox(p, 36, 112, -90, -40) && p.x < 60) return 'Swim for the <b>lit hatch</b> on the Aquarium: follow the lights.' + swimHint(p);
+  if (p.y < -9.5 && !inBox(p, 44, 111, -121, -83, -62, -44)) return 'Swim down to the <b>Aquarium</b> on the trench floor: its airlock is on its south side.' + swimHint(p);
+  if (inBox(p, 44, 76, -113, -84, -61, -54)) return 'Through the glass corridors <b>east</b>, to the dome.';
+  return `Take the ${tag(BLUE, 'AZURE core')} from its dais in the dome.`;
 }
 // with blue in hand: the water cannon's world
 function azureAfter(p, game) {
@@ -98,24 +100,25 @@ function azureAfter(p, game) {
   const W = (t) => tag(BLUE, t);
   if (p.y > 10 && p.x < 47) return 'Walk out onto the Nexus balcony.';
   if (game.isWorldDown?.('azure')) {
-    if (p.x < 113 && p.y > -9) return 'Ride the pads up across the chasm: <b>shoot the orb over each pad</b> to charge it, then step on.';
+    if (p.x < 113 && p.y > -9.4) return 'Ride the pads up across the sea: <b>shoot the orb over each pad</b> to charge it, then step on.';
+    if (p.x < 113 && p.y < -9.4) return 'Swim for the rig\'s waterline deck by the hull: the <b>steps</b> climb out of the sea.';
     if (inBox(p, 112, 181, -158, -153, -9, -3)) return 'The pressure lock is open: follow the gallery <b>west</b>, out onto the Spillway.';
     if (inBox(p, 133, 187, -222, -157, -32, 12)) return 'The engine is dead. Swim back out to the shore ledge and take the gallery <b>west</b>.';
     return 'Climb back up through the station: the Undercroft, the Sluice, then the Spillway home.';
   }
-  // the turbine deck and the Storm Deck
+  // the Aquarium: the dome, its channel and its fight, the swim up to the crew deck
   const storm = st.stormDeck;
-  if (inBox(p, 91, 109, -123, -98, -23, -5)) {
-    if (storm && storm.state === 'cleared') return 'The hatch has thawed: <b>east</b>, into the cliff.';
-    return `Too far to jump dry: ${W('hose a long slick')} down the deck, then <b>sprint</b> along it and leap to the Storm Deck.`;
-  }
-  if (inBox(p, 60, 91, -124, -99, -23, -10)) {
+  if (inBox(p, 44, 111, -121, -83, -62, -44)) {
+    if (p.x < 76) return 'Through the glass corridors <b>east</b>, to the dome.';
+    if (p.x < 89.8 && !(storm && storm.state === 'cleared')) return `Too far to jump dry: ${W('hose a long slick')} down the runway, then <b>sprint</b> along it and leap the channel.`;
     if (storm && storm.state !== 'cleared' && storm.state !== 'armed') return `Soak the floor under the robots and ${W('hose a junction box')} to short it into them. Keep your feet dry.`;
-    if (storm && storm.state === 'cleared') return 'Back over the gantry to the turbine deck, and in through the hatch.';
-    return 'Clear the Storm Deck.';
+    if (storm && storm.state === 'cleared') return 'Dive through the <b>moon pool</b> and swim <b>up</b> past the air bell to the crew deck.';
+    return 'Clear the dome.';
   }
+  if (p.y < -9.5 && p.y > -64 && inBox(p, 90, 112, -127, -105) && !inBox(p, 91.5, 108.5, -123.5, -111.5, -22.5, -15)) return 'Swim <b>up</b> along the lights: the <b>air bell</b>, then the crew deck\'s moon pool.' + swimHint(p);
+  if (inBox(p, 91.5, 112.5, -123.5, -111.5, -22.5, -15)) return storm && storm.state === 'cleared' ? 'Through the hatch <b>east</b>, into the hull.' : 'The hatch is locked until the dome is clear.';
   // (the corridor out of the Ballast Shaft lies inside the Flooded Depths' box)
-  if (inBox(p, 107, 126, -149, -145, -26, -21)) return 'Out of the deep: on to the <b>Cryo Lab</b>.';
+  if (inBox(p, 107, 126, -149, -145, -26, -21)) return 'Out of the deep: on to the <b>Archive</b>.';
   // the Flooded Depths
   if (inBox(p, 108, 162, -153, -100, -63, 8)) {
     if (inBox(p, 108, 147, -127, -100, -31.5)) {
@@ -127,7 +130,7 @@ function azureAfter(p, game) {
     return 'Follow the <b>cyan lights</b> through the flood; surface in the <b>gold-lit air pockets</b> to breathe.';
   }
   if (inBox(p, 125, 147, -152, -141, -48, -16)) return 'Ride the water up the Ballast Shaft to the way out.';
-  // the Cryo Lab
+  // the Archive
   if (inBox(p, 88, 116, -176, -142, -26, -16)) {
     const lab = st.lab;
     if (lab && lab.state !== 'armed' && lab.state !== 'cleared') return `Fight off the lab's sentries — and keep ${W('filling the tanks')} between shots.`;
@@ -138,15 +141,15 @@ function azureAfter(p, game) {
     if (st.breaker && !st.breaker.tripped) return `The floor is live: cross on the insulated grates, break the ${tag(GREEN, 'green cage')} on the far wall's breaker and ${W('hose the breaker')} to drop the forcefield.`;
     return 'The forcefield is down: on <b>west</b>, into the Well.';
   }
-  if (inBox(p, 50, 66, -182, -158, -47, -17)) return `Work down the ice pillars to the hole, blast its ${tag(RED, 'red')} grate and sink down the flooded pipe: shoot ${tag(YELLOW, 'yellow')}, then ${tag(GREEN, 'green')}.`;
+  if (inBox(p, 50, 66, -182, -158, -47, -17)) return `Work down the rock pillars over the brine to the hole, blast its ${tag(RED, 'red')} grate and sink down the flooded pipe: shoot ${tag(YELLOW, 'yellow')}, then ${tag(GREEN, 'green')}.`;
   if (p.y < -50 && p.z < -157.5 && p.x < 67 && !(st.vaultDoor && st.vaultDoor.openT >= 0)) return `Free the vault door: fire ${tag(YELLOW, 'yellow')} over the glass in the west alcove; the azure panels carry it to the target.`;
   if (inBox(p, 52, 80.5, -158, -121, -57, -41)) {
     const d = st.dynamo;
     if (d && !d.defeated && d.state !== 'dormant') return d.state === 'stunned' ? `It's overloaded: ${W('hose its core')}!` : `Soak the floor where the Dynamo walks, then ${W('hose a conduit')} to short the surge into it.`;
-    if (d && d.defeated) return `Break the ${W('blue door')} in the sanctum's <b>east</b> wall.`;
-    return 'Into the sanctum.';
+    if (d && d.defeated) return `Break the ${W('blue door')} in the hall's <b>east</b> wall: the sea door.`;
+    return 'Into the generator hall.';
   }
-  if (inBox(p, 80, 113, -152, -140, -60, -48)) return `Hose the runway into a slick and ${W('sprint-leap')} the gap; then the ${W('blue switch')} for the bridge.`;
+  if (inBox(p, 80, 113, -152, -140, -64, -40)) return 'Swim <b>east</b> across the trench to the hull: the <b>air bell</b> halfway has air.' + swimHint(p);
   if (inBox(p, 112, 158, -195, -144, -70, -43)) {
     const u = st.undercroft, seal = st.winchSeal;
     if (u && u.state !== 'cleared') return 'Clear the Undercroft\'s hunters, above the water and below it.';
@@ -165,81 +168,13 @@ function azureAfter(p, game) {
     if (st.arena?.defeated) return `Shoot the <b>Azure Engine's</b> core with ${tag(BLUE, 'blue')} to shut it down.`;
     return `Charybdis guards the engine. Kill it, then shut the engine down with ${tag(BLUE, 'blue')}.`;
   }
+  if (p.y < -9.5 && p.x < 112) return 'Follow the lights to the next airlock or moon pool.' + swimHint(p);
   return 'Climb on through the station to its engine.';
 }
 
-// ---- Verdant (one loop; green waits in the Seed Shrine just past the moat): the next step for the stretch you're in
+// ---- Verdant: verdant.js publishes level.verdant.objective(pos) (its halves know their own state), like Solar
 function verdantObjective(game) {
-  const p = game.player.pos, v = game.level.verdant || {}, green = game.blaster.unlocked[GREEN];
-  const fought = (e) => e && e.state !== 'armed' && e.state !== 'cleared';
-  const G = (t) => tag(GREEN, t);
-  if (game.isWorldDown?.('verdant')) {
-    if (p.y > 11 && p.x > 7.5 && p.x < 12.5) return 'Follow the aqueduct home to the Nexus: blast each gate with its color.';
-    return `The engine is dead. Take the <b>bridge west</b> from the courtyard's south gate and the aqueduct home.`;
-  }
-  if (p.y > 11 && p.z > -158.5 && p.x > 7) return `A dead end from this side. Drop to the Nexus floor and take the ${tag(YELLOW, 'yellow gate')} in the north wall.`;
-  if (!green) {
-    if (p.z > -172) return 'Cross the sludge moat on the stepping stones.';
-    if (p.z > -203 && p.y > 3) {
-      if (p.x < -14.5) return 'Hop east over the crumbling stones to the second island. <b>Don\'t stop on the last one.</b>';
-      if (p.x < 14) return 'Climb the root stumps <b>north-east</b> onto the great tree\'s plateau.';
-      return 'From the plateau\'s north edge, hop down the stone to the bank and the <b>shrine</b>.';
-    }
-    return `Take the ${G('VERDANT core')} from the shrine's cradle of roots.`;
-  }
-  // ---- green in hand
-  if (fought(v.hive)) return `The hive's awake: clear the bank. ${G('Globs')} burst through clumps; lob them over the parapets.`;
-  if (p.z > -214 && p.y > 3 && p.y < 16 && p.x > -30.5 && p.x < 30.5) {
-    if (p.z > -203) return v.hive?.state === 'cleared' ? 'The way on is the gateway on the terrace at the bank\'s <b>west</b> end.' : 'Back to the shrine on the far bank.';
-    if (p.y < 7.6) return `Up onto the terrace at the <b>west</b> end: look down, then <b>jump and fire a ${G('glob')} together</b>.`;
-    if (v.bramble && !v.bramble.broken) return `Burst the brambles in the gateway with a ${G('glob')}.`;
-    if (!v.arms?.[0]?.swung) return `Lob a ${G('glob')} over the root wall on the first column: the bulb behind it swings its arm across.`;
-    return 'Out along the root arm to the first column.';
-  }
-  if (p.x > -30.5 && p.x < -20 && p.z > -246.5 && p.y > 6) {
-    const next = (v.arms || []).findIndex((a) => !a.swung);
-    if (next === 0) return `Lob a ${G('glob')} over the root wall on the first column: the bulb behind it swings its arm across.`;
-    if (next === 1) return `Drop a ${G('glob')} into the hollow stump on the next column.`;
-    if (next === 2) return `Land one ${G('glob')} between the two bulbs: one burst has to catch both.`;
-    return 'Over the last root arm to the ledge beyond.';
-  }
-  const hollow = p.x > -60 && p.x < -18 && p.z < -244 && p.z > -292; // the descent down the Hollow's west side (not the crown deck above the tree)
-  if (hollow && p.y > 2) return 'Down the stones <b>west</b>, onto the old walkway.';
-  if (hollow && p.y > -1 && p.x > -50) return 'Cross the walkway west. <b>Sprint</b> over its sagging middle.';
-  if (hollow && p.y > -11) return v.stoneLock?.on ? 'Down the stones while they hold!' : `Splash all three bulbs on the wall shelf with <b>one</b> ${G('glob')}, then hop down the stones while they hold.`;
-  if (hollow && p.x > -44 && p.y > -21) return 'Hop down the root steps west to the dock.';
-  if (hollow && p.y > -26) return 'Into the <b>greenhouse</b> through the tunnel in the west wall.';
-  if (p.x < -60 && p.z > -299.5 && p.y < -20) return fought(v.greenhouse) ? 'Clear the <b>Greenhouse</b>.' : 'On through the north door to the <b>Seed Vault</b>.';
-  if (p.x < -69.5 && p.z < -299.5 && p.y < -9) {
-    if (v.seed && !v.seed.on) {
-      if (p.y > -21) return `Bank a ${G('glob')} off the <b>mirrored leaf</b> so it drops into the Seed's glass cage.`;
-      return 'Shoot the arrows beside each ledge on the west wall to line the four up into a <b>staircase</b> to the balcony.';
-    }
-    return `Stand on the ${G('green riser')} by the east wall and <b>keep globbing it</b> to climb to the door.`;
-  }
-  if (p.x < -61 && p.z < -324 && p.z > -334) return `Burst each spore membrane with a ${G('glob')}, then ride the pad under it.`;
-  if (p.z < -315 && p.y > 13) {
-    if (p.x < -30.5) return `Cross the chroma vines with your blaster on ${G('green')}.`;
-    if (p.x < -27 && p.y < 18.5) return `Rocket jump onto the high bough: look down, then <b>jump and fire a ${G('glob')} together</b>.`;
-    if (p.x < -21 && p.y > 18.5) return 'Bowl the slime molds off the bough with bursts beside them, then drop east onto the long bough.';
-    if (p.x < -6) return 'Run the bough to the far platform — <b>don\'t stop</b>.';
-    return `${G('Green')} builds the near stone, ${tag(YELLOW, 'yellow')} the far one: jump, then burn yellow in mid-air.`;
-  }
-  if (p.z < -301 && p.z > -315 && p.y > 15) return v.padNest && !v.padNest.broken ? `Burst the hive nest that's swallowed the jump pad.` : 'Ride the jump pad onto the <b>Great Tree\'s crown</b>.';
-  if (p.y > 20 && p.y < 23.5 && p.z > -271) return 'A quiet nest. The pad takes you back up.';
-  if (p.y > 25 && Math.abs(p.x) < 14.5) {
-    if (fought(v.crownFight)) return 'Clear the <b>Crown Nest</b>.';
-    return `Drop down the shaft at the deck's <b>north-east</b> corner: fire through each film's open end, ${G('green')}, ${tag(YELLOW, 'yellow')}, ${tag(RED, 'red')}.`;
-  }
-  if (p.x > 13.5 && p.x < 20.6 && p.z < -294.5 && p.z > -301.5) return `Fire through each film's open end as you fall: ${G('green')}, ${tag(YELLOW, 'yellow')}, ${tag(RED, 'red')}.`;
-  if (p.x > 20 && p.x < 40 && p.z < -296 && p.z > -300) return `Keep the ${G('green sinker')} door globbed down as you run at it.`;
-  if (p.x > 40 && p.x < 58.5 && p.z < -276 && p.z > -300.5) return `Blast the raft south with ${G('globs')}; swing the gates out of its lane with ${tag(YELLOW, 'yellow')} and ${tag(RED, 'red')}.`;
-  const boss = v.arena?.boss;
-  if (p.x > 60.8 && p.x < 107.2 && p.z < -246.8 && p.z > -293.2) {
-    if (boss?.defeated) return `The Heart is exposed: shut it down with ${G('green')}.`;
-    return boss?.state === 'dormant' ? 'Into the courtyard.' : '';
-  }
-  return 'Through the courtyard gate: the guardian of the <b>Verdant Heart</b> waits.';
+  return game.level.verdant?.objective?.(game.player.pos) || 'Push on through <b>Emerald Hollow</b>.';
 }
 
 export function currentObjective(game) {
@@ -262,7 +197,7 @@ export function currentObjective(game) {
   }
   if (!has(BLUE)) {
     if (where === 'verdant') return { html: verdantObjective(game) };
-    if (where === 'azure') return { html: azureBefore(game.player.pos) };
+    if (where === 'azure') return { html: azureBefore(game.player.pos, game) };
     return { html: `Blast open the ${tag(BLUE, 'AZURE gate')} on the <b>east</b> wall with ${tag(GREEN, 'green')}.`, door: 'azure' };
   }
   const boss = game.level.boss;

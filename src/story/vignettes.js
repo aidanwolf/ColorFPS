@@ -404,6 +404,50 @@ export const VIGNETTES = {
     ],
   },
 
+  // 07b Engineers (the algae reactors, under the swamp): shaking the cistern water off; a tap on her temple, note
+  //    to self; a hand flat on a glowing reactor, face tipped up to it; her arm following the pipes up overhead;
+  //    hands to her head, the whole forest a crop; tracing a glyph on a carved panel with one finger, a small
+  //    laugh; "engineers, like us", a hand on her chest; then hugging herself, looking round the empty halls
+  '07b': {
+    props: [], dist: 3.6, view: 26, set: { bank: [0.75, 0, 0.35, 0], panel: [-1.2, 0, -0.5, 61] },
+    keys: [
+      [0, p(BENT, { hipsR: [24, 0, 0], lArm: [40, 10, 0], lFore: [60, 0], rArm: [40, -10, 0], rFore: [60, 0], head: [10, 0, 0] })],
+      [0.8, { lFore: [90, 0], rFore: [30, 0] }],
+      [1.3, { lFore: [30, 0], rFore: [90, 0] }],
+      [1.8, { lFore: [90, 0], rFore: [30, 0] }],
+      [2.6, p(STAND, ARMS, { head: [0, 0, 8] })],
+      [4.4, { rArm: [70, 60, 0], rFore: [130, 0], head: [6, -10, 0] }],
+      [5.6, { rArm: [7, 80, 0], rFore: [12, 0], head: [0, 0, 0] }],
+      // the tanks: she turns to one, steps up to it, looks up it
+      [6.7, { at: [0, 0, 0, 55], head: [-20, 0, 0] }],
+      [8.4, { at: [0.25, 0, 0.1, 63], ...LOOK_UP }],
+      [10.6, { rIK: [0, 1.15, 0.42, 1], head: [-28, 0, 6] }],
+      [13.4, { lIK: [0.18, 1.3, 0.4, 1], head: [-34, 10, 0] }],
+      [16.2, { head: [-10, 0, 10], spine: [6, 0, 0] }],
+      [18.0, {}],
+      // the pipes: back a step, her arm following them up and away overhead
+      [19.1, { rIK: [null, null, null, 0], lIK: [null, null, null, 0], at: [-0.1, 0, -0.2, 40], rArm: [130, 20, 0], rFore: [10, 0], head: [-36, 10, 0], neck: [-10, 0, 0], spine: [0, 0, 0] }],
+      [21.5, { rArm: [150, 50, 0], head: [-40, 40, 0], chest: [0, 14, 0] }],
+      [24.0, { rArm: [120, 80, 0], head: [-30, 70, 0], chest: [0, 24, 0] }],
+      [26.4, p(SHRUG, { head: [-6, 0, 0], neck: [0, 0, 0], chest: [0, 0, 0] })],
+      [29.0, { lClav: [0, 0], rClav: [0, 0], lArm: [150, 30, 0], lFore: [100, 0], rArm: [150, 30, 0], rFore: [100, 0], head: [10, 0, 0] }],
+      // the carvings: over to the panel, tracing a glyph with one finger
+      [31.6, p(ARMS, { at: [-0.75, 0, -0.25, -119], head: [10, 0, 0] })],
+      [33.2, { rIK: [0.05, 1.3, 0.4, 1], head: [16, 0, 0] }],
+      [34.2, { rIK: [-0.15, 1.3, 0.42, 1] }],
+      [35.2, { rIK: [-0.15, 1.1, 0.42, 1] }],
+      [36.2, { rIK: [0.1, 1.1, 0.42, 1] }],
+      [37.2, { rIK: [null, null, null, 0], head: [0, 30, 8], rArm: [30, 40, 0], rFore: [80, -60] }],
+      // "Engineers. Like us.": back round to face out, a hand on her chest
+      [39.7, { at: [-0.5, 0, 0, 0], rArm: [40, -30, 0], rFore: [120, 0], head: [4, 0, 0] }],
+      [43.0, { rArm: [7, 80, 0], rFore: [12, 0] }],
+      // "So where did they go?": hugging herself, looking round
+      [45.1, p(HUG, { head: [6, 50, 0], chest: [0, 10, 0] })],
+      [46.2, { head: [6, -50, 0], chest: [0, -10, 0] }],
+      [47.2, { head: [14, 0, 0], chest: [0, 0, 0], shiver: 0.4 }],
+    ],
+  },
+
   // 08 Roots: peering down; reaching for the jacket, the trainer; lifting a bus pass; backing away
   '08': {
     props: [], dist: 3.4, view: 30,
@@ -459,21 +503,19 @@ export const VIGNETTES = {
   },
 
   // ------------------------------------------------------------------ AZURE
-  // 10 The Last Engine: shivering, stamping; hands on the rail over the sea; following the pipes up; counting
-  //    off heat, light, life, water; fishing a granola bar out of her satchel
+  // 10 The Last Engine: catching her breath, soaked; wiping the sea off her face, pushing back her wet hair;
+  //    hands on the rail by the glass; following the pipes up; counting off heat, light, life, water; fishing a
+  //    granola bar out of her satchel
   '10': {
     props: [], dist: 3.6, view: 20, set: { rail: [0, 0, 0.62, 0] },
     keys: [
-      [0, p(HUG, { shiver: 1.2, gait: 0 })],
-      [0.6, { lFoot: [0.1, 0.16, 0.06, 7, 0] }],
-      [1.0, { lFoot: [0.1, 0.075, 0.03, 7, 0] }],
-      [1.4, { rFoot: [-0.1, 0.16, 0.0, -7, 0] }],
-      [1.8, { rFoot: [-0.1, 0.075, -0.02, -7, 0], chest: [8, 0, 0] }],
-      [2.3, { lFoot: [0.1, 0.16, 0.06, 7, 0], chest: [0, 0, 0] }],
-      [2.7, { lFoot: [0.1, 0.075, 0.03, 7, 0] }],
-      [3.1, { rFoot: [-0.1, 0.16, 0.0, -7, 0] }],
-      [3.5, { rFoot: [-0.1, 0.075, -0.02, -7, 0], gait: 1 }],
-      [6.2, { lClav: [0, 0], rClav: [0, 0], shiver: 0.4 }],
+      [0, p(STAND, { gait: 0, spine: [20, 0, 0], head: [10, 0, 0], breath: [2.6, 1.6], lArm: [26, 34, 0], lFore: [36, 0], rArm: [26, 34, 0], rFore: [36, 0] })],
+      [0.8, { rArm: [118, 8, 0], rFore: [128, 0], head: [-6, 0, 0], spine: [8, 0, 0] }],
+      [1.5, { rArm: [96, 30, 0], rFore: [104, 0], head: [-12, 6, 0] }],
+      [2.2, { lArm: [132, -10, 0], lFore: [140, 0], rArm: [140, 10, 0], rFore: [140, 0], head: [-22, 0, 0], spine: [0, 0, 0] }],
+      [3.0, { lArm: [118, -18, 0], lFore: [150, 0], rArm: [124, 18, 0], rFore: [150, 0], head: [-16, 0, 0] }],
+      [3.5, { lArm: [7, 80, 0], lFore: [12, 0], rArm: [7, 80, 0], rFore: [12, 0], head: [0, 0, 0], gait: 1, breath: [1.6, 1.0] }],
+      [6.2, { lClav: [0, 0], rClav: [0, 0] }],
       [7.6, { at: [0, 0, 0.26, 0], lIK: [0.26, 1.05, 0.34, 1], rIK: [-0.26, 1.05, 0.34, 1], spine: [14, 0, 0], head: [28, 0, 0] }],
       [9.8, { spine: [4, 0, 0], head: [-30, 0, 0], neck: [-6, 0, 0] }],
       [12.6, { at: [0, 0, 0, 0], ...NOIK, spine: [0, 0, 0], neck: [0, 0, 0], head: [20, 10, 0], lArm: [7, 80, 0], lFore: [12, 0], rArm: [40, 30, 0], rFore: [10, 0], lClav: [0, 0], rClav: [0, 0] }],
@@ -489,8 +531,8 @@ export const VIGNETTES = {
       [21.6, { rHand: [0, 0, 0] }],
       [23.0, { rArm: [7, 80, 0], rFore: [12, 0], lArm: [7, 80, 0], lFore: [12, 0], head: [-6, 0, 0] }],
       [26.6, {}],
-      [27.4, p(HUG, { shiver: 1.0, head: [6, 0, 0] })],
-      [29.8, { lArm: [7, 80, 0], lFore: [12, 0], rArm: [7, 80, 0], rFore: [12, 0], lClav: [0, 0], rClav: [0, 0], rIK: [-0.24, 0.98, -0.04, 1], head: [24, -30, 0], shiver: 0.3 }],
+      [27.4, p(HUG, { head: [6, 0, 0] })],
+      [29.8, { lArm: [7, 80, 0], lFore: [12, 0], rArm: [7, 80, 0], rFore: [12, 0], lClav: [0, 0], rClav: [0, 0], rIK: [-0.24, 0.98, -0.04, 1], head: [24, -30, 0] }],
       [30.8, { props: ['bar'], rIK: [null, null, null, 0], rArm: [40, 14, 0], rFore: [112, 0], head: [22, -6, 0] }],
       [32.2, { lClav: [-6, 8], rClav: [-6, 8], chest: [8, 0, 0], rArm: [26, 20, 0], rFore: [80, 0] }],
     ],

@@ -25,11 +25,11 @@
 //       { speed: 0.7, leash: 8 }: a floor one drags itself after you), aggro (false), onDeath(e)
 //
 // ---- SNAPPAD (a dormant giant flytrap: a natural launcher) ----------------------------------------
-//   new SnapPad(W, { pos, yaw, power, push, size, color, reopen })   or  C.snapPad(pos, opts)
+//   new SnapPad(W, { pos, yaw, power, push, size, color, reopen })  (size 1.25: ~3.4 m across)   or  C.snapPad(pos, opts)
 //   A huge open trap lying flat (red inside, cilia round the rim, glowing trigger hairs). Step onto it and
 //   it quivers, then snaps shut and flings you up: player.launch(power, push). pos: the middle of the pad
 //   on the floor; power (17 m/s up), push ([x, z] m/s sideways throw, or null straight up), carry (true:
-//   keep part of your run), reopen (1.6 s), size (1), color (the trigger hairs' glow: cosmetic).
+//   keep part of your run), reopen (1.6 s), size (1.25), color (the trigger hairs' glow: cosmetic).
 //
 // ---- ROTFLIES (giant flies) and the FLY SWARM -----------------------------------------------------
 //   new FlySwarm(W, { pos, ...opts })   or  C.rotflies(pos, opts)
@@ -175,6 +175,7 @@ const KINDS = {
   goo: { rough: 0.06, amp: 0.05, rate: 2, freq: 3, rimK: 1.1, veinK: 0, veinF: 1, base: GOO_HEX, vc: false, transparent: true, opacity: 0.8, emissive: 0x041a03 },
   bark: { rough: 0.95, amp: 0, rate: 0, freq: 0, rimK: 0, veinK: 0.25, veinF: 3, flat: true },
   hive: { rough: 0.45, amp: 0.04, rate: 1.2, freq: 1.8, rimK: 0.4, veinK: 0.9, veinF: 4 },
+  eye: { rough: 0.12, metal: 0.45, amp: 0, rate: 0, freq: 0, rimK: 0.7, veinK: 0, veinF: 1, base: 0x3a0e0a, vc: false, flat: true, emissive: 0x120202 },
   tooth: { rough: 0.45, amp: 0, rate: 0, freq: 0, rimK: 0.04, veinK: 0, veinF: 1, base: 0xc8b88a, vc: false, emissive: 0x0c0a06 },
 };
 const matCache = new Map();
@@ -230,19 +231,20 @@ export function wingMaterial() {
   g.ellipse(64, 32, 62, 26, 0, 0, Math.PI * 2);
   g.clip();
   const grd = g.createLinearGradient(0, 0, 128, 0);
-  grd.addColorStop(0, 'rgba(120,150,120,0.75)');
-  grd.addColorStop(1, 'rgba(70,95,90,0.45)');
+  grd.addColorStop(0, 'rgba(120,150,120,0.6)');
+  grd.addColorStop(1, 'rgba(70,95,90,0.35)');
   g.fillStyle = grd;
   g.fillRect(0, 0, 128, 64);
-  g.strokeStyle = 'rgba(210,235,200,0.95)';
-  g.lineWidth = 1.6;
+  g.strokeStyle = 'rgba(190,215,180,0.55)';
+  g.lineWidth = 1.2;
   for (const [y0, y1, bend] of [[30, 18, -6], [32, 30, 2], [34, 42, 8], [36, 52, 10], [28, 10, -8]]) {
     g.beginPath();
     g.moveTo(2, y0);
     g.quadraticCurveTo(64, y0 + bend, 126, y1);
     g.stroke();
   }
-  g.lineWidth = 0.9;
+  g.lineWidth = 0.7;
+  g.strokeStyle = 'rgba(170,200,165,0.35)';
   for (let x = 18; x < 124; x += 15) {
     g.beginPath();
     g.moveTo(x, 8 + (x % 7));
@@ -647,10 +649,9 @@ function snapjawGeometry() {
     roots.push(paint(along(new THREE.CylinderGeometry(0.05, 0.13, 1.4, 5).translate(0, 0.7, 0), _w.set(Math.cos(a), -0.35, Math.sin(a)), [Math.cos(a) * 0.4, 0.1, Math.sin(a) * 0.4]), (x, y, z, c) => c.setRGB(0.17, 0.12, 0.06)));
   }
   sjGeo = {
-    lobe: shared(lobeGeometry(false)),
+    lobe: merge([lobeGeometry(false), lip]),
     inner: shared(lobeGeometry(true)),
     teeth: merge(teeth),
-    lip: merge([lip]),
     pust: merge(pust),
     seg: shared(seg),
     knot: shared(knot),
@@ -670,6 +671,7 @@ export class Snapjaw extends Creature {
     super(world, { pos, color, shields, shieldHp, hp, range: Math.max(range, spitRange + 2), aggro, onDeath });
     this.spawnOpts = opts;
     this.critter = true;
+    this.verdantCreature = true; // (creatureKit's respawn reset)
     this.S = size;
     this.yaw0 = yaw;
     this.reachL = reach / size;
@@ -714,20 +716,18 @@ export class Snapjaw extends Creature {
     base.add(new THREE.Mesh(G.leaves, organic('leaf', c)), new THREE.Mesh(G.bulb, organic('stalk', c)));
     for (const m of base.children) m.userData.part = 'stem';
     g.add(base);
-    this.segs = [];
-    for (let i = 0; i < SJ_SEGS; i++) {
-      const m = new THREE.Mesh(G.seg, organic('stalk', c));
-      m.userData.part = 'stem';
-      this.segs.push(m);
-      g.add(m);
-    }
+    // the stalk: one instanced mesh of SJ_SEGS ribbed segments (one draw)
+    this.stalk = new THREE.InstancedMesh(G.seg, organic('stalk', c), SJ_SEGS);
+    this.stalk.userData.part = 'stem';
+    this.stalk.frustumCulled = false;
+    g.add(this.stalk);
     const head = (this.head = new THREE.Group());
     const knot = new THREE.Mesh(G.knot, organic('stalk', c));
     knot.userData.part = 'stem';
     head.add(knot);
     const jaw = (lower) => {
       const j = new THREE.Group();
-      const parts = [new THREE.Mesh(G.lobe, organic('trap', c)), new THREE.Mesh(G.inner, organic('maw', c)), new THREE.Mesh(G.teeth, organic('tooth', c)), new THREE.Mesh(G.lip, organic('trap', c)), new THREE.Mesh(G.pust, this.glow)];
+      const parts = [new THREE.Mesh(G.lobe, organic('trap', c)), new THREE.Mesh(G.inner, organic('maw', c)), new THREE.Mesh(G.teeth, organic('tooth', c)), new THREE.Mesh(G.pust, this.glow)];
       parts[1].userData.part = 'mouth';
       for (const p of parts) {
         if (lower) p.rotation.z = Math.PI;
@@ -1056,8 +1056,8 @@ export class Snapjaw extends Creature {
         break;
       }
       case 'stun': {
-        // droops forward, clamped shut, level: something to stand on
-        n.set(0, 1.85, 0).addScaledVector(fh, 2.1);
+        // droops forward, clamped shut, level: something to stand on (hanging ones dangle lower: room to stand)
+        n.set(0, this.upL.y < -0.5 ? 3.4 : 1.85, 0).addScaledVector(fh, this.upL.y < -0.5 ? 1.2 : 2.1);
         want.copy(fh).addScaledVector(this.upL, -0.12).normalize();
         open = 0;
         if (this.timer < 0.8) open = Math.random() * 0.08;
@@ -1091,15 +1091,15 @@ export class Snapjaw extends Creature {
     const prev = bez(p0, p1, p2, 0, _eye);
     for (let i = 0; i < SJ_SEGS; i++) {
       const next = bez(p0, p1, p2, (i + 1) / SJ_SEGS, _w);
-      const m = this.segs[i];
-      m.position.copy(prev);
       _d.subVectors(next, prev);
       const len = _d.length();
-      m.quaternion.setFromUnitVectors(Y, _d.divideScalar(Math.max(len, 1e-4)));
+      _q.setFromUnitVectors(Y, _d.divideScalar(Math.max(len, 1e-4)));
       const r = 0.3 - 0.13 * (i / SJ_SEGS) + (i === 0 ? 0.05 : 0);
-      m.scale.set(r, len * 1.08, r);
+      this.stalk.setMatrixAt(i, _m.compose(prev, _q, _v.set(r, len * 1.08, r)));
       prev.copy(next);
     }
+    this.stalk.instanceMatrix.needsUpdate = true;
+    this.stalk.computeBoundingSphere();
     // head: hinge at the neck, mouth toward `face`, upright in the world
     this.head.position.copy(this.neck);
     _m.lookAt(_v.set(0, 0, 0), this.face, Math.abs(this.face.dot(this.upL)) > 0.97 ? Z : this.upL);
@@ -1144,7 +1144,7 @@ export class Snapjaw extends Creature {
     csfx('goo_squelch', this.mouthW, 1, 0.7);
     audio.sample('glob_pop', { gain: 0.7 * falloff(this.dist, 4, 40), rate: 0.6 });
     this.group.updateMatrixWorld(true);
-    new Debris(this.world, [this.upper, this.lower, ...this.segs.filter((s, i) => i % 2)], { from: this.mouthW, speed: 6 });
+    new Debris(this.world, [this.upper, this.lower], { from: this.mouthW, speed: 6 });
     this.remove();
   }
 
@@ -1201,11 +1201,12 @@ function padGeometry() {
 }
 
 export class SnapPad {
-  constructor(world, { pos, yaw = 0, size = 1, power = 17, push = null, carry = true, reopen = 1.6, color = GREEN }) {
+  constructor(world, { pos, yaw = 0, size = 1.25, power = 17, push = null, carry = true, reopen = 1.6, color = GREEN }) {
     this.world = world;
     this.game = world.game;
     this.pos = vec(pos);
     this.size = size;
+    this.verdantCreature = true;
     this.power = power;
     this.push = push ? new THREE.Vector3(push[0], 0, push[1]) : null;
     this.carry = carry;
@@ -1812,6 +1813,7 @@ export class FlySwarm {
     this.game = world.game;
     this.spawnOpts = opts;
     this.critter = true;
+    this.verdantCreature = true; // (creatureKit's respawn reset)
     this.home = vec(pos);
     this.count = count;
     this.colors = colors || (Array.isArray(color) ? color : [color]);
@@ -2106,6 +2108,7 @@ export class Borer extends Creature {
     super(world, { pos, color, shields, shieldHp, hp, range: range + 4, aggro, onDeath });
     this.spawnOpts = opts;
     this.critter = true;
+    this.verdantCreature = true; // (creatureKit's respawn reset)
     this.S = size;
     this.mode = mode;
     this.holes = [{ pos: vec(pos), n: vec(normal, [0, 1, 0]).normalize() }];
@@ -2165,7 +2168,7 @@ export class Borer extends Creature {
       const g = new THREE.Group();
       g.position.set(Math.cos(a) * 0.36, Math.sin(a) * 0.36, -0.36);
       g.rotation.z = a - Math.PI / 2;
-      const m = new THREE.Mesh(G.mand, organic('grub', c));
+      const m = new THREE.Mesh(G.mand, organic('bark', c));
       m.userData.part = 'head';
       g.add(m);
       head.add(g);
@@ -2717,12 +2720,11 @@ export function creatureKit(B) {
       for (const e of [...W.entities]) if (e.verdantCreature && !e.dead) e.reset?.();
     });
   }
-  const tag = (e) => ((e.verdantCreature = true), e);
   return {
-    snapjaw: (pos, o = {}) => tag(new Snapjaw(W, { pos, ...o })),
-    snapPad: (pos, o = {}) => tag(new SnapPad(W, { pos, ...o })),
-    rotflies: (pos, o = {}) => tag(new FlySwarm(W, { pos, ...o })),
-    borer: (pos, normal = [0, 1, 0], o = {}) => tag(new Borer(W, { pos, normal, ...o })),
+    snapjaw: (pos, o = {}) => new Snapjaw(W, { pos, ...o }),
+    snapPad: (pos, o = {}) => new SnapPad(W, { pos, ...o }),
+    rotflies: (pos, o = {}) => new FlySwarm(W, { pos, ...o }),
+    borer: (pos, normal = [0, 1, 0], o = {}) => new Borer(W, { pos, normal, ...o }),
     // a goo patch placed by the level (permanent: true never dries up or gets used up)
     goo: (pos, normal = [0, 1, 0], o = {}) => onGooPatch(W, pos, normal, o),
     flyRide: (o) => new GiantFlyRide(W, o),

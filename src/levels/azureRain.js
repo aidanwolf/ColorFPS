@@ -1,4 +1,5 @@
-// AZURE — THE STORM: rain over the Cold Deep's open chasm (called from azure.js).
+// AZURE — THE STORM: a tropical storm over the Drowned Reach's open sea (called from azure.js). Squalls of
+// heavy warm rain sweep through and break into bright spells (the sky's clouds follow: azureOcean.js).
 //   · Streaks: one instanced draw of ~9000 quads whose positions live entirely in the vertex shader (each
 //     drop falls through a box that wraps round the camera), so the CPU only sets a few uniforms a frame.
 //   · Cover: a ROOF MAP, built once from the world's static solids (and the tops of the water volumes):
@@ -11,9 +12,9 @@
 //     the `amb_rain` loop exists), and thunder after each lightning flash.
 //   · Wet look: Azure's shared box materials are darkened and glossed once, at build.
 //   · Lightning: every 10-25 s a flicker that lights the sky, the hemisphere light and the rain, a
-//     jagged bolt far off over the abyss, and the thunder a moment later.
+//     jagged bolt far off over the sea, and the thunder a moment later.
 // Off underwater and anywhere outside the storm's bounds; the whole thing costs two draws.
-//   buildRain(B, { bounds: [x1, z1, x2, z2], intensity }) → { openness, flashK, setIntensity(k), strike() }
+//   buildRain(B, { bounds: [x1, z1, x2, z2], intensity, ocean }) → { openness, flashK, squall, setIntensity(k), strike() }
 import * as THREE from 'three';
 import { audio } from '../audio.js';
 import { SynthLoop, noiseVoice } from '../weapons/rays.js';
@@ -25,7 +26,7 @@ const SPLASHES = 700;
 const BOX = [40, 30, 40]; // m: the box of rain that wraps round the camera
 const SPLASH_TILE = 30; // m: the tile splashes are scattered over round the camera
 const FALL = 17; // m/s
-const NONE = -1e5; // roof-map value where nothing stands (the abyss): no splash
+const NONE = -1e5; // roof-map value where nothing stands (open air all the way down): no splash
 const OUT = 1e5; // outside the storm: everything counts as covered
 audio.manifest?.then(() => audio.prefetch(['amb_rain', 'thunder', 'thunder_far']));
 
@@ -121,10 +122,10 @@ const SPLASH_F = `
     gl_FragColor = vec4(uColor, a * 0.55);
   }`;
 
-export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = {}) {
+export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1, ocean = null } = {}) {
   const { W, game } = B;
   const [bx1, bz1, bx2, bz2] = bounds;
-  // everything in the Cold Deep is wet: its shared box materials darken and gloss up (sharper highlights)
+  // everything up top is wet: Azure's shared box materials darken and gloss up (sharper highlights)
   for (const k of ['floor', 'plat', 'metal', 'wall', 'grate']) {
     const m = mat(k, 'blue');
     m.roughness *= 0.6;
@@ -188,7 +189,7 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
   const common = {
     uTime: { value: 0 }, uIntensity: { value: intensity }, uRoof: { value: roofTex }, uRoofBox: { value: roofBox },
   };
-  const rainCol = new THREE.Color(0.42, 0.52, 0.66);
+  const rainCol = new THREE.Color(0.55, 0.62, 0.68); // (warm tropical rain, lit by a bright sky)
   const rainMat = new THREE.ShaderMaterial({
     uniforms: {
       ...common, uLen: { value: 0.8 }, uWidth: { value: 0.0075 }, uBox: { value: new THREE.Vector3(...BOX) },
@@ -222,7 +223,7 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
   rain.renderOrder = 6;
   splash.renderOrder = 2;
 
-  // ---- lightning: a jagged bolt (one ribbon, re-shaped for each strike) far off over the abyss
+  // ---- lightning: a jagged bolt (one ribbon, re-shaped for each strike) far off over the sea
   const SEGS = 18;
   const boltGeo = new THREE.BufferGeometry();
   const boltPos = new Float32Array(SEGS * 2 * 3 * 3); // two triangles per segment... (as a line strip of quads)
@@ -237,11 +238,11 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
   W.scene.add(bolt);
   const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3();
   function shapeBolt(cam) {
-    // somewhere 120-180 m off, mostly in the direction you're looking, from the clouds down into the dark
+    // somewhere 120-180 m off, mostly in the direction you're looking, from the clouds down to the sea
     game.camera.getWorldDirection(_a);
     const ang = Math.atan2(_a.z, _a.x) + (Math.random() - 0.5) * 2.2, dist = 120 + Math.random() * 60;
     const x0 = cam.x + Math.cos(ang) * dist, z0 = cam.z + Math.sin(ang) * dist;
-    let x = x0, y = 95, z = z0;
+    let x = x0, y = 110, z = z0;
     _s.set(Math.sin(ang), 0, -Math.cos(ang)); // sideways to the view
     let k = 0;
     for (let i = 0; i < SEGS; i++) {
@@ -249,7 +250,7 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
       _a.set(x, y, z);
       x += (Math.random() - 0.5) * 9;
       z += (Math.random() - 0.5) * 9;
-      y -= 6 + Math.random() * 3;
+      y -= 6.5 + Math.random() * 3; // (down to about the sea)
       _b.set(x, y, z);
       for (const [p, o] of [[_a, -w], [_a, w], [_b, w], [_a, -w], [_b, w], [_b, -w]]) {
         boltPos[k++] = p.x + _s.x * o;
@@ -273,6 +274,7 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
   const st = {
     openness: 0, // 0 (indoors) .. 1 (open sky over you), smoothed
     flashK: 0,
+    squall: 1, // the passing squalls: 1 in the thick of one, ~0.3 in a sunny break
     intensity,
     setIntensity(k) {
       st.intensity = k;
@@ -304,12 +306,17 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
       if (!built) buildRoof();
       const cam = game.camera.position;
       const inStorm = cam.x > bx1 - 5 && cam.x < bx2 && cam.z > bz1 && cam.z < bz2 && cam.x > 18;
-      const under = !!player.headUnder;
-      const on = inStorm && !under && st.intensity > 0.01;
+      const under = !!player.headUnder || cam.y < -9.5;
+      // squalls roll through every minute or two, with bright breaks of blue between them
+      st.squall = 0.62 + 0.38 * Math.sin(t * 0.055) * Math.sin(t * 0.021 + 1.3) + 0.25 * Math.sin(t * 0.13);
+      st.squall = Math.min(1, Math.max(0.28, st.squall));
+      const rainK = st.intensity * st.squall;
+      if (ocean) ocean.storm = st.intensity > 0.5 ? 0.15 + 0.85 * st.squall : 0.05;
+      const on = inStorm && !under && rainK > 0.01;
       rain.visible = splash.visible = on;
       t += dt;
       common.uTime.value = t;
-      common.uIntensity.value = st.intensity;
+      common.uIntensity.value = rainK;
       // how open the sky is over you: the eye against the roof map here and in a ring round you
       let open = 0;
       if (inStorm) {
@@ -324,16 +331,17 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
       if (under) open = 0;
       st.openness += (open - st.openness) * Math.min(1, dt * 3);
       // sound
-      const gainOpen = on ? 0.13 * st.openness * st.intensity : 0;
-      const roofed = inStorm && !under && st.openness < 0.5 && cam.y > -30 ? (1 - st.openness * 2) * 0.05 * st.intensity : 0;
+      const gainOpen = on ? 0.13 * st.openness * rainK : 0;
+      const roofed = inStorm && !under && st.openness < 0.5 && cam.y > -9.5 ? (1 - st.openness * 2) * 0.05 * rainK : 0;
       if (audio.available?.has('amb_rain')) {
         rainLoop ??= audio.createLoop('amb_rain', { gain: 0 });
         rainLoop.setGain(gainOpen * 3.5);
       } else hiss.set(gainOpen, dt);
       drum.set(roofed, dt);
-      // lightning (only while you're out in the storm's air, or not far under cover from it)
-      if (inStorm && !under && (st.openness > 0.05 || cam.y > -28)) {
-        nextStrike -= dt;
+      // lightning (only while you're out in the storm's air, or not far under cover from it; the squalls
+      // bring it, the breaks rarely)
+      if (inStorm && !under && (st.openness > 0.05 || cam.y > -9.5) && st.intensity > 0.5) {
+        nextStrike -= dt * (0.3 + st.squall);
         if (nextStrike <= 0 && !strike) {
           nextStrike = 10 + Math.random() * 15;
           startStrike(cam);
@@ -354,7 +362,8 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
       // the flash: on the hemisphere light and the sky, undone exactly as the atmosphere eases (main.js
       // lerps toward its preset by ka a frame, so the base under last frame's add is cur - add * (1 - ka))
       const ka = 1 - Math.exp(-dt * 1.2);
-      const vis = inStorm ? 0.15 * (cam.y > -28 ? 1 : 0) + 0.85 * st.openness : 0;
+      const vis = inStorm ? 0.15 * (cam.y > -9.5 ? 1 : 0) + 0.85 * st.openness : 0;
+      if (ocean) ocean.flash = k * vis;
       const hemi = game.hemi;
       if (hemi) {
         const base = hemi.intensity - lastAdd.hemi * (1 - ka);

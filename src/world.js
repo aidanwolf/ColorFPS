@@ -164,7 +164,7 @@ export class World {
       const ox = Math.max(mn.x - E.x, 0, E.x - mx.x), oy = Math.max(mn.y - E.y, 0, E.y - mx.y), oz = Math.max(mn.z - E.z, 0, E.z - mx.z);
       if (ox * ox + oy * oy + oz * oz > R2) continue;
       const m = s.drawn.m;
-      if (!seen.has(s.drawn.region) || !OCC_MATERIALS.has(m.type) || m.onBeforeCompile !== THREE.Material.prototype.onBeforeCompile || m.transparent || !m.visible || !m.depthWrite || !m.colorWrite || m.alphaTest > 0 || m.side === THREE.BackSide) continue;
+      if (!seen.has(s.drawn.region) || !OCC_MATERIALS.has(m.type) || (m.onBeforeCompile !== THREE.Material.prototype.onBeforeCompile && !m.userData.occluder) || m.transparent || !m.visible || !m.depthWrite || !m.colorWrite || m.alphaTest > 0 || m.side === THREE.BackSide) continue;
       _b3.min.copy(mn);
       _b3.max.copy(mx);
       if (!_frustum.intersectsBox(_b3)) continue; // off screen: it can't hide anything on screen
