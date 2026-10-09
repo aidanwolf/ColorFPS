@@ -36,8 +36,8 @@ From the Hub you can **see into every world through big windows before you can e
 | Prism Core (boss) | `prism.js` | -31 → 31 | -60 → -6 | -88 → -175 |
 | Solar | `solar.js` (+ `solarSky.js`, `solarScenery.js`; light puzzles in `entities/sunlight.js`) | -32 → -214 | -30 → 80 | -40 → -232 (the excavation under it: x -66 → -150, y -30 → -10, z -44 → -134) |
 | Solar's dune sea (the hovercraft run) | `solarDunes.js` (`buildDuneRun`) | -214 → -430 | -30 → 80 | -45 → -235; dock points x -216, z -56 (y -8, boarding) and x -216, z -200 (y -6, landing); the docks' open east edges meet Solar at x -212 |
-| Azure | `azure.js` | 32 → 200 | -80 → 40 | -40 → -230 |
-| Azure's Flooded Depths (inside Azure's box, behind the chasm's east cliff) | `azureFlooded.js` | 108 → 161 | -62 → 8 | -100 → -153 |
+| Azure (The Drowned Reach: the rig, the Aquarium and the habitats; sea level y -9.5, trench floor ~-66; the sea, sky and caustics in `azureOcean.js`, the trench and its life in `azureTrench.js`, the rig and the rogue wave in `azureRig.js`, the habitat kit in `azureHabitat.js`, the turbine field and the machines in `azureTurbine.js`; its far scenery reaches past the box, below the other worlds' ground) | `azure.js` | 32 → 200 | -80 → 40 | -40 → -230 |
+| Azure's Flooded Depths (inside Azure's box, inside the station's hull, east of the trench) | `azureFlooded.js` | 108 → 161 | -62 → 8 | -100 → -153 |
 | Azure's storm (rain over the whole box, roof-mapped: azure.js calls it), water-puzzle pieces, the Dynamo | `azureRain.js`, `entities/waterPuzzle.js`, `entities/dynamo.js` | (Azure's box) | | |
 | Verdant | `verdant.js` | -31 → 31 (wider, -110 → 110, once z < -235) | -5 → 60 (may go down to -40 once z < -178) | -148.5 → -380 |
 | Final battle stages (off-map; regions `fin_*` in regions.js, each sees only itself) | `finale/*.js` | 700 → 1000 | -10 → 40 | -40 → -450 |
@@ -80,7 +80,7 @@ sunIntensity, sunDir, exposure, bloom). Presets crossfade over ~2 s.
 | The Hub | `music_hub` (new, calm interlude) | `amb_hub` (new) | `hub` |
 | Solar | `music_solar` (new) | `amb_solar` (new; hot wind) | `solar` |
 | Verdant | `music_green` | `amb_jungle` | `verdant` |
-| Azure | `music_blue` | `amb_abyss` (new) | `azure` |
+| Azure | `music_azure` | `amb_ocean_storm` up top (`amb_ocean_calm` once the engine is dead), `amb_abyss` under the sea and in the habitats | `azure` (the rig and the storm), `azureSea` (open water), `azureDeep` (the habitats) |
 | Forced ascent | `music_ascent` (new) | — | `azure` |
 | Prism Core | `music_antechamber` → boss tracks (main.js) | `amb_core` | `prism` |
 

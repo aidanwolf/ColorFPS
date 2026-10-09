@@ -21,7 +21,7 @@ import { addCaustics, SEA_Y } from './azureOcean.js';
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const UP = V(0, 1, 0);
 const _p = V(0, 0, 0), _q = V(0, 0, 0);
-audio.manifest?.then(() => audio.prefetch(['hydraulic_hiss', 'titan_steam', 'door_slam', 'elevator_start', 'lava_bubble', 'glass_hit', 'airlock_cycle', 'gasp', 'bubble_vent']));
+audio.manifest?.then(() => audio.prefetch(['hydraulic_hiss', 'titan_steam', 'door_slam', 'elevator_start', 'lava_bubble', 'glass_hit', 'airlock_cycle', 'air_refill', 'bubble_vent']));
 
 export function makeHabitat(B, { zone, airs }) {
   const { W, game } = B;
@@ -257,8 +257,8 @@ export function makeHabitat(B, { zone, airs }) {
     // the ledge (a grate along one side, at the waterline) and its checkpoint
     box(x - r, surf - 0.3, z - r, x + r, surf, z - r + 1.1, 'grate');
     air([x - r, top - skirt, z - r], [x + r, top, z + r]);
-    const w = B.water([x - r, top - skirt, z - r], [x + r, surf, z + r], { surface: true });
-    w.top = surf;
+    const w = B.water([x - r, top - skirt, z - r], [x + r, surf, z + r], { surface: true, current: [0, 1.4, 0] });
+    w.top = surf; // (a gentle upwelling holds you at the surface in there while you get your breath)
     if (checkpoint) new Checkpoint(W, game, { pos: [x, surf, z - r + 0.55], yaw, size: [3, 2.2, 1.1] });
     put('warm', new THREE.SphereGeometry(0.22, 8, 6).translate(x, top - 0.3, z));
     // a cable up toward the surface it hangs from
@@ -378,11 +378,12 @@ export function makeHabitat(B, { zone, airs }) {
         if (player.pos.x < 26) return;
         // the beacons pulse along their routes
         let near = 99;
-        marks.forEach((k, i) => {
+        for (let i = 0; i < marks.length; i++) {
+          const k = marks[i];
           const wave = Math.pow(Math.max(0, Math.sin((k.along / 7 - t * 1.3) * Math.PI)), 6);
           col.copy(k.gold ? gold : cyan).multiplyScalar(k.gold ? 0.9 + 0.5 * Math.sin(t * 3 + i) : 0.35 + 1.3 * wave);
           bm.setColorAt(i, col);
-        });
+        }
         if (bm.instanceColor) bm.instanceColor.needsUpdate = true;
         // a head in a vent's bubble column breathes from it
         const eyeY = player.pos.y + player.eye;
@@ -535,8 +536,8 @@ export class Airlock {
           this.innerDoor.open();
           audio.sample('elevator_start', { gain: 0.5, vary: 0, rate: 1.3 });
           if (inn) {
-            // a gasp of air
-            if (!audio.sample(audio.sfxOr('gasp', ''), { gain: 0.9, vary: 0.04 })) audio.noise({ dur: 0.5, gain: 0.25, freq: 1400, f2: 700, type: 'bandpass', q: 0.7 });
+            // a rush of fresh air into the suit
+            if (!audio.sample(audio.sfxOr('air_refill', ''), { gain: 0.9, vary: 0.04 })) audio.noise({ dur: 0.5, gain: 0.25, freq: 1400, f2: 700, type: 'bandpass', q: 0.7 });
             player.air = AIR_MAX;
           }
           if (!this.drainedOnce && inn) {

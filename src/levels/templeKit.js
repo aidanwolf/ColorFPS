@@ -23,6 +23,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { YELLOW } from '../colors.js';
 import { audio } from '../audio.js';
 import { boxGeo } from '../materials.js';
+import { regionOf } from './regions.js';
 import { nearGain } from '../entities/mechkit.js';
 
 const _c = new THREE.Color(), _u = new THREE.Vector3();
@@ -518,10 +519,12 @@ export class Builder {
   }
 
   // a box (drawn in `key`'s material; solid unless { solid: false })
-  blk(key, x1, y1, z1, x2, y2, z2, { solid = true, uv = 0.25, props = {} } = {}) {
+  // occ: a big opaque box the world's occlusion culling may hide things behind (walls, floors, the roof)
+  blk(key, x1, y1, z1, x2, y2, z2, { solid = true, uv = 0.25, props = {}, occ = false } = {}) {
     const w = Math.abs(x2 - x1), h = Math.abs(y2 - y1), d = Math.abs(z2 - z1);
     if (w < 0.001 || h < 0.001 || d < 0.001) return null;
     this.add(key, boxGeo(w, h, d, uv).translate((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2));
+    if (occ) props = { ...props, drawn: { m: templeMats()[key], region: regionOf(this.F.V((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2)) } };
     return solid ? this.solid(Math.min(x1, x2), Math.min(y1, y2), Math.min(z1, z2), Math.max(x1, x2), Math.max(y1, y2), Math.max(z1, z2), props) : null;
   }
 
@@ -622,10 +625,21 @@ export function sagGeos(a, b, sag = 1.2, w = 0.03, n = 8) {
 }
 
 // ------------------------------------------------------------------ Brazier
+// (every lit brazier's coals share one flickering material; BRAZIER_CLOCK drives it)
+const COALS = {
+  dark: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.06, 0.035, 0.02) }),
+  lit: new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 0.6, 0.15) }),
+};
+export function brazierFlicker(t) {
+  const f = 0.85 + 0.15 * Math.sin(t * 17) * Math.sin(t * 7.3);
+  COALS.lit.color.setRGB(1.6, 0.6, 0.15).multiplyScalar(f);
+}
 // A bronze bowl on three legs. ignite() (the temple waking) or the yellow beam held on it lights it:
 // flames, embers, smoke, a warm light (real: one of the world's pooled lights). onLit(b) when it catches.
 export class Brazier {
-  constructor(W, pos, { real = false, lit = false, onLit = null, scale = 1 } = {}) {
+  // bd + at: the bowl, rim and legs go into that Builder's merged dressing (at: the temple-local foot);
+  // only the coals and the flame are its own meshes
+  constructor(W, pos, { real = false, lit = false, onLit = null, scale = 1, bd = null, at = null } = {}) {
     this.W = W;
     this.pos = new THREE.Vector3(...pos);
     this.top = this.pos.clone().setY(this.pos.y + 1.15 * scale);
@@ -637,30 +651,25 @@ export class Brazier {
     const M = templeMats();
     this.group = new THREE.Group();
     this.group.position.copy(this.pos);
-    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.36, 0.42, 12, 1, true), M.bronze);
-    bowl.position.y = 0.95;
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.05, 6, 16), M.gold);
-    rim.rotation.x = Math.PI / 2;
-    rim.position.y = 1.16;
-    this.coalMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.06, 0.035, 0.02) });
-    const coals = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.05, 12), this.coalMat);
-    coals.position.y = 1.1;
-    const under = new THREE.Mesh(new THREE.CircleGeometry(0.36, 10).rotateX(Math.PI / 2), M.darkBronze);
-    under.position.y = 0.74;
-    this.group.add(bowl, rim, coals, under);
+    const statics = [
+      ['bronze', new THREE.CylinderGeometry(0.62, 0.36, 0.42, 12, 1, true).translate(0, 0.95, 0)],
+      ['gold', new THREE.TorusGeometry(0.62, 0.05, 6, 16).rotateX(Math.PI / 2).translate(0, 1.16, 0)],
+      ['darkBronze', new THREE.CircleGeometry(0.36, 10).rotateX(Math.PI / 2).translate(0, 0.74, 0)],
+    ];
     for (let k = 0; k < 3; k++) {
       const a = (k / 3) * Math.PI * 2;
-      const leg = new THREE.Mesh(beamGeo([Math.cos(a) * 0.5, 0, Math.sin(a) * 0.5], [Math.cos(a) * 0.25, 0.85, Math.sin(a) * 0.25], 0.07), M.bronze);
-      this.group.add(leg);
+      statics.push(['bronze', beamGeo([Math.cos(a) * 0.5, 0, Math.sin(a) * 0.5], [Math.cos(a) * 0.25, 0.85, Math.sin(a) * 0.25], 0.07)]);
     }
-    // the flame: three crossed cards of fire, scaled with the blaze
-    this.flame = new THREE.Group();
-    for (let k = 0; k < 3; k++) {
-      const card = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.5), M.flame);
-      card.rotation.y = (k / 3) * Math.PI;
-      card.position.y = 0.7;
-      this.flame.add(card);
+    for (const [k, g] of statics) {
+      if (bd && at) bd.add(k, g.scale(scale, scale, scale).translate(at[0], at[1], at[2]));
+      else this.group.add(new THREE.Mesh(g, M[k]));
     }
+    // the coals (one shared material while dark, one shared flickering one once lit)
+    this.coals = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.05, 12).translate(0, 1.1, 0), COALS.dark);
+    this.group.add(this.coals);
+    // the flame: three crossed cards of fire in one mesh, scaled with the blaze
+    const cards = [0, 1, 2].map((k) => new THREE.PlaneGeometry(0.9, 1.5).translate(0, 0.7, 0).rotateY((k / 3) * Math.PI));
+    this.flame = new THREE.Mesh(mergeGeometries(cards), M.flame);
     this.flame.position.y = 1.1;
     this.flame.visible = false;
     this.group.add(this.flame);
@@ -695,6 +704,7 @@ export class Brazier {
     if (this.on) return;
     this.on = true;
     this.flame.visible = true;
+    this.coals.material = COALS.lit;
     if (instant) this.k = 1;
     else {
       this.W.fx.burst(this.top, 0xffa040, { count: 30, speed: 4, life: 0.7, size: 0.3, gravity: -2 });
@@ -707,7 +717,7 @@ export class Brazier {
     this.on = false;
     this.k = 0;
     this.flame.visible = false;
-    this.coalMat.color.setRGB(0.06, 0.035, 0.02);
+    this.coals.material = COALS.dark;
     if (this.light) this.light.intensity = 0;
   }
 
@@ -720,7 +730,6 @@ export class Brazier {
     this.t += dt;
     if (this.k < 1) this.k = Math.min(1, this.k + dt * 1.5);
     const f = 0.85 + 0.15 * Math.sin(this.t * 17) * Math.sin(this.t * 7.3);
-    this.coalMat.color.setRGB(1.6, 0.6, 0.15).multiplyScalar(this.k * f);
     this.flame.scale.set(this.k * (0.9 + 0.1 * Math.sin(this.t * 11)), this.k * f * (0.9 + 0.2 * Math.sin(this.t * 6.1)), this.k);
     this.flame.rotation.y += dt * 0.6;
     if (this.light) this.light.intensity = 10 * this.k * f;
@@ -731,7 +740,7 @@ export class Brazier {
     }
     if (d2 < 30 * 30 && Math.random() < dt * 3) {
       _v.copy(this.top).y += 1.6;
-      this.W.fx.puff(_v, rnd(-0.1, 0.1), 0.6, rnd(-0.1, 0.1), _c.setRGB(0.25, 0.2, 0.17), 0.5, 3, 0.35, 3);
+      this.W.fx.puff(_v, rnd(-0.1, 0.1), 0.6, rnd(-0.1, 0.1), _c.setRGB(0.25, 0.2, 0.17), 0.18, 3, 0.35, 3);
     }
   }
 }
@@ -789,7 +798,7 @@ export class Censer {
     this.pos.set(0, -this.len, 0).applyQuaternion(_q).add(this.pivot);
     const near = player.pos.distanceToSquared(this.pos) < 40 * 40;
     if (near && Math.random() < dt * 14) {
-      this.W.fx.puff(_u.copy(this.pos).setY(this.pos.y + 0.6), rnd(-0.1, 0.1), 0.4, rnd(-0.1, 0.1), _c.setRGB(0.32, 0.28, 0.24), 0.45, 2.2, 0.3, 3.2);
+      this.W.fx.puff(_u.copy(this.pos).setY(this.pos.y + 0.6), rnd(-0.1, 0.1), 0.4, rnd(-0.1, 0.1), _c.setRGB(0.32, 0.28, 0.24), 0.2, 2.2, 0.3, 3.2);
     }
     // a whoosh as it sweeps past the bottom
     if (near && Math.sign(a) !== Math.sign(this.prevA)) {

@@ -169,28 +169,32 @@ function cut(a, b) {
 // swimmers (the trench's soft edges, the turbine's intakes). Returns the list of volumes.
 export function oceanVolumes(W, bounds, airs, currents = []) {
   let boxes = [{ min: new THREE.Vector3(...bounds[0]), max: new THREE.Vector3(...bounds[1]) }];
-  // the current zones first, as cuts of their own, so each piece is wholly in or out of one
+  // the current zones first, as cuts of their own, so each piece is wholly in or out of one (a later
+  // zone wins where two overlap); every piece remembers its zone's id (to animate its current)
+  const keep = (from, list) => {
+    for (const p of list) {
+      p.current = from.current;
+      p.zone = from.zone;
+    }
+    return list;
+  };
   for (const c of currents) {
     const cb = { min: new THREE.Vector3(...c.min), max: new THREE.Vector3(...c.max) };
-    boxes = boxes.flatMap((b) => cut(b, cb).concat(intersect(b, cb, c.current)));
+    boxes = boxes.flatMap((b) => keep(b, cut(b, cb)).concat(intersect(b, cb, c.current, c.id)));
   }
   for (const [a, b] of airs) {
     const ab = { min: new THREE.Vector3(...a), max: new THREE.Vector3(...b) };
-    boxes = boxes.flatMap((x) => {
-      const r = cut(x, ab);
-      if (x.current) for (const p of r) p.current = x.current;
-      return r;
-    });
+    boxes = boxes.flatMap((x) => keep(x, cut(x, ab)));
   }
   const top = bounds[1][1];
-  const vols = boxes.map((b) => ({ min: b.min, max: b.max, top, ocean: true, current: b.current ? new THREE.Vector3(...b.current) : null }));
+  const vols = boxes.map((b) => ({ min: b.min, max: b.max, top, ocean: true, zone: b.zone || null, current: b.current ? new THREE.Vector3(...b.current) : null }));
   (W.waters ??= []).push(...vols);
   return vols;
 }
-function intersect(a, b, current) {
+function intersect(a, b, current, zone = null) {
   const mn = a.min.clone().max(b.min), mx = a.max.clone().min(b.max);
   if (mx.x - mn.x < 1e-3 || mx.y - mn.y < 1e-3 || mx.z - mn.z < 1e-3) return [];
-  return [{ min: mn, max: mx, current }];
+  return [{ min: mn, max: mx, current, zone }];
 }
 
 // ------------------------------------------------------------------ the foam mask
@@ -294,6 +298,7 @@ const OCEAN_F = `
   float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
     return mix(mix(h1(i), h1(i + vec2(1,0)), f.x), mix(h1(i + vec2(0,1)), h1(i + vec2(1,1)), f.x), f.y); }
   void main() {
+    if (vW.x < 32.0) discard; // (the sea lies east of the Nexus; the other worlds keep their own ground)
     vec3 toCam = cameraPosition - vW;
     float dist = length(toCam);
     vec3 V = toCam / dist;
@@ -385,23 +390,35 @@ const SKY_F = `
     vec3 d = normalize(vDir);
     if (d.y < -0.08) discard;
     float h = max(d.y, 0.0);
-    // clouds on a curved layer: towering cumulonimbus banks low on the horizon (taller to the north-east
-    // and south where the storm cells sit), broken fair-weather cumulus overhead with blue between
-    vec2 cp = d.xz / (h + 0.18);
+    // TOWERING CUMULONIMBUS round the horizon: columns of billowing cloud rising to an uneven top, taller
+    // to the north-east and south where the storm cells sit; broken cumulus overhead with blue between
     float az = atan(d.z, d.x);
     float cells = 0.55 + 0.45 * sin(az * 2.0 + 0.6) * sin(az * 3.0 - 1.1);
+    float colN = fbm(vec3(az * 3.2, 3.1, uT * 0.002));
+    float topH = 0.015 + 0.42 * pow(max(0.0, colN - 0.38) * 2.6, 1.25) * (0.45 + 0.55 * cells) * (0.65 + 0.35 * uStorm);
+    float billow = fbm(vec3(az * 9.0, h * 12.0 - uT * 0.006, 1.7));
+    float tower = smoothstep(topH + 0.025, topH - 0.035, h + (billow - 0.5) * 0.1) * smoothstep(-0.03, 0.01, h);
+    vec2 cp = d.xz / (h + 0.18);
     vec3 q = vec3(cp * 1.3, uT * 0.006);
     float base = fbm(q + vec3(uT * 0.004, 0.0, 0.0));
     float detail = fbm(q * 3.1 - vec3(uT * 0.01, 0.0, 0.0));
-    float towers = smoothstep(0.42, 0.0, h - 0.02) * (0.35 + 0.65 * cells);
-    float cover = mix(0.62, 0.36, towers) - uStorm * 0.12;
-    float dens = smoothstep(cover, cover + 0.22, base * 0.75 + detail * 0.35 + towers * 0.35);
-    // the cloud's light: sunlit tops, bruised storm-grey bellies
-    float lit = clamp(0.55 + (fbm(q * 2.0 + uSunDir * 0.6) - base) * 2.5, 0.0, 1.0);
+    float cover = 0.6 - uStorm * 0.14;
+    float over = smoothstep(cover, cover + 0.2, base * 0.75 + detail * 0.35) * smoothstep(0.06, 0.28, h);
+    float dens = clamp(max(tower, over), 0.0, 1.0);
+    float towers = tower;
+    // the light: towers sunlit on the side facing the sun and on their crowns, bruised dark at the base
+    // (darker still in the storm cells, where the rain hangs under them)
+    float sunSide = clamp(dot(normalize(d.xz + 1e-4), normalize(uSunDir.xz)) * 0.5 + 0.5, 0.0, 1.0);
+    float crown = smoothstep(topH * 0.35, topH, h);
+    float lit = clamp(mix(0.12, 1.05, crown) * (0.5 + 0.5 * sunSide) + (billow - 0.5) * 0.9, 0.0, 1.0);
+    lit = mix(lit, clamp(0.55 + (fbm(q * 2.0 + uSunDir * 0.6) - base) * 2.5, 0.0, 1.0), over * (1.0 - tower));
     float sunAmt = pow(max(dot(d, uSunDir), 0.0), 3.0);
-    vec3 belly = mix(vec3(0.16, 0.2, 0.27), vec3(0.08, 0.1, 0.15), towers * cells);
-    vec3 top = mix(vec3(0.85, 0.9, 0.97), vec3(1.25, 1.15, 1.0), sunAmt);
-    vec3 cloud = mix(belly, top, lit * (1.0 - 0.5 * towers * cells));
+    vec3 belly = mix(vec3(0.3, 0.34, 0.4), vec3(0.1, 0.12, 0.17), cells * uStorm);
+    vec3 top = mix(vec3(0.88, 0.92, 0.98), vec3(1.25, 1.15, 1.0), sunAmt);
+    vec3 cloud = mix(belly, top, lit);
+    // rain curtains hanging under the storm cells
+    float curtain = tower * (1.0 - crown) * cells * uStorm * smoothstep(0.4, 0.9, fbm(vec3(az * 14.0, h * 3.0 + uT * 0.05, 5.0)));
+    cloud = mix(cloud, vec3(0.32, 0.36, 0.42), curtain * 0.5);
     // silver linings round the sun
     float edge = dens * (1.0 - dens) * 4.0;
     cloud += vec3(1.0, 0.95, 0.85) * edge * pow(max(dot(d, uSunDir), 0.0), 8.0) * 1.5;
@@ -485,7 +502,7 @@ export function buildOcean(B, { foamBox = [20, -240, 230, -30], foamExtra = [] }
   back.frustumCulled = false;
   back.userData.noCull = true;
   back.userData.noBatch = true;
-  back.renderOrder = -6;
+  back.renderOrder = 1; // (after the world's sky dome, which it must cover; the depth test keeps it behind everything nearer)
   back.raycast = () => {};
   W.scene.add(back);
   // ---- underwater god-rays: tall slanting sheets hanging from the surface, wrapped round the camera
@@ -568,12 +585,13 @@ export function buildOcean(B, { foamBox = [20, -240, 230, -30], foamExtra = [] }
       const camUnder = cam.y < SEA_Y + 0.05;
       st.under = inAzure && camUnder;
       // the surface rides with the camera, snapped to its inner ring spacing so it doesn't shimmer
-      surf.visible = inAzure || (cam.x > 10 && cam.y > 2); // (and from the Nexus's east windows)
+      const inHub = cam.x > -25 && cam.x < 25 && cam.z < -99.5 && cam.z > -148.5 && cam.y > 2;
+      surf.visible = inAzure || inHub; // (and from the Nexus, whose east windows look out over it)
       surf.position.set(Math.round(cam.x / 3.2) * 3.2, SEA_Y - st.drop, Math.round(cam.z / 3.2) * 3.2);
       surfMat.uniforms.uNearFlat.value = Math.abs(cam.y - SEA_Y) < 3 ? 1 - Math.abs(cam.y - SEA_Y) / 3 : 0;
       surfMat.uniforms.uFlash.value = st.flash;
       const far = game.camera.far;
-      dome.visible = (inAzure || cam.x > 10) && !camUnder;
+      dome.visible = inAzure && !camUnder;
       dome.position.copy(cam);
       dome.scale.setScalar(far * 0.9);
       skyMat.uniforms.uFlash.value = st.flash;

@@ -2,7 +2,7 @@
 // (≥ 0.6 s), lives in pools so the stages can throw them around freely, and is wiped by clear() when a
 // stage restarts:
 //   erupt  — a glowing circle on the floor, then a column bursts up through it: a slag geyser, a sun
-//            lance, a thicket of thorns or a stand of ice spikes (kind 'lava' | 'sun' | 'vine' | 'ice')
+//            lance, a thicket of thorns or a stand of coral spikes (kind 'lava' | 'sun' | 'vine' | 'ice': the Deep's coral)
 //   sweep  — a long bar (a giant vine) that rises at one edge of the arena and sweeps across it, low
 //            (jump it) or high (duck under it)
 //   SporePod — a pod lobbed onto the floor that bursts into a lethal cloud unless shot in its color
@@ -14,7 +14,7 @@ import { liquidMaterial } from '../../liquid.js';
 
 const _v = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
-export const KIND_COLOR = { lava: 0xff6a1a, sun: 0xffc040, vine: 0x5dff6a, ice: 0x7ad8ff };
+export const KIND_COLOR = { lava: 0xff6a1a, sun: 0xffc040, vine: 0x5dff6a, ice: 0x5ae8d8 };
 const CAUSE = { lava: 'burn', sun: 'burn', vine: 'spike', ice: 'spike' };
 
 // a column of light/heat: streaks rush up it, fading toward the top
@@ -60,10 +60,10 @@ class Eruption {
       this.inner = new THREE.Mesh(tubeGeo, this.coreMat);
       this.group.add(this.col, this.inner);
     } else {
-      // a stand of thorns or ice: spikes that punch up out of the floor
+      // a stand of thorns or coral: spikes that punch up out of the floor
       const m = kind === 'vine'
         ? new THREE.MeshStandardMaterial({ color: 0x3f8a2e, emissive: 0x1f6a12, emissiveIntensity: 0.7, roughness: 0.7, flatShading: true })
-        : new THREE.MeshStandardMaterial({ color: 0xcdeeff, emissive: 0x3a9cff, emissiveIntensity: 0.8, roughness: 0.15, metalness: 0.2, flatShading: true });
+        : new THREE.MeshStandardMaterial({ color: 0xff9aa8, emissive: 0x2ad8c8, emissiveIntensity: 0.6, roughness: 0.6, metalness: 0.05, flatShading: true });
       this.col = new THREE.Group();
       for (let i = 0; i < 7; i++) {
         const s = new THREE.Mesh(kind === 'vine' ? spikeGeo : shardGeo, m);
@@ -125,7 +125,7 @@ class Eruption {
       else audio.sample('spike_hit', { gain: 0.9 * g, vary: 0.15 }) || audio.spike();
       fx.ring(_v.copy(this.pos).setY(this.pos.y + 0.1), UP, color, { size: this.r * 0.5, end: this.r * 2.2, life: 0.45, k: 1.6 });
       if (this.kind === 'lava') for (let i = 0; i < 18; i++) fx.ember(_v.copy(this.pos).setY(this.pos.y + 0.3), (Math.random() - 0.5) * 6, 6 + Math.random() * 10, (Math.random() - 0.5) * 6, color, 1.2, 0.16);
-      if (this.kind === 'ice') fx.burst(_v.copy(this.pos).setY(this.pos.y + 0.6), 0xdff4ff, { count: 30, speed: 6, life: 0.7, size: 0.25, gravity: 9, mode: 'shard' });
+      if (this.kind === 'ice') fx.burst(_v.copy(this.pos).setY(this.pos.y + 0.6), 0xffc8d0, { count: 30, speed: 6, life: 0.7, size: 0.25, gravity: 9, mode: 'shard' });
       if (this.kind === 'vine') fx.burst(_v.copy(this.pos).setY(this.pos.y + 0.4), 0x3a7a2a, { count: 24, speed: 5, life: 0.8, size: 0.3, gravity: 9 });
     }
     const a = t - this.warn;
