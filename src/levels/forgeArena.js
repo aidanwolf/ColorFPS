@@ -34,7 +34,7 @@
 //   onStart(), onDefeated(): onDefeated runs once the Titan is beaten, or (with powerSource) once its core
 //     is shut down.
 import * as THREE from 'three';
-import { RED } from '../colors.js';
+import { RED, COLORS } from '../colors.js';
 import { audio } from '../audio.js';
 import { mat } from '../materials.js';
 import { liquidMaterial } from '../liquid.js';
@@ -106,6 +106,51 @@ function shutter(W, min, max, open) {
   };
   d.update(0);
   return d;
+}
+
+// The core's true face once its shield is down: crimson, with slow-crawling dark slag veins over a
+// pulsing glow and a hot rim. uK fades it in over the lava glow; uFlash is a hit; uHeat cools it to black.
+const _red = new THREE.Color();
+function smolderMaterial(hex) {
+  return new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uK: { value: 0 }, uFlash: { value: 0 }, uHeat: { value: 1 }, uRed: { value: new THREE.Color(hex) } },
+    transparent: true,
+    vertexShader: /* glsl */ `
+      varying vec3 vP;
+      varying vec3 vN;
+      varying vec3 vV;
+      void main() {
+        vP = position;
+        vN = normalize(normalMatrix * normal);
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vV = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform float uTime, uK, uFlash, uHeat;
+      uniform vec3 uRed;
+      varying vec3 vP;
+      varying vec3 vN;
+      varying vec3 vV;
+      float h(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+      float n(vec3 p) {
+        vec3 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(h(i), h(i + vec3(1, 0, 0)), f.x), mix(h(i + vec3(0, 1, 0)), h(i + vec3(1, 1, 0)), f.x), f.y),
+                   mix(mix(h(i + vec3(0, 0, 1)), h(i + vec3(1, 0, 1)), f.x), mix(h(i + vec3(0, 1, 1)), h(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+      }
+      void main() {
+        vec3 p = vP * 1.8 + vec3(0.0, uTime * 0.12, 0.0);
+        p += vec3(n(p * 0.7 + 3.1), n(p * 0.7 + 7.7), n(p * 0.7 + 1.3)) * 1.2; // (warped: molten, not blocky)
+        float v = n(p) * 0.55 + n(p * 2.3 - uTime * 0.08) * 0.3 + n(p * 5.1) * 0.15;
+        float slag = smoothstep(0.52, 0.64, v); // dark crust plates drifting over it
+        float crack = 1.0 - smoothstep(0.0, 0.05, abs(v - 0.52)); // red-hot seams at their edges
+        float pulse = 0.82 + 0.18 * sin(uTime * 2.4 + v * 6.0);
+        float rim = pow(1.0 - max(dot(normalize(vN), normalize(vV)), 0.0), 2.0);
+        vec3 col = uRed * ((1.0 - slag) * 1.15 * pulse + slag * 0.12 + crack * 1.4 + rim * 0.7 + uFlash * 1.1) * uHeat;
+        gl_FragColor = vec4(col, uK);
+      }`,
+  });
 }
 
 export function buildForgeArena(B, opts = {}) {
@@ -324,6 +369,7 @@ export function buildForgeArena(B, opts = {}) {
   const core = { state: powerSource ? 'shielded' : 'none', t: 0, flash: 0, color: null, pos: new THREE.Vector3(cx, coreY, cz) };
   const crustMat = new THREE.MeshStandardMaterial({ map: crustTexture(), color: 0x8a7a72, roughness: 1, metalness: 0, transparent: true, opacity: 0, depthWrite: false });
   const fallCrust = new THREE.MeshStandardMaterial({ map: crustTexture(), color: 0x6a5a52, roughness: 1 });
+  let smolder = null, reveal = 0;
   let heart = null, heartCrust = null, shield = null, shieldMat = null, coreLight = null, collar = null, coreGroup = null;
   const rings = [], conduitSeams = [];
   if (powerSource) {
@@ -332,6 +378,11 @@ export function buildForgeArena(B, opts = {}) {
     W.scene.add(coreGroup);
     heart = new THREE.Mesh(new THREE.IcosahedronGeometry(2.1, 3), liquidMaterial(zone, false)); // rolls like the lava
     coreGroup.add(heart);
+    // Under the white-hot glow it's a crimson core: when the shield falls the glare dies back and it
+    // smoulders RED (its color, the one that hurts it), dark slag veins crawling over it, pulsing.
+    smolder = new THREE.Mesh(new THREE.IcosahedronGeometry(2.13, 4), smolderMaterial(COLORS[RED].hex));
+    smolder.visible = false;
+    coreGroup.add(smolder);
     heartCrust = new THREE.Mesh(new THREE.IcosahedronGeometry(2.16, 3), crustMat);
     coreGroup.add(heartCrust);
     const ironMat = new THREE.MeshStandardMaterial({ map: mat('metal', zone).map, color: 0x7a6a62, metalness: 0.8, roughness: 0.45 });
@@ -404,7 +455,7 @@ export function buildForgeArena(B, opts = {}) {
       core.flash = 1;
       core.hp--;
       audio.bossCoreHit();
-      W.fx.burst(hit.point, 0xffb060, { count: 14, speed: 7, life: 0.5, size: 0.3, gravity: 6 });
+      W.fx.burst(hit.point, 0xff4a3a, { count: 14, speed: 7, life: 0.5, size: 0.3, gravity: 6 });
       if (core.hp <= 0) {
         core.state = 'overload';
         core.t = 0;
@@ -492,9 +543,10 @@ export function buildForgeArena(B, opts = {}) {
       game.setMusic(areaMusic);
       if (!powerSource) return finish();
       game.guardianBeaten?.(worldName);
-      // its guard is down: the core's shield fails
+      // its guard is down: the core's shield fails, and its glare fades to a smouldering red
       core.state = 'exposed';
       shield.visible = false;
+      smolder.visible = true;
       W.fx.burst(core.pos, 0xff7a3a, { count: 120, speed: 12, life: 1, size: 0.4, gravity: 3 });
       W.fx.ring(core.pos, null, 0xffa050, { size: 2, end: 9, life: 0.6, k: 1.6 });
       audio.shieldBreak();
@@ -652,6 +704,18 @@ export function buildForgeArena(B, opts = {}) {
     if (core.state !== 'overload') heart.scale.setScalar(1 + Math.sin(t * 2.2) * 0.03 + core.flash * 0.08);
     for (const c of conduitSeams) c.m.color.setRGB(1, 0.4, 0.1).multiplyScalar((0.4 + 1.1 * Math.max(0, Math.sin(c.k * 25 - t * 4))) * (1 - crustMat.opacity) + 0.04);
     if (core.state === 'exposed') coreLight.intensity = 18 + Math.sin(t * 8) * 5 + core.flash * 20;
+    if (smolder.visible) {
+      reveal = Math.min(1, reveal + dt / 1.2);
+      const u = smolder.material.uniforms;
+      u.uTime.value = t;
+      u.uK.value = reveal;
+      u.uFlash.value = core.flash + (core.state === 'overload' ? Math.min(1, core.t / 2.6) * 0.8 : 0);
+      u.uHeat.value = 1 - crust;
+      smolder.scale.copy(heart.scale);
+      heart.visible = reveal < 1; // (the lava glow underneath, gone once the red has covered it)
+      coreLight.color.setHex(0xff6a20).lerp(_red.setHex(COLORS[RED].hex), reveal);
+      collar.material.color.setHex(COLORS[RED].hex).multiplyScalar((1.6 + core.flash) * (1 - crust) + 0.04);
+    }
   }
 
   if (game.isWorldDown?.(worldName)) powerDown();

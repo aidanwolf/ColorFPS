@@ -25,7 +25,8 @@ import { ads } from './monetization/bonusround.js';
 import { TouchControls } from './touch.js';
 import { UnlockCutscene } from './cutscene.js';
 import { MapView } from './map.js';
-import { spawnEnemy } from './entities/combat.js';
+import { spawnEnemy, Encounter } from './entities/combat.js';
+import { Checkpoint } from './entities/misc.js';
 import { saveProgress } from './progress.js';
 
 const $ = (s) => document.querySelector(s);
@@ -487,14 +488,14 @@ class Game {
     // a save at an arena's own beacon means that fight was won (saves from before arena clears were kept)
     const cp = new THREE.Vector3(...s.cp.pos);
     for (const e of this.world.entities) {
-      const at = e.constructor.name === 'Encounter' && e.checkpoint?.pos;
+      const at = e instanceof Encounter && e.checkpoint?.pos; // (instanceof: class names are minified in a build)
       if (at && cp.distanceTo(new THREE.Vector3(...at)) < 1.5) this.clearedEncounters.add(e.id);
     }
     this.won = !!s.won;
     this.stats.time = s.time || 0;
     this.stats.deaths = s.deaths || 0;
     const pos = new THREE.Vector3(...s.cp.pos);
-    const ref = this.world.entities.find((e) => e.constructor.name === 'Checkpoint' && e.pos.distanceTo(pos) < 0.5) || null;
+    const ref = this.world.entities.find((e) => e instanceof Checkpoint && e.pos.distanceTo(pos) < 0.5) || null;
     ref?.setActive(true);
     this.checkpoint = { pos, yaw: s.cp.yaw, ref };
     this.player.spawn(pos, s.cp.yaw);

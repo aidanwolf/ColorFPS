@@ -6,6 +6,8 @@
 // checkpoints you are; worlds you've shut down count in full.
 import * as THREE from 'three';
 import { regionOf, FINALE_X } from './levels/regions.js';
+import { Checkpoint } from './entities/misc.js';
+import { Encounter } from './entities/combat.js';
 
 const ROUTE = ['red', 'hub', 'solar', 'verdant', 'azure', 'prism', 'fin_red', 'fin_solar', 'fin_verdant', 'fin_azure', 'fin_heart'];
 // [start, share] of the bar per area (the Atrium sits between worlds and adds nothing of its own)
@@ -26,13 +28,14 @@ export const AREA_COLORS = {
 function checkpoints(game) {
   const list = [];
   game.world.entities.forEach((e, i) => {
-    const n = e.constructor.name;
-    const pos = n === 'Checkpoint' ? e.pos : n === 'Encounter' && e.checkpoint?.pos ? new THREE.Vector3(...e.checkpoint.pos) : null;
+    // (instanceof, not constructor.name: class names are minified in a build)
+    const enc = e instanceof Encounter;
+    const pos = e instanceof Checkpoint ? e.pos : enc && e.checkpoint?.pos ? new THREE.Vector3(...e.checkpoint.pos) : null;
     if (!pos) return;
     const region = regionOf(pos);
     if (pos.x > 390 && pos.x < FINALE_X) return; // the ?dev test ranges
     if (list.some((c) => c.pos.distanceTo(pos) < 1.5)) return; // (an arena beacon on a checkpoint)
-    list.push({ pos, region, name: e.name || (n === 'Encounter' && e.title !== 'AMBUSH' ? e.title : null), i });
+    list.push({ pos, region, name: e.name || (enc && e.title !== 'AMBUSH' ? e.title : null), i });
   });
   return list.sort((a, b) => ROUTE.indexOf(a.region) - ROUTE.indexOf(b.region) || a.i - b.i);
 }
