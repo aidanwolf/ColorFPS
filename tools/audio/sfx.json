@@ -1479,5 +1479,22 @@
   "text": "A giant boulder smashing through a stone wall and crashing to a stop, explosive rubble, a deep impact boom",
   "dur": 2.5,
   "influence": 0.6
+ },
+ "amb_ocean_storm": {
+  "text": "Tropical ocean storm ambience on an offshore station: heavy warm rain drumming on metal decks, roaring surf and big waves crashing against steel pylons, gusting wind, distant rolling thunder, seamless loop",
+  "dur": 22,
+  "influence": 0.4,
+  "loop": true
+ },
+ "waves_crash": {
+  "text": "A huge ocean wave crashing against a steel sea wall and pylons, explosive spray and foam hissing back, powerful",
+  "dur": 3,
+  "influence": 0.6
+ },
+ "amb_ocean_calm": {
+  "text": "Bright tropical open ocean after a storm: gentle rolling swells lapping against metal, light warm breeze, distant seabirds, dripping water, peaceful and vast, seamless loop",
+  "dur": 20,
+  "influence": 0.4,
+  "loop": true
  }
 }
