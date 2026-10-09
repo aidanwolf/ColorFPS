@@ -106,5 +106,9 @@
  "music_azure": {
   "prompt": "Epic stormy tropical ocean exploration music for a sci-fi adventure game: vast and dramatic, rolling timpani like thunder, surging strings like waves, airy choir, bright steel-pan and marimba glints breaking through like sun between storm clouds, sense of an endless sea and adventure, instrumental, seamless loop",
   "ms": 120000
+ },
+ "music_escape": {
+  "prompt": "Frantic adventure chase music for escaping a collapsing jungle temple with a giant rolling boulder: fast pounding tribal drums, urgent staccato strings, blaring brass hits, rising tension, heroic and breathless, instrumental, seamless loop",
+  "ms": 90000
  }
 }

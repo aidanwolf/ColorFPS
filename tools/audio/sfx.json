@@ -1699,5 +1699,56 @@
   "text": "Bullet hitting soft monster flesh, short wet squish with a goo splat, not gory",
   "dur": 0.5,
   "influence": 0.55
+ },
+ "mire_suck": {
+  "text": "Thick swamp mud sucking at boots, deep wet glurping squelch pulling down",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "swamp_burst": {
+  "text": "Something bursting up out of murky swamp water, big wet splash and mud spray",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "leaf_rustle": {
+  "text": "Dense jungle leaves and ferns rustling as something pushes through",
+  "dur": 1.0,
+  "influence": 0.5
+ },
+ "vent_gush": {
+  "text": "Ancient stone vent gushing a burst of slime and air, wet hissing whoosh",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "stone_grind": {
+  "text": "Heavy ancient stone block grinding and sliding along stone, deep rumble",
+  "dur": 1.8,
+  "influence": 0.55
+ },
+ "dart_click": {
+  "text": "Hidden pressure plate clicking under foot in an ancient temple, a sharp stone click",
+  "dur": 0.4,
+  "influence": 0.6
+ },
+ "swing_whoosh": {
+  "text": "A heavy log pendulum swinging past fast, deep whooshing air and creaking rope",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "fire_whoosh": {
+  "text": "A jet of flame bursting from a temple wall vent, roaring fiery whoosh",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "wood_break": {
+  "text": "Wooden planks and barricade smashing apart, splintering crack and debris",
+  "dur": 1.0,
+  "influence": 0.6
+ },
+ "amb_ruin": {
+  "text": "Ancient underground granite temple ambience: dripping water echoes, low hum of bubbling algae tanks, distant stone settling, faint wind through cracks, mysterious, seamless loop",
+  "dur": 20,
+  "influence": 0.4,
+  "loop": true
  }
 }
