@@ -151,8 +151,8 @@ const SCARAB = new RigDef((r) => {
     r.add(leg, 'dark', new THREE.CylinderGeometry(0.03, 0.03, 0.08, 6), [0.235, 0.115, 0], [Math.PI / 2, 0, 0]);
     r.box(leg, 'shell', [0.36, 0.04, 0.045], [0.34, -0.06, 0], [0, 0, -1.0]);
     if (i % 3 === 0) {
-      r.box(leg, 'steel', [0.16, 0.025, 0.11], [0.44, -0.2, 0], [0, 0, -1.0]);
-      r.box(leg, 'glow', [0.05, 0.027, 0.02], [0.4, -0.15, 0], [0, 0, -1.0]);
+      r.box(leg, 'steel', [0.13, 0.018, 0.085], [0.44, -0.2, 0], [0, 0, -1.0]);
+      r.add(leg, 'steel', new THREE.ConeGeometry(0.03, 0.08, 4), [0.5, -0.27, 0], [0, 0, -2.57]);
     } else r.add(leg, 'steel', new THREE.ConeGeometry(0.028, 0.09, 4), [0.455, -0.215, 0], [0, 0, Math.PI]);
   });
 });
@@ -161,8 +161,9 @@ const SCARAB = new RigDef((r) => {
 const SCOPE = new RigDef((r) => {
   r.node('scope', null, [0, 0, 0]);
   r.add('scope', 'dark', new THREE.CylinderGeometry(0.022, 0.03, 0.4, 6), [0, 0.2, 0]);
-  r.box('scope', 'shell', [0.09, 0.06, 0.11], [0, 0.42, 0.01]);
-  r.box('scope', 'glow', [0.06, 0.022, 0.012], [0, 0.425, 0.066]);
+  r.box('scope', 'shell', [0.11, 0.075, 0.12], [0, 0.42, 0.01]);
+  r.box('scope', 'glow', [0.09, 0.03, 0.012], [0, 0.425, 0.072]);
+  r.add('scope', 'glow', new THREE.TorusGeometry(0.035, 0.008, 4, 10).rotateX(Math.PI / 2), [0, 0.37, 0.01]);
   r.add('scope', 'dark', new THREE.CylinderGeometry(0.004, 0.004, 0.14, 4), [0.03, 0.51, -0.02]);
   r.add('scope', 'glow', new THREE.SphereGeometry(0.01, 6, 4), [0.03, 0.58, -0.02]);
 });
@@ -623,9 +624,10 @@ const MUMMY = new RigDef((r) => {
   for (const s of [-1, 1]) rod(0.011, [s * 0.03, 0.0, 0.02], [s * 0.022, 0.3, 0.02], 'steel', 'neck', r);
   r.node('head', 'neck', [0, 0.3, 0]);
   r.add('head', 'armor', new THREE.CylinderGeometry(0.065, 0.1, 0.32, 4).rotateY(Math.PI / 4).rotateX(Math.PI / 2).scale(1, 0.85, 1), [0, 0.04, 0.06]);
-  r.box('head', 'dark', [0.105, 0.06, 0.03], [0, 0.04, 0.215]);
-  r.box('head', 'glow', [0.1, 0.017, 0.012], [0, 0.045, 0.232]);
-  for (const s of [-1, 1]) r.box('head', 'glow', [0.01, 0.014, 0.12], [s * 0.066, 0.045, 0.14], [0, s * 0.13, 0]);
+  r.box('head', 'dark', [0.115, 0.07, 0.03], [0, 0.04, 0.215]);
+  r.box('head', 'glow', [0.11, 0.024, 0.012], [0, 0.045, 0.232]);
+  r.box('head', 'glow', [0.03, 0.036, 0.014], [0, 0.045, 0.234]); // the lens behind the slit
+  for (const s of [-1, 1]) r.box('head', 'glow', [0.01, 0.018, 0.13], [s * 0.068, 0.045, 0.14], [0, s * 0.13, 0]);
   r.box('head', 'dark', [0.014, 0.06, 0.28], [0, 0.12, 0.03]);
   r.box('head', 'shell', [0.08, 0.03, 0.12], [0, -0.025, 0.12]);
   for (const s of [-1, 1]) {
@@ -925,6 +927,20 @@ export class Mummy extends Trooper {
   // its middle: the chest, wherever the stilts have it
   center(out = new THREE.Vector3()) {
     return out.copy(this.pos).setY(this.pos.y + this.hipY + 0.55);
+  }
+
+  // Is your crosshair on (or within `extra` m of) its body? Tested along its column, stilts to head, not
+  // as one big sphere round its middle (it's thin: the air beside its chest isn't it).
+  aimedAt(extra = 0) {
+    const cam = this.world.game.camera;
+    const look = cam.getWorldDirection(_u);
+    const r = 0.45 + extra;
+    for (const h of [0.6, this.hipY * 0.55, this.hipY, this.hipY + 0.55, this.hipY + 1.1]) {
+      _w.set(this.pos.x, this.pos.y + h, this.pos.z).sub(cam.position);
+      const along = _w.dot(look);
+      if (along > 0 && _w.lengthSq() - along * along < r * r) return true;
+    }
+    return false;
   }
 
   // it only needs COLLIDE_H of headroom to get somewhere: it folds down under anything lower than itself
@@ -1343,7 +1359,7 @@ export class Mummy extends Trooper {
       rz = -0.3 * k;
       ly = -0.15 * k + (this.aimErr - this.bodyTwist) * 0.5 * k;
       ry = 0.15 * k + (this.aimErr - this.bodyTwist) * 0.5 * k;
-      fl = fr = -0.15 * k - draw * 0.35;
+      fl = fr = -0.15 * k - draw * 0.15;
       hl = hr = (0.5 + draw * 0.4) * k; // the long fingers splay back
       rate = 14;
     } else if (s === 'release') {
