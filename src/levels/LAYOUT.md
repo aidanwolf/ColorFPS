@@ -38,6 +38,7 @@ From the Hub you can **see into every world through big windows before you can e
 | Solar's dune sea (the hovercraft run) | `solarDunes.js` (`buildDuneRun`) | -214 → -430 | -30 → 80 | -45 → -235; dock points x -216, z -56 (y -8, boarding) and x -216, z -200 (y -6, landing); the docks' open east edges meet Solar at x -212 |
 | Azure | `azure.js` | 32 → 200 | -80 → 40 | -40 → -230 |
 | Azure's Flooded Depths (inside Azure's box, behind the chasm's east cliff) | `azureFlooded.js` | 108 → 161 | -62 → 8 | -100 → -153 |
+| Azure's storm (rain over the whole box, roof-mapped: azure.js calls it), water-puzzle pieces, the Dynamo | `azureRain.js`, `entities/waterPuzzle.js`, `entities/dynamo.js` | (Azure's box) | | |
 | Verdant | `verdant.js` | -31 → 31 (wider, -110 → 110, once z < -235) | -5 → 60 (may go down to -40 once z < -178) | -148.5 → -380 |
 | Final battle stages (off-map; regions `fin_*` in regions.js, each sees only itself) | `finale/*.js` | 700 → 1000 | -10 → 40 | -40 → -450 |
 

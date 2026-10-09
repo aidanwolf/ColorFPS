@@ -26,6 +26,10 @@ import { boxGeo } from '../materials.js';
 import { buildAzureSpillway } from './azureSpillway.js';
 import { dressAzure } from './azureDressing.js';
 import { buildRain } from './azureRain.js';
+import { WaterTank, PulleyGate, Junction, LivePool, Forcefield, Gantry, LeapHint, IcePlug } from '../entities/waterPuzzle.js';
+import { Dynamo } from '../entities/dynamo.js';
+
+const _pour = new THREE.Vector3(), _pourC = new THREE.Color(0xbfe6ff);
 
 // tiny seeded RNG so the crystal fields and cliffs come out the same every load
 function mulberry32(a) {
@@ -89,7 +93,7 @@ export function guideTrail(W, hex, paths, active) {
 }
 
 export function buildAzure(B) {
-  const { W, game, level, CH, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy, hint, zoneTitle, area, light, barrierWallX, blocker, devStart, onRespawn } = B;
+  const { W, game, level, CH, room, corridor, corridorX, tunnelX, plat, pedestal, secretRoom, trophy, hint, zoneTitle, area, light, barrierWallX, blocker, devStart, onRespawn, glowEdge } = B;
   const zone = 'blue';
   const rng = mulberry32(0xa2e5e);
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -264,7 +268,6 @@ export function buildAzure(B) {
   W.deco(56.5, 12.5, -119.5, 57.2, 12.9, -118.8, 'glow3', zone);
   new Checkpoint(W, game, { pos: [47, 4, -112], yaw: -Math.PI / 2, size: [3, 3, 7] });
   hint([44, 4, -116], [48, 7, -108], 'The station sinks into the abyss. <b>Hop down, ledge to ledge</b> — the dark below is bottomless.', 5);
-  new Drone(W, { pos: [64, 8, -114], color: GREEN, range: 24 });
   keepOut.push([[25, 2, -121], [59, 14, -103]]);
   // (invisible) over the west, north and south rails: hop them and you'd land on the low west rim, cut
   // off from everything (the way down, east, stays open)
@@ -312,15 +315,13 @@ export function buildAzure(B) {
   ledge(73, -84, 82, -93, -2, 6); // the big ice shelf
   cluster(81, -2, -84.6, 2.6, 'ice', 0.3, 0.3);
   cluster(73.6, -2, -92.4, 3.2, 'glow', -0.3, -0.2);
-  new Drone(W, { pos: [78, 2.5, -81], color: YELLOW, range: 22 });
   // a crane trolley hangs over the 17 m gap to the pump station. It only moves when shot: ride it and
-  // keep shooting it (YELLOW) and it rolls east; stop and it drifts back. The red drone wants you to switch.
+  // keep shooting it (YELLOW) and it rolls east; stop and it drifts back.
   B.shotMover({ min: [84, -3.4, -91.5], max: [87.5, -2.8, -88], path: [12, 0, 0], color: YELLOW, mode: 'push', kick: 1.3, speed: 6, back: 0.9, hold: 0.9, zone });
   W.deco(83, 3, -90.1, 100, 3.5, -89.4, 'metal', zone);
   W.deco(83, 3.5, -90, 100, 3.56, -89.5, 'glow3', zone);
   for (const x of [84.5, 99.2]) W.deco(x, -2.6, -89.9, x + 0.3, 3, -89.6, 'metal', zone);
   hint([73, -2, -93], [82, 1, -84], 'The crane trolley <b>moves when shot</b>. Hop on and keep firing <b style="color:#ffd23a">yellow</b> into it to ride it across.', 5);
-  new Drone(W, { pos: [91, 2, -96], color: RED, range: 22 });
   keepOut.push([[82, -4, -92], [101, 4, -87]]);
 
   // ------------------------------------------------------------------ Pump Station (y -4.5)
@@ -357,40 +358,154 @@ export function buildAzure(B) {
   B.shotMover({ min: [100, -9, -110.5], max: [104, -8.4, -106.5], path: [0, -12, 0], color: GREEN, mode: 'step', step: 3, speed: 3.2, zone });
   for (const [x, z] of [[99.6, -106.9], [104.2, -106.9], [99.6, -110.9], [104.2, -110.9]]) W.deco(x - 0.2, -22, z - 0.2, x + 0.2, -6, z + 0.2, 'metal', zone);
   W.deco(99.4, -6, -111.1, 104.6, -5.7, -106.3, 'glow3', zone);
-  // turbine deck
-  W.box(96, -22, -122, 108, -21, -113, 'floor', zone);
-  icicles(96.5, -121.5, 107.5, -113.5, -22, 12);
-  W.box(104, -21, -121, 107.5, -16, -116, 'metal', zone); // frozen turbine housing
-  W.deco(103.9, -18.8, -121.1, 107.6, -18.5, -115.9, 'glow3', zone);
-  cluster(107, -16, -120.5, 2.4, 'ice', 0.2, -0.2);
-  // ARMOR: in the dead-end strip behind the turbine housing (over the drop, out of the turret's sight), and
-  // over the deck's west edge (lean out).
-  B.armor([105.75, -21, -121.5]);
-  B.armor([95.3, -21, -117.5], { base: false });
-  // COMBAT (small): the deck's sentries wake as you land; the hatch into the Flooded Depths (its entry
-  // tunnel leaves the deck's east edge at z -114.6) stays sealed until they're down
-  B.encounter({
-    trigger: [[96, -21, -122], [104, -17, -113]],
-    seals: [{ min: [107.6, -21, -116.1], max: [108.2, -17.8, -113.1], closed: true }],
-    title: 'TURBINE DECK', sub: 'SENTRIES WAKING', color: '#3a8bff', music: 'music_combat', zone,
-    checkpoint: { pos: [102, -21, -115], yaw: -Math.PI / 2 },
-    waves: [
-      [
-        { type: 'drone', pos: [100, -17, -119], color: RED },
-        { type: 'turret', pos: [103.95, -18.2, -118.5], color: GREEN, mount: [-1, 0, 0], delay: 0.6 }, // on the turbine housing's west face
-        { type: 'drone', pos: [98, -16, -116], color: YELLOW, delay: 1.2 },
-      ],
-      [
-        { type: 'swarm', pos: [101, -16.5, -117], color: [RED, YELLOW, GREEN], count: 5 },
-        { type: 'drone', pos: [97.5, -17, -120], color: [RED, GREEN], cycle: 2.2, delay: 1.4 },
-      ],
-    ],
+  // ------------------------------------------------------------------ TURBINE DECK (y -21): THE AZURE CORE
+  // The end of the descent: a wide deck jutting out over the abyss, its frozen turbine against the cliff,
+  // and on its dais, in the rain, the AZURE core. The hatch into the cliff (the Flooded Depths) is frozen
+  // shut; the way on is the Storm Deck, 9 m out across the gap to the west: too far to jump dry. The water
+  // cannon's first lesson: soak the deck, sprint across the slick and leap.
+  W.box(92, -22, -122, 108, -21, -113, 'floor', zone);
+  W.deco(93, -27, -121, 107, -22, -114, 'metal', zone);
+  W.deco(98, -80, -119.5, 102, -27, -115.5, 'rock', zone); // its pier
+  icicles(92.5, -121.5, 107.5, -113.5, -22, 16);
+  glowEdge(92, -122, 108, -113, -21, 'glow3', zone);
+  // the frozen turbine (north-east corner) and a rail along the north edge
+  W.box(104.5, -21, -122, 108, -16, -119.2, 'metal', zone);
+  W.deco(104.4, -18.8, -122.1, 108.1, -18.5, -119.1, 'glow3', zone);
+  cluster(107, -16, -121, 2.4, 'ice', 0.2, -0.2);
+  W.box(92, -21, -122, 104.5, -20, -121.7, 'metal', zone);
+  W.deco(92, -20, -122, 104.5, -19.94, -121.7, 'glow3', zone);
+  blocker([92, -21, -122.3], [104.5, 0, -121.7]);
+  // the south edge: a rail either side of where the freight lift comes down
+  for (const [x1, x2] of [[92, 100], [104, 108]]) {
+    W.box(x1, -21, -113.3, x2, -20, -113, 'metal', zone);
+    W.deco(x1, -20, -113.3, x2, -19.94, -113, 'glow3', zone);
+  }
+  // the dais and the core
+  W.box(99.4, -21, -122, 102.6, -20.7, -119.6, 'metal', zone);
+  W.deco(99.3, -20.76, -122.1, 102.7, -20.7, -119.5, 'glow3', zone);
+  const core = pedestal(101, -20.7, -120.9, BLUE, zone);
+  light(101, -16.5, -119, 0x3a8bff, 40, 26);
+  new Checkpoint(W, game, { pos: [104, -21, -116.4], yaw: Math.PI / 2, size: [3, 3, 6] });
+  hint([99, -21, -118.5], [105, -18, -113], 'The <b style="color:#3a8bff">AZURE</b> core. Take it.', 3);
+  level.azure.core = core;
+  // the hatch east into the cliff: frozen shut (the arena's clear thaws it)
+  const hatch = B.seal([107.6, -21, -116.1], [108.2, -17.8, -113.1], { closed: true, zone });
+  // a runway painted down the deck, and the gap: the dotted arcs show a dry sprint jump falling short
+  for (let x = 93; x < 107; x += 2) W.deco(x, -20.995, -117.1, x + 1, -20.98, -115.9, 'hazard', zone);
+  const leapHint = new LeapHint(W, game, { from: [92.6, -21, -116.5], to: [82, -21, -116.5], short: [85.4, -21, -116.5] });
+  leapHint.on = false;
+  let tutor = 0;
+  W.add({
+    update(dt, player) {
+      // the arcs come up once you hold blue (and go once you've made the leap)
+      if (tutor === 0 && game.blaster.unlocked[BLUE]) {
+        tutor = 1;
+        leapHint.on = true;
+      }
+      if (tutor < 1) leapHint.on = false;
+      if (tutor === 1 && player.pos.x < 83.5 && player.pos.y > -21.5 && player.pos.y < -18) {
+        tutor = 2;
+        leapHint.hide();
+      }
+    },
   });
-  hint([96, -21, -122], [104, -18, -116], 'The turbine deck\'s sentries are waking. <b>Clear them</b> to unseal the hatch east.', 4);
-  keepOut.push([[95, -23, -123], [109, -15, -98]]);
+  W.trigger([92, -21, -122], [97, -18, -113], () => {
+    if (!game.blaster.unlocked[BLUE]) return;
+    game.hud.message('Too far to jump dry. <b>Hose a long slick down the deck</b>, then <b>sprint</b> along it and leap at the edge: the water carries you farther.', 7);
+  });
+  keepOut.push([[91, -23, -123], [109, -15, -98]]);
   keepOut.push([[107, -23, -118], [117, -16, -111]], [[107, -27, -150.5], [117, -20, -143.5]]); // the Flooded Depths' tunnels
 
-  // ------------------------------------------------------------------ Cryo Lab (y -25): THE ARENA
+  // ------------------------------------------------------------------ THE STORM DECK (y -21): ARENA 1
+  // A landing deck hanging in the rain, x 61..83, z -123..-100. The test of the water cannon: blue
+  // machines under off-color shields, and the deck's own wiring. Three junction boxes stand on it: soak
+  // the floor where the robots walk and spray a junction to short it, and the surge fries everything
+  // standing in water connected to its foot. Brutes spin out on the slick. Raised insulated pads keep
+  // your own feet out of it. Clear it and a gantry slides out to the turbine deck and the hatch thaws.
+  const SX1 = 61, SX2 = 83, SZ1 = -123, SZ2 = -100, SY = -21;
+  W.box(SX1, SY - 1, SZ1, SX2, SY, SZ2, 'floor', zone);
+  W.deco(SX1 + 1, SY - 3.5, SZ1 + 1, SX2 - 1, SY - 1, SZ2 - 1, 'metal', zone);
+  W.deco(70, -80, -114, 74, SY - 3.5, -110, 'rock', zone);
+  for (const [x, z] of [[64, -120], [80, -120], [64, -103], [80, -103]]) W.deco(x - 0.5, SY - 10, z - 0.5, x + 0.5, SY - 3.5, z + 0.5, 'metal', zone);
+  icicles(SX1 + 1.5, SZ1 + 1.5, SX2 - 1.5, SZ2 - 1.5, SY - 3.5, 22);
+  glowEdge(SX1, SZ1, SX2, SZ2, SY, 'glow3', zone);
+  // rails round three sides (the east edge is open where you land, z -119.5..-113.5)
+  for (const [x1, z1, x2, z2] of [[SX1, SZ1, SX2, SZ1 + 0.3], [SX1, SZ2 - 0.3, SX2, SZ2], [SX1, SZ1 + 0.3, SX1 + 0.3, SZ2 - 0.3], [SX2 - 0.3, SZ1 + 0.3, SX2, -119.5], [SX2 - 0.3, -113.5, SX2, SZ2 - 0.3]]) {
+    W.box(x1, SY, z1, x2, SY + 1.1, z2, 'metal', zone);
+    W.deco(x1, SY + 1.1, z1, x2, SY + 1.16, z2, 'glow3', zone);
+    blocker([x1, SY + 1.1, z1], [x2, SY + 14, z2]);
+  }
+  // masts at the corners carry the deck's power: cables down to the junction boxes
+  for (const [x, z] of [[SX1 + 0.6, SZ1 + 0.6], [SX1 + 0.6, SZ2 - 0.6], [SX2 - 0.6, SZ1 + 0.6], [SX2 - 0.6, SZ2 - 0.6]]) {
+    W.box(x - 0.3, SY, z - 0.3, x + 0.3, SY + 8, z + 0.3, 'metal', zone);
+    W.deco(x - 0.36, SY + 8, z - 0.36, x + 0.36, SY + 8.3, z + 0.36, 'glow3', zone);
+  }
+  const junctions = [
+    new Junction(W, game, { min: [66, SY, -119.2], max: [67.2, SY + 1.3, -118.4], cooldown: 6, face: '+z', cable: [SX1 + 0.6, SY + 7.8, SZ1 + 0.6] }),
+    new Junction(W, game, { min: [66, SY, -104.6], max: [67.2, SY + 1.3, -103.8], cooldown: 6, face: '-z', cable: [SX1 + 0.6, SY + 7.8, SZ2 - 0.6] }),
+    new Junction(W, game, { min: [75.4, SY, -111.9], max: [76.6, SY + 1.3, -111.1], cooldown: 6, face: '+x', cable: [SX2 - 0.6, SY + 7.8, SZ1 + 0.6] }),
+  ];
+  for (const j of junctions) onRespawn(() => j.reset());
+  // insulated pads (rubber-topped grates, 0.6 m up: your feet stay out of the water on them)
+  for (const [x1, z1, x2, z2] of [[70.5, -121.8, 73.5, -118.8], [70.5, -104.2, 73.5, -101.2], [78.5, -108.5, 81.2, -105.5]]) {
+    W.box(x1, SY, z1, x2, SY + 0.6, z2, 'plat', zone);
+    W.deco(x1 - 0.02, SY + 0.6, z1 - 0.02, x2 + 0.02, SY + 0.64, z1 + 0.18, 'hazard', zone);
+    W.deco(x1 - 0.02, SY + 0.6, z2 - 0.18, x2 + 0.02, SY + 0.64, z2 + 0.02, 'hazard', zone);
+  }
+  // cover: crates and a toppled transformer
+  for (const [x, z, w, h] of [[63, -112.5, 1.6, 1.3], [78, -121.5, 1.4, 1.1], [77.5, -102.5, 1.5, 1.4], [69, -111.5, 2.4, 1]]) {
+    W.box(x, SY, z, x + w, SY + h, z + w, 'metal', zone);
+    W.deco(x - 0.02, SY + h * 0.45, z - 0.02, x + w + 0.02, SY + h * 0.55, z + w + 0.02, 'glow3', zone);
+  }
+  B.armor([62.2, SY, -101.3]);
+  B.armor([79.8, SY + 0.6, -107]);
+  hint([77, SY, -120], [83, SY + 3, -112], 'Junction boxes: <b>soak the floor</b> where the robots walk, then <b>hose a junction</b> — the surge fries everything standing in connected water. Keep your own feet <b>dry</b>.', 8);
+  const stormDeck = B.encounter({
+    trigger: [[SX1, SY, SZ1], [80.5, SY + 4, SZ2]],
+    seals: [],
+    title: 'STORM DECK', sub: 'TEST THE WATER', color: '#3a8bff', music: 'music_combat', zone, resume: true,
+    checkpoint: { pos: [80, SY, -116.5], yaw: -Math.PI / 2 },
+    waves: [
+      [
+        { type: 'blastCrab', pos: [64, SY, -116], color: BLUE, shields: [RED], shieldHp: 1 },
+        { type: 'blastCrab', pos: [65, SY, -107], color: BLUE, shields: [RED], shieldHp: 1, delay: 0.5 },
+        { type: 'blastCrab', pos: [68, SY, -111.5], color: BLUE, delay: 1 },
+        { type: 'drone', pos: [70, SY + 5, -112], color: BLUE, shields: [YELLOW], delay: 1.6 },
+      ],
+      [
+        { type: 'welder', pos: [64, SY, -119], color: BLUE, shields: [GREEN] },
+        { type: 'welder', pos: [64, SY, -104], color: BLUE, shields: [YELLOW], delay: 0.8 },
+        { type: 'drone', pos: [74, SY + 5, -106], color: BLUE, shields: [RED], delay: 1.4 },
+        { type: 'blastCrab', pos: [71, SY, -116], color: BLUE, shields: [GREEN], shieldHp: 1, delay: 2.2 },
+      ],
+      { title: 'HEAVY', enemies: [
+        { type: 'brute', pos: [65, SY, -111.5], color: BLUE },
+        { type: 'welder', pos: [70, SY, -120.5], color: BLUE, shields: [RED, YELLOW], delay: 1.2 },
+        { type: 'drone', pos: [74, SY + 5.5, -117], color: BLUE, shields: [GREEN, RED], delay: 2 },
+        { type: 'blastCrab', pos: [70, SY, -103], color: BLUE, shields: [YELLOW], shieldHp: 1, delay: 3 },
+      ] },
+    ],
+    onClear: () => {
+      gantry.extend();
+      game.hud.message('The gantry is out and the hatch has thawed: back across to the turbine deck, then <b>east</b>, into the cliff.', 6);
+    },
+  });
+  level.azure.stormDeck = stormDeck;
+  // the gantry home (stowed under the turbine deck until the deck is clear)
+  const gantry = new Gantry(W, game, { min: [83, SY - 0.42, -117.75], max: [92, SY - 0.02, -115.25], from: [9, 0, 0], zone });
+  W.add({ update: () => stormDeck.state === 'cleared' && gantry.want === 0 && gantry.extend(true) }); // (a save that already won it)
+  W.add({
+    update() {
+      if (stormDeck.state === 'cleared' && hatch.state === 'closed') hatch.open();
+    },
+  });
+  keepOut.push([[59, -26, -125], [93, -9, -98]]);
+
+  // ------------------------------------------------------------------ Cryo Lab (y -25): THE COUNTERWEIGHTS
+  // PUZZLE + COMBAT. The way on (west) is a heavy gate on a chain over a pulley; the chain's other ends
+  // carry two empty ballast tanks hanging in the middle of the lab. Fill both (they leak) and their
+  // weight hauls the gate up; it latches once both are full together. The moment the first one starts
+  // to sink, the lab's sentries wake: keep the water going between fights.
   W.box(92, -26, -152.5, 108, -25, -142, 'floor', zone); // porch
   W.deco(96, -60, -152, 104, -26, -149.5, 'metal', zone);
   // rails (the east one is open at z -148.5..-145.5, where the Flooded Depths' exit tunnel arrives)
@@ -406,43 +521,87 @@ export function buildAzure(B) {
     cluster(105.3, -24.4, z, 3.6, 'glow', 0, 0, 4);
   }
   W.box(93.5, -25, -161, 96, -23.5, -158.5, 'metal', zone);
-  W.box(96.5, -25, -168, 99, -23.8, -165.5, 'metal', zone);
   W.box(90, -25, -165, 91.5, -22.8, -162, 'metal', zone);
   W.deco(88, -18.4, -164.6, 108, -17.8, -163.8, 'metal', zone);
   W.deco(88, -18.4, -160.6, 108, -17.8, -159.8, 'metal', zone);
   light(97, -18.6, -164, 0x86c8ff, 34, 28);
+  // the counterweights: a rail along the ceiling from the tanks' wheels over to the gate's pulley
+  W.deco(88.5, -17.45, -166.8, 100.4, -17.15, -166.2, 'metal', zone);
+  W.deco(88.5, -17.45, -170.3, 88.9, -17.15, -166.2, 'metal', zone);
+  for (const x of [93.5, 100]) W.deco(x - 0.35, -17.3, -166.85, x + 0.35, -17.0, -166.15, 'glow3', zone);
+  const tanks = [93.5, 100].map((x) => new WaterTank(W, game, { pos: [x, -23.9, -166.5], size: [1.5, 1.3, 1.5], capacity: 4.5, leak: 0.022, latch: false, face: '+z' }));
+  const labGate = new PulleyGate(W, game, {
+    min: [87.42, -25, -171.55], max: [88.08, -21.75, -168.45], rise: 3.3, tanks, drop: 1.0,
+    anchors: [[93.5, -17.6, -166.5], [100, -17.6, -166.5]], pulley: [88.75, -17.9, -170],
+    onOpen: () => game.hud.message('Both tanks full: the counterweights haul the gate up and it <b>latches</b>.', 4),
+  });
+  for (const t of tanks) onRespawn(() => t.reset());
+  onRespawn(() => labGate.reset());
+  // (a shortcut for a sharp eye: the feed pipe over the right-hand tank is frozen; thaw its plug with the
+  // yellow sun beam and it pours in by itself)
+  W.deco(99.75, -20.5, -168.45, 100.25, -17, -167.95, 'metal', zone);
+  W.deco(99.75, -20.75, -168.45, 100.25, -20.25, -167.05, 'metal', zone);
+  W.deco(99.7, -20.8, -167.1, 100.3, -20.2, -167.0, 'glow1', zone);
+  let pouring = false;
+  const plug = new IcePlug(W, game, {
+    min: [99.62, -21.1, -167.05], max: [100.38, -20.3, -166.45],
+    onMelt: () => {
+      pouring = true;
+      tanks[1].feed = 0.1;
+      game.hud.message('The plug bursts and the pipe <b>pours into the tank</b>.', 3);
+    },
+  });
+  W.add({
+    update(dt) {
+      if (!pouring || tanks[1].latched || !(W.fx && Math.random() < dt * 60)) return;
+      const t = tanks[1], p = _pour.set(100 + (Math.random() - 0.5) * 0.25, -20.85, -166.75 + (Math.random() - 0.5) * 0.25);
+      const k = W.fx.spawn(0, p, 0, -2 - Math.random(), 0.15, _pourC, 0.9, Math.max(0.15, (p.y - t.top) / 7), 0.03);
+      W.fx.grav[k] = 9;
+    },
+  });
+  level.azure.labPlug = plug;
+  level.azure.labGate = labGate;
+  level.azure.labTanks = tanks;
   // ARMOR: tucked behind the specimen tanks against the east wall, and up on the crate by the south-west
-  // corner (where the brute comes in).
+  // corner.
   B.armor([107.35, -25, -166.25]);
   B.armor([94.75, -23.5, -159.75]);
   new Checkpoint(W, game, { pos: [90.5, -25, -170], yaw: Math.PI / 2, size: [3, 3, 3] });
-  B.encounter({
-    trigger: [[89, -25, -171], [107, -20, -156]],
+  hint([92, -25, -158], [106, -21, -153], 'The way on is a gate on a chain. Its counterweights are those two <b>empty tanks</b>: <b>fill them both</b> with the water cannon (they leak) to haul it up.', 7);
+  const lab = B.encounter({
+    trigger: [[99.6, -17.4, -164.4], [100, -17.2, -164]], // (out of reach: the tanks start it, below)
     seals: [
       { min: [98.5, -25, -153.2], max: [101.5, -21.8, -152.4] }, // the way in slams shut behind you
-      { min: [87.4, -25, -171.5], max: [88.1, -21.8, -168.5], color: GREEN, closed: true }, // the way on (west)
+      { min: [88.15, -25, -171.5], max: [88.55, -21.8, -168.5], color: BLUE }, // (an energy seal inside the gate while they fight)
     ],
-    title: 'CRYO LAB', sub: 'CONTAINMENT BREACH', color: '#3a8bff', music: 'music_combat', zone, resume: true,
+    title: 'CRYO LAB', sub: 'COUNTERWEIGHTS MOVING', color: '#3a8bff', music: 'music_combat', zone, resume: true,
     checkpoint: { pos: [90.5, -25, -170], yaw: Math.PI / 2 },
     waves: [
       [
-        { type: 'drone', pos: [93, -21, -160], color: RED },
-        { type: 'drone', pos: [102, -20.5, -170], color: YELLOW },
-        { type: 'drone', pos: [96, -20, -166], color: GREEN, delay: 1.2 },
+        { type: 'drone', pos: [93, -21, -160], color: BLUE, shields: [RED] },
+        { type: 'drone', pos: [102, -20.5, -171], color: BLUE, shields: [YELLOW], delay: 0.8 },
+        { type: 'turret', pos: [97, -17.05, -157.5], color: BLUE, shields: [GREEN], mount: 'ceiling', delay: 1.6 },
       ],
       [
-        { type: 'turret', pos: [98, -17.05, -166], colors: [RED, YELLOW, GREEN], mount: 'ceiling' },
-        { type: 'swarm', pos: [95, -20, -171], color: [GREEN, YELLOW], count: 6, delay: 1.4 },
-        { type: 'drone', pos: [102, -20, -158], color: [RED, GREEN], cycle: 2.2, delay: 2.4 },
+        { type: 'welder', pos: [94, -25, -157], color: BLUE, shields: [GREEN] },
+        { type: 'blastCrab', pos: [101, -25, -171], color: BLUE, shields: [RED], shieldHp: 1, delay: 1 },
+        { type: 'blastCrab', pos: [92, -25, -171], color: BLUE, shields: [YELLOW], shieldHp: 1, delay: 1.5 },
+        { type: 'drone', pos: [98, -20, -157], color: BLUE, shields: [YELLOW, RED], delay: 2.4 },
       ],
       { title: 'HEAVIES', enemies: [
-        { type: 'warden', pos: [97, -20, -167], shield: GREEN, core: RED },
-        { type: 'brute', pos: [94, -24.5, -158], color: YELLOW, delay: 1.5 },
-        { type: 'drone', pos: [104, -20, -172], color: RED, delay: 2.5 },
-        { type: 'drone', pos: [91, -20, -156], color: [YELLOW, GREEN], cycle: 2, delay: 3.2 },
+        { type: 'warden', pos: [97, -20, -167], shield: YELLOW, core: BLUE },
+        { type: 'drone', pos: [104, -20, -172], color: BLUE, shields: [GREEN, RED], delay: 2 },
+        { type: 'blastCrab', pos: [94, -25, -172], color: BLUE, shields: [GREEN], shieldHp: 1, delay: 3 },
       ] },
     ],
+    onClear: () => !labGate.open && game.hud.message('Now <b>fill both tanks</b> to raise the gate.', 4),
   });
+  W.add({
+    update() {
+      if (lab.state === 'armed' && !game.clearedEncounters?.has(lab.id) && tanks.some((t) => t.level > 0.25)) lab.start();
+    },
+  });
+  level.azure.lab = lab;
   // RECORDS ROOM (a story nook, off the lab's east wall, cut into the cliff): filing racks and the index
   // terminal of every sleeper the station keeps. Its back wall holds the BLUE-locked specimen vault.
   {
@@ -479,15 +638,62 @@ export function buildAzure(B) {
   }
   keepOut.push([[107, -26, -172], [117, -20, -156]]);
 
-  // ------------------------------------------------------------------ the Gauntlet: three colors, one corridor
-  corridorX({ xStart: 87.5, xEnd: 66.5, y: -25, zone, cz: -170, low: [{ x1: 70.5, x2: 75, h: 1.1 }] });
-  hint([85, -25, -171.5], [87.5, -22, -168.5], 'Three colors, one corridor. <b>Keep switching.</b>', 3);
-  [[85, RED], [83, YELLOW], [79, GREEN], [77, RED], [75.8, YELLOW]].forEach(([x, c]) => barrierWallX(x, -25, c, zone, -170));
-  barrierWallX(73.6, -25, GREEN, zone, -170, 1.1);
-  barrierWallX(71.6, -25, RED, zone, -170, 1.1);
-  barrierWallX(69.5, -25, YELLOW, zone, -170);
-  new Drone(W, { pos: [81, -22.4, -170], color: [RED, YELLOW, GREEN], orbit: 0.4, range: 14, cycle: 1.5 });
-  new Drone(W, { pos: [67.6, -22.4, -170], color: [GREEN, RED, YELLOW], orbit: 0.4, range: 14, cycle: 1.5 });
+  // ------------------------------------------------------------------ THE BREAKER HALL (y -25): SHOCK WATER
+  // x 66.5..87.5, z -177..-163, between the Cryo Lab and the Well. Its floor is flooded and LIVE: a fat
+  // feed cable keeps the water crackling, and touching it is death. Insulated grates (raised, rubber-
+  // topped) cross it. The door out (into the Well) is a forcefield; its breaker is up on the far wall:
+  // hose it and it shorts, and the field drops for good. Robots on the far sill come leaping at you: let
+  // them land in the water. (Spray puddles out onto the sill from the pool's edge and they go live too.)
+  {
+    const y = -25, x1 = 66.5, x2 = 87.5, zS = -163, zN = -177, top = y + 6;
+    W.box(x1, y - 1, zN - 0.5, x2, y, zS + 0.5, 'floor', zone);
+    W.box(x1, top, zN - 0.5, x2, top + 0.5, zS + 0.5, 'ceil', zone);
+    W.box(x1, y, zS, x2, top, zS + 0.5, 'wall', zone);
+    W.box(x1, y, zN - 0.5, x2 + 0.5, top, zN, 'wall', zone);
+    W.box(x2, y, zN, x2 + 0.5, top, -175.5, 'wall', zone); // (the lab's west wall closes the rest of the east side)
+    W.deco(x1, y + 4.2, zN, x2, y + 4.28, zN + 0.05, 'glow3', zone);
+    W.deco(x1, y + 4.2, zS - 0.05, x2, y + 4.28, zS, 'glow3', zone);
+    const PX1 = 68.2, PX2 = 84.2;
+    // the pool's lip (a hazard stripe at each end) and the feed cable's junction, live, by the entrance
+    W.deco(PX2, y, zN, PX2 + 0.25, y + 0.02, zS, 'hazard', zone);
+    W.deco(PX1 - 0.25, y, zN, PX1, y + 0.02, zS, 'hazard', zone);
+    const pool = new LivePool(W, game, { min: [PX1, y, zN], max: [PX2, y, zS], live: true });
+    new Junction(W, game, { min: [84.6, y, -176.7], max: [85.8, y + 1.5, -175.9], live: true, kind: 'conduit', cable: [85.2, top, -176.3] });
+    // the insulated grates across it (0.5-0.9 m up, in a zig-zag)
+    const grates = [[81.2, -168.2, 83.4, -165.8, 0.6], [77.2, -173.4, 79.6, -171, 0.9], [73.2, -167.6, 75.6, -165.2, 1.2], [70, -173.6, 72.2, -171.2, 0.8]];
+    for (const [a, b, c, d, h] of grates) {
+      W.box(a, y, b, c, y + h, d, 'plat', zone);
+      W.deco(a - 0.02, y + h, b - 0.02, c + 0.02, y + h + 0.03, d + 0.02, 'hazard', zone);
+      glowEdge(a, b, c, d, y + h + 0.03, 'glow3', zone);
+    }
+    // the forcefield on the way out, and its breaker on the wall above the sill
+    const field = new Forcefield(W, game, { min: [66, y, -171.5], max: [66.5, y + CH, -168.5] });
+    const breaker = new Junction(W, game, {
+      min: [66.5, y + 2.6, -175.2], max: [67.1, y + 3.8, -174], kind: 'breaker', face: '+x', oneShot: true, cable: [66.8, top, -174.6],
+      onShort: () => {
+        field.set(false);
+        game.hud.message('The breaker trips: <b>the forcefield is down</b>.', 4);
+      },
+    });
+    level.azure.breaker = breaker;
+    level.azure.hallPool = pool;
+    W.deco(66.52, y + 2.4, -175.4, 66.56, y + 2.5, -173.8, 'hazard', zone);
+    hint([84.5, y, zN], [x2, y + 3, zS], 'The floor is <b>live</b> — one step in it and you\'re fried. Cross on the insulated grates. The way out is a forcefield: its <b>breaker</b> is up on the far wall.', 7);
+    // the robots on the far sill wake when you're halfway over
+    B.encounter({
+      trigger: [[73, y + 0.9, -168], [76, y + 4, -165]],
+      seals: [],
+      title: null, music: null, clearTitle: '', zone,
+      checkpoint: { pos: [67.3, y, -170], yaw: Math.PI / 2 },
+      waves: [[
+        { type: 'blastCrab', pos: [67.3, y, -165], color: BLUE, shields: [GREEN], shieldHp: 1 },
+        { type: 'blastCrab', pos: [67.3, y, -175.5], color: BLUE, shields: [RED], shieldHp: 1, delay: 0.7 },
+        { type: 'drone', pos: [70, y + 4, -170], color: BLUE, shields: [YELLOW], delay: 1.2 },
+      ]],
+    });
+    area([x2 - 1, y, -171.5], [x2 + 0.5, y + 3, -168.5], DEEP);
+    keepOut.push([[66, -26, -178], [88.5, -18, -162]]);
+  }
 
   // ------------------------------------------------------------------ the Well: ledges over cryo-brine
   // PLATFORMING 2. The first pillar crumbles (move on at once); the others are crusted with spikes.
@@ -530,7 +736,7 @@ export function buildAzure(B) {
   spikes(51, -168, 54.5, -172, -35.5, GREEN);
   pillar(51, -159, 55, -163, -39);
   spikes(51, -159, 55, -163, -39, RED);
-  new Drone(W, { pos: [57, -27.5, -174], color: YELLOW, range: 22 }); // (level with the catwalk, where you can see it)
+  new Drone(W, { pos: [57, -27.5, -174], color: BLUE, shields: [YELLOW], range: 22 }); // (level with the catwalk, where you can see it)
   keepOut.push([[57, -47, -167], [66, -40, -158], [60, -26, -173], [66, -20, -167]]);
   for (const [x, z, tx, tz] of [[50.6, -181.4, 0.3, 0.3], [65.4, -181.4, -0.3, 0.3], [50.6, -158.6, 0.3, -0.3], [56, -181.6, 0, 0.35]]) cluster(x, -46.2, z, 3 + rng() * 3, 'ice', tx, tz);
   for (let i = 0; i < 10; i++) cluster(50.3, -44 + rng() * 22, -160 - rng() * 21, 1.5 + rng() * 2, 'ice', 1.2, 0, 4);
@@ -588,11 +794,15 @@ export function buildAzure(B) {
     level.azure.vaultDoor = vaultDoor;
   }
   hint([50, -56, -176], [56, -53, -168], 'The vault lock sits <b>behind the glass</b>. Azure panels deflect every other color…', 6);
-  new Drone(W, { pos: [52.5, -52, -178.5], color: RED, range: 12 }); // (kept well clear of the drop pipe's mouth)
+  new Drone(W, { pos: [52.5, -52, -178.5], color: BLUE, shields: [RED], range: 12 }); // (kept well clear of the drop pipe's mouth)
   corridor({ zStart: -157.5, zEnd: -150.5, y: -56, zone, cx: 54 });
   new Checkpoint(W, game, { pos: [54, -56, -153], yaw: Math.PI, size: [3, 3, 2] });
 
-  // ------------------------------------------------------------------ Core Sanctum (y -56): the BLUE core
+  // ------------------------------------------------------------------ Core Sanctum (y -56): THE DYNAMO
+  // MINI-BOSS. The geode where the station's power comes together, and the machine it runs through
+  // (entities/dynamo.js). Four conduits stand in the room's quarters: spray a puddle trail from a conduit's
+  // foot to where the Dynamo walks, then hose the conduit to short it, and the surge overloads it. Its
+  // stomp electrifies every puddle round it, so fight from the insulated pads by the walls.
   // n: from the vault; s: the Strut Drop's duct (the shortcut from the Rim Deck); e: the BLUE door out onto
   // the Blue Span and the second half of the world (azureSpillway.js).
   room({ x1: 52, x2: 80, zS: -122, zN: -150, y: -56, h: 14, zone, n: [{ c: 54, w: 3, h: CH }], s: [{ c: 54.5, w: 3, h: CH }], e: [{ c: -146, w: 3, h: CH }] });
@@ -602,28 +812,100 @@ export function buildAzure(B) {
   for (let i = 0; i < 40; i++) shard(52.5 + rng() * 27, -41.1, -149.5 + rng() * 27, 1 + rng() * 2.5, 0.25 + rng() * 0.2, (rng() - 0.5) * 0.5, (rng() - 0.5) * 0.5, 'glow');
   W.box(64, -56, -140, 72, -55.6, -132, 'metal', zone); // dais
   W.deco(63.9, -55.66, -140.1, 72.1, -55.6, -131.9, 'glow3', zone);
-  const core = pedestal(68, -55.6, -136, BLUE, zone);
   light(68, -46, -136, 0x3a8bff, 50, 32);
-  keepOut.push([[52, -56, -152], [62, -52, -147], [52, -56, -138], [80, -52, -134], [62, -56, -142], [74, -50, -130], [52, -57, -126], [58, -52, -120], [72, -57, -148.5], [82, -52, -143.5]]);
+  // (the arena floor stays clear of crystals: they only grow round the walls)
+  keepOut.push([[54.5, -57, -147.5], [77.5, -50, -124.5]]);
+  keepOut.push([[52, -56, -152], [62, -52, -147], [52, -57, -126], [58, -52, -120], [72, -57, -148.5], [82, -52, -143.5]]);
   // a geode of crystals: floor clusters, wall growths, stalactites
-  for (let i = 0; i < 22; i++) {
-    const a = rng() * Math.PI * 2, r = 7 + rng() * 6;
-    cluster(68 + Math.cos(a) * r, -56, -136 + Math.sin(a) * r * 0.9, 2 + rng() * 4.5, i % 3 ? 'ice' : 'glow', Math.cos(a) * 0.35, Math.sin(a) * 0.35);
+  for (let i = 0; i < 26; i++) {
+    const a = rng() * Math.PI * 2, r = 12 + rng() * 2.5;
+    cluster(66 + Math.cos(a) * r, -56, -136 + Math.sin(a) * r, 2 + rng() * 4.5, i % 3 ? 'ice' : 'glow', Math.cos(a) * 0.35, Math.sin(a) * 0.35);
   }
   for (let i = 0; i < 18; i++) shard(53 + rng() * 26, -42.1, -149 + rng() * 26, 1.5 + rng() * 3.5, 0.2 + rng() * 0.25, 0, Math.PI, rng() < 0.4 ? 'glow' : 'ice');
-  // COMBAT (small): grabbing the core wakes the sanctum's azure sentries: try out the new color at once
-  const grant = core.onCollect;
-  core.onCollect = (pk, pl) => {
-    grant(pk, pl);
-    for (const [pos, color, t] of [[[57, -49, -126], BLUE, 2.5], [[78, -49, -146], BLUE, 3.3], [[75, -48, -126], [BLUE, RED], 4.2]]) {
-      const d = new Drone(W, { pos, color, range: 30, cycle: 2.4 });
-      d.fireTimer = t; // a beat to switch to the new color first
-      d.aggro = true;
-    }
-  };
+  // the four conduits, each wired up into the roof
+  const conduits = [[58, -144], [76, -144], [58, -128], [76, -128]].map(([x, z]) => {
+    const j = new Junction(W, game, { min: [x - 0.6, -56, z - 0.6], max: [x + 0.6, -54.5, z + 0.6], kind: 'conduit', cooldown: 7, surge: 3.5, cable: [x, -41.6, z] });
+    W.deco(x - 1.1, -55.99, z - 1.1, x + 1.1, -55.97, z + 1.1, 'hazard', zone);
+    onRespawn(() => j.reset());
+    return j;
+  });
+  // insulated pads along the walls (0.7 m up: out of reach of the stomp's live water)
+  for (const [x1, z1, x2, z2] of [[52, -138.5, 54.6, -133.5], [77.4, -138.5, 80, -133.5], [65.5, -150, 70.5, -147.4], [60, -124.6, 65, -122]]) {
+    W.box(x1, -56, z1, x2, -55.3, z2, 'plat', zone);
+    W.deco(x1, -55.3, z1, x2, -55.27, z2, 'hazard', zone);
+    glowEdge(x1, z1, x2, z2, -55.27, 'glow3', zone);
+  }
+  B.armor([53.3, -55.3, -136]);
+  B.armor([78.7, -55.3, -136]);
+  const sealN = B.seal([52.5, -56, -150.45], [55.5, -52.8, -149.55], { zone });
+  const sealS = B.seal([53, -56, -122.45], [56, -52.8, -121.55], { zone });
+  const sealE = B.seal([79.45, -56, -147.5], [79.95, -52.8, -144.5], { zone });
+  const DYN_ID = 'enc:dynamo:azure';
+  const dynamo = new Dynamo(W, game, {
+    pos: [70, -56, -127.5], bounds: { x1: 52.5, x2: 79.5, z1: -149.5, z2: -122.5 },
+    spawns: [[60, -56, -136], [76, -56, -136], [68, -56, -146], [68, -56, -126]],
+    adds: [
+      { type: 'blastCrab', color: BLUE, shields: [RED], shieldHp: 1 },
+      { type: 'drone', color: BLUE, shields: [YELLOW] },
+      { type: 'blastCrab', color: BLUE, shields: [GREEN], shieldHp: 1 },
+    ],
+    onStart: () => {
+      for (const s of [sealN, sealS, sealE]) s.close();
+      game.setMusic('music_miniboss');
+    },
+    onDefeated: () => {
+      for (const s of [sealN, sealS, sealE]) s.open();
+      game.clearedEncounters?.add(DYN_ID);
+      const beacon = new Checkpoint(W, game, { pos: [74, -56, -146], yaw: -Math.PI / 2 });
+      game.checkpoint?.ref?.setActive?.(false);
+      beacon.setActive(true);
+      W.fx.checkpoint(beacon.pos);
+      game.setCheckpoint(beacon.pos, -Math.PI / 2, beacon);
+      game.setMusic('music_blue');
+      game.hud.zoneTitle('', 'THE DYNAMO IS DOWN', '#9bf6ff', 2.4);
+      game.hud.message('The sanctum\'s power is dead. The <b style="color:#3a8bff">AZURE</b> door east leads on.', 5);
+    },
+  });
+  level.azure.dynamo = dynamo;
+  level.azure.conduits = conduits;
+  W.trigger([52.5, -56, -149.4], [79.5, -50, -122.6], () => {
+    if (!dynamo.defeated && game.blaster.unlocked[BLUE]) dynamo.start();
+  }, { once: false });
+  onRespawn(() => {
+    if (dynamo.defeated) return;
+    dynamo.reset();
+    for (const s of [sealN, sealS, sealE]) s.open(true);
+  });
+  // a save that already beat it: the wreck, the doors open
+  W.add({
+    update() {
+      if (!dynamo.defeated && game.clearedEncounters?.has(DYN_ID)) {
+        dynamo.setDefeated();
+        dynamo.hideHud();
+      }
+    },
+  });
+  hint([52.5, -56, -157], [55.5, -53, -150.6], 'Something big is humming in the sanctum. <b>Its power runs through the floor.</b>', 4);
   // the door out: only AZURE opens it
   barrierWallX(80.25, -56, BLUE, zone, -146);
   hint([74, -56, -149], [80, -53, -143], 'The way on is sealed with <b style="color:#3a8bff">AZURE</b> light.', 4);
+
+  // ---- dev starts / Select Location, registered in route order (the second half's follow, in
+  // azureSpillway.js): blue is in hand from azure4 on
+  const RYG = [RED, YELLOW, GREEN], RYGB = [RED, YELLOW, GREEN, BLUE];
+  devStart('azure', [27, 4, -112], -Math.PI / 2, RYG, 'The Azure door');
+  devStart('azure1', [47, 4, -112], -Math.PI / 2, RYG, 'The Rim Deck (rain)');
+  devStart('azure2', [101.5, -4.5, -92], Math.PI, RYG, 'The Pump Station');
+  devStart('azure3', [102, -21, -114.5], 0, RYG, 'The Turbine Deck: the blue core');
+  devStart('azure4', [104, -21, -116.4], Math.PI / 2, RYGB, 'The slick leap to the Storm Deck (arena)');
+  devStart('azure5', [110, -21, -114.6], -Math.PI / 2, RYGB, 'The Flooded Depths: the Sump');
+  devStart('azure6', [135.75, -52.3, -116], -Math.PI / 2, RYGB, 'The Bell (an air pocket)');
+  devStart('azure7', [127.3, -47.6, -147], -Math.PI / 2, RYGB, 'The Ballast Shaft');
+  devStart('azure8', [100, -25, -146], 0, RYGB, 'The Cryo Lab: the counterweights');
+  devStart('azure9', [86, -25, -170], Math.PI / 2, RYGB, 'The Breaker Hall (shock water)');
+  devStart('azure10', [64, -25, -170], Math.PI / 2, RYGB, 'The Brine Well');
+  devStart('azure11', [62, -56, -167.5], Math.PI / 2, RYGB, 'The vault antechamber');
+  devStart('azure12', [54, -56, -153], Math.PI, RYGB, 'The Dynamo (mini-boss)');
 
   // ------------------------------------------------------------------ the second half
   buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut });
@@ -736,12 +1018,4 @@ export function buildAzure(B) {
   // ---- the storm: rain over the open chasm, stopping under every roof (azureRain.js)
   level.azure.rain = buildRain(B, { bounds: [20, -236, 204, -36] });
 
-  const RYG = [RED, YELLOW, GREEN];
-  devStart('azure', [27, 4, -112], -Math.PI / 2, RYG);
-  devStart('azure1', [47, 4, -112], -Math.PI / 2, RYG); // the Rim Deck, before the Shelf
-  devStart('azure2', [101.5, -4.5, -92], Math.PI, RYG); // the Pump Station, before the freight lift
-  devStart('azurelab', [100, -25, -146], 0, RYG); // the Cryo Lab porch, before the arena
-  devStart('azurewell', [64, -25, -170], Math.PI / 2, RYG);
-  devStart('azure4', [62, -56, -167.5], Math.PI / 2, RYG); // the vault antechamber (ricochet lock)
-  devStart('azure5', [54, -56, -151.5], Math.PI, RYG); // the Core Sanctum, before the core
 }

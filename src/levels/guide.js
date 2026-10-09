@@ -80,28 +80,18 @@ function foundryObjective(game) {
 
 // ---- Azure (azure.js / azureFlooded.js / azureSpillway.js): name the next step for the stretch you're in
 const inBox = (p, x1, x2, z1, z2, y1 = -99, y2 = 99) => p.x >= x1 && p.x <= x2 && p.z >= z1 && p.z <= z2 && p.y >= y1 && p.y <= y2;
-function azureBefore(p, game) {
-  const st = game.level.azure || {};
-  if (inBox(p, 108, 162, -153, -100, -63, 8)) {
-    if (inBox(p, 108, 147, -127, -100, -31.5)) return `Swim out along the buoys and dive by the marker: blast the ${tag(RED, 'red grate')} over the pipe.`;
-    if (inBox(p, 125.5, 152, -152, -136, -61, -17)) return `Drop a ${tag(GREEN, 'green')} shot into the lit gap beside the glass case: the mirror banks it onto the ballast valve. Then ride the water up.`;
-    return 'Follow the <b>cyan lights</b> through the flood; surface in the <b>gold-lit air pockets</b> to breathe.';
-  }
-  if (inBox(p, 125, 147, -152, -141, -48, -16)) return 'Ride the water up the Ballast Shaft to the way out.';
-  if (inBox(p, 107, 126, -149, -145, -26, -21)) return 'Out of the deep: on to the <b>Cryo Lab</b>.';
+// before the core: the descent through the rain, platforming only
+function azureBefore(p) {
   if (p.y > 2) return `Hop down the ice ledges east: clear the ${tag(GREEN, 'green spikes')} from the deck first; the first ledge crumbles under you.`;
   if (inBox(p, 58, 99, -107, -80, -4.6)) return `Ride the crane trolley across: keep shooting it ${tag(YELLOW, 'yellow')}.`;
   if (inBox(p, 98, 123, -97, -77, -6, 1)) return `Shoot the freight lift ${tag(GREEN, 'green')} to work it down to the turbine deck.`;
-  if (inBox(p, 95, 109, -123, -98, -23, -5)) return 'Clear the turbine deck\'s sentries; the hatch in its <b>east</b> edge opens into the Flooded Depths.';
-  if (inBox(p, 88, 116, -176, -142, -26, -16)) return 'Survive the Cryo Lab lockdown, then go <b>west</b> through the three-color gauntlet.';
-  if (inBox(p, 66, 88, -172, -168, -26, -21)) return 'Three colors, one corridor: <b>keep switching</b>.';
-  if (inBox(p, 50, 66, -182, -158, -47, -17)) return `Work down the ice pillars to the hole, blast its ${tag(RED, 'red')} grate and sink down the flooded pipe: shoot ${tag(YELLOW, 'yellow')}, then ${tag(GREEN, 'green')}.`;
-  if (p.y < -50 && p.z < -157.5 && !(st.vaultDoor && st.vaultDoor.openT >= 0)) return `Free the vault door: fire ${tag(YELLOW, 'yellow')} over the glass in the west alcove; the azure panels carry it to the target.`;
-  if (p.y < -50) return `Take the ${tag(BLUE, 'AZURE core')} from the sanctum's dais.`;
-  return 'Make your way down through the station.';
+  if (inBox(p, 91, 109, -123, -98, -23, -5)) return `Take the ${tag(BLUE, 'AZURE core')} from the dais on the turbine deck.`;
+  return 'Make your way down the station through the rain.';
 }
+// with blue in hand: the water cannon's world
 function azureAfter(p, game) {
   const st = game.level.azure || {};
+  const W = (t) => tag(BLUE, t);
   if (p.y > 10 && p.x < 47) return 'Walk out onto the Nexus balcony.';
   if (game.isWorldDown?.('azure')) {
     if (p.x < 113 && p.y > -9) return 'Ride the pads up across the chasm: <b>shoot the orb over each pad</b> to charge it, then step on.';
@@ -109,14 +99,59 @@ function azureAfter(p, game) {
     if (inBox(p, 133, 187, -222, -157, -32, 12)) return 'The engine is dead. Swim back out to the shore ledge and take the gallery <b>west</b>.';
     return 'Climb back up through the station: the Undercroft, the Sluice, then the Spillway home.';
   }
-  if (inBox(p, 52, 80.5, -150, -122, -57, -41)) return `Break the ${tag(BLUE, 'blue door')} in the sanctum's <b>east</b> wall.`;
-  if (inBox(p, 80, 113, -152, -140, -60, -48)) return `Cross the Blue Span: stay set to ${tag(BLUE, 'blue')} on the light stones, and shoot the blue switch for the bridge.`;
-  if (inBox(p, 112, 158, -195, -144, -70, -43)) return 'Clear the Undercroft, then dive for the <b>gold-lit duct</b> in its east wall.';
+  // the turbine deck and the Storm Deck
+  const storm = st.stormDeck;
+  if (inBox(p, 91, 109, -123, -98, -23, -5)) {
+    if (storm && storm.state === 'cleared') return 'The hatch has thawed: <b>east</b>, into the cliff.';
+    return `Too far to jump dry: ${W('hose a long slick')} down the deck, then <b>sprint</b> along it and leap to the Storm Deck.`;
+  }
+  if (inBox(p, 60, 91, -124, -99, -23, -10)) {
+    if (storm && storm.state !== 'cleared' && storm.state !== 'armed') return `Soak the floor under the robots and ${W('hose a junction box')} to short it into them. Keep your feet dry.`;
+    if (storm && storm.state === 'cleared') return 'Back over the gantry to the turbine deck, and in through the hatch.';
+    return 'Clear the Storm Deck.';
+  }
+  // the Flooded Depths
+  if (inBox(p, 108, 162, -153, -100, -63, 8)) {
+    if (inBox(p, 108, 147, -127, -100, -31.5)) {
+      if (st.pipeHatch && st.pipeHatch.state === 'closed') return `The maintenance seal can work the valve on the north shelf: ${W('hose it a trail of puddles')} along the shelf.`;
+      return 'Swim out along the buoys and dive by the marker, down the open pipe.';
+    }
+    if (inBox(p, 125.5, 152, -152, -136, -61, -17)) return `Drop a ${tag(GREEN, 'green')} shot into the lit gap beside the glass case: the mirror banks it onto the ballast valve. Then ride the water up.`;
+    return 'Follow the <b>cyan lights</b> through the flood; surface in the <b>gold-lit air pockets</b> to breathe.';
+  }
+  if (inBox(p, 125, 147, -152, -141, -48, -16)) return 'Ride the water up the Ballast Shaft to the way out.';
+  if (inBox(p, 107, 126, -149, -145, -26, -21)) return 'Out of the deep: on to the <b>Cryo Lab</b>.';
+  // the Cryo Lab
+  if (inBox(p, 88, 116, -176, -142, -26, -16)) {
+    const lab = st.lab;
+    if (lab && lab.state !== 'armed' && lab.state !== 'cleared') return `Fight off the lab's sentries — and keep ${W('filling the tanks')} between shots.`;
+    if (st.labGate && !st.labGate.open) return `Fill ${W('both hanging tanks')} with the water cannon: their weight hauls the west gate up. They leak: top them both up together.`;
+    return 'Through the gate <b>west</b>.';
+  }
+  if (inBox(p, 66, 88, -178, -162, -26, -18)) {
+    if (st.breaker && !st.breaker.tripped) return `The floor is live: cross on the insulated grates, and ${W('hose the breaker')} up on the far wall to drop the forcefield.`;
+    return 'The forcefield is down: on <b>west</b>, into the Well.';
+  }
+  if (inBox(p, 50, 66, -182, -158, -47, -17)) return `Work down the ice pillars to the hole, blast its ${tag(RED, 'red')} grate and sink down the flooded pipe: shoot ${tag(YELLOW, 'yellow')}, then ${tag(GREEN, 'green')}.`;
+  if (p.y < -50 && p.z < -157.5 && p.x < 67 && !(st.vaultDoor && st.vaultDoor.openT >= 0)) return `Free the vault door: fire ${tag(YELLOW, 'yellow')} over the glass in the west alcove; the azure panels carry it to the target.`;
+  if (inBox(p, 52, 80.5, -158, -121, -57, -41)) {
+    const d = st.dynamo;
+    if (d && !d.defeated && d.state !== 'dormant') return d.state === 'stunned' ? `It's overloaded: ${W('hose its core')}!` : `Soak the floor where the Dynamo walks, then ${W('hose a conduit')} to short the surge into it.`;
+    if (d && d.defeated) return `Break the ${W('blue door')} in the sanctum's <b>east</b> wall.`;
+    return 'Into the sanctum.';
+  }
+  if (inBox(p, 80, 113, -152, -140, -60, -48)) return `Hose the runway into a slick and ${W('sprint-leap')} the gap; then the ${W('blue switch')} for the bridge.`;
+  if (inBox(p, 112, 158, -195, -144, -70, -43)) {
+    const u = st.undercroft, seal = st.winchSeal;
+    if (u && u.state !== 'cleared') return 'Clear the Undercroft\'s hunters, above the water and below it.';
+    if (seal && !seal.worked) return `${W('Hose a trail')} down the east walkway for the maintenance seal to the duct's winch — and keep the crawlers off it.`;
+    return 'Dive for the <b>gold-lit duct</b> in the east wall.';
+  }
   if (inBox(p, 165.5, 181, -169, -157, -65, -3)) { // (the Sluice is x 166..180; the cistern's shore ledge sits just west of it)
     const s = st.sluice;
-    if (!s || s.stage === 1) return `Keep firing ${tag(BLUE, 'blue')} into the pump valve on the south wall to flood the Sluice.`;
+    if (!s || s.stage === 1) return `Keep ${W('hosing the pump valve')} on the south wall to flood the Sluice.`;
     if (s.stage === 2) return 'Shoot the <b>arrows</b> on the north wall\'s ledges to set them into a staircase up to the east ledge.';
-    if (s.stage === 3) return `Fire ${tag(BLUE, 'blue')} into the valve in the roof and ride the water up — hold <b>Space</b>.`;
+    if (s.stage === 3) return `${W('Hose the valve in the roof')} and ride the water up — hold <b>Space</b>.`;
     return 'Climb out at the top, through the door in the south wall.';
   }
   if (inBox(p, 112, 181, -158, -153, -9, -3)) return 'The cistern\'s door is in the gallery\'s <b>north</b> wall.';
@@ -203,7 +238,7 @@ export function currentObjective(game) {
   }
   if (!has(BLUE)) {
     if (where === 'verdant') return { html: verdantObjective(game) };
-    if (where === 'azure') return { html: azureBefore(game.player.pos, game) };
+    if (where === 'azure') return { html: azureBefore(game.player.pos) };
     return { html: `Blast open the ${tag(BLUE, 'AZURE gate')} on the <b>east</b> wall with ${tag(GREEN, 'green')}.`, door: 'azure' };
   }
   const boss = game.level.boss;

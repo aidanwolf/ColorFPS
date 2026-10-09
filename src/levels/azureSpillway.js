@@ -1,9 +1,10 @@
 // AZURE, SECOND HALF — with the AZURE core in hand you climb back up on the water (called from azure.js):
-//   Core Sanctum (y -56) → THE BLUE SPAN (platforming over the abyss: chroma stones that only hold while
-//   you're set to blue, a timed blue switch for a phase bridge, a trapdoor) → through the east cliff →
-//   THE UNDERCROFT (a half-flooded cistern hall under the arena: an encounter fought above and below the
-//   surface: sub-drones, robo-fish, a robo-squid, drones, a turret, a warden) → its exit is underwater: a
-//   duct into THE SLUICE (puzzle: a 60 m shaft you flood by spam-shooting blue pump valves, ride up on the
+//   Core Sanctum (y -56, the Dynamo) → THE BLUE SPAN (platforming over the abyss in the rain: a long
+//   runway you hose down for a SLICK LEAP over a 9 m gap, then a timed blue switch for a phase bridge
+//   over a trapdoor) → through the east cliff → THE UNDERCROFT (a half-flooded cistern hall: an encounter
+//   fought above and below the surface, all blue machines under off-color shields; then the duct's
+//   gate winch, which only the hall's maintenance seal can reach: paint it a path of water along the
+//   east walkway while crawlers hunt it) → its exit is underwater: a duct into THE SLUICE (puzzle: a 60 m shaft you flood by spam-shooting blue pump valves, ride up on the
 //   rising water, with a wall of shoot-to-move ledges between the two stages) → the gallery (y -7.7) →
 //   THE DROWNED CISTERN (leviathanArena.js: Charybdis, and the AZURE ENGINE, the world's power source)
 //   → shoot the engine down → the pressure lock on the gallery opens → THE SPILLWAY: jump pads up across
@@ -19,6 +20,8 @@ import { Drone } from '../entities/drone.js';
 import { Checkpoint, JumpPad } from '../entities/misc.js';
 import { VortexTunnel } from '../entities/vortex.js';
 import { mat } from '../materials.js';
+import { RoboSeal, ScrapCrawler, Junction, Route } from '../entities/waterPuzzle.js';
+import { SpawnPortal } from '../entities/combat.js';
 import { waterSurface } from '../liquid.js';
 import { audio } from '../audio.js';
 import { regionOf } from './regions.js';
@@ -27,7 +30,7 @@ import { buildLeviathanArena } from './leviathanArena.js';
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
-  const { W, game, level, CH, room, corridor, corridorX, plat, hint, area, light, devStart, glowEdge } = B;
+  const { W, game, level, CH, room, corridor, corridorX, plat, hint, area, light, devStart, glowEdge, onRespawn } = B;
   const box = (x1, y1, z1, x2, y2, z2, kind = 'wall') => W.box(x1, y1, z1, x2, y2, z2, kind, zone);
   const deco = (x1, y1, z1, x2, y2, z2, kind = 'glow3') => W.deco(x1, y1, z1, x2, y2, z2, kind, zone);
   const RYGB = [RED, YELLOW, GREEN, BLUE];
@@ -37,31 +40,32 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   // A broken catwalk from the sanctum's east door to the east cliff, z -148.5..-143.5, over the abyss
   // (falling = the void: you're faded back to the deck's checkpoint).
   const SY = -56, SZ = -146;
-  plat(80.5, SZ - 2.5, 86, SZ + 2.5, SY, zone, 1); // D0, at the door
+  // D0: a long runway (12.5 m) from the door out to the gap: hose it down, sprint and leap
+  plat(80.5, SZ - 2.5, 93, SZ + 2.5, SY, zone, 1);
+  for (let x = 82, k = 0; x < 92; x += 2, k++) W.deco(x, SY + 0.005, SZ - 0.6, x + 1, SY + 0.02, SZ + 0.6, k % 2 ? 'hazard' : 'glow3', zone);
   new Checkpoint(W, game, { pos: [83.5, SY, SZ], yaw: -Math.PI / 2, size: [3, 3, 4] });
   area([80.5, SY, SZ - 2.5], [84, SY + 3, SZ + 2.5], DEEP);
-  // chroma stones: solid only while the blaster is set to BLUE (a red drone hangs about, to tempt you)
-  const stones = [[87.6, -147.3, 89.6, -144.8], [91.2, -146.6, 93.2, -144.1], [94.8, -148, 96.8, -145.5]];
-  for (const [x1, z1, x2, z2] of stones) B.chromaPlatform({ min: [x1, SY - 0.5, z1], max: [x2, SY, z2], color: BLUE, zone });
-  hint([80.5, SY, SZ - 2.5], [86, SY + 3, SZ + 2.5], 'Those stones are <b style="color:#3a8bff">AZURE</b> light: they only hold you while your blaster is <b>set to blue</b>.', 5);
-  // D1: the west half solid, the east half a trapdoor (keep moving), a timed blue switch on a pylon
-  plat(98, SZ - 2.5, 100.6, SZ + 2.5, SY, zone, 1);
-  B.trapdoor({ min: [100.6, SY - 0.4, SZ - 2.5], max: [103, SY, SZ + 2.5], delay: 0.45, respawn: 3, zone });
-  box(99.8, -80, -151.6, 101.2, SY + 4.5, -150.6, 'metal'); // the pylon (the switch faces the deck)
-  deco(99.7, SY + 4.5, -151.7, 101.3, SY + 4.6, -150.5);
-  const bridge = [[104.2, SZ - 1.2, 106.4, SZ + 1.2], [107.6, SZ - 1.2, 109.8, SZ + 1.2]].map(([x1, z1, x2, z2]) =>
+  hint([80.5, SY, SZ - 2.5], [86, SY + 3, SZ + 2.5], 'A 9 m gap — too far dry. <b>Soak the runway</b> end to end, then <b>sprint</b> down it and jump at the very edge.', 6);
+  // D1 (across the gap): the west half solid, the east half a trapdoor (keep moving), a timed blue switch
+  // on a pylon for the phase bridge on to D2
+  plat(102, SZ - 2.5, 104.6, SZ + 2.5, SY, zone, 1);
+  B.trapdoor({ min: [104.6, SY - 0.4, SZ - 2.5], max: [107, SY, SZ + 2.5], delay: 0.45, respawn: 3, zone });
+  box(102.6, -80, -151.6, 104, SY + 4.5, -150.6, 'metal'); // the pylon (the switch faces the deck)
+  deco(102.5, SY + 4.5, -151.7, 104.1, SY + 4.6, -150.5);
+  new Checkpoint(W, game, { pos: [103.3, SY, SZ], yaw: -Math.PI / 2, size: [2.4, 3, 4] });
+  const bridge = [[108, SZ - 1.2, 110.5, SZ + 1.2]].map(([x1, z1, x2, z2]) =>
     B.phasePlatform({ min: [x1, SY - 0.4, z1], max: [x2, SY, z2], color: BLUE, zone }));
-  B.colorSwitch({ pos: [100.5, SY + 2.2, -150.6], face: '+z', color: BLUE, mode: 'timed', time: 6, links: bridge, zone, light: false });
-  hint([98, SY, SZ - 2.5], [100.6, SY + 3, SZ + 2.5], 'Shoot the <b style="color:#3a8bff">blue</b> switch on the pylon: the bridge holds for <b>6 s</b>. Don\'t dawdle on the deck\'s far half.', 5);
+  B.colorSwitch({ pos: [103.3, SY + 2.2, -150.6], face: '+z', color: BLUE, mode: 'timed', time: 6, links: bridge, zone, light: false });
+  hint([102, SY, SZ - 2.5], [104.6, SY + 3, SZ + 2.5], 'Hose the <b style="color:#3a8bff">blue</b> switch on the pylon: the bridge holds for <b>6 s</b>. Don\'t stop on the trapdoor.', 5);
   plat(110.5, SZ - 2.5, 112.2, SZ + 2.5, SY, zone, 1); // D2, at the cliff
-  // the span's sentries: a blue turret on a pylon to the south, drones hanging over the gaps
+  // the span's sentries: a turret on a pylon to the south, drones off to the sides
   box(91, -80, -140.6, 93, SY + 3.4, -138.6, 'metal');
   deco(90.9, SY + 3.4, -140.7, 93.1, SY + 3.5, -138.5);
-  B.turret([92, SY + 3.5, -139.6], BLUE, { mount: 'floor', cooldown: 2.8 });
-  new Drone(W, { pos: [92, SY + 4, -150], color: RED, range: 22 });
-  new Drone(W, { pos: [104, SY + 4.5, -142], color: [BLUE, YELLOW], range: 22, cycle: 2.4 });
+  B.turret([92, SY + 3.5, -139.6], BLUE, { mount: 'floor', cooldown: 3, shields: [YELLOW] });
+  new Drone(W, { pos: [98, SY + 4.5, -151], color: BLUE, shields: [RED], range: 22 });
+  new Drone(W, { pos: [106, SY + 4.5, -141.5], color: BLUE, shields: [GREEN, YELLOW], range: 22 });
   // ice piers under the decks
-  for (const [x1, x2] of [[81.5, 85], [98.5, 102.5], [110.8, 112]]) deco(x1, -80, SZ - 1.8, x2, SY - 1, SZ + 1.8, 'rock');
+  for (const [x1, x2] of [[81.5, 92], [102.2, 104.4], [110.8, 112]]) deco(x1, -80, SZ - 1.8, x2, SY - 1, SZ + 1.8, 'rock');
   keepOut.push([[80, SY - 2, SZ - 3.5], [121, SY + 5, SZ + 3.5]]);
 
   // ---- through the cliff, then north to the Undercroft
@@ -115,35 +119,105 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   // of its cover.
   B.armor([147.25, HT, -177]);
   B.armor([136, HT, -174.8]);
-  B.encounter({
+  const undercroft = B.encounter({
     trigger: [[117, HT - 1, -166], [123, HT + 4, -160]],
     seals: [
       { min: [117.5, HT, -160.3], max: [120.5, HT + CH, -159.4] },
-      { min: [156.7, -63, -165.5], max: [157.4, -60, -162.5], color: BLUE, closed: true },
     ],
     title: 'THE UNDERCROFT', sub: 'HUNTERS IN THE WATER', color: '#3a8bff', music: 'music_combat', zone, resume: true,
     checkpoint: { pos: [120, HT, -163], yaw: -Math.PI / 2 },
     waves: [
       [
-        { type: 'subdrone', pos: [134, -62, -170], color: BLUE, orbit: 3, leash: 12 },
-        { type: 'drone', pos: [137, -50, -178], color: BLUE, delay: 0.8 },
-        { type: 'subdrone', pos: [145, -63, -184], color: GREEN, orbit: 3, leash: 12, delay: 1.6 },
+        { type: 'subdrone', pos: [134, -62, -170], color: BLUE, shields: [RED], orbit: 3, leash: 12 },
+        { type: 'drone', pos: [137, -50, -178], color: BLUE, shields: [YELLOW], delay: 0.8 },
+        { type: 'subdrone', pos: [145, -63, -184], color: BLUE, shields: [GREEN], orbit: 3, leash: 12, delay: 1.6 },
       ],
       [
-        { type: 'turret', pos: [137, -50, -193.95], colors: [BLUE, YELLOW], mount: [0, 0, 1] },
-        { type: 'fish', pos: [128, -61, -185], color: [BLUE, RED], count: 4 },
-        { type: 'drone', pos: [125, -50, -170], color: RED, delay: 1 },
+        { type: 'turret', pos: [137, -50, -193.95], color: BLUE, shields: [YELLOW], mount: [0, 0, 1] },
+        { type: 'fish', pos: [128, -61, -185], color: BLUE, count: 4 },
+        { type: 'drone', pos: [125, -50, -170], color: BLUE, shields: [RED, GREEN], delay: 1 },
         { type: 'squid', pos: [148, -62, -172], color: BLUE, hp: 4, delay: 2 },
       ],
       { title: 'HEAVIES', enemies: [
-        { type: 'warden', pos: [137, -49, -176], shield: BLUE, core: RED },
-        { type: 'subdrone', pos: [127, -63, -188], color: YELLOW, orbit: 3, leash: 12, delay: 1 },
-        { type: 'subdrone', pos: [150, -62, -186], color: BLUE, orbit: 3, leash: 12, delay: 1.8 },
-        { type: 'drone', pos: [150, -49, -168], color: [GREEN, BLUE], cycle: 2.2, delay: 2.6 },
+        { type: 'warden', pos: [137, -49, -176], shield: RED, core: BLUE },
+        { type: 'subdrone', pos: [127, -63, -188], color: BLUE, shields: [YELLOW], orbit: 3, leash: 12, delay: 1 },
+        { type: 'subdrone', pos: [150, -62, -186], color: BLUE, shields: [GREEN, RED], orbit: 3, leash: 12, delay: 1.8 },
+        { type: 'drone', pos: [150, -49, -168], color: BLUE, shields: [GREEN, YELLOW], delay: 2.6 },
       ] },
     ],
-    onClear: () => game.hud.message('The way on is <b>underwater</b>: dive for the gold-lit duct in the <b>east</b> wall.', 5),
+    onClear: () => game.hud.message('The duct out is <b>gated</b>. Its winch is at the south end of the <b>east walkway</b> — and something in the water is calling for a path.', 6),
   });
+
+  // ---- the duct's gate and THE MAINTENANCE SEAL (a seal-path puzzle with chasers)
+  // The gate over the duct's mouth only opens from its winch, at the south end of the east walkway. The
+  // hall's maintenance seal (a RoboSeal: it only moves on wet ground) carries the winch's power cell; it
+  // waits in the water by the walkway. Hose a trail of puddles from its haul-out spot down the walkway to
+  // the winch and it slides along it, while scrap crawlers come down the walkway from the north to catch
+  // it (caught, it bolts back to the water and you go again). A junction box by the walkway lets you fry
+  // crawlers standing in your trail.
+  const ductGate = B.seal([156.7, -63, -165.5], [157.4, -60, -162.5], { color: BLUE, closed: true, zone });
+  box(155.2, HT, -169.2, 157, HT + 1.1, -167.6, 'metal'); // the winch
+  deco(155.15, HT + 0.5, -169.25, 157, HT + 0.6, -167.55, 'hazard');
+  deco(155.6, HT + 1.1, -168.8, 156.6, HT + 1.16, -168, 'glow1');
+  const sealRoute = new Route([[153.2, HT, -186.6], [154.7, HT, -184.6], [154.7, HT, -170.4]]);
+  const crawlRoute = new Route([[154.7, HT, -190.4], [154.7, HT, -184.6], [154.7, HT, -170.4]]);
+  for (let z = -184; z < -171; z += 1.6) deco(154.2, HT + 0.004, z, 155.2, HT + 0.02, z + 0.7, 'glow3'); // the seal's lane, marked
+  const winchSeal = new RoboSeal(W, game, {
+    water: [151.2, HW - 0.15, -186.6], route: sealRoute, carry: true,
+    onArrive: () => {
+      ductGate.open();
+      audio.sample('elevator_start', { gain: 0.9, vary: 0 });
+      game.hud.message('The seal plugs in the cell and the winch hauls the <b>duct gate</b> open. Dive for the gold-lit duct in the east wall.', 6);
+    },
+  });
+  winchSeal.done = true; // (asleep until the hall is clear)
+  const juncU = new Junction(W, game, { min: [156.05, HT, -178.6], max: [156.95, HT + 1.3, -177.4], face: '-x', cooldown: 6, cable: [156.5, -45.2, -178] });
+  const crawlers = [];
+  let chaseT = -1, spawned = 0;
+  const SHIELDS = [[RED], [YELLOW], [GREEN], [RED, YELLOW]];
+  W.add({
+    update(dt) {
+      // wake the seal once the fight is over (or was won before a reload)
+      if (undercroft.state === 'cleared' && winchSeal.done && !winchSeal.worked && !ductGateOpen()) {
+        winchSeal.done = false;
+        winchSeal.t = 0;
+      }
+      // a chase starts each time it hauls out: crawlers come down from the north end, one every few seconds
+      for (let i = crawlers.length - 1; i >= 0; i--) if (crawlers[i].dead) crawlers.splice(i, 1);
+      if (winchSeal.state === 'haul' && chaseT < 0 && !winchSeal.worked) {
+        chaseT = 0;
+        spawned = 0;
+      }
+      if (chaseT >= 0) {
+        chaseT += dt;
+        if (spawned < 4 && chaseT > 1.2 + spawned * 3 && crawlers.length < 3) {
+          spawned++;
+          const shields = SHIELDS[(spawned - 1) % SHIELDS.length];
+          new SpawnPortal(W, crawlRoute.p[0].toArray(), COLORS[shields[0]].hex, {
+            time: 0.7,
+            onSpawn: () => {
+              const c = new ScrapCrawler(W, game, { route: crawlRoute, s: 0.2, seal: winchSeal, color: BLUE, shields, hp: 2 });
+              crawlers.push(c);
+              return c;
+            },
+          });
+        }
+        if (winchSeal.state === 'swim' || winchSeal.worked) chaseT = -1;
+      }
+    },
+  });
+  const ductGateOpen = () => ductGate.state === 'open' || ductGate.state === 'opening';
+  onRespawn(() => {
+    for (const c of crawlers) c.despawn();
+    crawlers.length = 0;
+    chaseT = -1;
+    winchSeal.reset();
+    juncU.reset();
+    if (!winchSeal.worked && undercroft.state !== 'cleared') winchSeal.done = true;
+  });
+  level.azure.winchSeal = winchSeal;
+  level.azure.undercroft = undercroft;
+  hint([152.5, HT, -191], [157, HT + 3, -185], 'The seal only moves on <b>wet</b> ground. <b>Hose a trail</b> along the walkway from its haul-out spot to the winch, and keep the crawlers off it.', 6);
   hint([117, HT, -166], [123, HT + 3, -160], 'Hunters above the water and below it. Fight from the walkways — or take them on in their element.', 4);
   area([117, HT, -166], [123, HT + 3, -160], DEEP);
 
@@ -344,8 +418,8 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   hint([97, GY, -158.5], [106, GY + 3, -152.5], 'The <b>Spillway</b>: emergency pads up across the chasm to the Nexus. <b>Shoot the orb over each pad</b> to charge it, then step on.', 6);
   // drones work the chasm (they come back whenever you return)
   // (they hang off to the sides of the chain, never in a pad's flight path)
-  new Drone(W, { pos: [80, 3, -160], color: BLUE, range: 22, orbit: 2 });
-  new Drone(W, { pos: [55, 13, -130.5], color: [RED, BLUE], range: 22, cycle: 2.4, orbit: 2 });
+  new Drone(W, { pos: [80, 3, -160], color: BLUE, shields: [YELLOW], range: 22, orbit: 2 });
+  new Drone(W, { pos: [55, 13, -130.5], color: BLUE, shields: [RED], range: 22, orbit: 2 });
   keepOut.push([[33, -9, -160], [113, 30, -131]]);
 
   // ================================================================== THE CONDUIT to the Atrium's reactor
@@ -467,12 +541,12 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   });
 
   // ---- dev starts (the ascent start shuts the engine down first, so the way home is open)
-  devStart('azure6', [83.5, SY, SZ], -Math.PI / 2, RYGB); // the Blue Span
-  devStart('azure7', [119, SY, -156], 0, RYGB); // outside the Undercroft
-  devStart('azure8', [172, LOCK0 - 1, -163], 0, RYGB); // in the Sluice's water
-  devStart('azure9', [168, GY, GZ], Math.PI / 2, RYGB); // the gallery, by the cistern's door
-  devStart('cistern', arena.checkpoint, 0, RYGB); // the cistern's shore ledge
-  devStart('ascent', [108.5, GY, GZ], Math.PI / 2, RYGB); // the Spillway (engine shut down)
+  devStart('azure13', [83.5, SY, SZ], -Math.PI / 2, RYGB, 'The Blue Span (slick leap)');
+  devStart('azure14', [119, SY, -156], 0, RYGB, 'The Undercroft');
+  devStart('azure15', [172, LOCK0 - 1, -163], 0, RYGB, "The Sluice");
+  devStart('azure16', [168, GY, GZ], Math.PI / 2, RYGB, "The gallery by the cistern's door");
+  devStart('cistern', arena.checkpoint, 0, RYGB, "The cistern's shore ledge (the Leviathan)");
+  devStart('ascent', [108.5, GY, GZ], Math.PI / 2, RYGB, 'The Spillway ascent (engine down)');
   const params = new URLSearchParams(location.search);
   if (params.has('dev') && params.get('start') === 'ascent') {
     const once = { update: () => (W.remove(once), game.shutDownWorld('azure')) };

@@ -22,7 +22,7 @@
 //    the valve (onArrive) and flops back home. carry: it carries a power cell on its back to plug in.
 //    flee(): a chaser caught it; it bolts back to the water (and its cell with it) to try again.
 // ScrapCrawler { route, s, seal, color: BLUE, shields: [outer, ..., inner], hp }
-//    A low, fast crawler that hunts a RoboSeal along its route (and bites anyone in its way: one bite
+//    A low, fast crawler that hunts a RoboSeal along its own route (catching it where they meet) (and bites anyone in its way: one bite
 //    kills). Blue body; each shield layer pops only to its own color, the bare body only to blue; any
 //    other color glances off and enrages it (a burst of speed). Slicks trip it up; shock water fries it.
 // Junction   { min, max, live: false, cooldown: 8, oneShot: false, onShort, onRearm, kind: 'box' | 'breaker'
@@ -39,11 +39,14 @@
 //               out on extend() (riders carried) and stows on retract().
 // LeapHint   { from, to, short } ghost arcs over a gap: a dry sprint jump falling short (marked TOO FAR),
 //               and the slick leap that makes it; hide() once it's been done.
+// IcePlug    { min, max, heat, onMelt } a frozen pipe mouth the yellow sun beam thaws (onBeam).
+//    (WaterTank.feed: level a second poured in from a pipe, e.g. once a plug has melted.)
 import * as THREE from 'three';
 import { COLORS, BLUE } from '../colors.js';
 import { audio } from '../audio.js';
 import { SynthLoop, noiseVoice } from '../weapons/rays.js';
 import { mat } from '../materials.js';
+import { ColorShield } from './colorShield.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
@@ -54,7 +57,6 @@ const clamp = THREE.MathUtils.clamp;
 const BLUE_HEX = COLORS[BLUE].hex;
 const SOUNDS = ['crab_chirp', 'critter_hit', 'fish_alert', 'switch_on', 'hydraulic_hiss', 'gate_open', 'elevator_loop', 'energy_crackle', 'joint_sparks', 'shield_break', 'shield_absorb', 'ricochet', 'crab_skitter', 'crab_explode', 'phase_in', 'phase_out', 'servo_heavy', 'mover_step'];
 audio.manifest?.then(() => audio.prefetch(SOUNDS));
-const near = (p, far = 40) => clamp(1.1 - p.distanceTo(audio.lisPos || p) / far, 0, 1);
 // how loud something at p is for the player (the camera)
 function gainAt(game, p, far = 40) {
   return clamp(1.15 - p.distanceTo(game.camera.position) / far, 0, 1);
@@ -137,6 +139,7 @@ export class WaterTank {
     this.full = false;
     this.latched = false;
     this.fillT = 0;
+    this.feed = 0;
     this.solved = false;
     const [w, h, d] = size;
     this.group = new THREE.Group();
@@ -208,6 +211,11 @@ export class WaterTank {
 
   update(dt, player) {
     const fx = this.world.fx;
+    // a pipe pouring into it (feed: level a second) counts as filling
+    if (this.feed > 0 && !this.latched) {
+      this.level = Math.min(1, this.level + this.feed * dt);
+      this.fillT = Math.max(this.fillT, 0.05);
+    }
     const filling = this.fillT > 0;
     this.fillT -= dt;
     if (!filling && !this.latched && this.leakRate > 0 && this.level > 0) this.level = Math.max(0, this.level - this.leakRate * dt);
@@ -712,7 +720,7 @@ function crawlerGeometry() {
   const legs = [];
   for (const sx of [-1, 1]) for (const z of [-0.3, 0, 0.3]) legs.push(new THREE.BoxGeometry(0.36, 0.05, 0.06).translate(sx * 0.4, 0.06, z).rotateZ(sx * -0.3));
   const jaws = [new THREE.ConeGeometry(0.06, 0.28, 4).rotateX(-Math.PI / 2).translate(-0.12, 0.08, -0.58), new THREE.ConeGeometry(0.06, 0.28, 4).rotateX(-Math.PI / 2).translate(0.12, 0.08, -0.58)];
-  crawlerGeo = { shell, legs: mergeSimple(legs), jaws: mergeSimple(jaws), eye: new THREE.BoxGeometry(0.34, 0.05, 0.05).translate(0, 0.2, -0.47), shield: new THREE.IcosahedronGeometry(0.72, 1) };
+  crawlerGeo = { shell, legs: mergeSimple(legs), jaws: mergeSimple(jaws), eye: new THREE.BoxGeometry(0.34, 0.05, 0.05).translate(0, 0.2, -0.47) };
   return crawlerGeo;
 }
 function mergeSimple(geos) {
@@ -756,21 +764,14 @@ export class ScrapCrawler {
     shell.position.y = 0.12;
     this.legs = new THREE.Mesh(G.legs, m.dark);
     this.group.add(shell, this.legs, new THREE.Mesh(G.jaws, m.steel), new THREE.Mesh(G.eye, this.eyeMat));
-    this.shellMesh = new THREE.Mesh(G.shield, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false }));
-    this.shellMesh.position.y = 0.25;
-    this.group.add(this.shellMesh);
-    this.applyShield();
+    // layered hard-light shells (colorShield.js), shot off outermost first
+    this.colorShield = this.shields.length ? new ColorShield(this, { shields: this.shields, hp: 1 }, { parent: this.group, center: [0, 0.28, 0], size: [0.6, 0.42, 0.72] }) : null;
+    this.dist = 10;
     this.group.userData.hit = this;
     this.group.position.copy(this.pos);
     world.scene.add(this.group);
     world.addHittable(this.group);
     world.add(this);
-  }
-
-  applyShield() {
-    const c = this.shields[0];
-    this.shellMesh.visible = c !== undefined;
-    if (c !== undefined) this.shellMesh.material.color.setHex(COLORS[c].hex).multiplyScalar(1.4);
   }
 
   center(out = _v) {
@@ -780,20 +781,14 @@ export class ScrapCrawler {
   onHit(color, hit) {
     if (this.dead) return 'kill';
     const fx = this.world.fx;
-    const want = this.shields.length ? this.shields[0] : this.color;
-    if (color !== want) {
+    const r = this.colorShield?.up ? this.colorShield.hit(color, hit) : color === this.color ? null : 'immune';
+    if (r === 'immune') {
       // the wrong color glances off and makes it angry
       this.rageT = 2;
       fx.sparks(hit?.point || this.center(), hit?.normal || UP, COLORS[color].hex, { count: 6, speed: 6 });
       return 'immune';
     }
-    if (this.shields.length) {
-      this.shields.shift();
-      this.applyShield();
-      fx.burst(this.center(), COLORS[color].hex, { count: 22, speed: 5, life: 0.4, size: 0.12, gravity: 3 });
-      audio.sample('shield_break', { gain: 0.7 * gainAt(this.game, this.pos), rate: 1.4, vary: 0.08 });
-      return 'hit';
-    }
+    if (r) return r;
     if (--this.hp <= 0) {
       this.die();
       return 'kill';
@@ -826,7 +821,7 @@ export class ScrapCrawler {
     this.world.remove(this);
     this.bodyMat.dispose();
     this.eyeMat.dispose();
-    this.shellMesh.material.dispose();
+    this.colorShield?.dispose();
   }
 
   despawn() {
@@ -844,7 +839,7 @@ export class ScrapCrawler {
     // the target: the seal while it's out on the deck, else whoever is nearest along the route
     const ps = R.nearest(player.pos);
     const playerNear = Math.hypot(player.pos.x - this.pos.x, player.pos.z - this.pos.z) < 7 && Math.abs(player.pos.y - this.pos.y) < 2.5;
-    const target = seal && seal.onLand && !playerNear ? seal.s : ps;
+    const target = seal && seal.onLand && !playerNear ? R.nearest(seal.pos) : ps;
     const slick = this.world.wet?.count ? this.world.wet.slickAt(_v.set(this.pos.x, this.floorY + 0.05, this.pos.z)) : 0;
     let sp = this.speed * (this.rageT > 0 ? 1.6 : 1) * (slick > 0.4 ? 0.45 : 1);
     if (this.lungeT > 0) sp = 0;
@@ -862,7 +857,7 @@ export class ScrapCrawler {
     }
     this.floorY = this.pos.y;
     // catch the seal
-    if (seal && seal.onLand && Math.abs(seal.s - this.s) < 1.1 && seal.state !== 'flee') seal.flee();
+    if (seal && seal.onLand && seal.state !== 'flee' && Math.hypot(seal.pos.x - this.pos.x, seal.pos.z - this.pos.z) < 1.15) seal.flee();
     // bite: a short lunge telegraphed by its eye flaring
     const dp = Math.hypot(player.pos.x - this.pos.x, player.pos.z - this.pos.z);
     if (this.lungeT > 0) {
@@ -881,7 +876,8 @@ export class ScrapCrawler {
     this.legs.position.y = Math.abs(Math.sin(this.t * 22)) * 0.03;
     this.group.rotation.z = slick > 0.4 ? Math.sin(this.t * 9) * 0.25 : 0;
     this.eyeMat.color.setHex(COLORS[this.color].hex).multiplyScalar(this.lungeT > 0 ? 5 : this.rageT > 0 ? 3.5 : 2.4);
-    if (this.shellMesh.visible) this.shellMesh.rotation.y += dt * 0.8;
+    this.dist = dp;
+    this.colorShield?.update(dt);
   }
 }
 
@@ -1361,4 +1357,71 @@ export class LeapHint {
     this.wetMat.opacity = this.k * 0.75 * (1 - p * 0.6);
     this.signMat.opacity = this.k * 0.95;
   }
+}
+
+// ================================================================== ICE PLUG (a frozen pipe the sun beam thaws)
+// IcePlug { min, max, heat: 1.6, onMelt }  a block of ice frozen in a pipe's mouth. Hold the yellow sun
+// beam on it (onBeam) for `heat` s and it cracks, glows and bursts, and onMelt runs (e.g. the water
+// behind it starts pouring into a tank: WaterTank.feed). Other colors chip at it to no effect.
+export class IcePlug {
+  constructor(world, game, { min, max, heat = 1.6, onMelt = null }) {
+    this.world = world;
+    this.game = game;
+    this.min = v3(min);
+    this.max = v3(max);
+    this.need = heat;
+    this.heat = 0;
+    this.melted = false;
+    this.onMelt = onMelt;
+    this.coolT = 0;
+    const sx = this.max.x - this.min.x, sy = this.max.y - this.min.y, sz = this.max.z - this.min.z;
+    this.mat = new THREE.MeshStandardMaterial({ color: 0xbfe6ff, emissive: 0x2a66ff, emissiveIntensity: 0.35, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.85, flatShading: true });
+    this.mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 1), this.mat);
+    this.mesh.scale.set(sx * 0.62, sy * 0.62, sz * 0.62);
+    this.mesh.position.copy(this.min).add(this.max).multiplyScalar(0.5);
+    this.mesh.raycast = () => {};
+    world.scene.add(this.mesh);
+    this.solid = world.addSolid(this.min.clone(), this.max.clone(), { entity: this, kind: 'metal' });
+    world.add(this);
+  }
+
+  onBeam(dt) {
+    if (this.melted) return;
+    this.heat += dt;
+    this.coolT = 0.3;
+    const fx = this.world.fx;
+    if (Math.random() < dt * 20) {
+      const k = fx.puff(this.mesh.position, rnd(-0.3, 0.3), rnd(0.6, 1.2), rnd(-0.3, 0.3), new THREE.Color(0xd8e8f0), 0.3, rnd(0.6, 1), rnd(0.15, 0.3), 3);
+      fx.grav[k] = -1.2;
+    }
+    if (this.heat >= this.need) this.melt();
+  }
+
+  onHit(color) {
+    return color === 1 ? 'hit' : 'immune';
+  }
+
+  melt() {
+    if (this.melted) return;
+    this.melted = true;
+    this.solid.enabled = false;
+    this.mesh.visible = false;
+    const fx = this.world.fx, p = this.mesh.position;
+    fx.burst(p, 0xbfe6ff, { count: 40, speed: 5, life: 0.8, size: 0.14, gravity: 9, mode: 'shard' });
+    fx.flash(p, 0xffe0a0, { size: 1.6, life: 0.15 });
+    audio.sample('ice_crack', { gain: 0.9 * gainAt(this.game, p), vary: 0.05 }) || audio.sample('shatter', { gain: 0.7, rate: 1.3 });
+    this.onMelt?.(this);
+  }
+
+  update(dt) {
+    if (this.melted) return;
+    this.coolT -= dt;
+    if (this.coolT <= 0) this.heat = Math.max(0, this.heat - dt * 0.5);
+    const k = this.heat / this.need;
+    this.mat.emissive.setRGB(0.16 + k * 0.9, 0.4 + k * 0.25, 1 - k * 0.7);
+    this.mat.emissiveIntensity = 0.35 + k * 1.2;
+    this.mesh.rotation.y = Math.sin(this.world.time * 30) * 0.03 * k;
+  }
+
+  reset() {}
 }

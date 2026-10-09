@@ -1,7 +1,8 @@
 // AZURE — THE FLOODED DEPTHS. The water heart of the Cold Deep: a flooded wing of the station behind the
 // chasm's east cliff, spliced into the descent between the turbine deck and the Cryo Lab (azure.js):
 //   turbine deck (y -21) → entry tunnel through the cliff → THE SUMP (a sinkhole flooded to y -22.4, open
-//   to the sky; a robo-squid and a school of robo-fish) → the DOWNPIPE (a slow fall down a flooded pipe on a downward current, with
+//   to the rain; a robo-squid and a school of robo-fish; the pipe in its floor is hatched shut, and its
+//   valve stands on a shelf only the sump's maintenance seal can reach: hose it a wet path) → the DOWNPIPE (a slow fall down a flooded pipe on a downward current, with
 //   a breather niche halfway) → THE BELL (an air pocket with a dry ledge: checkpoint) → the KELP GALLERY
 //   (flooded to the ceiling; air pockets in ceiling recesses, the first with a checkpoint ledge; a
 //   sub-drone) → a choice: on along the gallery (a second pocket, past the drone) or through the INTAKE
@@ -15,12 +16,13 @@
 // pulsing cyan beacons and every pocket by gold beacons, a shaft of warm light and a column of bubbles.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { RED, YELLOW, GREEN } from '../colors.js';
+import { RED, YELLOW, GREEN, BLUE } from '../colors.js';
 import { Barrier } from '../entities/barrier.js';
 import { Checkpoint } from '../entities/misc.js';
 import { Glass, Mirror, TargetPanel } from '../entities/puzzle.js';
 import { SubDrone } from '../entities/subdrone.js';
 import { vortex } from '../entities/vortex.js';
+import { RoboSeal } from '../entities/waterPuzzle.js';
 import { waterSurface } from '../liquid.js';
 import { audio } from '../audio.js';
 
@@ -225,8 +227,8 @@ export function buildAzureFlooded(B) {
   deco(PX1 - 0.7, -29.95, PZ2 + 0.6, PX2 + 0.7, -29.88, PZ2 + 0.7);
   deco(PX1 - 0.7, -29.95, PZ1 - 0.6, PX1 - 0.6, -29.88, PZ2 + 0.6);
   deco(PX2 + 0.6, -29.95, PZ1 - 0.6, PX2 + 0.7, -29.88, PZ2 + 0.6);
-  // an energy grate seals it (it stays open once broken, so the pipe can never trap you)
-  new Barrier(W, { min: [PX1, -30.35, PZ1], max: [PX2, -30, PZ2], color: RED, kind: 'wall', zone });
+  // a hatch seals it (worked from the valve on the north shelf; it stays open, so the pipe can never trap you)
+  const pipeHatch = B.seal([PX1, -30.4, PZ1], [PX2, -30, PZ2], { closed: true, zone });
   // the pier: the tunnel's floor runs on out over the water and steps down into it
   box(124, -22, -116.1, 131, -21, -113.1, 'floor');
   for (const z of [-116.1, -113.25]) {
@@ -237,9 +239,49 @@ export function buildAzureFlooded(B) {
   stairs(131, -116.1, 134, -113.1, -21.4, -23.4, 6, 'x');
   new Checkpoint(W, game, { pos: [126.5, -21, -114.6], yaw: -Math.PI / 2, size: [3, 3, 3] });
   area([124, -21, -116.1], [127, -18, -113.1], DEEP);
-  hint([129, -21, -116.1], [131, -18, -113.1], 'Follow the <b>buoys</b> out to the marker, then dive. The pipe below is sealed by a <b>RED</b> grate.', 5);
+  hint([129, -21, -116.1], [131, -18, -113.1], 'The pipe in the sump\'s floor is <b>hatched shut</b>. Its valve is on the shelf across the water, and the sump\'s maintenance seal wants to work it: it only moves on <b>wet</b> ground. <b>Hose it a path.</b>', 8);
   // the water (the Downpipe's box overlaps the column above its mouth, so the Sump is registered first)
   water([124, -30, -126], [146, SURF, -104]);
+  // THE SEAL PATH (the first seal puzzle): a shelf along the sump's north wall, just above the water, with
+  // the pipe hatch's valve at its east end. The sump's maintenance seal (a RoboSeal: it can only move on wet
+  // ground) floats by the shelf's west end, chirping. Hose a trail of puddles along the shelf from its
+  // haul-out spot to the valve (from the pier, 10-15 m off) and it slides along it and turns the valve.
+  box(135.5, -30, -126, 146, -21.8, -122.5, 'floor');
+  for (const [x1, x2] of [[135.5, 146]]) {
+    deco(x1, -21.9, -122.55, x2, -21.8, -122.45);
+    deco(x1, -23.6, -122.52, x2, -21.9, -122.48, 'metal');
+  }
+  for (let x = 138.4; x < 144.5; x += 1.5) deco(x, -21.796, -123.9, x + 0.8, -21.78, -123, 'hazard'); // the lane, marked
+  deco(136.2, -22.6, -122.5, 139, -22.2, -121.9, 'metal'); // a slipway lip down into the water
+  const valveWheel = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.06, 6, 18), new THREE.MeshStandardMaterial({ color: 0x8a5a32, roughness: 0.5, metalness: 0.6 }));
+  box(145.1, -21.8, -124.9, 145.7, -20.6, -124.3, 'metal'); // the valve post
+  valveWheel.position.set(145.4, -20.45, -124.6);
+  valveWheel.rotation.x = Math.PI / 2;
+  valveWheel.raycast = () => {};
+  W.scene.add(valveWheel);
+  deco(145.15, -20.62, -124.85, 145.65, -20.58, -124.35, 'glow1');
+  let spin = 0;
+  const sumpSeal = new RoboSeal(W, game, {
+    water: [137.6, SURF - 0.15, -121.2],
+    route: [[137.6, -21.8, -123.2], [139.6, -21.8, -123.45], [144.5, -21.8, -123.45]],
+    onArrive: () => {
+      spin = 1.6;
+      pipeHatch.open();
+      audio.sample('hydraulic_hiss', { gain: 0.9, vary: 0 });
+      game.hud.message('The seal spins the valve: the <b>pipe hatch</b> in the sump floor swings open. Dive by the marker buoy.', 6);
+    },
+  });
+  W.add({
+    update(dt) {
+      if (spin > 0) {
+        spin -= dt;
+        valveWheel.rotation.z += dt * 7;
+      }
+    },
+  });
+  B.onRespawn(() => sumpSeal.reset());
+  B.level.azure.sumpSeal = sumpSeal;
+  B.level.azure.pipeHatch = pipeHatch;
   // buoys from the pier to the marker over the mouth, and the marker's anchor line down to the grate
   const toMarker = trail([[134.6, SURF + 0.1, -114.6], [PCX - 0.6, SURF + 0.1, PCZ + 0.4]], { step: 1.6, r: 0.16 });
   box(PCX - 0.35, SURF - 0.3, PCZ - 0.35, PCX + 0.35, SURF + 0.5, PCZ + 0.35, 'metal'); // the marker buoy
@@ -251,9 +293,9 @@ export function buildAzureFlooded(B) {
   // a sub-drone patrols the sinkhole (you can always surface here to fight it)
   // a robo-squid haunts the sinkhole (meet it here, where the open sky is always overhead): it jets off in
   // a cloud of ink when you aim at it, and its slow ink torpedoes can be shot down
-  B.roboSquid([134, -26.5, -109], { color: YELLOW, hp: 4, orbit: 3 });
+  B.roboSquid([134, -26.5, -109], { color: BLUE, hp: 4, orbit: 3 });
   // and a school of robo-piranhas works the kelp on the far side (they leap at you on the pier, too)
-  B.roboFish([129, -27.5, -121], { count: 4, color: [RED, YELLOW], patrol: 4 });
+  B.roboFish([129, -27.5, -121], { count: 4, color: BLUE, patrol: 4 });
   // what's down there: a toppled pump housing, a sunken crane arm, crates, the old intake pipes
   box(126, -30, -109, 131.5, -27.2, -105, 'metal');
   deco(125.9, -28.8, -109.1, 131.6, -28.6, -104.9);
@@ -275,7 +317,7 @@ export function buildAzureFlooded(B) {
     const y = -29 + rng() * 26;
     if (side === 0) cluster(124.2, y, -105 - t * 20, 1.5 + rng() * 2.5, i % 3 ? 'ice' : 'glow', 1.1, 0);
     else if (side === 1) cluster(145.8, y, -105 - t * 20, 1.5 + rng() * 2.5, i % 3 ? 'ice' : 'glow', -1.1, 0);
-    else if (side === 2) cluster(125 + t * 20, y, -125.8, 1.5 + rng() * 2.5, i % 3 ? 'ice' : 'glow', 0, 1.1);
+    else if (side === 2) (t < 0.5 || y > -17) && cluster(125 + t * 20, y, -125.8, 1.5 + rng() * 2.5, i % 3 ? 'ice' : 'glow', 0, 1.1); // (clear of the seal's shelf)
     else cluster(125 + t * 20, y, -104.2, 1.5 + rng() * 2.5, i % 3 ? 'ice' : 'glow', 0, -1.1);
   }
   for (const [x, z, s] of [[125.5, -124.5, 4], [144.5, -124.6, 3.5], [125.5, -105.5, 3], [144.6, -105.4, 4.5]]) cluster(x, -30, z, s, 'ice', x < 135 ? 0.3 : -0.3, z < -115 ? 0.3 : -0.3, 5);
@@ -402,8 +444,8 @@ export function buildAzureFlooded(B) {
   hint([153, -53.5, -133.5], [159, -49.5, -128.5], 'Two ways on: along the <b>gallery</b> to the next air pocket, past a sub-drone — or the <b>intake duct</b> (west, behind the YELLOW seal): its current sweeps you straight to the lab, if you clear the spikes in time.', 7);
   // the first barrier: GREEN, across the whole gallery
   new Barrier(W, { min: [152, -60, -124.2], max: [160, GC, -123.8], color: GREEN, kind: 'wall', zone });
-  new SubDrone(W, { pos: [156, -56, -138.5], color: RED, orbit: 2.5, leash: 7, range: 18 });
-  B.roboFish([156, -57.5, -114], { count: 3, color: GREEN, patrol: 3 }); // in the kelp, before the green barrier
+  new SubDrone(W, { pos: [156, -56, -138.5], color: BLUE, shields: [RED], orbit: 2.5, leash: 7, range: 18 });
+  B.roboFish([156, -57.5, -114], { count: 3, color: BLUE, patrol: 3 }); // in the kelp, before the green barrier
   // vortex tubes: one shoots you up into G1 just past the barrier; from under G2 a second dives to the
   // lab doorway, where a third flings you across the lab to the Ballast Shaft
   vortex(B, { from: [157.5, -58.4, -127.4], to: [157.5, -53.2, -130.6], radius: 1, speed: 13, exitSpeed: 5.5 });
@@ -467,7 +509,7 @@ export function buildAzureFlooded(B) {
   const LEVEL0 = -47.8, LEVEL1 = -25.6, RISE = 1.45;
   const shaftWater = water([126, -60, -151], [134, LEVEL0, -141], { surface: false });
   const shaftSurf = waterSurface(W, 126, -151, 134, -141, LEVEL0);
-  new SubDrone(W, { pos: [145, -57, -139.5], color: GREEN, orbit: 2.5, leash: 8, range: 18 });
+  new SubDrone(W, { pos: [145, -57, -139.5], color: BLUE, shields: [GREEN, YELLOW], orbit: 2.5, leash: 8, range: 18 });
   // the intake duct's current runs on into a vortex tube that throws you up to the shaft too
   vortex(B, { from: [141.5, -58.7, -137.3], to: [133.4, -53, -142.2], radius: 1.1, speed: 14, exitSpeed: 5 });
   // lab dressing: benches, tanks, a dead console wall, kelp in the corners
@@ -703,7 +745,5 @@ export function buildAzureFlooded(B) {
     },
   });
 
-  devStart('flooded', [110, -21, -114.6], -Math.PI / 2, [RED, YELLOW, GREEN]);
-  devStart('flooded2', [135.75, -52.3, -116], -Math.PI / 2, [RED, YELLOW, GREEN]);
-  devStart('flooded3', [127.3, -47.6, -147], -Math.PI / 2, [RED, YELLOW, GREEN]);
+  // (its dev starts, azure5..azure7, are registered with the rest of the world's in azure.js, in route order)
 }
