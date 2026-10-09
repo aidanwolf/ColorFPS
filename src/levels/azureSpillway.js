@@ -42,8 +42,8 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut, hab, airs }) 
   // (x 112.2), at z -146; an air bell hangs halfway. (The turbine field's currents will run here.)
   const SY = -56, SZ = -146;
   hab.airBell(96, -50, SZ, { yaw: -Math.PI / 2 });
-  hab.trail([[81, SY + 1.4, SZ], [94, SY + 2.4, SZ]], { step: 2.2 });
-  hab.trail([[98, SY + 2.4, SZ], [111.5, SY + 1.4, SZ]], { step: 2.2, along: 14 });
+  hab.trail([[81, SY + 1.4, SZ], [93.6, SY + 0.6, SZ]], { step: 2.2 });
+  hab.trail([[98.4, SY + 0.6, SZ], [104, SY + 1, SZ - 0.5]], { step: 2.2, along: 14 });
   hab.membrane([112.15, SY, SZ - 1.5], [112.25, SY + 3.2, SZ + 1.5]);
   hint([76, SY, SZ - 1.5], [80, SY + 3, SZ + 1.5], 'The sea door. Swim <b>east</b> across the trench to the hull — the <b>air bell</b> halfway has air.', 5);
   keepOut.push([[80, SY - 2, SZ - 3.5], [121, SY + 7, SZ + 3.5]]);
@@ -303,7 +303,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut, hab, airs }) 
 
   // ================================================================== THE GALLERY (y -7.7)
   // From the Sluice's top door west past the cistern's door (and, once the engine is down, on through the
-  // pressure lock and out of the cliff onto the Spillway). z -157..-154.
+  // pressure lock and out of the hull onto the Spillway). z -157..-154.
   const GY = -7.7, GZ = -155.5;
   corridorX({ xStart: 112, xEnd: 179.5, y: GY, zone, cz: GZ, n: [{ c: 160, w: 8, h: CH }, { c: 173, w: 3, h: CH }] });
   box(179.5, GY, GZ - 1.5, 180, GY + CH, GZ + 1.5);
@@ -411,7 +411,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut, hab, airs }) 
   // drones work the rig (they come back whenever you return)
   // (they hang off to the sides of the chain, never in a pad's flight path)
   new Drone(W, { pos: [80, 3, -160], color: BLUE, shields: [YELLOW], range: 22, orbit: 2 });
-  new Drone(W, { pos: [58, 12, -152], color: BLUE, shields: [RED], range: 22, orbit: 2 }); // (well clear of the Rim Deck: the descent has no fights)
+  new Drone(W, { pos: [58, 12, -152], color: BLUE, shields: [RED], range: 22, orbit: 2 }); // (well clear of the rig deck: the deck has no fights)
   keepOut.push([[33, -9, -160], [113, 30, -131]]);
 
   // ================================================================== THE CONDUIT to the Atrium's reactor
@@ -537,13 +537,18 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut, hab, airs }) 
   });
 
   // ---- dev starts (the ascent start shuts the engine down first, so the way home is open)
-  devStart('azure13', [77.5, SY, SZ], -Math.PI / 2, RYGB, 'The sea door (the crossing to the hull)');
+  devStart('azure13', [82.5, SY + 0.6, SZ], -Math.PI / 2, RYGB, 'The turbine field (the crossing to the hull)');
   devStart('azure14', [119, SY, -156], 0, RYGB, 'The Undercroft');
   devStart('azure15', [172, LOCK0 - 1, -163], 0, RYGB, "The Sluice");
   devStart('azure16', [168, GY, GZ], Math.PI / 2, RYGB, "The gallery by the cistern's door");
   devStart('cistern', arena.checkpoint, 0, RYGB, "The cistern's shore ledge (the Leviathan)");
   devStart('ascent', [108.5, GY, GZ], Math.PI / 2, RYGB, 'The Spillway ascent (engine down)');
   const params = new URLSearchParams(location.search);
+  // (the sea-door start stands in the generator hall: its Dynamo counts as beaten)
+  if (params.get('start') === 'azure13' || params.get('jump') === 'azure13') {
+    const once = { update: () => (W.remove(once), game.clearedEncounters?.add('enc:dynamo:azure')) };
+    W.add(once);
+  }
   if (params.has('dev') && params.get('start') === 'ascent') {
     const once = { update: () => (W.remove(once), game.shutDownWorld('azure')) };
     W.add(once);

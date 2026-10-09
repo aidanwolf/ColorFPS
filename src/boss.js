@@ -305,7 +305,7 @@ export class Boss {
   }
 
   // Each world's echo of the Warden wears that world: molten seams in the Forge, a halo of mirrors under
-  // the sun, vines and blooms in the Overgrowth, ice in the Deep, every color in the Heart.
+  // the sun, vines and blooms in the Overgrowth, coral in the Deep, every color in the Heart.
   buildForms() {
     const glow = (hex, k = 2) => new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(k) });
     const noHit = (o) => {
@@ -362,8 +362,8 @@ export class Boss {
     for (const n of ['armL', 'armR']) wind(this.limbs[n].elbow, 0.48, -0.3);
     wind(this.torso, 1.25, 1.9, 3);
     this.forms.verdant = verdant.map(noHit);
-    // deep: ice crystals growing from the shoulders, back and crest
-    const ice = new THREE.MeshStandardMaterial({ color: 0xbfe8ff, emissive: 0x2a8cff, emissiveIntensity: 0.7, metalness: 0.2, roughness: 0.1, flatShading: true, transparent: true, opacity: 0.9 });
+    // deep: coral and barnacles growing from the shoulders, back and crest
+    const ice = new THREE.MeshStandardMaterial({ color: 0xff8a9a, emissive: 0x2ad8c8, emissiveIntensity: 0.55, metalness: 0.05, roughness: 0.65, flatShading: true });
     const deep = [];
     const crystal = (parent, x, y, z, s, rx, rz) => {
       const c = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), ice);
