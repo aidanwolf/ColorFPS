@@ -997,6 +997,7 @@ class Game {
     }
     for (const pr of this.world.projectiles) pr.alive = false;
     this.world.wet.clear(); // puddles and shock water dry up
+    this.world.goo.clear(); // and the goo
     for (const fn of this.level.respawnHooks) fn();
     director.holders.clear();
     barks.reset();
