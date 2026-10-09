@@ -24,6 +24,7 @@ const PERSONAS = SCRIPT.personas;
 // event -> [priority, persona-event cooldown s, chance, earshot m]
 const EVENTS = {
   taunt: [6, 0, 1, 40],
+  enraged: [5, 4, 1, 45], // (a wrong-color volley set it off: its aggro yell cuts in)
   ally_down: [4, 3.5, 0.85, 34],
   shield_break: [4, 6, 1, 36],
   hit: [3, 3.2, 0.75, 34],

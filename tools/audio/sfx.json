@@ -1251,5 +1251,15 @@
   "text": "Giant crystalline war machine's anguished roar: a long, layered, distorted electronic howl with cracking crystal and power surging then failing, huge sci-fi boss in agony",
   "dur": 2.4,
   "influence": 0.6
+ },
+ "aggro_warn": {
+  "text": "Short soft digital warning tick for a video game HUD: a quick two-note descending blip, subtle, clean, sci-fi UI alert",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "aggro_sting": {
+  "text": "Negative 'uh-oh' video game sting: a short descending dissonant synth-brass stab with a low distorted robotic growl swelling under it, menacing, punchy, sci-fi enemy enraged cue",
+  "dur": 1.4,
+  "influence": 0.6
  }
 }

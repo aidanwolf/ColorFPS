@@ -449,6 +449,21 @@
   {"id":"lumen_idle_03","persona":"lumen","event":"idle","text":"Power output, stable."},
   {"id":"lumen_idle_04","persona":"lumen","event":"idle","text":"Running diagnostics."},
   {"id":"lumen_idle_05","persona":"lumen","event":"idle","text":"No anomalies. Continue."},
-  {"id":"lumen_idle_06","persona":"lumen","event":"idle","text":"The Lumen is watching."}
+  {"id":"lumen_idle_06","persona":"lumen","event":"idle","text":"The Lumen is watching."},
+  {"id":"foundry_enraged_01","persona":"foundry","event":"enraged","text":"That's it, you're scrap!"},
+  {"id":"foundry_enraged_02","persona":"foundry","event":"enraged","text":"Now you've done it! Full burn!"},
+  {"id":"foundry_enraged_03","persona":"foundry","event":"enraged","text":"Wrong move, meat! Torches up!"},
+  {"id":"solar_enraged_01","persona":"solar","event":"enraged","text":"You defile the light. Now burn."},
+  {"id":"solar_enraged_02","persona":"solar","event":"enraged","text":"The rite is broken. Purge it."},
+  {"id":"solar_enraged_03","persona":"solar","event":"enraged","text":"Your error is noted. Wrath ascends."},
+  {"id":"verdant_enraged_01","persona":"verdant","event":"enraged","text":"Sssss! Swarm it! Ssswarm!"},
+  {"id":"verdant_enraged_02","persona":"verdant","event":"enraged","text":"Kkk-kill! Kill it now!"},
+  {"id":"verdant_enraged_03","persona":"verdant","event":"enraged","text":"Rrrage. The hive wakesss!"},
+  {"id":"azure_enraged_01","persona":"azure","event":"enraged","text":"Weapons free. Full pressure."},
+  {"id":"azure_enraged_02","persona":"azure","event":"enraged","text":"Hostile escalation. Engage at will."},
+  {"id":"azure_enraged_03","persona":"azure","event":"enraged","text":"Flood the target. All tubes!"},
+  {"id":"lumen_enraged_01","persona":"lumen","event":"enraged","text":"Aggression protocol engaged."},
+  {"id":"lumen_enraged_02","persona":"lumen","event":"enraged","text":"Threat reclassified. Eliminate."},
+  {"id":"lumen_enraged_03","persona":"lumen","event":"enraged","text":"Restraint disabled."}
  ]
 }
