@@ -45,7 +45,7 @@ export function buildLevel(world, game) {
   buildSolar(B);
   buildVerdant(B);
   buildAzure(B);
-  buildAzureFlooded(B); // the water heart of the Azure world, between its turbine deck and Cryo Lab
+  buildAzureFlooded(B); // the water heart of the Azure world, between its crew deck and the Archive
   buildPrism(B);
   buildGuide(world, game);
   buildTestRange(B); // ?dev only: the mechanics toolkit showcase, far off the map

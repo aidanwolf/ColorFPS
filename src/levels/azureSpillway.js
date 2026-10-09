@@ -1,18 +1,19 @@
-// AZURE, SECOND HALF — with the AZURE core in hand you climb back up on the water (called from azure.js):
-//   Core Sanctum (y -56, the Dynamo) → THE BLUE SPAN (platforming over the abyss in the rain: a long
-//   runway you hose down for a SLICK LEAP over an 8.8 m gap, then a timed blue switch for a phase bridge
-//   over a trapdoor) → through the east cliff → THE UNDERCROFT (a half-flooded cistern hall: an encounter
-//   fought above and below the surface, all blue machines under off-color shields; then the duct's
-//   gate winch, which only the hall's maintenance seal can reach: paint it a path of water along the
-//   east walkway while crawlers hunt it) → its exit is underwater: a duct into THE SLUICE (puzzle: a 60 m shaft you flood by spam-shooting blue pump valves, ride up on the
-//   rising water, with a wall of shoot-to-move ledges between the two stages) → the gallery (y -7.7) →
-//   THE DROWNED CISTERN (leviathanArena.js: Charybdis, and the AZURE ENGINE, the world's power source)
-//   → shoot the engine down → the pressure lock on the gallery opens → THE SPILLWAY: jump pads up across
-//   the chasm to the Hub's east balcony port (x 25, y 12, z -136).
+// AZURE, SECOND HALF — with the AZURE core in hand you climb back up through the station (called from azure.js):
+//   the Generator Hall (y -56, the Dynamo) → its sea door → THE CROSSING (a swim across the open trench to the
+//   hull, an air bell halfway; the turbine field's currents will run here) → through the hull → THE
+//   UNDERCROFT (a half-flooded cistern hall: an encounter fought above and below the surface, all blue
+//   machines under off-color shields; then the duct's gate winch, which only the hall's maintenance seal can
+//   reach: paint it a path of water along the east walkway while crawlers hunt it) → its exit is underwater:
+//   a duct into THE SLUICE (puzzle: a 60 m shaft you flood by spam-shooting blue pump valves, ride up on the
+//   rising water, with a wall of shoot-to-move ledges between the two stages) → the gallery (y -7.7, at the
+//   waterline) → THE INTAKE (leviathanArena.js: Charybdis, and the AZURE ENGINE, the world's power source)
+//   → shoot the engine down → the pressure lock on the gallery opens → THE SPILLWAY: the rig's waterline
+//   deck and jump pads up across the sea to the Hub's east balcony port (x 25, y 12, z -136).
 // The engine's output runs to the Atrium's reactor in a glass conduit (water racing through it) that
-// crosses the chasm and enters the Hub's east wall at (25, 14, -118). When the engine dies the aftermath
+// crosses the sea and enters the Hub's east wall at (25, 14, -118). When the engine dies the aftermath
 // (onPowerDown('azure'), also replayed instantly after a reload) drains that conduit, kills the world's
-// blue trims and lights, stills its vortex tubes and horizontal currents, and darkens its atmosphere.
+// blue trims and lights, stills its vortex tubes and horizontal currents, darkens the habitats, and the
+// storm up top blows itself out: the sky clears over a calm sea.
 // The way home never depends on the engine: jump pads, valves and gravity-fed pipes all keep working.
 import * as THREE from 'three';
 import { COLORS, RED, YELLOW, GREEN, BLUE } from '../colors.js';
@@ -29,47 +30,28 @@ import { buildLeviathanArena } from './leviathanArena.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
-export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
+export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut, hab, airs }) {
   const { W, game, level, CH, room, corridor, corridorX, plat, hint, area, light, devStart, glowEdge, onRespawn } = B;
   const box = (x1, y1, z1, x2, y2, z2, kind = 'wall') => W.box(x1, y1, z1, x2, y2, z2, kind, zone);
   const deco = (x1, y1, z1, x2, y2, z2, kind = 'glow3') => W.deco(x1, y1, z1, x2, y2, z2, kind, zone);
   const RYGB = [RED, YELLOW, GREEN, BLUE];
   const st = level.azure;
 
-  // ================================================================== THE BLUE SPAN (y -56)
-  // A broken catwalk from the sanctum's east door to the east cliff, z -148.5..-143.5, over the abyss
-  // (falling = the void: you're faded back to the deck's checkpoint).
+  // ================================================================== THE CROSSING (y -56)
+  // Out of the Generator Hall's sea door (x 80.5) and across 32 m of open trench to the hull's tunnel
+  // (x 112.2), at z -146; an air bell hangs halfway. (The turbine field's currents will run here.)
   const SY = -56, SZ = -146;
-  // D0: a long runway (12.5 m) from the door out to the gap: hose it down, sprint and leap
-  plat(80.5, SZ - 2.5, 93, SZ + 2.5, SY, zone, 1);
-  for (let x = 82, k = 0; x < 92; x += 2, k++) W.deco(x, SY + 0.005, SZ - 0.6, x + 1, SY + 0.02, SZ + 0.6, k % 2 ? 'hazard' : 'glow3', zone);
-  new Checkpoint(W, game, { pos: [83.5, SY, SZ], yaw: -Math.PI / 2, size: [3, 3, 4] });
-  area([80.5, SY, SZ - 2.5], [84, SY + 3, SZ + 2.5], DEEP);
-  hint([80.5, SY, SZ - 2.5], [86, SY + 3, SZ + 2.5], 'A gap too far to jump dry. <b>Soak the runway</b> end to end, then <b>sprint</b> down it and jump at the very edge.', 6);
-  // D1 (across the gap): the west half solid, the east half a trapdoor (keep moving), a timed blue switch
-  // on a pylon for the phase bridge on to D2
-  plat(101.8, SZ - 2.5, 104.6, SZ + 2.5, SY, zone, 1);
-  B.trapdoor({ min: [104.6, SY - 0.4, SZ - 2.5], max: [107, SY, SZ + 2.5], delay: 0.45, respawn: 3, zone });
-  box(102.6, -80, -151.6, 104, SY + 4.5, -150.6, 'metal'); // the pylon (the switch faces the deck)
-  deco(102.5, SY + 4.5, -151.7, 104.1, SY + 4.6, -150.5);
-  new Checkpoint(W, game, { pos: [103.3, SY, SZ], yaw: -Math.PI / 2, size: [2.4, 3, 4] });
-  const bridge = [[108, SZ - 1.2, 110.5, SZ + 1.2]].map(([x1, z1, x2, z2]) =>
-    B.phasePlatform({ min: [x1, SY - 0.4, z1], max: [x2, SY, z2], color: BLUE, zone }));
-  B.colorSwitch({ pos: [103.3, SY + 2.2, -150.6], face: '+z', color: BLUE, mode: 'timed', time: 6, links: bridge, zone, light: false });
-  hint([102, SY, SZ - 2.5], [104.6, SY + 3, SZ + 2.5], 'Hose the <b style="color:#3a8bff">blue</b> switch on the pylon: the bridge holds for <b>6 s</b>. Don\'t stop on the trapdoor.', 5);
-  plat(110.5, SZ - 2.5, 112.2, SZ + 2.5, SY, zone, 1); // D2, at the cliff
-  // the span's sentries: a turret on a pylon to the south, drones off to the sides
-  box(91, -80, -140.6, 93, SY + 3.4, -138.6, 'metal');
-  deco(90.9, SY + 3.4, -140.7, 93.1, SY + 3.5, -138.5);
-  B.turret([92, SY + 3.5, -139.6], BLUE, { mount: 'floor', cooldown: 3, shields: [YELLOW] });
-  new Drone(W, { pos: [98, SY + 4.5, -151], color: BLUE, shields: [RED], range: 22 });
-  new Drone(W, { pos: [106, SY + 4.5, -141.5], color: BLUE, shields: [GREEN, YELLOW], range: 22 });
-  // ice piers under the decks
-  for (const [x1, x2] of [[81.5, 92], [102, 104.4], [110.8, 112]]) deco(x1, -80, SZ - 1.8, x2, SY - 1, SZ + 1.8, 'rock');
-  keepOut.push([[80, SY - 2, SZ - 3.5], [121, SY + 5, SZ + 3.5]]);
+  hab.airBell(96, -50, SZ, { yaw: -Math.PI / 2 });
+  hab.trail([[81, SY + 1.4, SZ], [94, SY + 2.4, SZ]], { step: 2.2 });
+  hab.trail([[98, SY + 2.4, SZ], [111.5, SY + 1.4, SZ]], { step: 2.2, along: 14 });
+  hab.membrane([112.15, SY, SZ - 1.5], [112.25, SY + 3.2, SZ + 1.5]);
+  hint([76, SY, SZ - 1.5], [80, SY + 3, SZ + 1.5], 'The sea door. Swim <b>east</b> across the trench to the hull — the <b>air bell</b> halfway has air.', 5);
+  keepOut.push([[80, SY - 2, SZ - 3.5], [121, SY + 7, SZ + 3.5]]);
 
-  // ---- through the cliff, then north to the Undercroft
+  // ---- through the hull, then north to the Undercroft
   corridorX({ xStart: 112.2, xEnd: 120.5, y: SY, zone, cz: SZ, n: [{ c: 119, w: 3, h: CH }] });
+  new Checkpoint(W, game, { pos: [114.5, SY, SZ], yaw: -Math.PI / 2, size: [3, 3, 3] });
+  B.zoneTitle([113, SY, SZ - 1.5], [116, SY + 3, SZ + 1.5], 'AZURE', 'THE HULL', '#3aa8ff');
   box(120.5, SY, SZ - 1.5, 121, SY + CH, SZ + 1.5);
   corridor({ zStart: -147.5, zEnd: -159.5, y: SY, zone, cx: 119 });
   area([117.5, SY, -150], [120.5, SY + 3, -147.5], DEEP);
@@ -337,12 +319,13 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   const homeStrip = B.guideStrip([[159.4, GY, GZ - 1.4], [159.4, GY, GZ], [113, GY, GZ]], 0xdfe6ff, { near: 90 });
   homeStrip.visible = false;
   // (its windows onto the sea are set dressing: azureDressing.js)
+  void airs;
 
   // ================================================================== THE DROWNED CISTERN (the guardian)
   // Charybdis and the Azure Engine (entities/leviathan.js, levels/leviathanArena.js): a 50x50 m tank,
   // 22 m deep, centered on (160, -30, -195), its entry alcove butting the gallery's north wall at z -157.
   const arena = (st.arena = buildLeviathanArena(B, {
-    center: [160, -30, -195], world: 'azure', zone, music: 'music_blue',
+    center: [160, -30, -195], world: 'azure', zone, music: 'music_azure',
     onDefeated: () => game.hud.message('The engine is dead. Somewhere a <b>pressure lock</b> lets go — back out into the gallery and head <b>west</b>.', 6),
   }));
 
@@ -355,7 +338,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   for (let k = 0; k < 5; k++) plat(162.6, -165.6 - 0.6 * k, 164, -165 - 0.6 * k, -8.1 - 0.4 * k, zone, 0.25);
 
   // ================================================================== THE SPILLWAY (the way home)
-  // Out of the cliff onto a deck (L0), then four jump pads up across the chasm to the terminal at the
+  // Out of the hull onto the rig's waterline deck (L0), then four jump pads up across the sea to the terminal at the
   // Hub's east balcony port. With the engine dead the pads run on their own capacitors: shoot the orb over
   // a pad (each in its own color) and it holds a charge for 6 s; step on and it throws you to the next
   // landing. Pads throw you at 8 m/s across, so holding W (or nothing) lands you near the middle; each
@@ -396,11 +379,11 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
       plat(p.x1, p.z - 3, p.x2, p.z + 3, p.top, zone, 0.8);
       glowEdge(p.x1, p.z - 3, p.x2, p.z + 3, p.top, 'trimWhite', zone);
       pads.push([p.x1 + 2.2, p.top, p.z]);
-      // its pier, down into the abyss, ringed with light (stopping at the Core Sanctum's roof and going on
-      // under its floor, where one stands over the sanctum)
+      // its leg, down through the sea to the trench floor, ringed with light (stopping at the Generator
+      // Hall's roof and going on under its floor, where one stands over the hall)
       const cx = (p.x1 + p.x2) / 2, overSanctum = cx > 50 && cx < 82 && p.z < -120 && p.z > -152;
       const spans = overSanctum ? [[-80, -57.5], [-41.5, p.top - 0.8]] : [[-80, p.top - 0.8]];
-      for (const [y1, y2] of spans) deco(cx - 1.6, y1, p.z - 1.6, cx + 1.6, y2, p.z + 1.6, 'rock');
+      for (const [y1, y2] of spans) deco(cx - 1.6, y1, p.z - 1.6, cx + 1.6, y2, p.z + 1.6, 'metal');
       for (let y = p.top - 6; y > -70; y -= 14) if (!overSanctum || y > -41 || y < -57.5) deco(cx - 1.7, y, p.z - 1.7, cx + 1.7, y + 0.25, p.z + 1.7);
     }
   }
@@ -413,7 +396,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     deco(34.5, 13.1, z1, 46, 13.16, z2);
     B.blocker([34.5, 12, z1], [46, 30, z2]);
   }
-  deco(36, -80, -137.6, 39, 11, -134.4, 'rock'); // the terminal's pier
+  deco(36, -80, -137.6, 39, 11, -134.4, 'metal'); // the terminal's leg
   corridorX({ xStart: 25, xEnd: 34.5, y: 12, zone, cz: -136 });
   const shutter = B.seal([34, 12, -137.5], [34.5, 12 + CH, -134.5], { closed: true, zone });
   W.trigger([25, 12, -137.5], [27.5, 15, -134.5], () => {
@@ -422,16 +405,18 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     if (level.atmospheres.hub) game.setAtmosphere('hub');
   }, { once: false });
   area([28, 12, -137.5], [34, 15, -134.5], MOOD);
-  hint([97, GY, -158.5], [106, GY + 3, -152.5], 'The <b>Spillway</b>: emergency pads up across the chasm to the Nexus. <b>Shoot the orb over each pad</b> to charge it, then step on.', 6);
-  // drones work the chasm (they come back whenever you return)
+  hint([97, GY, -158.5], [106, GY + 3, -152.5], 'The <b>Spillway</b>: emergency pads up across the sea to the Nexus. <b>Shoot the orb over each pad</b> to charge it, then step on.', 6);
+  // steps up out of the sea onto the waterline deck (anyone who falls off the pads can climb back on)
+  hab.steps(97, -155.5, -1, 0, GY, 3, 6);
+  // drones work the rig (they come back whenever you return)
   // (they hang off to the sides of the chain, never in a pad's flight path)
   new Drone(W, { pos: [80, 3, -160], color: BLUE, shields: [YELLOW], range: 22, orbit: 2 });
   new Drone(W, { pos: [58, 12, -152], color: BLUE, shields: [RED], range: 22, orbit: 2 }); // (well clear of the Rim Deck: the descent has no fights)
   keepOut.push([[33, -9, -160], [113, 30, -131]]);
 
   // ================================================================== THE CONDUIT to the Atrium's reactor
-  // Glass, with water racing through it toward the Hub; it leaves the cistern's west wall, runs south
-  // behind the cliff, through it, and across the chasm into the Hub's east wall (reactor.js takes over).
+  // Glass, with water racing through it toward the Hub; it leaves the Intake's west wall, runs south
+  // inside the hull, out through it, and across the sea into the Hub's east wall (reactor.js takes over).
   const curve = new THREE.CatmullRomCurve3([
     V(133.4, -17, -199), V(126, -15, -196), V(121, -13, -186), V(121, -11.5, -162), V(121, -10.5, -140), V(117.5, -9, -129),
     V(100, -5, -124.5), V(75, 1.5, -123), V(52, 8.2, -121.6), V(36, 12.4, -119.2), V(25.2, 14, -118),
@@ -462,10 +447,10 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   glass.renderOrder = 2;
   for (const m of [water, glass]) {
     m.raycast = () => {};
-    m.userData.noCull = true; // it spans the whole chasm (and is seen from the Hub)
+    m.userData.noCull = true; // it spans the whole sea (and is seen from the Hub)
     W.scene.add(m);
   }
-  // clamps every ~7 m, and pylons where it crosses the open chasm
+  // clamps every ~7 m, and pylons where it crosses the open sea
   {
     const clampGeo = new THREE.TorusGeometry(0.66, 0.1, 6, 14), parts = [], pos = new THREE.Vector3(), tan = new THREE.Vector3(), q = new THREE.Quaternion(), Z = V(0, 0, 1);
     const n = Math.floor(pipeLen / 7);
@@ -512,14 +497,18 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     shutter.open(restored);
     for (const v of W.virtualLights) if (regionOf(v.position) === 'azure') dimLights.push({ v, base: v.intensity });
     for (const e of W.entities) if (e instanceof VortexTunnel && regionOf(e.from) === 'azure') e.setActive(false);
-    for (const w of W.waters || []) if (w.current && Math.abs(w.current.y) < 0.1 && regionOf(w.min.clone().add(w.max).multiplyScalar(0.5)) === 'azure') w.current = null;
-    // a darker, stiller station
+    for (const w of W.waters || []) if (w.current && !w.ocean && Math.abs(w.current.y) < 0.1 && regionOf(w.min.clone().add(w.max).multiplyScalar(0.5)) === 'azure') w.current = null;
+    // a darker, stiller station below; up top, the storm blows itself out over a calm sea
     const A = level.atmospheres;
-    for (const k of ['azure', 'azureDeep']) {
+    for (const k of ['azureDeep', 'azureSea']) {
       if (!A[k]) continue;
-      Object.assign(A[k], { fog: k === 'azure' ? 0x050d1c : 0x030a18, hemiIntensity: A[k].hemiIntensity * 0.7, sunIntensity: A[k].sunIntensity * 0.4, exposure: A[k].exposure * 0.9, aurora: 0, bloom: A[k].bloom * 0.8 });
+      Object.assign(A[k], { fog: k === 'azureDeep' ? 0x061e2c : 0x08303e, hemiIntensity: A[k].hemiIntensity * 0.7, sunIntensity: A[k].sunIntensity * 0.6, exposure: A[k].exposure * 0.92, aurora: 0, bloom: A[k].bloom * 0.8 });
     }
-    if (game.atmo && (game.atmo.name === 'azure' || game.atmo.name === 'azureDeep')) game.setAtmosphere(game.atmo.name, restored);
+    if (A.azure) Object.assign(A.azure, { fog: 0x9cc2d6, hemiIntensity: 1.35, sunIntensity: 2.0, exposure: 1.04 });
+    st.rain?.setIntensity(0.12);
+    if (st.ocean) st.ocean.storm = 0.05;
+    if (game.atmo && ['azure', 'azureDeep', 'azureSea'].includes(game.atmo.name)) game.setAtmosphere(game.atmo.name, restored);
+    if (game.ambient === 'amb_ocean_storm') game.setAmbient('amb_ocean_calm');
     if (!restored) {
       audio.sample('elevator_stop', { gain: 1, vary: 0, rate: 0.6 });
       game.player.shake = Math.max(game.player.shake, 0.4);
@@ -548,7 +537,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   });
 
   // ---- dev starts (the ascent start shuts the engine down first, so the way home is open)
-  devStart('azure13', [83.5, SY, SZ], -Math.PI / 2, RYGB, 'The Blue Span (slick leap)');
+  devStart('azure13', [77.5, SY, SZ], -Math.PI / 2, RYGB, 'The sea door (the crossing to the hull)');
   devStart('azure14', [119, SY, -156], 0, RYGB, 'The Undercroft');
   devStart('azure15', [172, LOCK0 - 1, -163], 0, RYGB, "The Sluice");
   devStart('azure16', [168, GY, GZ], Math.PI / 2, RYGB, "The gallery by the cistern's door");

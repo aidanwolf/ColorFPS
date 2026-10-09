@@ -1,4 +1,4 @@
-// WATER PUZZLES (the Cold Deep): the pieces Azure's puzzles are built from. Everything here is driven by
+// WATER PUZZLES (the Drowned Reach): the pieces Azure's puzzles are built from. Everything here is driven by
 // the water cannon (weapons/hose.js calls entity.onWater(dt, hit) every frame its stream lands on one)
 // and by world.wet (puddles, slicks and shock water: wet.js). All of them reset() on a checkpoint
 // respawn unless they've been solved (a solved puzzle stays solved).
@@ -39,7 +39,7 @@
 //               out on extend() (riders carried) and stows on retract().
 // LeapHint   { from, to, short } ghost arcs over a gap: a dry sprint jump falling short (marked TOO FAR),
 //               and the slick leap that makes it; hide() once it's been done.
-// IcePlug    { min, max, heat, onMelt } a frozen pipe mouth the yellow sun beam thaws (onBeam).
+// CrustPlug  { min, max, heat, onMelt } a pipe mouth choked with salt and barnacles the yellow sun beam bakes out (onBeam).
 //    (WaterTank.feed: level a second poured in from a pipe, e.g. once a plug has melted.)
 import * as THREE from 'three';
 import { COLORS, BLUE } from '../colors.js';
@@ -1374,11 +1374,11 @@ export class LeapHint {
   }
 }
 
-// ================================================================== ICE PLUG (a frozen pipe the sun beam thaws)
-// IcePlug { min, max, heat: 1.6, onMelt }  a block of ice frozen in a pipe's mouth. Hold the yellow sun
-// beam on it (onBeam) for `heat` s and it cracks, glows and bursts, and onMelt runs (e.g. the water
-// behind it starts pouring into a tank: WaterTank.feed). Other colors chip at it to no effect.
-export class IcePlug {
+// ================================================================== CRUST PLUG (a choked pipe the sun beam bakes out)
+// CrustPlug { min, max, heat: 1.6, onMelt }  a lump of salt crust and barnacles choking a pipe's mouth. Hold
+// the yellow sun beam on it (onBeam) for `heat` s and it glows, cracks and bursts, and onMelt runs (e.g. the
+// water behind it starts pouring into a tank: WaterTank.feed). Other colors chip at it to no effect.
+export class CrustPlug {
   constructor(world, game, { min, max, heat = 1.6, onMelt = null }) {
     this.world = world;
     this.game = game;
@@ -1390,8 +1390,15 @@ export class IcePlug {
     this.onMelt = onMelt;
     this.coolT = 0;
     const sx = this.max.x - this.min.x, sy = this.max.y - this.min.y, sz = this.max.z - this.min.z;
-    this.mat = new THREE.MeshStandardMaterial({ color: 0xbfe6ff, emissive: 0x2a66ff, emissiveIntensity: 0.35, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.85, flatShading: true });
-    this.mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 1), this.mat);
+    this.mat = new THREE.MeshStandardMaterial({ color: 0xd9cbb4, emissive: 0x3a1a08, emissiveIntensity: 0.2, roughness: 0.9, metalness: 0.05, flatShading: true });
+    const geo = new THREE.IcosahedronGeometry(1, 1);
+    const pa = geo.attributes.position;
+    for (let i = 0; i < pa.count; i++) {
+      const k = 0.82 + 0.3 * Math.abs(Math.sin(pa.getX(i) * 7.1 + pa.getY(i) * 5.3 + pa.getZ(i) * 3.7)); // lumpy barnacle crust
+      pa.setXYZ(i, pa.getX(i) * k, pa.getY(i) * k, pa.getZ(i) * k);
+    }
+    geo.computeVertexNormals();
+    this.mesh = new THREE.Mesh(geo, this.mat);
     this.mesh.scale.set(sx * 0.62, sy * 0.62, sz * 0.62);
     this.mesh.position.copy(this.min).add(this.max).multiplyScalar(0.5);
     this.mesh.raycast = () => {};
@@ -1406,7 +1413,7 @@ export class IcePlug {
     this.coolT = 0.3;
     const fx = this.world.fx;
     if (Math.random() < dt * 20) {
-      const k = fx.puff(this.mesh.position, rnd(-0.3, 0.3), rnd(0.6, 1.2), rnd(-0.3, 0.3), new THREE.Color(0xd8e8f0), 0.3, rnd(0.6, 1), rnd(0.15, 0.3), 3);
+      const k = fx.puff(this.mesh.position, rnd(-0.3, 0.3), rnd(0.6, 1.2), rnd(-0.3, 0.3), new THREE.Color(0xe8e0d0), 0.3, rnd(0.6, 1), rnd(0.15, 0.3), 3); // (steam off the baking crust)
       fx.grav[k] = -1.2;
     }
     if (this.heat >= this.need) this.melt();
@@ -1422,9 +1429,9 @@ export class IcePlug {
     this.solid.enabled = false;
     this.mesh.visible = false;
     const fx = this.world.fx, p = this.mesh.position;
-    fx.burst(p, 0xbfe6ff, { count: 40, speed: 5, life: 0.8, size: 0.14, gravity: 9, mode: 'shard' });
+    fx.burst(p, 0xe0d4bc, { count: 40, speed: 5, life: 0.8, size: 0.14, gravity: 9, mode: 'shard' });
     fx.flash(p, 0xffe0a0, { size: 1.6, life: 0.15 });
-    audio.sample('ice_crack', { gain: 0.9 * gainAt(this.game, p), vary: 0.05 }) || audio.sample('shatter', { gain: 0.7, rate: 1.3 });
+    audio.sample('crumble_break', { gain: 0.9 * gainAt(this.game, p), vary: 0.05, rate: 1.2 }) || audio.sample('shatter', { gain: 0.7, rate: 1.3 });
     this.onMelt?.(this);
   }
 
@@ -1433,8 +1440,8 @@ export class IcePlug {
     this.coolT -= dt;
     if (this.coolT <= 0) this.heat = Math.max(0, this.heat - dt * 0.5);
     const k = this.heat / this.need;
-    this.mat.emissive.setRGB(0.16 + k * 0.9, 0.4 + k * 0.25, 1 - k * 0.7);
-    this.mat.emissiveIntensity = 0.35 + k * 1.2;
+    this.mat.emissive.setRGB(0.23 + k * 0.9, 0.1 + k * 0.35, 0.03);
+    this.mat.emissiveIntensity = 0.2 + k * 1.4;
     this.mesh.rotation.y = Math.sin(this.world.time * 30) * 0.03 * k;
   }
 

@@ -60,7 +60,7 @@ const AREAS = [
   ['hub', 'The Prism Atrium'],
   ['solar', 'Sunscorch Mesa'],
   ['verdant', 'Emerald Hollow'],
-  ['azure', 'The Cold Deep'],
+  ['azure', 'The Drowned Reach'],
   ['prism', 'Prism Core'],
   ['dev', 'Test ranges'],
 ];

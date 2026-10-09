@@ -390,31 +390,30 @@
  {
   "id": "10",
   "title": "The Last Engine",
-  "where": "Azure · the Rim Deck",
+  "where": "Azure · the Aquarium's observation gallery",
   "file": "memo_10",
-  "text": "Coldest I've ever been, and I once went camping in Wales in April. It's a station, hanging over an ocean with no bottom. Tides, with no moon. Every pipe here turns the weight of the water into power, and sends it up to the Atrium. Heat, light, life, water. That's everything a world has to give. This is the last one. Six granola bars left. Should've packed for more than ten minutes.",
-  "spoken": "[laughs, teeth chattering] Coldest I've ever been, and I once went camping in Wales in April. It's a station, hanging over an ocean with no bottom. Tides, with no moon. Every pipe here turns the weight of the water into power, and sends it up to the Atrium. Heat, light, life, water. That's everything a world has to give. This is the last one. [sighs] Six granola bars left. Should've packed for more than ten minutes.",
-  "profile": "expressive",
-  "dur": 33.72,
+  "text": "Soaked to the bone, and I once went camping in Wales in April. It's a station at the bottom of an ocean, with a storm sitting on top of it. Tides, with no moon. Every pipe here turns the weight of the water into power, and sends it up to the Atrium. Heat, light, life, water. That's everything a world has to give. This is the last one. Six granola bars left. Should've packed for more than ten minutes.",
+  "dur": 31.85,
+  "est": true,
   "lines": [
    {
-    "t": 1.17,
-    "text": "Coldest I've ever been, and I once went camping in Wales in April."
+    "t": 0,
+    "text": "Soaked to the bone, and I once went camping in Wales in April."
    },
    {
-    "t": 6.03,
-    "text": "It's a station, hanging over an ocean with no bottom. Tides, with no moon."
+    "t": 5.05,
+    "text": "It's a station at the bottom of an ocean, with a storm sitting on top of it. Tides, with no moon."
    },
    {
-    "t": 12.35,
+    "t": 12.7,
     "text": "Every pipe here turns the weight of the water into power, and sends it up to the Atrium."
    },
    {
-    "t": 18.24,
+    "t": 19.67,
     "text": "Heat, light, life, water. That's everything a world has to give. This is the last one."
    },
    {
-    "t": 29.5,
+    "t": 26.5,
     "text": "Six granola bars left. Should've packed for more than ten minutes."
    }
   ]
@@ -422,31 +421,30 @@
  {
   "id": "11",
   "title": "Ten Minutes",
-  "where": "Azure · inside the pump hut",
+  "where": "Azure · the crew deck",
   "file": "memo_11",
-  "text": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me. It was my sister's birthday dinner that night. I promised her I'd be home by seven. Ten minutes, I said. Sorry, Bea. Save me some cake.",
-  "spoken": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me. It was my sister's birthday dinner that night. I promised her I'd be home by seven. [softly] Ten minutes, I said. [sniffles] Sorry, Bea. Save me some cake.",
-  "profile": "expressive",
-  "dur": 25.16,
+  "text": "Holed up in the crew quarters. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me. It was my sister's birthday dinner that night. I promised her I'd be home by seven. Ten minutes, I said. Sorry, Bea. Save me some cake.",
+  "dur": 26.56,
+  "est": true,
   "lines": [
    {
     "t": 0,
-    "text": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat."
+    "text": "Holed up in the crew quarters. It's warm, and it hums, and I can pretend it's my flat."
    },
    {
-    "t": 5.76,
+    "t": 6.88,
     "text": "I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me."
    },
    {
-    "t": 13.41,
+    "t": 15.26,
     "text": "It was my sister's birthday dinner that night. I promised her I'd be home by seven."
    },
    {
-    "t": 19.63,
+    "t": 21.92,
     "text": "Ten minutes, I said."
    },
    {
-    "t": 22.5,
+    "t": 23.87,
     "text": "Sorry, Bea. Save me some cake."
    }
   ]
@@ -490,7 +488,7 @@
  {
   "id": "13",
   "title": "The Catalogue",
-  "where": "Azure · the Cryo Lab",
+  "where": "Azure · the Archive",
   "file": "memo_13",
   "text": "I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used. Everyone from home is in here. All entered on the same day. The day after my nine seconds. Mum's name. Bea's. Not Priya's. Not Tomas, or Maja. It didn't keep them. It never even noticed us. We were too small to bother with. Until I showed it we could switch it off. It wasn't an invitation. It was me.",
   "spoken": "[crying] I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used. Everyone from home is in here. All entered on the same day. The day after my nine seconds. Mum's name. Bea's. [pause] Not Priya's. Not Tomas, or Maja. [whispers] It didn't keep them. It never even noticed us. We were too small to bother with. Until I showed it we could switch it off. [sobbing] It wasn't an invitation. It was me.",
