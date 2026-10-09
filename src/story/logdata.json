@@ -393,27 +393,28 @@
   "where": "Azure · the Aquarium's observation gallery",
   "file": "memo_10",
   "text": "Soaked to the bone, and I once went camping in Wales in April. It's a station at the bottom of an ocean, with a storm sitting on top of it. Tides, with no moon. Every pipe here turns the weight of the water into power, and sends it up to the Atrium. Heat, light, life, water. That's everything a world has to give. This is the last one. Six granola bars left. Should've packed for more than ten minutes.",
-  "dur": 31.85,
-  "est": true,
+  "spoken": "[laughs, out of breath] Soaked to the bone, and I once went camping in Wales in April. It's a station at the bottom of an ocean, with a storm sitting on top of it. Tides, with no moon. Every pipe here turns the weight of the water into power, and sends it up to the Atrium. Heat, light, life, water. That's everything a world has to give. This is the last one. [sighs] Six granola bars left. Should've packed for more than ten minutes.",
+  "profile": "expressive",
+  "dur": 34.85,
   "lines": [
    {
-    "t": 0,
+    "t": 1.01,
     "text": "Soaked to the bone, and I once went camping in Wales in April."
    },
    {
-    "t": 5.05,
+    "t": 6.61,
     "text": "It's a station at the bottom of an ocean, with a storm sitting on top of it. Tides, with no moon."
    },
    {
-    "t": 12.7,
+    "t": 14.35,
     "text": "Every pipe here turns the weight of the water into power, and sends it up to the Atrium."
    },
    {
-    "t": 19.67,
+    "t": 20.62,
     "text": "Heat, light, life, water. That's everything a world has to give. This is the last one."
    },
    {
-    "t": 26.5,
+    "t": 30.14,
     "text": "Six granola bars left. Should've packed for more than ten minutes."
    }
   ]
@@ -424,27 +425,28 @@
   "where": "Azure · the crew deck",
   "file": "memo_11",
   "text": "Holed up in the crew quarters. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me. It was my sister's birthday dinner that night. I promised her I'd be home by seven. Ten minutes, I said. Sorry, Bea. Save me some cake.",
-  "dur": 26.56,
-  "est": true,
+  "spoken": "Holed up in the crew quarters. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me. It was my sister's birthday dinner that night. I promised her I'd be home by seven. [softly] Ten minutes, I said. [sniffles] Sorry, Bea. Save me some cake.",
+  "profile": "expressive",
+  "dur": 25.89,
   "lines": [
    {
     "t": 0,
     "text": "Holed up in the crew quarters. It's warm, and it hums, and I can pretend it's my flat."
    },
    {
-    "t": 6.88,
+    "t": 6.44,
     "text": "I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me."
    },
    {
-    "t": 15.26,
+    "t": 14.16,
     "text": "It was my sister's birthday dinner that night. I promised her I'd be home by seven."
    },
    {
-    "t": 21.92,
+    "t": 20.74,
     "text": "Ten minutes, I said."
    },
    {
-    "t": 23.87,
+    "t": 23.58,
     "text": "Sorry, Bea. Save me some cake."
    }
   ]
