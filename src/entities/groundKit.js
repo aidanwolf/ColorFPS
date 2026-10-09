@@ -755,7 +755,7 @@ export class GroundEnemy {
     this.vel.set(0, 0, 0);
     this.move.set(0, 0, 0);
     this.hp = this.maxHp;
-    this.colorShield?.restore();
+    if (this.colorShield && !this.colorShield.intact) this.colorShield.restore();
     if (this.rage.on) this.rage.calm();
     this.aggro = false;
     this.sees = false;

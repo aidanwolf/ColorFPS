@@ -15,7 +15,7 @@ import { outerColor } from './entities/colorShield.js';
 const MAX = 3;
 const HITS = 3; // ring segments: wrong hits to a rage (RAGE.hits in entities/rage.js)
 const AIM_T = 0.15; // s on target before the warning shows
-const PROBE = 1 / 15; // s between crosshair probes (one ray)
+const PROBE = 1 / 12; // s between crosshair probes (one ray)
 const HOLD = 1.6; // s a warning lingers after the last wrong hit
 const AIM_HOLD = 0.45; // and after you stop aiming
 const _v = new THREE.Vector3();
@@ -110,12 +110,17 @@ class Marks {
     return out.copy(e.pos).setY(e.pos.y + 1.7);
   }
 
+  // one ray down the crosshair (only while some regular enemy is awake and near)
   probe(game) {
+    if (!game.blaster?.has || !game.world.entities.some((e) => e.rage && !e.dead && e.dist < 90)) {
+      this.target = null;
+      return;
+    }
     const cam = game.camera;
     cam.getWorldDirection(_d);
     const hit = game.world.raycast(cam.position, _d, 90);
     const e = hit?.entity;
-    const wrong = e && e.rage && !e.dead && game.blaster?.has && outerColor(e) !== game.blaster.color;
+    const wrong = e && e.rage && !e.dead && outerColor(e) !== game.blaster.color;
     if (wrong && e === this.target) this.targetT += PROBE;
     else {
       this.target = wrong ? e : null;
