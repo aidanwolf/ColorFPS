@@ -849,8 +849,7 @@ class Game {
     this.save();
     if (first) this.hud.message(`${name} blaster online. <b>LMB</b> to fire.`, 4);
     else this.hud.message(`${name} unlocked — press <b>${c + 1}</b>. Remember those ${name}-marked doors?`, 6);
-    // finishing a color world is a natural break for a Bonus Round
-    if (!first) setTimeout(() => this.naturalBreak(), 2500);
+    // (the Bonus Round natural break comes when a finished world's feed blows in the Atrium: reactor.js)
   }
 
   foundSecret(label) {
