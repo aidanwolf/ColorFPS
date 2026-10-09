@@ -34,8 +34,27 @@ import { mat } from '../materials.js';
 import { audio } from '../audio.js';
 import { mergeBoxes } from './solarSky.js';
 
-const SOUNDS = ['fall_wind', 'sand_sink', 'charge_up', 'energy_crackle', 'reactor_hum', 'servo_heavy', 'hydraulic_hiss', 'switch_on', 'elevator_start', 'boss_slam', 'floor_collapse', 'mortar_blast', 'shatter', 'scarab_chitter', 'scarab_crunch', 'spider_hiss', 'ring_wave', 'titan_charge', 'reactor_powerdown', 'door_open', 'gate_open'];
+const SOUNDS = ['fall_wind', 'sand_sink', 'charge_up', 'energy_crackle', 'reactor_hum', 'servo_heavy', 'hydraulic_hiss', 'switch_on', 'elevator_start', 'boss_slam', 'floor_collapse', 'mortar_blast', 'shatter', 'scarab_chitter', 'scarab_crunch', 'spider_hiss', 'ring_wave', 'titan_charge', 'reactor_powerdown', 'door_open', 'gate_open', 'lens_drum', 'ring_quarter', 'heart_charge', 'gate_thunder', 'capacitor_hum', 'shuttle_grind', 'sand_fall', 'quicksand_churn', 'lift_rumble', 'plank_crack'];
 audio.manifest?.then(() => audio.prefetch(SOUNDS));
+
+// a loop that picks its sample once the sound manifest is in (a generated sound, else its stand-in), and
+// starts only when something gives it gain
+function lazyLoop(name, fallback) {
+  let h = null;
+  return {
+    setGain(v) {
+      if (!h) {
+        if (!audio.available || v <= 0.001) return;
+        h = audio.createLoop(audio.sfxOr(name, fallback), { gain: 0 });
+      }
+      h.setGain(v);
+    },
+    setRate(r) {
+      h?.setRate(r);
+    },
+  };
+}
+
 
 const _v = new THREE.Vector3(), _w = new THREE.Vector3();
 const GOLD = new THREE.Color(1.0, 0.72, 0.22);
@@ -211,8 +230,8 @@ class Stargate {
     m.userData.on = true;
     m.userData.flash = instant ? 0 : 1;
     if (!instant) {
-      audio.sample('servo_heavy', { gain: 0.8, rate: 0.6 });
-      audio.sample('ring_wave', { gain: 0.6, rate: 0.5 + i * 0.1 });
+      audio.sample(audio.sfxOr('ring_quarter', 'servo_heavy'), { gain: 0.8, rate: audio.sfxOr('ring_quarter', '') ? 1 : 0.6 });
+      audio.sample('ring_wave', { gain: 0.5, rate: 0.5 + i * 0.1 });
       setTimeout(() => audio.sample('energy_crackle', { gain: 0.7, rate: 0.7 }), 250);
     }
   }
@@ -388,6 +407,7 @@ class Sweeper {
     this.head.add(drum, hood, eye);
     this.head.rotation.y = a0;
     W.scene.add(this.head);
+    this.drum = lazyLoop('lens_drum', 'servo_heavy');
     W.add(this);
   }
 
@@ -402,6 +422,8 @@ class Sweeper {
   update(dt) {
     const k = this.beam.I;
     this.eyeMat.color.setRGB(1, 0.85, 0.5).multiplyScalar(0.25 + k * 2.4);
+    const pl = this.W.game?.player;
+    this.drum.setGain(pl ? 0.22 * k * Math.max(0, 1 - (pl.pos.distanceTo(this.pos) - 3) / 22) : 0);
     if (!this.beam.enabled && k < 0.01) return;
     this.t += dt;
     const s = 0.5 - 0.5 * Math.cos((this.t / this.period) * Math.PI * 2);
@@ -483,6 +505,17 @@ export function buildSolarDepths(B, K) {
   };
   const deep = (min, max) => W.trigger(min, max, deepMood, { once: false });
   const scarab = (pos, o = {}) => new PitScarab(W, game, { pos, ...o });
+  // crumbling planks: the builder's crumble, with the cracking sound when one starts to go
+  const crumble = (o) => {
+    const c = B.crumble(o);
+    const act = c.activate.bind(c);
+    c.activate = (...a) => {
+      const was = c.state;
+      act(...a);
+      if (was === 'idle' && c.state !== 'idle') audio.sample(audio.sfxOr('plank_crack', 'floor_collapse'), { gain: 0.55, rate: audio.sfxOr('plank_crack', '') ? 1 : 1.6, vary: 0.08 });
+    };
+    return c;
+  };
 
   // ================================================================ S0 ENTRY + THE BALCONY (y 4)
   B.corridorX({ xStart: -25, xEnd: -38, y: 4, zone, cz: -112 });
@@ -709,8 +742,8 @@ export function buildSolarDepths(B, K) {
   F(-108, -92, -118, -102, -79.6, -106);
   glowEdge(-108, -118, -102, -106, -79.6, dglow, DZ);
   M(-108, -79.6, -118.1, -102, -78.6, -117.9); // rail
-  B.crumble({ min: [-111, -79.9, -113], max: [-108, -79.6, -111], delay: 0.6, respawn: 3, zone });
-  B.crumble({ min: [-114, -79.9, -113], max: [-111, -79.6, -111], delay: 0.6, respawn: 3, zone });
+  crumble({ min: [-111, -79.9, -113], max: [-108, -79.6, -111], delay: 0.6, respawn: 3, zone });
+  crumble({ min: [-114, -79.9, -113], max: [-111, -79.6, -111], delay: 0.6, respawn: 3, zone });
   plat(-118, -114, -114, -110, -79.2, zone, 0.3, 'grate');
   scaffold(-118, -114, -114, -110, -86, -79.5);
   const car = new MovingPlatform(W, { min: [-121.5, -79.6, -113.5], max: [-118.5, -79.2, -110.5], offset: [-8, 0, 0], speed: 2, pause: 1.2, zone, kind: 'grate' });
@@ -865,7 +898,7 @@ export function buildSolarDepths(B, K) {
   F(-149, -92, -112, -146, -78.4, -109); // P1
   F(-153, -92, -106, -150, -78, -103); // P2, by the south mirror
   F(-146, -92, -116.5, -143, -78, -113.5); // P1b, past the baffle's end
-  B.crumble({ min: [-151.5, -78.4, -121], max: [-148.5, -77.8, -118], delay: 1.6, respawn: 5, zone }); // the perch
+  crumble({ min: [-151.5, -78.4, -121], max: [-148.5, -77.8, -118], delay: 1.6, respawn: 5, zone }); // the perch
   R(-155.2, -92, -115, -146.5, -66, -114); // the baffle (it hides the switch from the south)
   for (const [x, z] of [[-156, -124], [-156, -104]]) {
     R(x - 1, -92, z - 1, x + 1, -78, z + 1);
@@ -907,7 +940,7 @@ export function buildSolarDepths(B, K) {
   glowEdge(-108, -138, -104, -134, -64, dglow, DZ);
   // the recovery stair (east wall, from the sand up to the lift's seat)
   for (let i = 0; i < 17; i++) F(-106.2, -92, -150 + i * 0.47, -104, -85.6 + 0.4 * i, -150 + (i + 1) * 0.47);
-  B.crumble({ min: [-116, -78.8, -142], max: [-113, -78.4, -139], delay: 1.6, respawn: 5, zone }); // r1: wait here for the cart
+  crumble({ min: [-116, -78.8, -142], max: [-113, -78.4, -139], delay: 1.6, respawn: 5, zone }); // r1: wait here for the cart
   F(-127, -92, -142, -125, -78.2, -139); // r2, by the corner mirror
   R(-133, -92, -147, -131, -77.8, -145); // the corner mirror's pillar
   const cart = new MovingPlatform(W, { min: [-124, -78.6, -148], max: [-120, -78.2, -144], offset: [8, 0, 0], speed: 1.2, pause: 2.2, zone, kind: 'grate' });
@@ -965,8 +998,8 @@ export function buildSolarDepths(B, K) {
   // up from the gallery: a piston in its south-east corner, then crumbling planks to the east balcony
   const piston = new MovingPlatform(W, { min: [-107.8, -64.4, -103.6], max: [-104.3, -64, -100.1], offset: [0, 16, 0], speed: 2.6, pause: 2.2, zone, kind: 'grate' });
   for (const z of [-103.9, -100.4]) M(-108.2, -64, z - 0.15, -107.9, HB - 1, z + 0.15);
-  B.crumble({ min: [-107.6, HB - 0.3, -113], max: [-105.2, HB, -111.2], delay: 0.5, respawn: 3, zone });
-  B.crumble({ min: [-105, HB - 0.3, -116], max: [-102.6, HB, -114.2], delay: 0.5, respawn: 3, zone });
+  crumble({ min: [-107.6, HB - 0.3, -113], max: [-105.2, HB, -111.2], delay: 0.5, respawn: 3, zone });
+  crumble({ min: [-105, HB - 0.3, -116], max: [-102.6, HB, -114.2], delay: 0.5, respawn: 3, zone });
   // 1: the obelisk's mirror (on its capital, under the roof lens)
   const mA = new RotMirror(W, { pos: [-110, YB, -108], yaw: 0, start: 6, tilt: Math.PI / 4, size: [2.6, 2], post: 1.8, color: RED });
   // 2: the shuttle and its mirror (it waits at the north-west balcony until the obelisk's beam runs)
@@ -982,8 +1015,8 @@ export function buildSolarDepths(B, K) {
   R(-137.1, HB, -126.5, -136.1, HB + 0.35, -125.5);
   const swC = new ColorSwitch(W, { pos: [-131.2, -46.4, -133.3], color: RED, face: '+z', mode: 'pulse', size: 1, zone, links: [{ activate: () => mC.turn(1) }], light: false });
   D(-131.9, -47.4, -133.4, -130.5, -47.35, -130, 'metal');
-  B.crumble({ min: [-127.6, HB - 0.3, -129.6], max: [-125.4, HB, -127.4], delay: 0.6, respawn: 4, zone });
-  B.crumble({ min: [-132.3, HB - 0.3, -129.6], max: [-130.1, HB, -127.4], delay: 1.7, respawn: 5, zone }); // the perch
+  crumble({ min: [-127.6, HB - 0.3, -129.6], max: [-125.4, HB, -127.4], delay: 0.6, respawn: 4, zone });
+  crumble({ min: [-132.3, HB - 0.3, -129.6], max: [-130.1, HB, -127.4], delay: 1.7, respawn: 5, zone }); // the perch
   R(-133.5, -50, -124.6, -129, ROOF, -124.2);
   glyphs('+z', -124.2, -131.2, -46, 2.2, 1.2);
   // 4: the dais mirror and the one hanging from the roof (both creep back)
@@ -1012,6 +1045,29 @@ export function buildSolarDepths(B, K) {
   const falls = [[-130, -114, 0], [-114, -122, 0], [-126, -120, 1], [-131, -104.6, 1], [-116, -111, 2], [-124, -104.6, 2], [-106.5, -113, 3], [-128, -110, 3]]
     .map(([x, z, at]) => Object.assign(new SandFall(W, { x, z, top: ROOF, bottom: PIT, r: 0.22 + Math.random() * 0.18 }), { at }));
   let churnT = 0;
+  const snd = {
+    caps: lazyLoop('capacitor_hum', 'reactor_hum'), shuttle: lazyLoop('shuttle_grind', 'servo_heavy'), sand: lazyLoop('sand_fall', 'amb_wind'),
+    churn: lazyLoop('quicksand_churn', 'sand_sink'), piston: lazyLoop('lift_rumble', 'elevator_start'), rec: lazyLoop('lift_rumble', 'elevator_start'), heart: lazyLoop('heart_charge', 'charge_up'),
+  };
+  const nearK = (p, x, y, z, range) => Math.max(0, 1 - (Math.hypot(p.x - x, p.y - y, p.z - z) - 4) / range);
+  const moving = (pl) => pl.active && pl.wait <= 0;
+  W.add({
+    update(dt, player) {
+      const p = player.pos;
+      snd.caps.setGain(0.18 * fillK * nearK(p, -123, -74, -129, 30));
+      snd.shuttle.setGain(moving(shuttle) ? 0.26 * nearK(p, shuttle.cur.x + 1.75, shuttle.cur.y, shuttle.cur.z + 1.75, 26) : 0);
+      snd.piston.setGain(moving(piston) ? 0.24 * nearK(p, piston.cur.x + 1.75, piston.cur.y, piston.cur.z + 1.75, 26) : 0);
+      snd.rec.setGain(moving(recLift) ? 0.24 * nearK(p, recLift.cur.x + 1.8, recLift.cur.y, recLift.cur.z + 1.8, 26) : 0);
+      let fd = 1e9;
+      for (const f of falls) if (f.on) fd = Math.min(fd, Math.hypot(p.x - f.p.x, p.z - f.p.z));
+      snd.sand.setGain(blown ? 0 : 0.2 * Math.max(0, 1 - (fd - 3) / 30));
+      const nl = relayDone();
+      snd.churn.setGain(nl && !blown ? (0.08 + nl * 0.04 + (st.finalOn ? 0.06 : 0)) * nearK(p, -120, -86, -115, 40) : 0);
+      const feeding = st.finalOn && !blown && heart.feed < 0.15;
+      snd.heart.setGain(st.finalOn && !blown ? (feeding ? 0.18 + charge * 0.3 : 0.06 + charge * 0.12) * nearK(p, -120, -66, -127, 40) : 0);
+      snd.heart.setRate(0.85 + charge * 0.45);
+    },
+  });
   W.add({
     update(dt, player) {
       const n = relayDone();
@@ -1265,8 +1321,8 @@ export function buildSolarDepths(B, K) {
     fx.sparks(to, new THREE.Vector3(0, 0, -1), 0xffd070, { count: 60, speed: 22, spread: 1.6, life: 0.9, gravity: 10 });
     fx.burst(new THREE.Vector3(-120, -67, -108), 0xffe0a0, { count: 50, speed: 10, life: 0.8, size: 0.25, gravity: 8 });
     game.player.shake = Math.max(game.player.shake || 0, 1.4);
-    audio.sample('boss_slam', { gain: 1.2, rate: 0.7 });
-    audio.sample('mortar_blast', { gain: 1, rate: 0.6 });
+    audio.sample(audio.sfxOr('gate_thunder', 'boss_slam'), { gain: 1.1, rate: audio.sfxOr('gate_thunder', '') ? 1 : 0.7 });
+    audio.sample('mortar_blast', { gain: 0.7, rate: 0.6 });
     audio.sample('floor_collapse', { gain: 1, rate: 0.8 });
     setTimeout(() => audio.sample('shatter', { gain: 0.8, rate: 0.5 }), 120);
     setTimeout(() => game.hud.message('The gate\'s blast tore the south wall open — a <b>tunnel</b> beyond, and a breath of hot wind.', 5), 1400);
