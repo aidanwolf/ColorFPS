@@ -12,6 +12,7 @@
 import * as THREE from 'three';
 import { GREEN } from '../colors.js';
 import { audio } from '../audio.js';
+import { Checkpoint } from '../entities/misc.js';
 import { boxGeo, mat } from '../materials.js';
 
 const PI = Math.PI;
@@ -696,6 +697,8 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
       }
     },
   });
+  // the bridge's checkpoint (the boulder jams the mouth behind you: there's no going back in)
+  new Checkpoint(W, game, { pos: [BRIDGE.x1 + 1.6, BRIDGE.y, BRIDGE.z], yaw: EAST, size: [2, 3, BRIDGE.w] });
   // escaped: past the lip of the mouth (the boulder may still be on its way: it jams behind you)
   W.trigger([BRIDGE.x1, BRIDGE.y - 2, BRIDGE.z - 3], [BRIDGE.x1 + 3, BRIDGE.y + 4, BRIDGE.z + 3], () => {
     if (run.done && game.clearedEncounters?.has(ESCAPE_ID)) return;

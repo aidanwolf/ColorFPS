@@ -387,12 +387,12 @@ export function buildVerdantRuin(B, { K, F, trap }) {
         vent(2, 'e2', GREEN, RED, { delay: 0 }), vent(0, 'w2', GREEN, YELLOW, { delay: 0.6 }), vent(4, 'e1', GREEN, RED, { delay: 1.3 }), vent(7, 'w1', GREEN, YELLOW, { delay: 2, size: 0.85 }),
       ] },
       { title: 'FROM EVERY WALL', enemies: [
-        vent(1, 'w3', GREEN, YELLOW, { delay: 0 }), vent(3, 'e3', GREEN, RED, { delay: 0.4 }), vent(5, 'top', GREEN, RED, { delay: 1, size: 0.85 }), vent(6, 'e1', YELLOW, GREEN, { delay: 1.6 }),
+        vent(1, 'w3', GREEN, YELLOW, { delay: 0 }), vent(3, 'e3', GREEN, RED, { delay: 0.4 }), vent(5, 'w1', GREEN, RED, { delay: 1, size: 0.85 }), vent(6, 'e1', YELLOW, GREEN, { delay: 1.6 }),
         spider('w2', GREEN, [YELLOW], 2.2),
       ] },
       { title: 'THE BIG ONES', enemies: [
         vent(2, 'e2', GREEN, RED, { delay: 0, size: 1.5, slimeHp: 2 }), vent(0, 'w2', GREEN, YELLOW, { delay: 0.6, size: 1.5, slimeHp: 2 }),
-        vent(4, 'w1', GREEN, YELLOW, { delay: 1.4, size: 0.8 }), vent(5, 'e1', RED, GREEN, { delay: 1.8, size: 0.8 }), vent(7, 'top2', GREEN, RED, { delay: 2.3, size: 0.8 }),
+        vent(4, 'w1', GREEN, YELLOW, { delay: 1.4, size: 0.8 }), vent(5, 'e1', RED, GREEN, { delay: 1.8, size: 0.8 }), vent(7, 'e2', GREEN, RED, { delay: 2.3, size: 0.8 }),
         spider('e3', GREEN, [RED], 2.8),
       ] },
     ],
