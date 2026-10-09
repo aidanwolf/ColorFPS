@@ -459,6 +459,7 @@ export function buildAzure(B) {
     W.deco(100, y + 1, -112.6, 105, y + 1.05, -112.1, 'glow1', zone);
     for (let x = 99; x < 105; x += 1.1) W.box(x, y, -122.9, x + 0.9, y + 2.4, -122.4, 'metal', zone);
     new Checkpoint(W, game, { pos: [101, y, -117.5], yaw: Math.PI / 2, size: [5, 3, 6] });
+    light(105.5, y + 2.6, -120.5, 0xffb060, 22, 14); // the boiler's warm glow
     zoneTitle([98.6, y, -119], [104, y + 3, -113], 'AZURE', 'THE CREW DECK', '#ffc870');
     area([98.6, y, -123], [104, y + 3, -112], DEEP);
     hint([98.6, y, -119], [104, y + 3, -113], 'The crew\'s quarters, warm and humming. The hatch <b>east</b> leads into the hull.', 4);
@@ -1126,8 +1127,8 @@ export function buildAzure(B) {
       const w = player.swimming ? player.waterAt(W) : null;
       let want = null;
       if (w && w.ocean && player.headUnder) want = 'sea';
-      else if (game.camera.position.y > SEA_Y + 0.5 && player.pos.x < 113 && !(player.pos.x > 87 && player.pos.y < 0)) want = 'top';
-      else if (!player.swimming && player.pos.y < SEA_Y - 1 && moodNow === 'sea') want = 'deep';
+      else if (game.camera.position.y > SEA_Y + 0.5 && player.pos.x < 113) want = 'top';
+      else if (!player.swimming && player.pos.y < SEA_Y - 1 && player.pos.x < 200) want = 'deep';
       if (!want || want === moodNow) return;
       moodNow = want;
       const m = want === 'sea' ? { ...DEEP, atmosphere: 'azureSea' } : want === 'top' ? MOOD : DEEP;

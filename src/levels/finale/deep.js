@@ -1,7 +1,7 @@
-// STAGE V · THE DEEP — Azure's echo: a drowned reactor basin, floes of ice-capped stone over black water,
-// the Warden standing waist-deep in the middle, grown over with ice.
+// STAGE V · THE DEEP — Azure's echo: a drowned reactor basin, floes of reef-crusted stone over churning sea,
+// the Warden standing waist-deep in the middle, grown over with coral.
 //   · Between floods: floes over open water (falling in is safe: swim to an edge and press Space to climb
-//     out). Frost shockwaves to jump, ice spikes erupting in a line toward you, its blade and orbs.
+//     out). Tidal shockwaves to jump, coral spikes erupting in a line toward you, its blade and orbs.
 //   · THE FLOOD (every ~28 s): it raises its arms, the basin churns, and the water rises over everything
 //     for ~9 s. Hold your breath — or swim into one of the four AIR POCKETS (columns of air held over the
 //     corner floes, glowing). Meanwhile it becomes a MAELSTROM: a current drags you toward it (stay out
@@ -33,7 +33,7 @@ export function buildDeep({ B, W, game, level, H, boss }) {
   rock(-R - 3, BED - 1, -R - 3, R + 3, BED, R + 3);
   for (const [x1, z1, x2, z2] of [[-R - 3, -R - 3, R + 3, -R], [-R - 3, R, R + 3, R + 3], [-R - 3, -R, -R, R], [R, -R, R + 3, R]]) rock(x1, BED, z1, x2, 12, z2);
   for (const [x1, z1, x2, z2] of [[-R, -R - 1, R, -R], [-R, R, R, R + 1], [-R - 1, -R, -R, R], [R, -R, R + 1, R]]) blocker([X(x1), 12, Z(z1)], [X(x2), 60, Z(z2)]);
-  // floes: stone pillars from the bed, capped with ice (y 0). An inner ring round the Warden, the four
+  // floes: stone pillars from the bed, crusted with reef (y 0). An inner ring round the Warden, the four
   // pocket floes in the corners, and a ledge along each wall.
   const floes = [];
   const floe = (x, z, hw, hd = hw) => {
@@ -58,7 +58,7 @@ export function buildDeep({ B, W, game, level, H, boss }) {
   }
   // the Warden's dais under the water
   rock(-3.5, BED, -3.5, 3.5, -3, 3.5);
-  // ice crystals on the walls (one merged mesh)
+  // coral spires growing from the walls (one merged mesh)
   const ice = [];
   const oct = new THREE.OctahedronGeometry(1, 0);
   for (let k = 0; k < 40; k++) {
@@ -67,7 +67,7 @@ export function buildDeep({ B, W, game, level, H, boss }) {
     const g = oct.clone().scale(s * 0.4, s * 2, s * 0.4).rotateX(rx).rotateZ(rz).translate(X(x), y, Z(z));
     ice.push(g);
   }
-  const iceMesh = new THREE.Mesh(flatMerge(ice), new THREE.MeshStandardMaterial({ color: 0xbfe8ff, emissive: 0x2a7aff, emissiveIntensity: 0.6, roughness: 0.1, metalness: 0.2, flatShading: true }));
+  const iceMesh = new THREE.Mesh(flatMerge(ice), new THREE.MeshStandardMaterial({ color: 0xff8a9a, emissive: 0x2ad8c8, emissiveIntensity: 0.45, roughness: 0.7, metalness: 0.05, flatShading: true }));
   W.scene.add(iceMesh);
   light(X(0), 8, Z(0), 0x6ab8ff, 12, 34);
   for (const [x, z] of POCKETS) light(X(x), 4, Z(z), 0x9be8ff, 10, 14);
@@ -202,7 +202,7 @@ export function buildDeep({ B, W, game, level, H, boss }) {
         vortex.visible = false;
       },
     },
-    // a line of ice spikes racing out from the Warden toward you
+    // a line of coral spikes racing out from the Warden toward you
     icespikes: {
       weight: 3,
       pose: 'pound',
@@ -220,7 +220,7 @@ export function buildDeep({ B, W, game, level, H, boss }) {
             const d = 4 + k * 2.6;
             H.erupt(b.pos.x + Math.sin(ang) * d, 0, b.pos.z + Math.cos(ang) * d, { kind: 'ice', radius: 1.45, warn: 0.75, dur: 0.8, height: 3, delay: k * 0.09 });
           }
-          audio.sample('ice_crack', { gain: 0.9 }) || audio.shatter();
+          audio.sample('crumble_break', { gain: 0.9, rate: 1.2 }) || audio.shatter();
         }
         return a.lines <= 0 && a.t > a.next;
       },
@@ -263,12 +263,12 @@ export function buildDeep({ B, W, game, level, H, boss }) {
     playerYaw: 0,
     atmosphere: 'finDeep',
     music: 'music_finale_deep',
-    musicFallback: 'music_blue',
+    musicFallback: 'music_azure',
     introHint: 'Its plates are BLUE. When the deep rises it spins — and its core lies open.',
     intro: '<b>THE DEEP.</b> Falling in is safe — swim to a floe and press <b>Space</b> to climb out. When the water rises, the <b>glowing corners hold air</b>.',
     tips: {
       tide: 'THE FLOOD: breathe in an <b>air pocket</b> (the glowing corners) — and <b>swim against the pull</b>! Its core is open: hit it with blue.',
-      icespikes: 'Ice spikes racing at you: <b>sidestep the line</b>!',
+      icespikes: 'Coral spikes racing at you: <b>sidestep the line</b>!',
     },
     // (for tests and tools: what the water is doing, and where the air is)
     state: () => ({ tide: tide.phase, water: tide.y, pockets: POCKETS.map(([x, z]) => [X(x), Z(z)]) }),

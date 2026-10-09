@@ -298,6 +298,7 @@ const OCEAN_F = `
   float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
     return mix(mix(h1(i), h1(i + vec2(1,0)), f.x), mix(h1(i + vec2(0,1)), h1(i + vec2(1,1)), f.x), f.y); }
   void main() {
+    if (vW.x < 32.0) discard; // (the sea lies east of the Nexus; the other worlds keep their own ground)
     vec3 toCam = cameraPosition - vW;
     float dist = length(toCam);
     vec3 V = toCam / dist;
@@ -584,12 +585,13 @@ export function buildOcean(B, { foamBox = [20, -240, 230, -30], foamExtra = [] }
       const camUnder = cam.y < SEA_Y + 0.05;
       st.under = inAzure && camUnder;
       // the surface rides with the camera, snapped to its inner ring spacing so it doesn't shimmer
-      surf.visible = inAzure || (cam.x > 10 && cam.y > 2); // (and from the Nexus's east windows)
+      const inHub = cam.x > -25 && cam.x < 25 && cam.z < -99.5 && cam.z > -148.5 && cam.y > 2;
+      surf.visible = inAzure || inHub; // (and from the Nexus, whose east windows look out over it)
       surf.position.set(Math.round(cam.x / 3.2) * 3.2, SEA_Y - st.drop, Math.round(cam.z / 3.2) * 3.2);
       surfMat.uniforms.uNearFlat.value = Math.abs(cam.y - SEA_Y) < 3 ? 1 - Math.abs(cam.y - SEA_Y) / 3 : 0;
       surfMat.uniforms.uFlash.value = st.flash;
       const far = game.camera.far;
-      dome.visible = (inAzure || cam.x > 10) && !camUnder;
+      dome.visible = inAzure && !camUnder;
       dome.position.copy(cam);
       dome.scale.setScalar(far * 0.9);
       skyMat.uniforms.uFlash.value = st.flash;

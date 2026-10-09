@@ -346,9 +346,13 @@ export function buildRig(B, { zone, hab, ocean, wake, trench }) {
   };
   const smoothK = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * (3 - 2 * k));
   st.waveDone = () => game.clearedEncounters?.has(WAVE_FLAG);
-  let rumble = null;
+  let rumble = null, crashT = 3;
   W.trigger([45, 3.5, -120], [58, 8, -104], () => {
     if (st.waveDone() || ride.phase !== 'off') return;
+    ride.phase = 'awe'; // (a few seconds of storm and sea first)
+    ride.t = 0;
+  }, { once: false });
+  const startRise = () => {
     ride.phase = 'rise';
     ride.t = 0;
     audio.slam?.(0.12, 9, 3);
@@ -356,7 +360,7 @@ export function buildRig(B, { zone, hab, ocean, wake, trench }) {
     if (!audio.available?.has('rogue_wave')) audio.sample('thunder_far', { gain: 0.8, vary: 0, delay: 0.6, rate: 0.7 });
     game.hud.message('The sea is <b>pulling back</b> from the rig\'s legs…', 3);
     wave.visible = true;
-  }, { once: false });
+  };
 
   W.add({
     update(dt, player) {
@@ -370,14 +374,25 @@ export function buildRig(B, { zone, hab, ocean, wake, trench }) {
         b.g.rotation.z = Math.sin(t0 * 0.9 + b.ph) * 0.12;
         b.g.rotation.x = Math.cos(t0 * 0.7 + b.ph) * 0.1;
       }
-      // spray where the swell breaks on the legs (only near you, above water)
+      // spray where the swell breaks on the legs (only near you, above water), and now and then the boom
+      // of a big one against them
       const cam = game.camera.position;
+      if ((crashT -= dt) <= 0) {
+        crashT = 5 + Math.random() * 8;
+        const leg = legs[Math.floor(Math.random() * legs.length)], lx = leg[0], lz = leg[1];
+        if (cam.y > SEA_Y && cam.x > 26 && Math.hypot(cam.x - lx, cam.z - lz) < 80) audio.at('waves_crash', _w.set(lx, SEA_Y, lz), { gain: 0.55, near: 10, far: 90, vary: 0.12 });
+      }
       if (cam.y > SEA_Y && cam.x > 30 && Math.random() < dt * 6) {
-        const [x, z] = legs[Math.floor(Math.random() * legs.length)];
+        const leg = legs[Math.floor(Math.random() * legs.length)], x = leg[0], z = leg[1];
         if (Math.hypot(cam.x - x, cam.z - z) < 70) W.fx.burst(_v.set(x + (Math.random() - 0.5) * 2.5, SEA_Y + swellY(x, z, t0) + 0.3, z + (Math.random() - 0.5) * 2.5), 0xe8f6ff, { count: 6, speed: 4.5, life: 1.1, size: 0.35, gravity: 7, spread: 0.9, dir: _w.set(0, 1, 0) });
       }
       if (ride.phase === 'off') return;
       ride.t += dt;
+      if (ride.phase === 'awe') {
+        if (player.pos.x < 44.5) ride.phase = 'off'; // (stepped back inside: it waits for you)
+        else if (ride.t > 3) startRise();
+        return;
+      }
       const t = ride.t;
       waveMat.uniforms.uT.value = t0;
       // the sea draws back, the wave comes on out of the north, growing as it shoals
@@ -392,6 +407,13 @@ export function buildRig(B, { zone, hab, ocean, wake, trench }) {
       wave.scale.set(1, h, h);
       // spray torn off the crest as it closes
       if (k > 0.75 && Math.random() < dt * 30) W.fx.burst(_v.set(c.x - Math.sin(WAVE_YAW) * (dist - 2) + (Math.random() - 0.5) * 40, SEA_Y + h * 0.95, c.z - Math.cos(WAVE_YAW) * (dist - 2) + (Math.random() - 0.5) * 10), 0xffffff, { count: 8, speed: 6, life: 1.2, size: 0.9, gravity: 5, spread: 0.8, dir: _w.set(-Math.sin(WAVE_YAW), 0.6, -Math.cos(WAVE_YAW)).multiplyScalar(-1) });
+      if (t > T_LOCK && ride.phase === 'rise' && player.pos.x < 44.5) {
+        // (back in the skybridge before it struck: it subsides, and comes again next time you step out)
+        ride.phase = 'off';
+        wave.visible = false;
+        ocean.drop = 0;
+        return;
+      }
       if (t > T_LOCK && ride.phase === 'rise') {
         ride.phase = 'brace';
         deckStart.copy(player.pos);

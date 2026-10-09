@@ -2,7 +2,7 @@
 // the world colors round its rim, and above it all the Prism Heart itself, the core that drank the worlds,
 // laid bare and pulsing. The Warden fights in every color at once with every trick it learned:
 //   shield chipping in fast-shifting colors, the blade, shockwaves, orbs and its charge, plus slag
-//   geysers, sun lances, sweeping vines, ice spikes and spore pods, chosen at random.
+//   geysers, sun lances, sweeping vines, coral spikes and spore pods, chosen at random.
 // When it falls, the heart cracks, the pylons pour their light into it, and it shatters.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';

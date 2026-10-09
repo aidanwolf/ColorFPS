@@ -442,7 +442,7 @@ export function makeDressing(B, { zone }) {
   const drips = [];
   const drip = (x, y, z, every = 1.2) => drips.push({ p: V(x, y, z), every, t: rng() * every });
 
-  // ---------------------------------------------------------------- the chasm's living dark
+  // ---------------------------------------------------------------- the trench's living dark
   // plankton drifting in the trench (one draw), and great jellies pulsing over its floor
   function abyss() {
     const N = 1400, pos = new Float32Array(N * 3), seed = new Float32Array(N);
@@ -678,7 +678,7 @@ export function dressAzure(B, { zone }) {
   cable([50.2, -20.5, -160.5], [65.8, -20.5, -178.5], 3);
   cable([50.2, -21, -180.5], [65.8, -21, -162], 2.4);
 
-  // ---------------------------------------------------------------- vault and sanctum
+  // ---------------------------------------------------------------- vault and generator hall
   sign('VAULT', [54, -52.35, -158.02], '-z', 0.32);
   sign('GENERATOR HALL', [60, -52.6, -149.98], '+z', 0.34);
 
