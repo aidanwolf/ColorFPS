@@ -267,7 +267,10 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     },
   });
   B.colorSwitch({ pos: [173, -47.5, QZ2], face: '-z', color: BLUE, mode: 'pulse', size: 1.5, links: [feed(1)], zone, light: false });
-  B.colorSwitch({ pos: [173, -3.5, -163], face: 'down', color: BLUE, mode: 'pulse', size: 1.9, links: [feed(3)], zone, light: false });
+  // (the roof valve hangs on a drop pipe: flush with the roof, 33 m over ledge 2, it was out of the stream's
+  // reach, and the level only rises while it's being hit)
+  box(172.75, -6, -163.25, 173.25, -3.5, -162.75, 'metal');
+  B.colorSwitch({ pos: [173, -6, -163], face: 'down', color: BLUE, mode: 'pulse', size: 1.9, links: [feed(3)], zone, light: false });
   // gauges up the walls: a mark every 4 m, the two locks in gold
   for (let y = -52; y < -8; y += 4) deco(QX1, y, QZ1, QX1 + 0.05, y + 0.06, QZ2);
   for (const y of [LOCK1, LOCK2]) {
