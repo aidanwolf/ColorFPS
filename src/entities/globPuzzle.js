@@ -45,7 +45,8 @@ const DUST = new THREE.Color(0x6a7a52);
 const UP = new THREE.Vector3(0, 1, 0);
 const _v = new THREE.Vector3(), _a = new THREE.Vector3(), _c = new THREE.Color();
 
-audio.manifest?.then(() => audio.prefetch(['pod_burst', 'spore_burst', 'spore_puff', 'root_rumble', 'vine_whip', 'crumble_break', 'slime_splat', 'acid', 'toxic_sink']));
+// (bulb_open, bramble_tear and root_swing are wanted samples: until they exist the stock ones play instead)
+audio.manifest?.then(() => audio.prefetch(['bulb_open', 'bramble_tear', 'root_swing', 'pod_burst', 'spore_burst', 'spore_puff', 'root_rumble', 'vine_whip', 'crumble_break', 'slime_splat', 'land_hard', 'acid', 'toxic_sink', 'brute_roar']));
 const play = (name, o, alt = null, altO = o) => audio.sample(name, o) || (alt && audio.sample(alt, altO));
 
 // ---------------------------------------------------------------- shared look (made once)
@@ -202,7 +203,7 @@ export class SporeBulb {
       fx.drag[j] = 1.8;
     }
     if (k >= 1) {
-      play('pod_burst', { gain: 0.8 * g, vary: 0.1 }, 'spore_burst', { gain: 0.7 * g });
+      play('bulb_open', { gain: 0.8 * g, vary: 0.08 }, 'pod_burst', { gain: 0.8 * g, vary: 0.1 });
       sfx.switchOn(g);
     } else play('spore_puff', { gain: 0.6 * g, rate: 1.2, vary: 0.1 }, 'slime_splat', { gain: 0.4 * g, rate: 1.5 });
   }
@@ -418,8 +419,10 @@ export class Thicket {
       fx.grav[j] = -0.4;
     }
     fx.flash(c, HEX, { size: 2.6, life: 0.2, hot: 0.3 });
-    play('crumble_break', { gain: 0.8 * g, rate: 1.3, vary: 0.1 });
-    play('vine_whip', { gain: 0.7 * g, rate: 0.8, vary: 0.1 }, 'pod_burst', { gain: 0.6 * g });
+    if (!play('bramble_tear', { gain: 0.9 * g, vary: 0.08 })) {
+      play('crumble_break', { gain: 0.8 * g, rate: 1.3, vary: 0.1 });
+      play('vine_whip', { gain: 0.7 * g, rate: 0.8, vary: 0.1 }, 'pod_burst', { gain: 0.6 * g });
+    }
     this.onBreak?.(this);
   }
 
@@ -531,8 +534,10 @@ export class SwingRoot {
     this.u = 0;
     this.solids[0].enabled = false;
     const g = nearGain(this.world, this.pivot, 60);
-    play('root_rumble', { gain: 0.9 * g, vary: 0.05 }, 'door_open', { gain: 0.6 * g, rate: 0.6 });
-    play('vine_whip', { gain: 0.5 * g, rate: 0.7 });
+    if (!play('root_swing', { gain: 0.9 * g, vary: 0.05 })) {
+      play('root_rumble', { gain: 0.9 * g, vary: 0.05 }, 'door_open', { gain: 0.6 * g, rate: 0.6 });
+      play('vine_whip', { gain: 0.5 * g, rate: 0.7 });
+    }
   }
 
   update(dt, player) {

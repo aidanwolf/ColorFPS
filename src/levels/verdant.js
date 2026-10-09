@@ -1588,6 +1588,14 @@ export function buildVerdant(B) {
     }
     for (const [x, z, s] of [[-78, -315, 1.2], [-75, -309, 0.9], [-88, -318, 0.8]]) rootBurst(x, VA.y, z, s);
     root(-80, -20.5, -334.6, 7, 0, 0.35, 0.3); // up the north wall toward the leaf's stem
+    // the Seed's bed in the cage: a mound of moss and four roots curling up round it from the corners
+    put(mossMat, new THREE.IcosahedronGeometry(1.6, 1).scale(1.4, 0.22, 1.4), -83, -20.4, -328);
+    for (const [dx, dz] of [[-2.3, -2.3], [2.3, -2.3], [2.3, 2.3], [-2.3, 2.3]]) {
+      const yaw = Math.atan2(-dz, dx); // (leans it in toward the Seed)
+      root(-83 + dx, -20.5, -328 + dz, 2.6, yaw, 0.95, 0.16);
+      root(-83 + dx * 0.4, -19, -328 + dz * 0.4, 1.4, yaw, 0.3, 0.1);
+    }
+    glowPatch(-85.6, -330.6, -80.4, -325.4, -20.5, 8, 0.6);
     root(-86, -20.5, -334.6, 6, 0, -0.3, 0.25);
     for (let i = 0; i < 26; i++) hangMoss(R(VA.x1 + 1, VA.x2 - 1), top, R(VA.zN + 1, VA.zS - 1), R(1, 4));
     put(mossMat, boxGeo(8.1, 0.06, 15.1, 0.5), -96, -20.47, -327.5);
@@ -1808,7 +1816,6 @@ export function buildVerdant(B) {
   guideStrip([[-10, 4.5, -210.5], [-17.2, 4.5, -210.5]], 0xd2ffb8);
   guideStrip([[-81, -25, -296], [-83, -25, -298.5]], 0xd2ffb8);
   beacon(W, -20, 4.5, -175.5, GREEN_HEX, 6);
-  beacon(W, 15, 7.9, -200, GREEN_HEX, 5);
   beacon(W, -25, 6, -250, GREEN_HEX, 6);
   beacon(W, -2, 18, -306.5, GREEN_HEX, 5);
   beacon(W, 46.5, 12, -279, GREEN_HEX, 4);
