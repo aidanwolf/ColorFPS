@@ -538,11 +538,12 @@ export class Player {
     this.updateCamera();
   }
 
-  launch(vy, push) {
+  launch(vy, push, carry = true) {
     this.vel.y = vy;
     if (push) {
       // a pad's throw plus the run you came in with (part of it, capped, so its landing stays in reach)
-      let cx = this.vel.x * PAD_CARRY, cz = this.vel.z * PAD_CARRY;
+      const k = carry ? PAD_CARRY : 0;
+      let cx = this.vel.x * k, cz = this.vel.z * k;
       const cl = Math.hypot(cx, cz);
       if (cl > PAD_CARRY_MAX) {
         cx *= PAD_CARRY_MAX / cl;

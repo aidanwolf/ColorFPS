@@ -359,7 +359,8 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   // Hub's east balcony port. With the engine dead the pads run on their own capacitors: shoot the orb over
   // a pad (each in its own color) and it holds a charge for 6 s; step on and it throws you to the next
   // landing. Pads throw you at 8 m/s across, so holding W (or nothing) lands you near the middle; each
-  // landing is long enough for a sprint, too.
+  // landing is long enough for a sprint, too. (They don't carry your run into the throw, as other pads do:
+  // walking on from the landing before carried you clean off the far end of the next.)
   plat(97, -158.5, 112, -152.5, GY, zone, 1);
   glowEdge(97, -158.5, 112, -152.5, GY, 'trimWhite', zone);
   new Checkpoint(W, game, { pos: [108.5, GY, GZ], yaw: Math.PI / 2, size: [3, 3, 5] });
@@ -380,7 +381,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     const [px, py, pz] = pads[i];
     const dx = land[0] - px, dz = land[2] - pz, d = Math.hypot(dx, dz), s = 8, t = (d - 1) / s;
     const vy = (land[1] - (py + 0.2) + 12 * t * t) / t;
-    const pad = new JumpPad(W, { pos: [px, py, pz], power: vy, push: [(dx / d) * s, 0, (dz / d) * s], color: 0xdfe6ff });
+    const pad = new JumpPad(W, { pos: [px, py, pz], power: vy, push: [(dx / d) * s, 0, (dz / d) * s], color: 0xdfe6ff, carry: false });
     // its capacitor: a timed orb switch hanging beside it
     const charge = { on: false, activate() { this.on = true; }, deactivate() { this.on = false; } };
     B.colorSwitch({ pos: [px, py + 2.7, pz + 1.9], style: 'orb', color: CHARGE[i], mode: 'timed', time: 6, links: [charge], zone, light: false });
