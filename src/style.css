@@ -24,6 +24,18 @@ html, body {
 
 /* ---------- HUD ---------- */
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+/* the water-slick boost: streaks rushing in from the edges and a cool spray tint (opacity set per frame) */
+#speedlines {
+  position: absolute; inset: -25%; opacity: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 40%, rgba(120, 210, 255, 0.35) 100%),
+    repeating-conic-gradient(from 0deg, rgba(220, 245, 255, 0) 0deg 2.6deg, rgba(220, 245, 255, 0.6) 3deg 3.3deg, rgba(220, 245, 255, 0) 3.7deg 7deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 28%, #000 72%);
+  mask-image: radial-gradient(circle, transparent 28%, #000 72%);
+  animation: speedlines 0.18s steps(3) infinite;
+}
+@keyframes speedlines { from { transform: rotate(0deg) scale(1); } to { transform: rotate(2.5deg) scale(1.04); } }
+@media (prefers-reduced-motion: reduce) { #speedlines { animation: none; } }
 #vignette {
   position: absolute; inset: 0; opacity: 0; transition: opacity 0.1s;
   background: radial-gradient(ellipse at center, transparent 45%, rgba(255, 20, 40, 0.65) 100%);

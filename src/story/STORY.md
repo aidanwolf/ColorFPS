@@ -42,9 +42,12 @@ There is no malice in it at all, and that is the horror. Beneath the core is a d
 Late twenties, a physicist on the small team (eight of them, Priya Nair, Tomas Okafor and Maja Lindqvist among
 them) that found the Atrium's frequency and opened a breach "from home". On day one they all came
 through together (the whiteboard: "09:12 breach open", "09:40 ATRIUM !!!") and set up a field station
-round the edge of the hall: desks with name plates, a kettle, a WELCOME TEAM banner and a cake. Wren
-argued to be the one who went out through the doors into the worlds, because she wanted it to be her: ten
-minutes, just a look, and home by seven for her sister Bea's birthday dinner (it's on the whiteboard too).
+in the hall: desks with name plates, a kettle, a WELCOME TEAM banner and a cake. Over the next month the
+station sprawled across the floor as they hauled in more and more cargo and kit (crates, generators,
+sensor tripods, cables everywhere), with a hired security contractor to watch over it. On day one Wren
+promised Bea she'd be home for her birthday. A month on, the morning of that birthday, she argued to be the
+one who went out through the doors into the worlds, because she wanted it to be her: ten minutes, just a
+look, and home by seven for Bea's birthday dinner (it's on the whiteboard too).
 The others stayed at the station and followed her over a radio link (Priya loudest), arguing with her,
 until it starts dropping out in Solar and, as her nine seconds end, goes dead for good. She
 carries a handheld field recorder and a probe that can clip onto the conduits and speak to the worlds'
@@ -80,7 +83,7 @@ Her arc, in the order the player finds the logs:
 
 | world | mood | what she learns |
 |---|---|---|
-| Atrium | giddy, wonder | day one at the station with the team: the kettle, the cake, a heart beating overhead that gives out four times what goes in ("we are not calling it Big Fridge"), home by seven for Bea; four rivers of power meet here; she taps a trickle (oops) and dreams of powering a city |
+| Atrium | giddy, wonder | day one at the station with the team: the kettle, the cake, a heart beating overhead that gives out four times what goes in ("we are not calling it Big Fridge"), home for Bea's birthday; four rivers of power meet here; she taps a trickle (oops) and dreams of powering a city |
 | Solar | curious → uneasy → nervous | with the team on the link from the station: glassy conduits under 4,000 summers of glass, leading down into a pit; a stone ring that hums when the sun moves (Priya: a capacitor; Wren: a gate); failed tries to bounce sunlight into it with her compact mirror, while the huge buried mirrors "have to face the right way"; capacitor banks full of more stored sunlight than she can bear to work out; the link keeps dropping; "what if the machine wanted someone to find this?"; the countdown before she talks to the star through the ring |
 | Verdant | lonely → frightened | a biomass farm, no birds; the link silent since the countdown, and she keeps talking to Priya anyway (a wren and no other birds); she falls into the temple under the swamp: algae reactors, the whole forest a fuel crop, glyphs that are diagrams ("they were engineers, like us... so where did they go?"); roots through fresh bodies by the sanctum's pools, a bus pass from her own city (but only the team came through, and they never left the station); something follows her "ever since the star" |
 | Azure | homesick → devastated | the last engine; ten minutes, home by seven, Bea's birthday; in the flooded Bell she reads the Lumen's record of the anomaly (her nine seconds, classified threat); in the Cryo Lab the catalogue: everyone from home, taken the day after; Mum, Bea, and not Priya, not Tomas, not Maja: it didn't keep the team |

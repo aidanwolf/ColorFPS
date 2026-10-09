@@ -998,6 +998,7 @@ class Game {
     }
     for (const pr of this.world.projectiles) pr.alive = false;
     this.world.wet.clear(); // puddles and shock water dry up
+    this.world.goo.clear(); // and the goo
     for (const fn of this.level.respawnHooks) fn();
     director.holders.clear();
     barks.reset();
@@ -1246,7 +1247,16 @@ class Game {
     this.fallWind.setGain(fall * fall * 0.9);
     this.fallWind.setRate(0.85 + fall * 0.4);
     if (fall > 0.3) this.player.shake = Math.max(this.player.shake, (fall - 0.3) * 0.25);
-    const fovTarget = verticalFov(this.settings.fov) + (this.player.sprinting && this.player.speed2d > 8 ? 4 : 0) + fall * 22;
+    // the water-slick boost: the view stretches, speed lines streak in, spray rushes past your ears
+    const slideK = this.state === 'playing' && !this.player.dead ? this.player.slideK : 0;
+    this.slideFx = (this.slideFx || 0) + (slideK - (this.slideFx || 0)) * Math.min(1, dt * (slideK > (this.slideFx || 0) ? 10 : 4));
+    this.slickRush ??= audio.createLoop('slick_rush');
+    this.slickRush.setGain(this.slideFx * 0.85);
+    this.slickRush.setRate(0.9 + this.slideFx * 0.45);
+    this.speedLines ??= document.getElementById('speedlines');
+    if (this.speedLines) this.speedLines.style.opacity = (this.slideFx > 0.02 ? this.slideFx * 0.9 : 0).toFixed(3);
+    if (this.slideFx > 0.5) this.player.shake = Math.max(this.player.shake, (this.slideFx - 0.5) * 0.05);
+    const fovTarget = verticalFov(this.settings.fov) + (this.player.sprinting && this.player.speed2d > 8 ? 4 : 0) + fall * 22 + this.slideFx * 18;
     if (Math.abs(this.camera.fov - fovTarget) > 0.01) {
       this.camera.fov += (fovTarget - this.camera.fov) * Math.min(1, dt * 8);
       this.camera.updateProjectionMatrix();
