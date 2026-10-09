@@ -152,7 +152,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   // The gate over the duct's mouth only opens from its winch, at the south end of the east walkway. The
   // hall's maintenance seal (a RoboSeal: it only moves on wet ground) carries the winch's power cell; it
   // waits in the water by the walkway. Hose a trail of puddles from its haul-out spot down the walkway to
-  // the winch and it slides along it, while scrap crawlers come down the walkway from the north to catch
+  // the winch and it slides along it, while scrap crawlers come along the north walkway to catch
   // it (caught, it bolts back to the water and you go again). A junction box by the walkway lets you fry
   // crawlers standing in your trail.
   const ductGate = B.seal([156.7, -63, -165.5], [157.4, -60, -162.5], { color: BLUE, closed: true, zone });
@@ -160,7 +160,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   deco(155.15, HT + 0.5, -169.25, 157, HT + 0.6, -167.55, 'hazard');
   deco(155.6, HT + 1.1, -168.8, 156.6, HT + 1.16, -168, 'glow1');
   const sealRoute = new Route([[153.2, HT, -186.6], [154.7, HT, -184.6], [154.7, HT, -170.4]]);
-  const crawlRoute = new Route([[154.7, HT, -190.4], [154.7, HT, -184.6], [154.7, HT, -170.4]]);
+  const crawlRoute = new Route([[145, HT, -192.6], [154.7, HT, -192.6], [154.7, HT, -184.6], [154.7, HT, -170.4]]); // (in from the north walkway)
   for (const x of [154.05, 155.3]) deco(x, HT + 0.004, -185.5, x + 0.05, HT + 0.02, -170.6, 'glow3'); // the seal's lane, marked
   const winchSeal = new RoboSeal(W, game, {
     water: [151.2, HW - 0.15, -186.6], route: sealRoute, carry: true,
@@ -182,7 +182,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
         winchSeal.done = false;
         winchSeal.t = 0;
       }
-      // a chase starts each time it hauls out: crawlers come down from the north end, one every few seconds
+      // a chase starts each time it hauls out: crawlers come in along the north walkway, one every few seconds
       for (let i = crawlers.length - 1; i >= 0; i--) if (crawlers[i].dead) crawlers.splice(i, 1);
       if (winchSeal.state === 'haul' && chaseT < 0 && !winchSeal.worked) {
         chaseT = 0;
@@ -422,7 +422,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   // drones work the chasm (they come back whenever you return)
   // (they hang off to the sides of the chain, never in a pad's flight path)
   new Drone(W, { pos: [80, 3, -160], color: BLUE, shields: [YELLOW], range: 22, orbit: 2 });
-  new Drone(W, { pos: [55, 13, -130.5], color: BLUE, shields: [RED], range: 22, orbit: 2 });
+  new Drone(W, { pos: [58, 12, -152], color: BLUE, shields: [RED], range: 22, orbit: 2 }); // (well clear of the Rim Deck: the descent has no fights)
   keepOut.push([[33, -9, -160], [113, 30, -131]]);
 
   // ================================================================== THE CONDUIT to the Atrium's reactor

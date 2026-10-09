@@ -25,11 +25,11 @@
 //    A low, fast crawler that hunts a RoboSeal along its own route (catching it where they meet) (and bites anyone in its way: one bite
 //    kills). Blue body; each shield layer pops only to its own color, the bare body only to blue; any
 //    other color glances off and enrages it (a burst of speed). Slicks trip it up; shock water fries it.
-// Junction   { min, max, live: false, cooldown: 8, oneShot: false, onShort, onRearm, kind: 'box' | 'breaker'
-//               | 'conduit', face: '+z', cable: [x, y, z] }
+// Junction   { min, max, live: false, cooldown: 8, oneShot: false, surge: 4, onShort, onRearm, kind: 'box' |
+//               'breaker' | 'conduit', face: '+z', cable: [x, y, z] }
 //    An electrical component: a world.wet shocker with a body. Spray it and it shorts: sparks fly and the
 //    water at its foot goes live for a few seconds, and the charge runs through every puddle touching
-//    that one. Then it's spent for `cooldown` s (oneShot: for good, e.g. a breaker that cuts a door's
+//    that one (for `surge` s). Then it's spent for `cooldown` s (oneShot: for good, e.g. a breaker that cuts a door's
 //    power). live: true makes it charge every puddle that touches it all the time (a live cable).
 // LivePool   { min: [x1, y, z1], max: [x2, y, z2] (y = the floor under it), live: true }
 //    A flooded floor carrying current: step in it (or let a robot walk in) while it's live and you're

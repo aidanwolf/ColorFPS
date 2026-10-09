@@ -1,19 +1,24 @@
 // AZURE — THE COLD DEEP. A drowned, frozen research station clinging to the walls of a vast crystal
-// chasm east of the Hub, and the water engine that powers it. You come in with RED, YELLOW and GREEN and
-// spiral DOWN; the AZURE core waits at the bottom, and with it in hand you climb back UP on the water.
-//   FIRST HALF (this file, plus the Flooded Depths in azureFlooded.js):
+// chasm east of the Hub, and the water engine that powers it, in a storm that never stops (azureRain.js).
+// You come in with RED, YELLOW and GREEN, climb DOWN through the rain to the AZURE core, and from then on
+// the water cannon is the key to everything: slicks, ballast, seals and shock water (entities/waterPuzzle.js).
+//   THE DESCENT (this file; exploration and platforming, no fights):
 //     entry skybridge (y 4) → Rim Deck (checkpoint; a BLUE hatch over a water pipe = a shortcut for later)
-//     → the SHELF (platforming: a crumbling ice ledge over spikes you clear first, a crane trolley you
-//       push across the gap by shooting it) → Pump Station (vent secret; a warm pump hut)
-//     → the freight lift (shoot it to lower it) → TURBINE DECK (small fight; the way on is sealed until
-//       it's clear) → THE FLOODED DEPTHS (swimming: sump, down-current pipe, air pockets, sub-drones, vortex
-//       tubes, the ricochet ballast valve, a rising-water ride) → CRYO LAB (the ARENA: three waves; a
-//       records room off it, with a BLUE-locked specimen vault) → the three-color Gauntlet → the WELL
-//       (pillars over cryo-brine, the first one crumbles; then a flooded drop pipe through spike layers)
-//     → Vault antechamber (the ricochet lock) → CORE SANCTUM (the AZURE core; its sentries wake).
-//   SECOND HALF (azureSpillway.js): the Blue Span, the Undercroft, the Sluice, the Drowned Cistern
-//     (Charybdis, the guardian, and the Azure Engine, the world's power source), and the way home: a chain
-//     of jump pads up across the chasm to the Hub's east balcony port (x 25, y 12, z -136).
+//     → the SHELF (a crumbling ice ledge, a ledge crusted with green spikes, a crane trolley you push
+//       across the gap by shooting it) → Pump Station (vent secret; a warm pump hut) → the freight lift
+//     → TURBINE DECK: the AZURE core on its dais.
+//   WITH BLUE:
+//     the first SLICK LEAP (hose the deck, sprint, leap the 8.8 m gap) → THE STORM DECK (arena 1: junction
+//     boxes to short into soaked robots) → its gantry back, the hatch into the cliff → THE FLOODED DEPTHS
+//     (azureFlooded.js: the Sump's seal path, then the long swim) → CRYO LAB (two leaking counterweight
+//     tanks to fill while its sentries fight you; a frozen feed pipe the sun beam thaws) → THE BREAKER HALL
+//     (a live floor, insulated grates, robots to lure into the water, a green-caged breaker for the
+//     forcefield out) → the WELL (pillars over cryo-brine, the flooded drop pipe) → Vault antechamber (the
+//     ricochet lock) → CORE SANCTUM: THE DYNAMO (the mini-boss: soak the floor, short its conduits).
+//   SECOND HALF (azureSpillway.js): the Blue Span (a slick leap over the abyss), the Undercroft (a fight,
+//     then the maintenance seal's chase), the Sluice, the Drowned Cistern (Charybdis, the guardian, and the
+//     Azure Engine, the world's power source), and the way home: a chain of jump pads up across the chasm
+//     to the Hub's east balcony port (x 25, y 12, z -136).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COLORS, RED, YELLOW, GREEN, BLUE } from '../colors.js';

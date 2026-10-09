@@ -13,7 +13,7 @@
 //   · Lightning: every 10-25 s a flicker that lights the sky, the hemisphere light and the rain, a
 //     jagged bolt far off over the abyss, and the thunder a moment later.
 // Off underwater and anywhere outside the storm's bounds; the whole thing costs two draws.
-//   buildRain(B, { bounds: [x1, z1, x2, z2], intensity }) → { openness, flash(k), setIntensity(k) }
+//   buildRain(B, { bounds: [x1, z1, x2, z2], intensity }) → { openness, flashK, setIntensity(k), strike() }
 import * as THREE from 'three';
 import { audio } from '../audio.js';
 import { SynthLoop, noiseVoice } from '../weapons/rays.js';
@@ -237,8 +237,9 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
   W.scene.add(bolt);
   const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3();
   function shapeBolt(cam) {
-    // somewhere 120-180 m off, out over the chasm, from the clouds down into the dark
-    const ang = Math.random() * Math.PI * 2, dist = 120 + Math.random() * 60;
+    // somewhere 120-180 m off, mostly in the direction you're looking, from the clouds down into the dark
+    game.camera.getWorldDirection(_a);
+    const ang = Math.atan2(_a.z, _a.x) + (Math.random() - 0.5) * 2.2, dist = 120 + Math.random() * 60;
     const x0 = cam.x + Math.cos(ang) * dist, z0 = cam.z + Math.sin(ang) * dist;
     let x = x0, y = 95, z = z0;
     _s.set(Math.sin(ang), 0, -Math.cos(ang)); // sideways to the view
@@ -275,6 +276,9 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
     intensity,
     setIntensity(k) {
       st.intensity = k;
+    },
+    strike() {
+      startStrike(game.camera.position);
     },
   };
   let t = 0, nextStrike = 6 + Math.random() * 8, strike = null, lastAdd = { hemi: 0, sky: 0 };
@@ -354,13 +358,13 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
       const hemi = game.hemi;
       if (hemi) {
         const base = hemi.intensity - lastAdd.hemi * (1 - ka);
-        const add = k * 2.2 * vis;
+        const add = k * 3.2 * vis;
         hemi.intensity = base + add;
         lastAdd.hemi = add;
       }
       const u = game.sky?.material?.uniforms;
       if (u) {
-        const add = k * 0.5 * vis;
+        const add = k * 1.1 * vis;
         for (const key of ['uTop', 'uMid', 'uHor']) {
           const v = u[key].value;
           skyAdd.set(0.55, 0.65, 0.85).multiplyScalar(lastAdd.sky * (1 - ka));
