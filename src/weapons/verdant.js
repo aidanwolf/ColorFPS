@@ -37,7 +37,7 @@ export function buildVerdant(hex) {
   const seedMat = glow(hex, 2.6);
   const seed = part(root, new THREE.SphereGeometry(0.026, 12, 10), seedMat, [0, 0, -0.285]);
   // a glossy goo skin round the seed that only shows while charging
-  const skinMat = new THREE.MeshStandardMaterial({ color: 0x0c7a26, emissive: 0x14c444, emissiveIntensity: 0.6, roughness: 0.08, metalness: 0.1, envMapIntensity: 0.5, transparent: true, opacity: 0, depthWrite: false });
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0x0a6a22, emissive: 0x10a83a, emissiveIntensity: 0.5, roughness: 0.12, metalness: 0.05, envMapIntensity: 0.35, transparent: true, opacity: 0, depthWrite: false });
   const skin = part(root, new THREE.IcosahedronGeometry(0.03, 2), skinMat, [0, 0, -0.29]);
   let charge = 0; // wanted (from globs.js)
   let ch = 0; // shown (eased)
@@ -89,15 +89,15 @@ export function buildVerdant(hex) {
       ch = charge > ch ? Math.min(charge, ch + dt * 6) : Math.max(charge, ch - dt * 10);
       const full = ch >= 0.999 ? 1 : 0;
       const seethe = Math.sin(t * (13 + ch * 30)) * (0.04 + ch * 0.08) + full * Math.sin(t * 47) * 0.06;
-      seed.scale.setScalar((0.25 + swell * 1.15) * (1 + ch * 1.9) * (1 + Math.sin(t * 2.6) * 0.05 + seethe * swell));
+      seed.scale.setScalar((0.25 + swell * 1.15) * (1 + ch * 0.9) * (1 + Math.sin(t * 2.6) * 0.05 + seethe * swell));
       seed.position.z = -0.285 - swell * 0.012 - ch * 0.03;
-      setGlow(seedMat, hex, 2.6 + ch * 1.2 + full * (0.6 + 0.4 * Math.sin(t * 22)));
+      setGlow(seedMat, hex, 2.6 - ch * 0.9 + full * (0.5 + 0.4 * Math.sin(t * 22)));
       {
         // (always drawn, at opacity 0 when idle, so its shader is compiled with the gun's)
-        skin.scale.setScalar(1 + ch * 1.9 + seethe * 0.6);
+        skin.scale.setScalar(1 + ch * 2.3 + seethe * 0.6);
         skin.position.z = -0.29 - ch * 0.035;
-        skinMat.opacity = Math.min(0.62, ch * 1.2);
-        skinMat.emissiveIntensity = 0.4 + ch * 0.9 + full * 0.6 * (0.5 + 0.5 * Math.sin(t * 22));
+        skinMat.opacity = Math.min(0.78, ch * 1.4);
+        skinMat.emissiveIntensity = 0.35 + ch * 0.55 + full * 0.5 * (0.5 + 0.5 * Math.sin(t * 22));
       }
       collar.position.z = -0.16 + pump * pump * 0.07 + ch * 0.05;
       // an organic, breathing sway
@@ -109,7 +109,7 @@ export function buildVerdant(hex) {
       const shiver = ch * ch * 0.0016 + full * 0.0018;
       root.position.x = Math.sin(t * 53) * shiver;
       root.position.y += Math.sin(t * 61 + 1) * shiver;
-      return 0.4 + breath * 0.15 + flare * 0.4 + ch * 1.4 + full * 0.6 * (0.5 + 0.5 * Math.sin(t * 22));
+      return 0.4 + breath * 0.15 + flare * 0.4 + ch * 0.6 + full * 0.4 * (0.5 + 0.5 * Math.sin(t * 22));
     },
   };
 }
