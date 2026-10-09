@@ -73,6 +73,7 @@ export class WorkerDrone {
     this.sparkT = 0;
     this.carrying = false;
     this.dead = false;
+    this.flier = true; // airborne: green globs' flak fuse airbursts beside it (weapons/globs.js)
     this.group = new THREE.Group();
     this.group.userData.hit = this;
     this.group.userData.noCull = true;
