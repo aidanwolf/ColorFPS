@@ -928,8 +928,6 @@ export function buildSolar(B) {
     sk.colossus(-50, S, -146, '-x', 1); // looking out over the balcony's sun
     sk.colossus(-52, -46, -49, '-x', 1.25); // beside the drop, looking down the lowland
     R(-61, -118, -57, -43, -46, -41); // (its pedestal from the lowland)
-    sk.colossus(-51.4, -38, -95.6, '-x', 0.36); // flanking the yard's gatehouse
-    sk.colossus(-51.4, -38, -76.4, '-x', 0.36);
     sk.pylon(-48, -101, -34, -95, S, 48, 8); // the gatehouse's tall north tower (the Atrium stays hidden)
     // the cliff over the drop: pilasters, a cornice and glyph bands on its face
     for (const z of [-56.5, -49, -41.5]) R(-49.2, -46, z - 1, -48, 24, z + 1);
