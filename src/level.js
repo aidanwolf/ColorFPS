@@ -22,6 +22,7 @@ import { buildLeviathanRange } from './levels/leviathanRange.js';
 import { buildForgeRange } from './levels/forgeRange.js';
 import { buildEnemyRangeB } from './levels/enemyRangeB.js';
 import { buildEnemyRangeA } from './levels/enemyRangeA.js';
+import { buildVerdantCreatureRange } from './levels/verdantCreatureRange.js';
 
 
 export function buildLevel(world, game) {
@@ -58,5 +59,6 @@ export function buildLevel(world, game) {
   buildForgeRange(B); // dev-only Forge Titan test arena (?dev)
   buildEnemyRangeB(B); // ?dev only: test range for the world creatures
   buildEnemyRangeA(B);
+  buildVerdantCreatureRange(B); // ?dev only: Verdant's flytraps, flies, worms and the fly ride, off the map
   return level;
 }
