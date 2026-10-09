@@ -590,6 +590,9 @@ export function buildReactor(B) {
     dwell = 0.6; // (a second feed due as well waits a beat)
     game.events?.add('feed_' + c.name);
     game.save?.();
+    // a world finished and its feed just blew in front of you: the natural break for a Bonus Round, once
+    // the title has had its moment
+    setTimeout(() => game.naturalBreak?.(), 4500);
   }
 
   function queueMsg(cs) {
