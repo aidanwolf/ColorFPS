@@ -54,12 +54,13 @@ function tex(size, draw, repeat = true) {
 // ---------------------------------------------------------------- the swamp water
 // Two looks over the same black water: deep (near-black, oily, a slow sheen, rafts of duckweed, never a bottom)
 // and shallow (lighter, weedy, reeds and lilies, you can see it's knee deep). Readable at a glance.
+// (one shader for both, a uniform picks the look: one program to compile, not two)
 function swampWater() {
   const time = liquidMaterial('green', true).uniforms.uTime; // (the shared liquid clock)
   const make = (deep) => {
     const m = new THREE.ShaderMaterial({
       fog: true,
-      uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uLife: { value: 1 } }]),
+      uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uLife: { value: 1 }, uDeep: { value: deep ? 1 : 0 } }]),
       vertexShader: /* glsl */ `
         #include <fog_pars_vertex>
         uniform float uTime;
@@ -74,7 +75,7 @@ function swampWater() {
         }`,
       fragmentShader: /* glsl */ `
         #include <fog_pars_fragment>
-        uniform float uTime, uLife;
+        uniform float uTime, uLife, uDeep;
         varying vec3 vW;
         float lh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
         float ln(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -86,23 +87,23 @@ function swampWater() {
           vec3 V = normalize(cameraPosition - vW);
           float fres = pow(1.0 - clamp(V.y, 0.0, 1.0), 3.0);
           float swirl = fb(p * 0.12 + vec2(t * 0.012, -t * 0.009));
-          #if DEEP
+          vec3 c;
+          if (uDeep > 0.5) {
             float scum = smoothstep(0.58, 0.78, fb(p * 0.35 + vec2(t * 0.02, -t * 0.015) + swirl));
-            vec3 c = mix(vec3(0.012, 0.022, 0.014), vec3(0.03, 0.045, 0.024), swirl);
+            c = mix(vec3(0.012, 0.022, 0.014), vec3(0.03, 0.045, 0.024), swirl);
             c = mix(c, vec3(0.1, 0.14, 0.04), scum * 0.75);
             float oil = sin(fb(p * 0.5 - t * 0.03) * 14.0) * 0.5 + 0.5;
             c += vec3(0.07, 0.11, 0.09) * fres * (0.5 + 0.5 * oil);
-          #else
+          } else {
             float weed = smoothstep(0.45, 0.7, fb(p * 0.6 + swirl * 2.0));
-            vec3 c = mix(vec3(0.05, 0.07, 0.035), vec3(0.09, 0.12, 0.05), swirl);
+            c = mix(vec3(0.05, 0.07, 0.035), vec3(0.09, 0.12, 0.05), swirl);
             c = mix(c, vec3(0.16, 0.24, 0.07), weed * 0.7);
             float rip = pow(max(0.0, 1.0 - abs(sin(fb(p * 0.9 + t * 0.1) * 10.0 - t))), 6.0);
             c += vec3(0.1, 0.14, 0.1) * (fres * 0.6 + rip * 0.25);
-          #endif
+          }
           gl_FragColor = vec4(c, 1.0);
           #include <fog_fragment>
         }`,
-      defines: { DEEP: deep ? 1 : 0 },
     });
     m.uniforms.uTime = time;
     return m;
@@ -272,8 +273,8 @@ function buildMats() {
   });
   algae.uniforms.uTime = time;
   const m = {
-    bark: new THREE.MeshStandardMaterial({ map: barkTex, color: 0xa89a86, roughness: 1, flatShading: true }),
-    moss: new THREE.MeshStandardMaterial({ map: mossTex, color: 0x7f9466, roughness: 1, flatShading: true }),
+    bark: new THREE.MeshStandardMaterial({ map: barkTex, color: 0xa89a86, roughness: 1 }),
+    moss: new THREE.MeshStandardMaterial({ map: mossTex, color: 0x7f9466, roughness: 1 }),
     pipe: new THREE.MeshStandardMaterial({ map: pipeTex, color: 0xb0c8a8, roughness: 0.55, metalness: 0.55 }),
     pipeDark: new THREE.MeshStandardMaterial({ color: 0x2c3530, roughness: 0.5, metalness: 0.75, flatShading: true }),
     rust: new THREE.MeshStandardMaterial({ color: 0x5a3a22, roughness: 0.9, metalness: 0.3, flatShading: true }),
@@ -281,13 +282,13 @@ function buildMats() {
     algae,
     sap: new THREE.MeshBasicMaterial({ color: new THREE.Color(0x7dff6a).multiplyScalar(1.6) }),
     glow: new THREE.MeshBasicMaterial({ color: new THREE.Color(0x3dff7a).multiplyScalar(1.8) }),
-    granite: new THREE.MeshStandardMaterial({ map: graniteTex, color: 0xb4bcae, roughness: 0.95, flatShading: true }),
+    granite: new THREE.MeshStandardMaterial({ map: graniteTex, color: 0xb4bcae, roughness: 0.95 }),
     glyph: new THREE.MeshStandardMaterial({ map: glyphTex, color: 0xb0b8aa, roughness: 0.95 }),
     jade: new THREE.MeshStandardMaterial({ color: 0x2f9a6a, roughness: 0.3, metalness: 0.1, emissive: 0x0a3a22, flatShading: true }),
     grate: new THREE.MeshStandardMaterial({ map: grateTex, color: 0xb0b8a0, roughness: 0.7, metalness: 0.6 }),
-    leaf: new THREE.MeshStandardMaterial({ color: 0x1a3a1e, roughness: 0.95, flatShading: true, side: THREE.DoubleSide }),
-    leafLit: new THREE.MeshStandardMaterial({ color: 0x31522a, roughness: 0.95, flatShading: true, side: THREE.DoubleSide }),
-    vine: new THREE.MeshStandardMaterial({ color: 0x23421f, roughness: 1, flatShading: true, side: THREE.DoubleSide }),
+    leaf: new THREE.MeshStandardMaterial({ color: 0x1a3a1e, roughness: 0.95, flatShading: true }),
+    leafLit: new THREE.MeshStandardMaterial({ color: 0x31522a, roughness: 0.95, flatShading: true }),
+    vine: new THREE.MeshStandardMaterial({ color: 0x23421f, roughness: 1, flatShading: true }),
   };
   const water = swampWater();
   m.swampDeep = water.deep;
@@ -321,6 +322,29 @@ export function makeVerdantKit(B, { seed = 1 } = {}) {
     lists.get(m).push(g);
     return g;
   };
+  // a sheet (vine, frond, reed, moss curtain) with both faces as real triangles, so the foliage materials can
+  // stay single-sided and share the shader programs every other flat-shaded material already compiles
+  // (a double-sided material is a program of its own, and draws the back of every closed leaf clump too)
+  const twoSided = (geo) => {
+    const a = geo.index ? geo.toNonIndexed() : geo;
+    if (a !== geo) geo.dispose();
+    const b = a.clone();
+    for (const name of Object.keys(b.attributes)) {
+      const at = b.attributes[name], n = at.itemSize, arr = at.array;
+      for (let i = 0; i < at.count; i += 3)
+        for (let k = 0; k < n; k++) {
+          const t = arr[(i + 1) * n + k];
+          arr[(i + 1) * n + k] = arr[(i + 2) * n + k];
+          arr[(i + 2) * n + k] = t;
+        }
+    }
+    const nm = b.attributes.normal;
+    if (nm) for (let i = 0; i < nm.array.length; i++) nm.array[i] = -nm.array[i];
+    const out = mergeGeometries([a, b], false);
+    a.dispose();
+    b.dispose();
+    return out;
+  };
   // merge what's been collected into one mesh per material (call once per area)
   function flush() {
     const out = [];
@@ -342,24 +366,25 @@ export function makeVerdantKit(B, { seed = 1 } = {}) {
 
   // a cylinder from a to b (radius r0 at a, r1 at b)
   const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _d = new THREE.Vector3(), _q = new THREE.Quaternion(), UP = new THREE.Vector3(0, 1, 0);
-  function rod(m, a, b, r0, r1 = r0, seg = 6) {
+  function rod(m, a, b, r0, r1 = r0, seg = 6, open = false) {
     _a.set(...a);
     _b.set(...b);
     _d.subVectors(_b, _a);
     const len = _d.length();
     if (len < 1e-3) return;
-    const g = new THREE.CylinderGeometry(r1, r0, len, seg, 1);
+    const g = new THREE.CylinderGeometry(r1, r0, len, seg, 1, open);
     g.translate(0, len / 2, 0);
     _q.setFromUnitVectors(UP, _d.normalize());
     g.applyQuaternion(_q);
     put(m, g, _a.x, _a.y, _a.z);
   }
   // a root as a chain of tapering limbs through the points, a knuckle at each bend
-  function limb(pts, r0, r1, m = mats.bark, seg = 6) {
+  // (open: no end caps at all, for limbs whose ends are buried in a trunk, under water or in leaves)
+  function limb(pts, r0, r1, m = mats.bark, seg = 6, open = false) {
     for (let i = 0; i < pts.length - 1; i++) {
       const ra = r0 + (r1 - r0) * (i / (pts.length - 1)), rb = r0 + (r1 - r0) * ((i + 1) / (pts.length - 1));
-      rod(m, pts[i], pts[i + 1], ra, rb, seg);
-      if (i < pts.length - 2) put(m, new THREE.IcosahedronGeometry(rb * 1.05, 1), ...pts[i + 1]);
+      rod(m, pts[i], pts[i + 1], ra, rb, seg, open || (i > 0 && i < pts.length - 2)); // (joints between knuckles needn't be capped)
+      if (i < pts.length - 2) put(m, new THREE.IcosahedronGeometry(rb * 1.05, rb > 0.6 ? 1 : 0), ...pts[i + 1]);
     }
   }
   function mossCap(x, y, z, r, flat = 0.35) {
@@ -367,11 +392,11 @@ export function makeVerdantKit(B, { seed = 1 } = {}) {
   }
   function hangMoss(x, yTop, z, len, w = 0.35) {
     for (const a of [0, PI / 2]) {
-      const g = new THREE.PlaneGeometry(w, len, 1, 2);
+      const g = new THREE.PlaneGeometry(w, len, 1, 1);
       const p = g.attributes.position;
       for (let i = 0; i < p.count; i++) if (p.getY(i) < 0) p.setX(i, p.getX(i) * 0.3);
       g.translate(0, -len / 2, 0).rotateY(a + R(-0.4, 0.4));
-      put(mats.vine, g, x, yTop, z);
+      put(mats.vine, twoSided(g), x, yTop, z);
     }
   }
 
@@ -720,5 +745,5 @@ export function makeVerdantKit(B, { seed = 1 } = {}) {
     return out;
   }
 
-  return { W, mats, rand, R, put, flush, capture, instance, solid, rod, limb, mossCap, hangMoss, pipe, reactorTank, sapTap, harvestTower, pumpStation, catwalk, rootCradle, leaks };
+  return { W, mats, rand, R, put, twoSided, flush, capture, instance, solid, rod, limb, mossCap, hangMoss, pipe, reactorTank, sapTap, harvestTower, pumpStation, catwalk, rootCradle, leaks };
 }

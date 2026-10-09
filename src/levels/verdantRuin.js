@@ -342,6 +342,8 @@ export function buildVerdantRuin(B, { K, F, trap }) {
   for (const [x, z, w] of [[-50, -380, 4], [-62, -366, 2.4], [-38, -396, 2.4]]) F.shaft(x, S.ceil - 0.5, z, S.ceil - S.floor - 1, w, 0.04);
   B.light(S.cx, top + 6, S.cz, 0x7dffa0, 30, 40);
   B.light(S.cx, S.floor + 6, S.cz + 20, 0xc8ffd0, 14, 26);
+  // the algae pools at the pyramid's foot light the cradle's legs from below (they read as black cut-outs otherwise)
+  for (const [x, z] of [pools[0], pools[1]]) B.light(x, S.floor + 2.5, z, 0x5dff8a, 10, 20);
   F.motes([S.x1, S.floor + 1, S.z1, S.x2, S.ceil - 4, S.z2], 260, { color: 0x7aaa6a, size: 0.07, speed: 0.12, opacity: 0.6 });
   F.fireflies([[S.cx, top + 2, S.cz, 5, 30], [-62, S.floor + 2, -366, 4, 12], [-38, S.floor + 2, -396, 4, 12]], 0x9dffb0, 0.1);
   say([-52, S.floor, -360], [-48, S.floor + 4, -353], `There: held in the cradle's grip over the pyramid, a ${G_('chroma core')}. Up the stair.`, 6);

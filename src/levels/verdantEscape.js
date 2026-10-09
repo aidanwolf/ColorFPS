@@ -773,7 +773,7 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
     // eyes, a flat broad nose, a great protruding muzzle split by the gaping mouth (the way out), fangs, C-shaped
     // ears, and a stepped temple crown
     const dark = new THREE.MeshStandardMaterial({ color: 0x141a14, roughness: 1, flatShading: true });
-    const pale = new THREE.MeshStandardMaterial({ map: mats.granite.map, color: 0xc8d0bc, roughness: 0.9, flatShading: true });
+    const pale = new THREE.MeshStandardMaterial({ map: mats.granite.map, color: 0xc8d0bc, roughness: 0.9 });
     put(faceMat, ell(2.6, 17.5, 16, 3), cx + 0.4, 30, cz); // the face plate
     for (let i = 0; i < 34; i++) {
       // the mane: rough tufts round the oval

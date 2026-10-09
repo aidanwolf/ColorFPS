@@ -469,16 +469,16 @@ export function buildVerdantSwamp(B, ctx = {}) {
   for (const [a, b] of [[[-30.8, -1, -232], [-30.5, 40, -158.5]], [[30.5, -1, -232], [30.8, 40, -158.5]], [[-100.8, -1, -302], [-100.5, 40, -232]], [[-100.5, -1, -232.3], [-30.5, 40, -232]], [[0, -1, -302], [27, 40, -300]], [[2, -1, -300], [2.3, 10, -232.3]], [[2, -1, -232.3], [30.5, 10, -232]]]) B.blocker(a, b);
 
   // ================================================================ scatter: the forest fills in round the route
-  for (let x = -29; x <= 29; x += 5.2)
-    for (let z = -173; z >= -231; z -= 5.2) {
+  for (let x = -29; x <= 29; x += 5.7)
+    for (let z = -173; z >= -231; z -= 5.7) {
       const px = x + R(-2, 2), pz = z + R(-2, 2);
       const under = px > 3.5 && px < 16.5; // (under the aqueduct: nothing tall)
       const k = under ? 'snag' : rand() < 0.45 ? 'giant' : rand() < 0.6 ? 'mangrove' : 'snag';
       if (!clearOf(px, pz, k === 'giant' ? 3.5 : 2)) continue;
       trees.push({ x: px, z: pz, kind: k, s: under ? R(0.4, 0.55) : R(0.65, 0.95), y: k === 'mangrove' ? MIRE_TOP : MIRE_TOP - 0.2 });
     }
-  for (let x = -98; x <= -2; x += 5.6)
-    for (let z = -234; z >= -299; z -= 5.6) {
+  for (let x = -98; x <= -2; x += 6.1)
+    for (let z = -234; z >= -299; z -= 6.1) {
       const px = x + R(-2, 2), pz = z + R(-2, 2);
       const k = rand() < 0.45 ? 'giant' : rand() < 0.6 ? 'mangrove' : 'snag';
       if (px > -8 && k === 'giant' && pz > -262) continue; // (keep the zip line's corridor open)
