@@ -162,11 +162,12 @@ function verdantObjective(game) {
     if (next === 2) return `Land one ${G('glob')} between the two bulbs: one burst has to catch both.`;
     return 'Over the last root arm to the ledge beyond.';
   }
-  if (p.x > -60 && p.z < -244 && p.y > 2) return 'Down the stones <b>west</b>, onto the old walkway.';
-  if (p.x > -60 && p.z < -244 && p.y > -1 && p.x > -50) return 'Cross the walkway west. <b>Sprint</b> over its sagging middle.';
-  if (p.x > -60 && p.z < -244 && p.y > -11) return v.stoneLock?.on ? 'Down the stones while they hold!' : `Splash all three bulbs on the wall shelf with <b>one</b> ${G('glob')}, then hop down the stones while they hold.`;
-  if (p.x > -44 && p.y > -21 && p.z < -244) return 'Hop down the root steps west to the dock.';
-  if (p.x > -60 && p.z < -244 && p.y > -26) return 'Into the <b>greenhouse</b> through the tunnel in the west wall.';
+  const hollow = p.x > -60 && p.z < -244 && p.z > -292; // the descent down the Hollow's west side
+  if (hollow && p.y > 2) return 'Down the stones <b>west</b>, onto the old walkway.';
+  if (hollow && p.y > -1 && p.x > -50) return 'Cross the walkway west. <b>Sprint</b> over its sagging middle.';
+  if (hollow && p.y > -11) return v.stoneLock?.on ? 'Down the stones while they hold!' : `Splash all three bulbs on the wall shelf with <b>one</b> ${G('glob')}, then hop down the stones while they hold.`;
+  if (hollow && p.x > -44 && p.y > -21) return 'Hop down the root steps west to the dock.';
+  if (hollow && p.y > -26) return 'Into the <b>greenhouse</b> through the tunnel in the west wall.';
   if (p.x < -60 && p.z > -299.5 && p.y < -20) return fought(v.greenhouse) ? 'Clear the <b>Greenhouse</b>.' : 'On through the north door to the <b>Seed Vault</b>.';
   if (p.x < -69.5 && p.z < -299.5 && p.y < -9) {
     if (v.seed && !v.seed.on) {
