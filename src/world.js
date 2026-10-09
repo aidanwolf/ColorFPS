@@ -7,6 +7,7 @@ import { Fx } from './fx.js';
 import { regionOf, VISIBLE_FROM } from './levels/regions.js';
 import { liquidMaterial, liquidSurface } from './liquid.js';
 import { audio } from './audio.js';
+import { WetSurfaces } from './wet.js';
 
 const _v = new THREE.Vector3();
 const _ray = new THREE.Raycaster();
@@ -44,6 +45,7 @@ export class World {
     this.batchGroup.userData.noCull = true;
     this.scene.add(this.batchGroup);
     this.fx = new Fx(this.scene);
+    this.wet = new WetSurfaces(this); // puddles from the water cannon, shock water (wet.js)
     this.time = 0;
     // Placed lights are virtual: a fixed pool of real PointLights is handed to whichever are nearest the
     // camera. Every lit pixel loops over every real light, and changing their count recompiles every
@@ -366,10 +368,12 @@ export class World {
 
   // ---------- ray casting ----------
   // Returns the closest hit among solids (boxes), hittable meshes and enemy projectiles.
-  raycast(origin, dir, far = 200, { projectiles = false, meshes = true } = {}) {
+  // (The held weapons cast many rays a frame: they pass pre-filtered `solids` / `targets` lists and
+  // `fresh` once they've refreshed the hittables' matrices themselves this frame; see weapons/rays.js.)
+  raycast(origin, dir, far = 200, { projectiles = false, meshes = true, solids = this.solids, targets = this.hitTargets, fresh = false } = {}) {
     let best = null;
     let bestT = far;
-    for (const s of this.solids) {
+    for (const s of solids) {
       if (!s.enabled || s.noShot) continue;
       const r = rayBox(origin, dir, s.min, s.max, bestT);
       if (r) {
@@ -377,13 +381,13 @@ export class World {
         best = { t: r.t, normal: r.normal, solid: s, entity: s.entity || null, part: s.part || null };
       }
     }
-    if (meshes && this.hitTargets.length) {
+    if (meshes && targets.length) {
       _ray.set(origin, dir);
       _ray.camera = this.game.camera;
       // entities animate during update, so refresh their world matrices before testing against them
-      for (const o of this.hitTargets) o.updateMatrixWorld(true);
+      if (!fresh) for (const o of targets) o.updateMatrixWorld(true);
       _ray.far = bestT;
-      const hits = _ray.intersectObjects(this.hitTargets, true);
+      const hits = _ray.intersectObjects(targets, true);
       for (const h of hits) {
         // three's raycaster ignores visibility, so skip anything hidden (e.g. a broken shield)
         let hidden = false;
@@ -396,7 +400,7 @@ export class World {
         if (o.userData.noHit) continue;
         bestT = h.distance;
         const n = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : dir.clone().negate();
-        best = { t: h.distance, normal: n, entity: o.userData.hit, part: o.userData.part || null, object: h.object };
+        best = { t: h.distance, normal: n, entity: o.userData.hit, part: o.userData.part || null, object: h.object, face: h.face };
         break;
       }
     }
@@ -492,6 +496,7 @@ export class World {
       t.inside = inside;
     }
     this.updateLiquidFx(dt, player);
+    this.wet.update(dt, player);
     this.fx.update(dt);
   }
 }

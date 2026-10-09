@@ -227,7 +227,10 @@ export class Brute extends Enemy {
       _d.copy(this.dir).multiplyScalar(v * dt);
       this.travel += v * dt;
       if (Math.random() < dt * 30) fx.burst(_v.copy(this.pos).setY(this.floorY + 0.1), 0xb8c0d0, { count: 2, speed: 2, life: 0.5, size: 0.4, gravity: -0.5, mode: 'puff' });
-      if (this.step(_d)) this.slam();
+      // a charge across a puddle (world.wet) loses it: the thrusters' wash on the water throws it into a spin
+      const wet = this.world.wet;
+      if (wet?.count && this.travel > 2 && wet.slickAt(_m.set(this.pos.x, this.floorY, this.pos.z)) > 0.3) this.spinOut(v);
+      else if (this.step(_d)) this.slam();
       else if (this.travel > 34) {
         this.state = 'recover';
         this.timer = 0.9;
@@ -249,6 +252,13 @@ export class Brute extends Enemy {
         this.lobT = Math.max(this.lobT, rnd(0.8, 1.4)); // (a beat to collect itself before a volley)
         this.wobble = 0;
       }
+    }
+    // spinning out (spinOut): it slews round, skidding on along the charge
+    if (this.spin) {
+      this.yaw += this.spin * dt;
+      this.spin *= Math.exp(-2.2 * dt);
+      if (Math.abs(this.spin) < 0.3) this.spin = 0;
+      if (Math.random() < dt * 25) fx.burst(_v.copy(this.pos).setY(this.floorY + 0.1), 0xcfeeff, { count: 3, speed: 4, life: 0.5, size: 0.2, gravity: 9 });
     }
     // shoves (a light push back from hits) and the player bumping into it
     if (this.knock.lengthSq() > 0.01) {
@@ -386,6 +396,33 @@ export class Brute extends Enemy {
       this.servoT = 0.5;
       esfx('servo_heavy', this.pos, Math.min(1, Math.abs(turn) / 3), 0.6);
     }
+  }
+
+  // Charging over water: it skids on in a flat spin and ends up dazed, its weak point open.
+  spinOut(v) {
+    this.state = 'stunned';
+    this.timer = this.stunTime * 0.8;
+    this.knock.addScaledVector(this.dir, v * 0.5);
+    this.spin = (Math.random() < 0.5 ? -1 : 1) * 13;
+    this.rS.kick(this.spin > 0 ? -3 : 3);
+    const p = _v.copy(this.pos).setY(this.floorY + 0.1);
+    this.world.fx.splash?.(p, 14);
+    const g = Math.max(0.3, falloff(this.dist, 6, 50));
+    esfx('robot_pain_heavy', this.pos, 1, 0.75);
+    sfx('slime_splat', { gain: 0.8 * g, rate: 0.7 }, 'land', { gain: 0.8 * g, rate: 0.6 });
+  }
+
+  // Shock water under it (world.wet): the hover field shorts and it drops dazed, sparking.
+  onShock() {
+    if (this.dead) return;
+    const fx = this.world.fx;
+    fx.sparks(_v.copy(this.pos).setY(this.floorY + 0.3), _a.set(0, 1, 0), 0xcfe8ff, { count: 20, speed: 8, spread: 1.4, life: 0.4, hot: 0.9 });
+    if (this.state === 'stunned') return;
+    this.state = 'stunned';
+    this.timer = this.stunTime;
+    this.lane.hide();
+    director.release(this);
+    esfx('robot_pain_heavy', this.pos, 1, 0.9);
   }
 
   slam() {

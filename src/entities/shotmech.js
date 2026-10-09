@@ -8,6 +8,7 @@ import { audio } from '../audio.js';
 import { v3, glowMat, edgeGeo, faceDecal, faceNormal, faceEuler, glyphMat, barMesh, overlapsPlayer, nearGain, sfx, clamp, rnd, easeOutBack } from './mechkit.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
+const BLAST_HOLD = 0.75; // s a blast keeps a push-mode mover from drifting home (a glob comes every 0.62 s)
 const _p = new THREE.Vector3();
 const _a = new THREE.Vector3();
 const _b = new THREE.Vector3();
@@ -144,7 +145,10 @@ export class ShotMover {
       sfx.clank(nearGain(this.world, this.cur));
     } else {
       const dir = this.twoWay && hit?.dir ? Math.sign(hit.dir.dot(this.axis)) || 1 : 1;
-      this.v = clamp(this.v + this.kick * dir, -this.speed, this.speed);
+      // a glob's blast (weapons/globs.js) lands like hit.power shots, and keeps it from sliding back
+      // until the next glob is due, as the red stream of shots would
+      if (hit?.power) this.since = Math.min(0, this.hold - BLAST_HOLD);
+      this.v = clamp(this.v + this.kick * dir * (hit?.power || 1), -this.speed, this.speed);
       // a rising whine: the faster you fire, the higher the pitch
       audio.tone({ type: 'triangle', f: 300 + this.heat * 500, f2: 360 + this.heat * 600, dur: 0.06, gain: 0.04 });
     }

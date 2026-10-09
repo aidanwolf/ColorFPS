@@ -1,6 +1,8 @@
 // VERDANT: a rounded organic-tech pistol. A smooth moss-green pod body with a tapered nose, one
 // curved leaf vane cresting over the top, a living green capsule set into its flank and a
-// wooden grip. Springy: it wobbles back into place after each shot and the capsule throbs.
+// wooden grip. It lobs gooey globs (globs.js): each one is a pump, the collar slamming back, the
+// capsule squeezing and the glob at the emitter spat out, then a fresh one swelling up in its place.
+// Springy: it wobbles back into place after each shot and the capsule throbs.
 import * as THREE from 'three';
 import { Kit, part, group, glow, setGlow, blade, grip, CYL_Z } from './kit.js';
 
@@ -30,6 +32,10 @@ export function buildVerdant(hex) {
   part(capsule, new THREE.CapsuleGeometry(0.026, 0.12, 4, 12), bio, 0, CYL_Z, [0.6, 1, 0.6]);
   part(capsule, new THREE.CapsuleGeometry(0.026, 0.12, 4, 12), glass, 0, CYL_Z);
   const seed = part(root, new THREE.SphereGeometry(0.026, 12, 10), glow(hex, 2.6), [0, 0, -0.285]);
+  // the pump collar round the nose
+  const collar = part(root, new THREE.TorusGeometry(0.052, 0.012, 8, 24), leaf, [0, 0, -0.16]);
+  let pump = 0;
+  let regrow = 1; // the next glob swelling at the emitter (0 just fired → 1 ready)
 
   const muzzle = group(root, [0, 0, -0.31]);
   let jx = 0; // capsule / vane jiggle spring
@@ -43,8 +49,10 @@ export function buildVerdant(hex) {
     spring: { omega: 15, zeta: 0.24 },
     kick: { z: 0.05, pitch: 0.13, roll: 0.05, yaw: 0.02 },
     fire() {
-      jv += 9;
+      jv += 11;
       flare = 1;
+      pump = 1;
+      regrow = 0;
     },
     update(dt, t) {
       flare = Math.max(0, flare - dt * 6);
@@ -61,7 +69,12 @@ export function buildVerdant(hex) {
       setGlow(bio, BIO, 1.1 + breath * 0.7 + flare * 1.4);
       glass.emissiveIntensity = 0.3 + breath * 0.2 + flare * 0.6;
       vane.rotation.x = Math.sin(t * 1.3) * 0.03 - jx * 0.18;
-      seed.scale.setScalar(1 + flare * 0.8 + Math.sin(t * 2.6) * 0.05);
+      regrow = Math.min(1, regrow + dt * 1.7);
+      pump = Math.max(0, pump - dt * 5);
+      const swell = regrow * regrow * (3 - 2 * regrow);
+      seed.scale.setScalar((0.25 + swell * 1.15) * (1 + Math.sin(t * 2.6) * 0.05 + Math.sin(t * 13) * 0.04 * swell));
+      seed.position.z = -0.285 - swell * 0.012;
+      collar.position.z = -0.16 + pump * pump * 0.07;
       // an organic, breathing sway
       root.rotation.z = Math.sin(t * 0.9) * 0.03;
       root.rotation.x = Math.sin(t * 0.7 + 1) * 0.015;
