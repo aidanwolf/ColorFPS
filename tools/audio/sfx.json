@@ -1582,5 +1582,122 @@
   "text": "Springy bio launch: powerful elastic boing-thwump with an upward whoosh.",
   "dur": 0.6,
   "influence": 0.6
+ },
+ "flytrap_hiss": {
+  "text": "Giant carnivorous plant hissing, wet vegetal rattle of leaves and sticky sap, threatening creature exhale",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "flytrap_snap": {
+  "text": "Huge venus flytrap jaws slamming shut, wet fleshy clap with a woody crunch and spiky rattle, heavy and sudden",
+  "dur": 0.7,
+  "influence": 0.6
+ },
+ "flytrap_spit": {
+  "text": "Monster plant spitting a glob of digestive acid, gurgling hork and wet sticky splurt",
+  "dur": 0.6,
+  "influence": 0.55
+ },
+ "flytrap_pain": {
+  "text": "Giant plant creature shriek of pain, wet squealing groan through leaves and sap, creaturely",
+  "dur": 0.7,
+  "influence": 0.5
+ },
+ "flytrap_creak": {
+  "text": "Thick plant stalk creaking and bending, fibrous green stem stretching, wet woody groan",
+  "dur": 0.9,
+  "influence": 0.5
+ },
+ "flytrap_emerge": {
+  "text": "Giant plant monster bursting up out of swamp water, big splash, mud slurp and dripping",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "death_snapjaw": {
+  "text": "Huge carnivorous plant monster dying, long gurgling wail collapsing into a wet sappy splatter and wilting creak",
+  "dur": 1.6,
+  "influence": 0.55
+ },
+ "fly_buzz": {
+  "text": "Swarm of giant dog-sized flies buzzing, deep droning wingbeats, seamless loop",
+  "dur": 3.0,
+  "influence": 0.55,
+  "loop": true
+ },
+ "fly_dive": {
+  "text": "Giant fly diving in for an attack, angry rising buzz that spikes in pitch, whooshing wings",
+  "dur": 0.9,
+  "influence": 0.55
+ },
+ "fly_spit": {
+  "text": "Giant insect spitting acid, short wet hiss and splat",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "fly_hit": {
+  "text": "Bullet hitting a giant insect, wet chitin crack and squish",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "goo_stuck_buzz": {
+  "text": "Giant fly stuck in sticky goo, frantic straining buzz, wings struggling, wet tacky pulls",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "goo_squelch": {
+  "text": "Thick slime squelch, something sinking into sticky green goo",
+  "dur": 0.6,
+  "influence": 0.55
+ },
+ "death_rotfly": {
+  "text": "Giant fly bursting, wet insect pop with a short dying buzz and splatter",
+  "dur": 0.7,
+  "influence": 0.55
+ },
+ "giantfly_wings": {
+  "text": "Enormous insect wings beating close by, deep thrumming flutter like a helicopter made of membrane, seamless loop",
+  "dur": 3.0,
+  "influence": 0.55,
+  "loop": true
+ },
+ "worm_rumble": {
+  "text": "Something huge burrowing inside a tree trunk, muffled wood cracking and wet grinding rumble",
+  "dur": 1.0,
+  "influence": 0.55
+ },
+ "worm_burst": {
+  "text": "Giant worm bursting out of tree bark, splintering wood explosion with a wet slimy whoosh",
+  "dur": 1.0,
+  "influence": 0.6
+ },
+ "worm_screech": {
+  "text": "Giant tree worm screeching, wet chittering shriek from a round toothed mouth",
+  "dur": 0.9,
+  "influence": 0.5
+ },
+ "worm_bite": {
+  "text": "Giant worm mandibles snapping shut, wet crunch and clack",
+  "dur": 0.5,
+  "influence": 0.55
+ },
+ "worm_pain": {
+  "text": "Giant grub creature squealing in pain, wet gurgling squeak",
+  "dur": 0.5,
+  "influence": 0.5
+ },
+ "worm_slither": {
+  "text": "Huge slimy worm sliding through a tunnel, wet slithering drag",
+  "dur": 0.9,
+  "influence": 0.5
+ },
+ "death_borer": {
+  "text": "Giant tree worm dying, long gurgling shriek ending in a wet bursting splatter",
+  "dur": 1.2,
+  "influence": 0.55
+ },
+ "creature_squish": {
+  "text": "Bullet hitting soft monster flesh, short wet squish with a goo splat, not gory",
+  "dur": 0.5,
+  "influence": 0.55
  }
 }

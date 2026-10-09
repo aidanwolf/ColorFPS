@@ -38,14 +38,14 @@ const AREA_MOOD = {
   hub: { music: 'music_hub', ambient: 'amb_hub', atmosphere: 'hub' },
   solar: { music: 'music_solar', ambient: 'amb_solar', atmosphere: 'solar' },
   verdant: { music: 'music_green', ambient: 'amb_jungle', atmosphere: 'verdant' },
-  azure: { music: 'music_blue', ambient: 'amb_abyss', atmosphere: 'azure' },
+  azure: { music: 'music_azure', ambient: 'amb_ocean_storm', atmosphere: 'azure' },
   prism: { music: 'music_antechamber', ambient: 'amb_core', atmosphere: 'prism' },
   // ---- final battle (levels/finale): the Warden's echoes of each world, far off the map. Each stage
   // pushes its own track (an area track here plays when a stage asks for one), the ambience follows it
   fin_red: { music: 'music_red', ambient: 'amb_foundry', atmosphere: 'finForge' },
   fin_solar: { music: 'music_solar', ambient: 'amb_solar', atmosphere: 'finSolar' },
   fin_verdant: { music: 'music_green', ambient: 'amb_jungle', atmosphere: 'finVerdant' },
-  fin_azure: { music: 'music_blue', ambient: 'amb_abyss', atmosphere: 'finDeep' },
+  fin_azure: { music: 'music_azure', ambient: 'amb_ocean_storm', atmosphere: 'finDeep' },
   fin_heart: { music: 'music_antechamber', ambient: 'amb_core', atmosphere: 'finHeart' },
   // ---- end final battle
 };
@@ -54,7 +54,8 @@ const SINK = {
   lava: { depth: 2.2, time: 1.5, tint: 0xff4a10, ember: 0xff7a1a, sound: 'lava_sizzle', banner: 'MELTED' },
   sand: { depth: 2.0, time: 1.8, tint: 0x6a4a28, ember: null, sound: 'sand_sink', banner: 'SWALLOWED' },
   toxic: { depth: 2.0, time: 1.5, tint: 0x2aff4a, ember: 0x7dff8a, sound: 'toxic_sink', banner: 'DISSOLVED' },
-  brine: { depth: 2.0, time: 1.6, tint: 0x2a7aff, ember: null, sound: 'toxic_sink', banner: 'FROZEN' },
+  brine: { depth: 2.0, time: 1.6, tint: 0x2ad8ff, ember: null, sound: 'toxic_sink', banner: 'SCALDED' },
+  mire: { depth: 2.0, time: 1.9, tint: 0x24361c, ember: null, sound: 'sand_sink', banner: 'DRAGGED UNDER' },
 };
 const AREA_TRACKS = new Set(Object.values(AREA_MOOD).map((m) => m.music));
 const AREA_AMBIENTS = new Set(Object.values(AREA_MOOD).map((m) => m.ambient));
@@ -702,7 +703,7 @@ class Game {
     this.renderer.toneMappingExposure += (a.exposure - this.renderer.toneMappingExposure) * k;
     if (this.bloom) this.bloom.strength += (a.bloom - this.bloom.strength) * k;
     // underwater: a thick blue-green murk close around you (eases back out as you surface)
-    if (this.player.headUnder) {
+    if (this.player.headUnder && !this.level.waterFog?.(f, this.player)) {
       f.color.set(0x0a3a4a);
       f.near = 0;
       f.far = 26;
@@ -879,7 +880,7 @@ class Game {
     // where a revive puts you: on the spot if you were shot, but never back inside the acid, spikes or
     // pit that killed you: then it's the last solid ground you stood on, or the checkpoint
     this.revivePos = this.deathPos.clone();
-    if (['spike', 'acid', 'quicksand', 'fall', 'burn', 'sunburn', 'impact', 'landing'].includes(p.deathCause)) {
+    if (['spike', 'acid', 'quicksand', 'mire', 'fall', 'burn', 'sunburn', 'impact', 'landing'].includes(p.deathCause)) {
       const safe = p.safePos.clone();
       const ok = safe.distanceToSquared(this.deathPos) < 40 * 40 && [0.3, 1.2].every((h) => !this.world.pointInSolid(safe.clone().setY(safe.y + h), 0.3));
       this.revivePos = ok ? safe : this.checkpoint.pos.clone();
@@ -908,7 +909,7 @@ class Game {
     p.shake = 1;
     // falling into a liquid: you sink into it instead of crumpling (see updateDying)
     const where = regionOf(this.deathPos);
-    const liquid = p.deathCause === 'quicksand' ? 'sand' : p.deathCause === 'acid' ? { verdant: 'toxic', fin_verdant: 'toxic', azure: 'brine', solar: 'sand' }[where] || 'lava' : null;
+    const liquid = p.deathCause === 'quicksand' ? 'sand' : p.deathCause === 'mire' ? 'mire' : p.deathCause === 'acid' ? { verdant: 'toxic', fin_verdant: 'toxic', azure: 'brine', solar: 'sand' }[where] || 'lava' : null;
     this.sink = liquid && { ...SINK[liquid], surface: this.deathPos.y };
     if (this.sink) audio.sample(this.sink.sound, { gain: 1, vary: 0.05 });
     const banner = this.sink?.banner || { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED', sunburn: 'SUNSTRUCK', impact: 'CRATERED', landing: 'CRATERED', drown: 'DROWNED', slime: 'ENGULFED', spider: 'SKEWERED', fish: 'SHREDDED', squid: 'CRUSHED', 'acid spit': 'DISSOLVED', 'ink torpedo': 'TORPEDOED', blast: 'BLOWN APART', scarab: 'STUNG', crab: 'BLOWN APART', spores: 'POISONED', 'lava gob': 'SLAGGED', shock: 'ELECTROCUTED' }[p.deathCause] || 'SHOT DOWN';

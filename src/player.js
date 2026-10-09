@@ -44,6 +44,10 @@ const SINK_FREE = 0.18;
 const SINK_SHIELD = 0.85;
 const SINK_DEATH = 1.4;
 const SAND_TINT = 0xd9b46a;
+const MIRE_TINT = 0x3a4a26; // Verdant's swamp mire: the same pull, a little slower, in black-green muck
+const MIRE_RATE = 0.8;
+const WADE_SLOW = 0.6; // knee-deep swamp water (world.wades boxes): you slog through it
+const MIRE_LEAP = 1.18; // hauled free of the mire, a jump heaves you up onto the bank (~2.1 m)
 // Wet ground (world.wet puddles): the grip left on a full slick (it keeps your momentum: hard to stop or
 // turn), and the speed a sprint across a long slick builds up to (× run speed; sprint is 1.38×) at
 // SLICK_BUILD of run speed a second. The build-up carries through the air until you land on dry ground,
@@ -161,7 +165,7 @@ export class Player {
     if (t.lengthSq() > 1) t.normalize();
     t.multiplyScalar(speed);
     t.y += (up - down) * SWIM_SPEED * 0.8;
-    const eyeOut = this.pos.y + this.eye - water.max.y; // > 0: head above the surface
+    const eyeOut = this.pos.y + this.eye - (water.top ?? water.max.y); // > 0: head above the surface (top: the real surface over a cut-up sea, see azureOcean.js)
     if (!up && !down && Math.abs(f) + Math.abs(r) < 0.01) t.y = -0.6; // idle: drift slowly down
     // float at the surface: you can't swim up out of the water, only leap out with Space at the edge
     if (eyeOut > -0.15 && t.y > 0) t.y = Math.min(t.y, (0.25 - eyeOut) * 4);
@@ -264,8 +268,8 @@ export class Player {
     const water = this.waterAt(world);
     const wasSwimming = this.swimming;
     this.swimming = !!water;
-    this.headUnder = !!water && this.pos.y + this.eye < water.max.y;
-    if (water && !wasSwimming && this.vel.y < -5) this.game.world.fx.splash?.(this.pos.clone().setY(water.max.y), -this.vel.y);
+    this.headUnder = !!water && this.pos.y + this.eye < (water.top ?? water.max.y);
+    if (water && !wasSwimming && this.vel.y < -5) this.game.world.fx.splash?.(this.pos.clone().setY(water.top ?? water.max.y), -this.vel.y);
     if (water) this.swim(dt, input, water);
     else {
     // ---- horizontal movement ----
@@ -292,7 +296,7 @@ export class Player {
     // puddles (world.wet): slick underfoot; a sprint across one builds speed (slide)
     const slick = this.grounded && world.wet?.count ? world.wet.slickAt(this.pos) : 0;
     if (slick || this.slideBoost) this.slide(slick, dt);
-    const speed = (this.crouching && this.grounded ? CROUCH_SPEED : this.sprinting ? SPRINT_SPEED : RUN_SPEED) * (this.inLava ? LAVA_SLOW : 1) * (this.sinkDepth ? Math.max(0.12, 0.5 - this.sinkDepth * 0.45) : 1) * (this.slideBoost ? 1 + this.slideBoost : 1);
+    const speed = (this.crouching && this.grounded ? CROUCH_SPEED : this.sprinting ? SPRINT_SPEED : RUN_SPEED) * (this.inLava ? LAVA_SLOW : 1) * (this.wadeIn(world) ? WADE_SLOW : 1) * (this.sinkDepth ? Math.max(0.12, 0.5 - this.sinkDepth * 0.45) : 1) * (this.slideBoost ? 1 + this.slideBoost : 1);
     const tx = mx * speed, tz = mz * speed;
     // (after a jump pad, steering is weaker so holding a key can't cancel the pad's throw)
     const accel = this.grounded ? GROUND_ACCEL * (slick ? 1 - (1 - SLICK_GRIP) * slick : 1) : AIR_ACCEL * (this.launched ? 0.3 : 1);
@@ -310,7 +314,7 @@ export class Player {
     // (stuck in quicksand, jump is a haul upward instead: sinkIn)
     this.buffer = input.hit('Space') && !(this.inSand && this.sinkDepth > SINK_FREE) ? BUFFER : this.buffer - dt;
     if (this.buffer > 0 && this.coyote > 0) {
-      this.vel.y = JUMP_V * (this.slideBoost ? 1 + (SLICK_LEAP - 1) * Math.min(1, this.slideBoost / SLIDE_MAX) : 1);
+      this.vel.y = JUMP_V * (this.slideBoost ? 1 + (SLICK_LEAP - 1) * Math.min(1, this.slideBoost / SLIDE_MAX) : 1) * (this.inMire ? MIRE_LEAP : 1);
       this.buffer = 0;
       this.coyote = 0;
       this.grounded = false;
@@ -331,6 +335,9 @@ export class Player {
       const up = input.down('Space') || ((input.down('KeyW') || input.down('ArrowUp')) && facing);
       const down = input.down('KeyS') || input.down('ArrowDown');
       this.vel.y = up ? 4.2 : down && !this.grounded ? -3.5 : Math.max(this.vel.y, 0);
+      const damp = Math.max(0, 1 - dt * 6); // (you hold on: no drifting off the rungs)
+      this.vel.x *= damp;
+      this.vel.z *= damp;
       if (up) this.coyote = 0;
       this.launched = false;
       break;
@@ -351,11 +358,11 @@ export class Player {
     else this.fallTop = Math.max(this.fallTop ?? this.pos.y, this.pos.y);
     this.fallSpeed = this.grounded ? 0 : Math.max(0, -this.vel.y);
     // quicksand swallows a fall whole: no fall damage, you plunge in deep (the harder, the deeper)
-    const softLanding = this.grounded && !wasGrounded && (this.ground?.hazard === 'acid' || this.ground?.kind === 'acid') && /solar/.test(regionOf(this.pos));
+    const softLanding = this.grounded && !wasGrounded && (this.ground?.hazard === 'acid' || this.ground?.kind === 'acid') && (this.ground?.mire || /solar/.test(regionOf(this.pos)));
     if (softLanding && fallSpeed > 6) {
       this.sinkDepth = Math.max(this.sinkDepth || 0, Math.min(0.62, 0.2 + fallSpeed * 0.014));
       this.shake = Math.max(this.shake || 0, Math.min(0.6, fallSpeed * 0.02));
-      world.fx.burst(this.pos.clone().setY(this.pos.y + 0.2), SAND_TINT, { count: 50, speed: 5, life: 0.9, size: 0.35, gravity: 5, mode: 'puff' });
+      world.fx.burst(this.pos.clone().setY(this.pos.y + 0.2), this.ground?.mire ? MIRE_TINT : SAND_TINT, { count: 50, speed: 5, life: 0.9, size: 0.35, gravity: 5, mode: 'puff' });
       audio.sample('sand_sink', { gain: 1, rate: 0.8, vary: 0.05 }) || audio.land(2);
     } else if (this.grounded && !wasGrounded) {
       if (fallSpeed > LETHAL_FALL && !this.game.rulesPaused) {
@@ -389,11 +396,12 @@ export class Player {
 
     // ---- hazards ----
     const b = this.bounds();
-    let lava = false;
+    let lava = false, mire = false;
     for (const s of world.solids) {
       if (!s.enabled || !s.hazard) continue;
       if (b.min.x < s.max.x + 0.04 && b.max.x > s.min.x - 0.04 && b.min.y < s.max.y + 0.06 && b.max.y > s.min.y - 0.04 && b.min.z < s.max.z + 0.04 && b.max.z > s.min.z - 0.04) {
         if (s.hazard === 'acid') lava = true;
+        if (s.mire) mire = true; // (a swamp mire: it drags you down like quicksand, see sinkIn)
         if (s.hazard === 'spike' && this.invuln <= 0) {
           audio.spike();
           this.damage(1, 'spike');
@@ -401,6 +409,7 @@ export class Player {
         }
       }
     }
+    this.inMire = mire;
     if (this.lavaTouched) lava = true; // (pools that aren't hazard solids report in with touchLava)
     this.lavaTouched = false;
     if (this.burnIn(lava, dt)) return;
@@ -598,6 +607,13 @@ export class Player {
     this.game.hud.armorGain?.();
   }
 
+  // knee-deep in one of world.wades ({ min, max } boxes, e.g. Verdant's swamp shallows)?
+  wadeIn(world) {
+    const q = this.pos;
+    for (const w of world.wades || []) if (q.x > w.min.x && q.x < w.max.x && q.z > w.min.z && q.z < w.max.z && q.y > w.min.y && q.y < w.max.y) return true;
+    return false;
+  }
+
   touchLava() {
     this.lavaTouched = true;
   }
@@ -607,7 +623,7 @@ export class Player {
   // kill you; step out in time and it cools off. True when this frame killed you.
   burnIn(lava, dt) {
     // (Solar's pools are quicksand, which drags you down instead: see sinkIn)
-    const sand = lava && /solar/.test(regionOf(this.pos));
+    const sand = lava && (this.inMire || /solar/.test(regionOf(this.pos)));
     if (this.sinkIn(sand, dt)) return true;
     if (sand) lava = false;
     const was = this.inLava;
@@ -655,19 +671,22 @@ export class Player {
       return false;
     }
     const fx = this.game.world.fx, at = this.pos.clone().setY(this.pos.y + 0.15);
+    const tint = this.inMire ? MIRE_TINT : SAND_TINT;
     if (!this.inSand) {
-      audio.sample('sand_sink', { gain: 0.8, vary: 0.1 });
-      fx.burst(at, SAND_TINT, { count: 24, speed: 3, life: 0.7, size: 0.25, gravity: 4, mode: 'puff' });
-      if (!this.warnedSand) this.game.hud.message('<b style="color:#e8c070">QUICKSAND</b> — mash <b>JUMP</b> to pull free!', 2.5);
-      this.warnedSand = true;
+      audio.sample(this.inMire ? audio.sfxOr('mire_suck', 'sand_sink') : 'sand_sink', { gain: 0.8, vary: 0.1 });
+      fx.burst(at, tint, { count: 24, speed: 3, life: 0.7, size: 0.25, gravity: 4, mode: 'puff' });
+      if (this.inMire && !this.warnedMire) this.game.hud.message('<b style="color:#8adf6a">SWAMP MIRE</b> — it pulls you under. Mash <b>JUMP</b> to drag yourself free!', 3);
+      else if (!this.inMire && !this.warnedSand) this.game.hud.message('<b style="color:#e8c070">QUICKSAND</b> — mash <b>JUMP</b> to pull free!', 2.5);
+      if (this.inMire) this.warnedMire = true;
+      else this.warnedSand = true;
     }
     this.inSand = true;
     if (this.game.godMode || this.game.rulesPaused) return false;
-    this.sinkDepth = (this.sinkDepth || 0) + dt * SINK_RATE * (1 + this.sinkDepth * 0.7);
+    this.sinkDepth = (this.sinkDepth || 0) + dt * SINK_RATE * (this.inMire ? MIRE_RATE : 1) * (1 + this.sinkDepth * 0.7);
     if (this.sinkDepth > SINK_FREE && this.game.input.hit('Space')) {
       this.sinkDepth = Math.max(0, this.sinkDepth - SINK_PULL);
       this.shake = Math.max(this.shake || 0, 0.08);
-      fx.burst(at, SAND_TINT, { count: 8, speed: 2.5, life: 0.5, size: 0.2, gravity: 4, mode: 'puff' });
+      fx.burst(at, tint, { count: 8, speed: 2.5, life: 0.5, size: 0.2, gravity: 4, mode: 'puff' });
       audio.sample('sand_sink', { gain: 0.3, rate: 1.4, vary: 0.2 });
     }
     if (Math.random() < dt * 3) audio.sample('sand_sink', { gain: 0.25, rate: 0.8, vary: 0.2 });
@@ -679,7 +698,7 @@ export class Player {
     }
     if (this.sinkDepth < SINK_DEATH) return false;
     this.sinkDepth = 0;
-    this.damage(1, 'quicksand');
+    this.damage(1, this.inMire ? 'mire' : 'quicksand');
     return this.dead;
   }
 

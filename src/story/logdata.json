@@ -288,9 +288,45 @@
   ]
  },
  {
+  "id": "06b",
+  "title": "The Pillar",
+  "where": "Solar · the Sun Temple, beside the obelisk",
+  "file": "memo_06b",
+  "text": "Still here. Nothing on the link but hiss since the countdown. Just me. There's a pillar hanging from the roof, point down, tall as a tower block. I know what it is. A battery. Same conduits as the pit, same sockets as the ring. It held sunlight for the gate. And someone's hung banners on it. Gold leaf. Offerings. Candles burned to nothing. Somebody built a beautiful machine, and somebody else forgot what it was and made it a god. It hummed when I touched it. I hope that was me.",
+  "spoken": "[quiet, out of breath] Still here. Nothing on the link but hiss since the countdown. Just me. There's a pillar hanging from the roof, point down, tall as a tower block. I know what it is. A battery. Same conduits as the pit, same sockets as the ring. It held sunlight for the gate. [softly] And someone's hung banners on it. Gold leaf. Offerings. Candles burned to nothing. Somebody built a beautiful machine, and somebody else forgot what it was and made it a god. [whispers] It hummed when I touched it. I hope that was me.",
+  "profile": "expressive",
+  "dur": 42.27,
+  "lines": [
+   {
+    "t": 0.21,
+    "text": "Still here. Nothing on the link but hiss since the countdown. Just me."
+   },
+   {
+    "t": 5.64,
+    "text": "There's a pillar hanging from the roof, point down, tall as a tower block. I know what it is."
+   },
+   {
+    "t": 13.04,
+    "text": "A battery. Same conduits as the pit, same sockets as the ring. It held sunlight for the gate."
+   },
+   {
+    "t": 21.34,
+    "text": "And someone's hung banners on it. Gold leaf. Offerings. Candles burned to nothing."
+   },
+   {
+    "t": 29.24,
+    "text": "Somebody built a beautiful machine, and somebody else forgot what it was and made it a god."
+   },
+   {
+    "t": 38.55,
+    "text": "It hummed when I touched it. I hope that was me."
+   }
+  ]
+ },
+ {
   "id": "07",
   "title": "No Birds",
-  "where": "Verdant · the Root Court",
+  "where": "Verdant · the Moss Landing",
   "file": "memo_07",
   "text": "Oh, it's lovely. Moss, and rain, and that gold light through the leaves. Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls. But there's no birdsong. No bees. Nothing here that wouldn't burn well. The whole valley is just... fuel, growing. The link's been silent since the countdown. I keep talking to Priya anyway. A wren, and no other birds. That's me, then.",
   "spoken": "[softly] Oh, it's lovely. Moss, and rain, and that gold light through the leaves. Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls. But there's no birdsong. No bees. Nothing here that wouldn't burn well. The whole valley is just... fuel, growing. The link's been silent since the countdown. I keep talking to Priya anyway. [small laugh] A wren, and no other birds. That's me, then.",
@@ -324,9 +360,45 @@
   ]
  },
  {
+  "id": "07b",
+  "title": "Engineers",
+  "where": "Verdant · the algae reactors",
+  "file": "memo_07b",
+  "text": "I fell through the floor. I'm fine. Bit damp. Note to self: don't stand on the altar. Priya, you would love this. There's a temple under the swamp, and it's full of tanks. Glass tanks taller than the Atrium doors, full of algae. Glowing. Bubbling. The pipes go up through the roots, all over the valley. The trees, the swamp, everything's plumbed in. They were growing fuel. Biofuel. The whole forest is a crop. And the carvings aren't gods. They're diagrams. Flow rates. Valves. Someone drew a schematic in granite. Whoever built this weren't primitive. They were engineers. Like us. So where did they go?",
+  "spoken": "[hushed, echoing] I fell through the floor. I'm fine. Bit damp. Note to self: don't stand on the altar. Priya, you would love this. There's a temple under the swamp, and it's full of tanks. Glass tanks taller than the Atrium doors, full of algae. Glowing. Bubbling. The pipes go up through the roots, all over the valley. The trees, the swamp, everything's plumbed in. They were growing fuel. Biofuel. The whole forest is a crop. [small laugh] And the carvings aren't gods. They're diagrams. Flow rates. Valves. Someone drew a schematic in granite. Whoever built this weren't primitive. They were engineers. Like us. [quietly] So where did they go?",
+  "profile": "expressive",
+  "dur": 54.83,
+  "lines": [
+   {
+    "t": 0.32,
+    "text": "I fell through the floor. I'm fine. Bit damp. Note to self: don't stand on the altar."
+   },
+   {
+    "t": 7.84,
+    "text": "Priya, you would love this. There's a temple under the swamp, and it's full of tanks. Glass tanks taller than the Atrium doors, full of algae. Glowing. Bubbling."
+   },
+   {
+    "t": 21.66,
+    "text": "The pipes go up through the roots, all over the valley. The trees, the swamp, everything's plumbed in. They were growing fuel. Biofuel. The whole forest is a crop."
+   },
+   {
+    "t": 37.24,
+    "text": "And the carvings aren't gods. They're diagrams. Flow rates. Valves. Someone drew a schematic in granite."
+   },
+   {
+    "t": 46.63,
+    "text": "Whoever built this weren't primitive. They were engineers. Like us."
+   },
+   {
+    "t": 53.71,
+    "text": "So where did they go?"
+   }
+  ]
+ },
+ {
   "id": "08",
   "title": "Roots",
-  "where": "Verdant · the rim of the Great Hollow",
+  "where": "Verdant · the inner sanctum",
   "file": "memo_08",
   "text": "The roots down by the water are growing through... people. Not old ones. There's a jacket. A trainer, with the laces still done up. And a bus pass. From home. From my city. That's not possible. Only the team came through, and they never left the station. Why is it here?",
   "spoken": "[trembling] The roots down by the water are growing through... people. Not old ones. There's a jacket. A trainer, with the laces still done up. And a bus pass. From home. From my city. That's not possible. Only the team came through, and they never left the station. [crying quietly] Why is it here?",
@@ -358,63 +430,63 @@
  {
   "id": "09",
   "title": "Something Follows",
-  "where": "Verdant · the root island",
+  "where": "Verdant · the top of the sanctum's pyramid",
   "file": "memo_09",
-  "text": "Recording quietly. Something has been following me since the lake. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. Right. Count to three, then run for the cold door, east. One. Two...",
-  "spoken": "[whispers] Recording quietly. Something has been following me since the lake. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. [nervous] Right. Count to three, then run for the cold door, east. One. Two...",
+  "text": "Recording quietly. Something has been following me since the swamp. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. Right. Count to three, then run for the high door, east. One. Two...",
+  "spoken": "[whispers] Recording quietly. Something has been following me since the swamp. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. [nervous] Right. Count to three, then run for the high door, east. One. Two...",
   "profile": "expressive",
-  "dur": 28.84,
+  "dur": 27.25,
   "lines": [
    {
-    "t": 0.58,
+    "t": 0.53,
     "text": "Recording quietly."
    },
    {
-    "t": 2.44,
-    "text": "Something has been following me since the lake. It stops when I stop."
+    "t": 2.54,
+    "text": "Something has been following me since the swamp. It stops when I stop."
    },
    {
-    "t": 7.73,
+    "t": 8.19,
     "text": "When I turn around, it's only light, bending, like heat over a road."
    },
    {
-    "t": 14.72,
+    "t": 14.44,
     "text": "I think the machine knows my name now. Ever since the star."
    },
    {
-    "t": 21.05,
-    "text": "Right. Count to three, then run for the cold door, east. One. Two..."
+    "t": 20.89,
+    "text": "Right. Count to three, then run for the high door, east. One. Two..."
    }
   ]
  },
  {
   "id": "10",
   "title": "The Last Engine",
-  "where": "Azure · the Rim Deck",
+  "where": "Azure · the Aquarium's observation gallery",
   "file": "memo_10",
-  "text": "Coldest I've ever been, and I once went camping in Wales in April. It's a station, hanging over an ocean with no bottom. Tides, with no moon. Every pipe here turns the weight of the water into power, and sends it up to the Atrium. Heat, light, life, water. That's everything a world has to give. This is the last one. Six granola bars left. Should've packed for more than ten minutes.",
-  "spoken": "[laughs, teeth chattering] Coldest I've ever been, and I once went camping in Wales in April. It's a station, hanging over an ocean with no bottom. Tides, with no moon. Every pipe here turns the weight of the water into power, and sends it up to the Atrium. Heat, light, life, water. That's everything a world has to give. This is the last one. [sighs] Six granola bars left. Should've packed for more than ten minutes.",
+  "text": "Soaked to the bone, and I once went camping in Wales in April. It's a station at the bottom of an ocean, with a storm sitting on top of it. Tides, with no moon. Every pipe here turns the weight of the water into power, and sends it up to the Atrium. Heat, light, life, water. That's everything a world has to give. This is the last one. Six granola bars left. Should've packed for more than ten minutes.",
+  "spoken": "[laughs, out of breath] Soaked to the bone, and I once went camping in Wales in April. It's a station at the bottom of an ocean, with a storm sitting on top of it. Tides, with no moon. Every pipe here turns the weight of the water into power, and sends it up to the Atrium. Heat, light, life, water. That's everything a world has to give. This is the last one. [sighs] Six granola bars left. Should've packed for more than ten minutes.",
   "profile": "expressive",
-  "dur": 33.72,
+  "dur": 34.85,
   "lines": [
    {
-    "t": 1.17,
-    "text": "Coldest I've ever been, and I once went camping in Wales in April."
+    "t": 1.01,
+    "text": "Soaked to the bone, and I once went camping in Wales in April."
    },
    {
-    "t": 6.03,
-    "text": "It's a station, hanging over an ocean with no bottom. Tides, with no moon."
+    "t": 6.61,
+    "text": "It's a station at the bottom of an ocean, with a storm sitting on top of it. Tides, with no moon."
    },
    {
-    "t": 12.35,
+    "t": 14.35,
     "text": "Every pipe here turns the weight of the water into power, and sends it up to the Atrium."
    },
    {
-    "t": 18.24,
+    "t": 20.62,
     "text": "Heat, light, life, water. That's everything a world has to give. This is the last one."
    },
    {
-    "t": 29.5,
+    "t": 30.14,
     "text": "Six granola bars left. Should've packed for more than ten minutes."
    }
   ]
@@ -422,31 +494,31 @@
  {
   "id": "11",
   "title": "Ten Minutes",
-  "where": "Azure · inside the pump hut",
+  "where": "Azure · the crew deck",
   "file": "memo_11",
-  "text": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me. It was my sister's birthday dinner that night. I promised her I'd be home by seven. Ten minutes, I said. Sorry, Bea. Save me some cake.",
-  "spoken": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me. It was my sister's birthday dinner that night. I promised her I'd be home by seven. [softly] Ten minutes, I said. [sniffles] Sorry, Bea. Save me some cake.",
+  "text": "Holed up in the crew quarters. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me. It was my sister's birthday dinner that night. I promised her I'd be home by seven. Ten minutes, I said. Sorry, Bea. Save me some cake.",
+  "spoken": "Holed up in the crew quarters. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me. It was my sister's birthday dinner that night. I promised her I'd be home by seven. [softly] Ten minutes, I said. [sniffles] Sorry, Bea. Save me some cake.",
   "profile": "expressive",
-  "dur": 25.16,
+  "dur": 25.89,
   "lines": [
    {
     "t": 0,
-    "text": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat."
+    "text": "Holed up in the crew quarters. It's warm, and it hums, and I can pretend it's my flat."
    },
    {
-    "t": 5.76,
+    "t": 6.44,
     "text": "I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me."
    },
    {
-    "t": 13.41,
+    "t": 14.16,
     "text": "It was my sister's birthday dinner that night. I promised her I'd be home by seven."
    },
    {
-    "t": 19.63,
+    "t": 20.74,
     "text": "Ten minutes, I said."
    },
    {
-    "t": 22.5,
+    "t": 23.58,
     "text": "Sorry, Bea. Save me some cake."
    }
   ]
@@ -490,7 +562,7 @@
  {
   "id": "13",
   "title": "The Catalogue",
-  "where": "Azure · the Cryo Lab",
+  "where": "Azure · the Archive",
   "file": "memo_13",
   "text": "I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used. Everyone from home is in here. All entered on the same day. The day after my nine seconds. Mum's name. Bea's. Not Priya's. Not Tomas, or Maja. It didn't keep them. It never even noticed us. We were too small to bother with. Until I showed it we could switch it off. It wasn't an invitation. It was me.",
   "spoken": "[crying] I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used. Everyone from home is in here. All entered on the same day. The day after my nine seconds. Mum's name. Bea's. [pause] Not Priya's. Not Tomas, or Maja. [whispers] It didn't keep them. It never even noticed us. We were too small to bother with. Until I showed it we could switch it off. [sobbing] It wasn't an invitation. It was me.",

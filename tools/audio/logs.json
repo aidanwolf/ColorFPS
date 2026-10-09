@@ -109,7 +109,18 @@
    ]
   },
   {
-   "id": "07", "title": "No Birds", "where": "Verdant · the Root Court",
+   "id": "06b", "title": "The Pillar", "where": "Solar · the Sun Temple, beside the obelisk",
+   "chunks": [
+    "[quiet, out of breath] Still here. Nothing on the link but hiss since the countdown. Just me.",
+    "There's a pillar hanging from the roof, point down, tall as a tower block. I know what it is.",
+    "A battery. Same conduits as the pit, same sockets as the ring. It held sunlight for the gate.",
+    "[softly] And someone's hung banners on it. Gold leaf. Offerings. Candles burned to nothing.",
+    "Somebody built a beautiful machine, and somebody else forgot what it was and made it a god.",
+    "[whispers] It hummed when I touched it. I hope that was me."
+   ]
+  },
+  {
+   "id": "07", "title": "No Birds", "where": "Verdant · the Moss Landing",
    "chunks": [
     "[softly] Oh, it's lovely. Moss, and rain, and that gold light through the leaves.",
     "Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls.",
@@ -120,7 +131,18 @@
    ]
   },
   {
-   "id": "08", "title": "Roots", "where": "Verdant · the rim of the Great Hollow",
+   "id": "07b", "title": "Engineers", "where": "Verdant · the algae reactors",
+   "chunks": [
+    "[hushed, echoing] I fell through the floor. I'm fine. Bit damp. Note to self: don't stand on the altar.",
+    "Priya, you would love this. There's a temple under the swamp, and it's full of tanks. Glass tanks taller than the Atrium doors, full of algae. Glowing. Bubbling.",
+    "The pipes go up through the roots, all over the valley. The trees, the swamp, everything's plumbed in. They were growing fuel. Biofuel. The whole forest is a crop.",
+    "[small laugh] And the carvings aren't gods. They're diagrams. Flow rates. Valves. Someone drew a schematic in granite.",
+    "Whoever built this weren't primitive. They were engineers. Like us.",
+    "[quietly] So where did they go?"
+   ]
+  },
+  {
+   "id": "08", "title": "Roots", "where": "Verdant · the inner sanctum",
    "chunks": [
     "[trembling] The roots down by the water are growing through... people.",
     "Not old ones. There's a jacket. A trainer, with the laces still done up.",
@@ -130,29 +152,29 @@
    ]
   },
   {
-   "id": "09", "title": "Something Follows", "where": "Verdant · the root island",
+   "id": "09", "title": "Something Follows", "where": "Verdant · the top of the sanctum's pyramid",
    "chunks": [
     "[whispers] Recording quietly.",
-    "Something has been following me since the lake. It stops when I stop.",
+    "Something has been following me since the swamp. It stops when I stop.",
     "When I turn around, it's only light, bending, like heat over a road.",
     "I think the machine knows my name now. Ever since the star.",
-    "[nervous] Right. Count to three, then run for the cold door, east. One. Two..."
+    "[nervous] Right. Count to three, then run for the high door, east. One. Two..."
    ]
   },
   {
-   "id": "10", "title": "The Last Engine", "where": "Azure · the Rim Deck",
+   "id": "10", "title": "The Last Engine", "where": "Azure · the Aquarium's observation gallery",
    "chunks": [
-    "[laughs, teeth chattering] Coldest I've ever been, and I once went camping in Wales in April.",
-    "It's a station, hanging over an ocean with no bottom. Tides, with no moon.",
+    "[laughs, out of breath] Soaked to the bone, and I once went camping in Wales in April.",
+    "It's a station at the bottom of an ocean, with a storm sitting on top of it. Tides, with no moon.",
     "Every pipe here turns the weight of the water into power, and sends it up to the Atrium.",
     "Heat, light, life, water. That's everything a world has to give. This is the last one.",
     "[sighs] Six granola bars left. Should've packed for more than ten minutes."
    ]
   },
   {
-   "id": "11", "title": "Ten Minutes", "where": "Azure · inside the pump hut",
+   "id": "11", "title": "Ten Minutes", "where": "Azure · the crew deck",
    "chunks": [
-    "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat.",
+    "Holed up in the crew quarters. It's warm, and it hums, and I can pretend it's my flat.",
     "I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me.",
     "It was my sister's birthday dinner that night. I promised her I'd be home by seven.",
     "[softly] Ten minutes, I said.",
@@ -171,7 +193,7 @@
    ]
   },
   {
-   "id": "13", "title": "The Catalogue", "where": "Azure · the Cryo Lab",
+   "id": "13", "title": "The Catalogue", "where": "Azure · the Archive",
    "chunks": [
     "[crying] I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used.",
     "Everyone from home is in here. All entered on the same day. The day after my nine seconds.",

@@ -37,7 +37,7 @@ const AREAS = {
   hub: { name: 'THE PRISM ATRIUM', color: 0x4ff0ff, gain: 0.75 },
   solar: { name: 'SOLAR · SUNSCORCH MESA', color: 0xffc23a, gain: 0.6 },
   verdant: { name: 'VERDANT · EMERALD HOLLOW', color: 0x3dff7a, gain: 0.65 },
-  azure: { name: 'AZURE · THE COLD DEEP', color: 0x3a8bff, gain: 1.25 },
+  azure: { name: 'AZURE · THE DROWNED REACH', color: 0x3a8bff, gain: 1.25 },
   prism: { name: 'PRISM CORE', color: 0xb46bff, gain: 1.1 },
 };
 // which world each core restores (for the objective beacon)

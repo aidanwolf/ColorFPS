@@ -370,6 +370,46 @@ export const VIGNETTES = {
     ],
   },
 
+  // 06b The Pillar (the Sun Temple, beside the obelisk): out of breath, a finger to her dead earpiece; she turns
+  //    to the pillar and looks all the way up it, traces it down with her hand, lays a palm on it and follows
+  //    a socket's rim; looks round at the banners and the offerings and hugs herself; palms up at the god they
+  //    made of it; a hand on her satchel strap; she stares at the hand that touched it, and backs off a step
+  '06b': {
+    props: ['recorder'], dist: 3.6, view: 34,
+    keys: [
+      [0, p(REC_MOUTH, { at: [0, 0, 0.3, 0], spine: [10, 0, 0], head: [8, 0, 0], breath: [2.4, 1.5] })],
+      [2.4, { ...HAND_EAR_L, head: [4, -46, 8], spine: [4, 0, 0] }],
+      [4.4, { lArm: [7, 80, 0], lFore: [12, 0], lHand: [0, 0, 0], head: [16, 10, 0] }],
+      [4.9, { head: [16, -10, 0] }],
+      [5.4, { head: [14, 4, 0], breath: [1.6, 1.1] }],
+      // "There's a pillar hanging from the roof...": she turns to it and looks all the way up
+      [5.9, p(LOOK_UP, { at: [0, 0, 0.3, 150], props: [], rArm: [7, 80, 0], rFore: [12, 0], spine: [-6, 0, 0], head: [-40, 0, 0] })],
+      [8.2, { lArm: [156, 24, 0], lFore: [6, 0], lHand: [-20, 0, 0], head: [-46, 6, 0] }],
+      [9.8, { lArm: [118, 24, 0], head: [-30, 6, 0] }],
+      [11.4, { lArm: [72, 24, 0], lFore: [10, 0], head: [-12, 4, 0], neck: [0, 0, 0], chest: [0, 0, 0] }],
+      // "A battery...": a step in, her palm flat on it, following a socket's rim round
+      [13.06, { at: [-0.25, 0, -0.35, 150], lArm: [7, 80, 0], lFore: [12, 0], lHand: [0, 0, 0], rIK: [-0.08, 1.35, 0.42, 1], head: [-8, 0, 0], spine: [6, 0, 0] }],
+      [14.4, { rIK: [-0.2, 1.25, 0.42, 1] }],
+      [15.4, { rIK: [-0.08, 1.15, 0.42, 1] }],
+      [16.4, { rIK: [0.06, 1.25, 0.42, 1] }],
+      [17.4, { rIK: [-0.08, 1.35, 0.42, 1], head: [-14, 0, 0] }],
+      // "And someone's hung banners on it...": back off, looking round and up at the banners, the bowls
+      [20.44, { ...NOIK, at: [-0.05, 0, 0.1, 160], rArm: [7, 80, 0], rFore: [12, 0], head: [-30, 44, 0], chest: [-6, 14, 0], spine: [0, 0, 0] }],
+      [22.4, { head: [-22, -46, 0], chest: [-4, -14, 0] }],
+      [24.2, p(HUG, { head: [18, -20, 0], chest: [6, 0, 0] })],
+      // "Somebody built a beautiful machine...": palms up to it, then a slow shake of the head
+      [27.01, { at: [-0.05, 0, 0.1, 140], lClav: [10, 0], rClav: [10, 0], lArm: [34, 50, 0], rArm: [34, 50, 0], lFore: [80, -70], rFore: [80, -70], head: [-16, 0, 0], chest: [0, 0, 0] }],
+      [29.6, { head: [-6, 16, 0] }],
+      [30.4, { head: [-6, -16, 0] }],
+      // a hand on her satchel strap
+      [31.2, { lClav: [0, 0], rClav: [6, 0], lArm: [7, 80, 0], lFore: [12, 0], rArm: [44, -52, 0], rFore: [128, 0], rHand: [0, 0, 20], head: [12, 0, 0] }],
+      // "It hummed when I touched it": she stares at that hand; then up at the pillar, and backs off a step
+      [34.24, { lArm: [40, 36, 0], lFore: [104, -64], lHand: [-24, 0, 0], head: [32, 26, 0], spine: [8, 0, 0], shiver: 0.5 }],
+      [36.4, { at: [0.05, 0, 0.55, 150], lArm: [7, 80, 0], lFore: [12, 0], lHand: [0, 0, 0], head: [-32, 0, 0], neck: [-10, 0, 0], spine: [-4, 0, 0], breath: [2.2, 1.4] }],
+      [38.2, {}],
+    ],
+  },
+
   // ------------------------------------------------------------------ VERDANT
   // 07 No Birds: wandering in the rain, a palm up; mum's tomatoes; a hand cupped to the silence; fingers to her
   //    earpiece for the dead link; hugging herself
@@ -401,6 +441,50 @@ export const VIGNETTES = {
       [31.8, p(HUG, { at: [1.0, 0, -0.1, -330], head: [18, 0, 10] })],
       [33.8, { lClav: [22, 6], rClav: [22, 6] }],
       [34.4, { lClav: [10, 6], rClav: [10, 6], head: [22, 0, 6] }],
+    ],
+  },
+
+  // 07b Engineers (the algae reactors, under the swamp): shaking the cistern water off; a tap on her temple, note
+  //    to self; a hand flat on a glowing reactor, face tipped up to it; her arm following the pipes up overhead;
+  //    hands to her head, the whole forest a crop; tracing a glyph on a carved panel with one finger, a small
+  //    laugh; "engineers, like us", a hand on her chest; then hugging herself, looking round the empty halls
+  '07b': {
+    props: [], dist: 3.6, view: 26, set: { bank: [0.75, 0, 0.35, 0], panel: [-1.2, 0, -0.5, 61] },
+    keys: [
+      [0, p(BENT, { hipsR: [24, 0, 0], lArm: [40, 10, 0], lFore: [60, 0], rArm: [40, -10, 0], rFore: [60, 0], head: [10, 0, 0] })],
+      [0.8, { lFore: [90, 0], rFore: [30, 0] }],
+      [1.3, { lFore: [30, 0], rFore: [90, 0] }],
+      [1.8, { lFore: [90, 0], rFore: [30, 0] }],
+      [2.6, p(STAND, ARMS, { head: [0, 0, 8] })],
+      [4.4, { rArm: [70, 60, 0], rFore: [130, 0], head: [6, -10, 0] }],
+      [5.6, { rArm: [7, 80, 0], rFore: [12, 0], head: [0, 0, 0] }],
+      // the tanks: she turns to one, steps up to it, looks up it
+      [6.7, { at: [0, 0, 0, 55], head: [-20, 0, 0] }],
+      [8.4, { at: [0.25, 0, 0.1, 63], ...LOOK_UP }],
+      [10.6, { rIK: [0, 1.15, 0.42, 1], head: [-28, 0, 6] }],
+      [13.4, { lIK: [0.18, 1.3, 0.4, 1], head: [-34, 10, 0] }],
+      [16.2, { head: [-10, 0, 10], spine: [6, 0, 0] }],
+      [18.0, {}],
+      // the pipes: back a step, her arm following them up and away overhead
+      [19.1, { rIK: [null, null, null, 0], lIK: [null, null, null, 0], at: [-0.1, 0, -0.2, 40], rArm: [130, 20, 0], rFore: [10, 0], head: [-36, 10, 0], neck: [-10, 0, 0], spine: [0, 0, 0] }],
+      [21.5, { rArm: [150, 50, 0], head: [-40, 40, 0], chest: [0, 14, 0] }],
+      [24.0, { rArm: [120, 80, 0], head: [-30, 70, 0], chest: [0, 24, 0] }],
+      [26.4, p(SHRUG, { head: [-6, 0, 0], neck: [0, 0, 0], chest: [0, 0, 0] })],
+      [29.0, { lClav: [0, 0], rClav: [0, 0], lArm: [150, 30, 0], lFore: [100, 0], rArm: [150, 30, 0], rFore: [100, 0], head: [10, 0, 0] }],
+      // the carvings: over to the panel, tracing a glyph with one finger
+      [31.6, p(ARMS, { at: [-0.75, 0, -0.25, -119], head: [10, 0, 0] })],
+      [33.2, { rIK: [0.05, 1.3, 0.4, 1], head: [16, 0, 0] }],
+      [34.2, { rIK: [-0.15, 1.3, 0.42, 1] }],
+      [35.2, { rIK: [-0.15, 1.1, 0.42, 1] }],
+      [36.2, { rIK: [0.1, 1.1, 0.42, 1] }],
+      [37.2, { rIK: [null, null, null, 0], head: [0, 30, 8], rArm: [30, 40, 0], rFore: [80, -60] }],
+      // "Engineers. Like us.": back round to face out, a hand on her chest
+      [39.7, { at: [-0.5, 0, 0, 0], rArm: [40, -30, 0], rFore: [120, 0], head: [4, 0, 0] }],
+      [43.0, { rArm: [7, 80, 0], rFore: [12, 0] }],
+      // "So where did they go?": hugging herself, looking round
+      [45.1, p(HUG, { head: [6, 50, 0], chest: [0, 10, 0] })],
+      [46.2, { head: [6, -50, 0], chest: [0, -10, 0] }],
+      [47.2, { head: [14, 0, 0], chest: [0, 0, 0], shiver: 0.4 }],
     ],
   },
 
@@ -459,21 +543,19 @@ export const VIGNETTES = {
   },
 
   // ------------------------------------------------------------------ AZURE
-  // 10 The Last Engine: shivering, stamping; hands on the rail over the sea; following the pipes up; counting
-  //    off heat, light, life, water; fishing a granola bar out of her satchel
+  // 10 The Last Engine: catching her breath, soaked; wiping the sea off her face, pushing back her wet hair;
+  //    hands on the rail by the glass; following the pipes up; counting off heat, light, life, water; fishing a
+  //    granola bar out of her satchel
   '10': {
     props: [], dist: 3.6, view: 20, set: { rail: [0, 0, 0.62, 0] },
     keys: [
-      [0, p(HUG, { shiver: 1.2, gait: 0 })],
-      [0.6, { lFoot: [0.1, 0.16, 0.06, 7, 0] }],
-      [1.0, { lFoot: [0.1, 0.075, 0.03, 7, 0] }],
-      [1.4, { rFoot: [-0.1, 0.16, 0.0, -7, 0] }],
-      [1.8, { rFoot: [-0.1, 0.075, -0.02, -7, 0], chest: [8, 0, 0] }],
-      [2.3, { lFoot: [0.1, 0.16, 0.06, 7, 0], chest: [0, 0, 0] }],
-      [2.7, { lFoot: [0.1, 0.075, 0.03, 7, 0] }],
-      [3.1, { rFoot: [-0.1, 0.16, 0.0, -7, 0] }],
-      [3.5, { rFoot: [-0.1, 0.075, -0.02, -7, 0], gait: 1 }],
-      [6.2, { lClav: [0, 0], rClav: [0, 0], shiver: 0.4 }],
+      [0, p(STAND, { gait: 0, spine: [20, 0, 0], head: [10, 0, 0], breath: [2.6, 1.6], lArm: [26, 34, 0], lFore: [36, 0], rArm: [26, 34, 0], rFore: [36, 0] })],
+      [0.8, { rArm: [118, 8, 0], rFore: [128, 0], head: [-6, 0, 0], spine: [8, 0, 0] }],
+      [1.5, { rArm: [96, 30, 0], rFore: [104, 0], head: [-12, 6, 0] }],
+      [2.2, { lArm: [132, -10, 0], lFore: [140, 0], rArm: [140, 10, 0], rFore: [140, 0], head: [-22, 0, 0], spine: [0, 0, 0] }],
+      [3.0, { lArm: [118, -18, 0], lFore: [150, 0], rArm: [124, 18, 0], rFore: [150, 0], head: [-16, 0, 0] }],
+      [3.5, { lArm: [7, 80, 0], lFore: [12, 0], rArm: [7, 80, 0], rFore: [12, 0], head: [0, 0, 0], gait: 1, breath: [1.6, 1.0] }],
+      [6.2, { lClav: [0, 0], rClav: [0, 0] }],
       [7.6, { at: [0, 0, 0.26, 0], lIK: [0.26, 1.05, 0.34, 1], rIK: [-0.26, 1.05, 0.34, 1], spine: [14, 0, 0], head: [28, 0, 0] }],
       [9.8, { spine: [4, 0, 0], head: [-30, 0, 0], neck: [-6, 0, 0] }],
       [12.6, { at: [0, 0, 0, 0], ...NOIK, spine: [0, 0, 0], neck: [0, 0, 0], head: [20, 10, 0], lArm: [7, 80, 0], lFore: [12, 0], rArm: [40, 30, 0], rFore: [10, 0], lClav: [0, 0], rClav: [0, 0] }],
@@ -489,8 +571,8 @@ export const VIGNETTES = {
       [21.6, { rHand: [0, 0, 0] }],
       [23.0, { rArm: [7, 80, 0], rFore: [12, 0], lArm: [7, 80, 0], lFore: [12, 0], head: [-6, 0, 0] }],
       [26.6, {}],
-      [27.4, p(HUG, { shiver: 1.0, head: [6, 0, 0] })],
-      [29.8, { lArm: [7, 80, 0], lFore: [12, 0], rArm: [7, 80, 0], rFore: [12, 0], lClav: [0, 0], rClav: [0, 0], rIK: [-0.24, 0.98, -0.04, 1], head: [24, -30, 0], shiver: 0.3 }],
+      [27.4, p(HUG, { head: [6, 0, 0] })],
+      [29.8, { lArm: [7, 80, 0], lFore: [12, 0], rArm: [7, 80, 0], rFore: [12, 0], lClav: [0, 0], rClav: [0, 0], rIK: [-0.24, 0.98, -0.04, 1], head: [24, -30, 0] }],
       [30.8, { props: ['bar'], rIK: [null, null, null, 0], rArm: [40, 14, 0], rFore: [112, 0], head: [22, -6, 0] }],
       [32.2, { lClav: [-6, 8], rClav: [-6, 8], chest: [8, 0, 0], rArm: [26, 20, 0], rFore: [80, 0] }],
     ],
