@@ -2,9 +2,10 @@
 // power things, beams of focused sunlight that bounce between them, and sand-glass that the sun burns away.
 //
 // RotMirror     { pos (the panel's pivot), yaw: 0, step: π/4, count: 8, start: 0, tilt: 0, size: [2.4, 1.8],
-//                 look: 'mirror' | 'pv', post: 1.6 (support height under the pivot; 0 = none), onTurn(i) }
-//    A mirror (or a glossy photovoltaic panel) that turns about the vertical when shot ANY color on its
-//    back, frame, yoke or post: one `step` per hit, with a clunk, sparks and a little overshoot. Facing
+//                 look: 'mirror' | 'pv', post: 1.6 (support height under the pivot; 0 = none), color: YELLOW, onTurn(i) }
+//    A mirror (or a glossy photovoltaic panel) that turns about the vertical when shot `color` (YELLOW: it runs
+//    on sunlight; null = any color) on its back, frame, yoke or post: one `step` per hit, with a clunk, sparks
+//    and a little overshoot. Other colors glance off (its turntable flickers). Facing
 //    angles are yaw + i·step (yaw 0 faces north/-z, π/2 west, like the player); tilt > 0 tips the face up
 //    (π/4 throws a vertical sunbeam out sideways). count·step = 2π wraps round; a shorter arc stops at its
 //    ends (it jams). Which way it turns: a hit right of the pivot (as you look at it) pushes that edge away
@@ -180,8 +181,9 @@ function beamCast(world, origin, dir, far) {
 
 // ------------------------------------------------------------------ RotMirror
 export class RotMirror {
-  constructor(world, { pos, yaw = 0, step = Math.PI / 4, count = 8, start = 0, tilt = 0, size = [2.4, 1.8], look = 'mirror', post = 1.6, onTurn = null, time = 0.45 }) {
+  constructor(world, { pos, yaw = 0, step = Math.PI / 4, count = 8, start = 0, tilt = 0, size = [2.4, 1.8], look = 'mirror', post = 1.6, color = YELLOW, onTurn = null, time = 0.45 }) {
     this.world = world;
+    this.color = color;
     this.pos = v3(pos);
     this.yaw0 = yaw;
     this.step = step;
@@ -292,6 +294,12 @@ export class RotMirror {
       this.flash = 0.6;
       return 'mirror';
     }
+    if (this.color !== null && color !== this.color) {
+      // the wrong color: the turntable won't take it
+      this.flash = 0.5;
+      this.wrong = 0.4;
+      return 'immune';
+    }
     // which way: the torque of the shot about the vertical axis through the pivot
     let dir = 1;
     if (hit?.point && hit.dir) {
@@ -353,7 +361,8 @@ export class RotMirror {
       this.yawG.rotation.y = this.angle + Math.sin(this.jam * 60) * 0.02 * (this.jam / 0.4);
     }
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 3);
-    this.arrowMat.color.set(SUN_HEX).multiplyScalar(1.2 + this.flash * 2.5);
+    if (this.wrong > 0) this.wrong -= dt;
+    this.arrowMat.color.set(this.wrong > 0 && Math.sin(this.wrong * 60) > 0 ? 0x553311 : SUN_HEX).multiplyScalar(1.2 + this.flash * 2.5);
   }
 }
 

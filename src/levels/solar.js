@@ -30,8 +30,9 @@
 //  [solar15] THE SUN COURT: the Sphinx (sphinxArena.js) and the sun-lens it guards: the world's POWER SOURCE.
 //            Shoot it YELLOW → game.shutDownWorld('solar'): the sun is eclipsed, dusk falls, the beams die.
 //  [solar16] SUNSET CAUSEWAY (y 12) → Hub west balcony port (z -136, y 12); one-way (a 4 m drop).
-// Before the core: no fights. From the core on, every enemy's body is yellow, with red layered in (red shields,
-// red/yellow palettes, a warden's red shell, the Sphinx's red paw gems) so fights keep you switching 1 ↔ 2.
+// Before the core: no fights and no gun puzzles. From the core on, every enemy's body is yellow with red layered
+// in (red shields on the stilt-walkers, scarabs, drones and turrets, a warden's red shell, the Sphinx's red paw
+// gems) so fights keep you switching 1 ↔ 2, and every shooting puzzle runs on yellow.
 // Color locks: GREEN grotto (overlook, secret), BLUE Eclipse Vault (causeway, secret); the Sunken Cache
 // (secret) is burned open with sunlight.
 // Light puzzles: src/entities/sunlight.js (RotMirror, LightReceiver, BurnWall, SunBeam, SunEmitter).
@@ -191,10 +192,18 @@ class SolarDirector {
 function standInDuneRun(B, { start, end, onDone }) {
   const { W, game, plat, blocker } = B;
   const [sx, sy, sz] = start, [ex, ey, ez] = end;
-  const x1 = Math.min(sx, ex) - 2, x2 = Math.max(sx, ex) + 2;
-  plat(x1, Math.min(sz, ez) - 2, x2, Math.max(sz, ez) + 2, Math.max(sy, ey), 'yellow', 0.6);
-  blocker([x1 - 0.4, sy, Math.min(sz, ez) - 2], [x1, sy + 40, Math.max(sz, ez) + 2]);
-  blocker([x2, sy, Math.min(sz, ez) - 2], [x2 + 0.4, sy + 40, Math.max(sz, ez) + 2]);
+  const x1 = Math.min(sx, ex) - 3, x2 = Math.max(sx, ex) + 5; // (out to the docks' sills)
+  const za = Math.min(sz, ez) - 3, zb = Math.max(sz, ez) + 3, lo = Math.min(sy, ey), hi = Math.max(sy, ey);
+  plat(x1, za, x2, zb, lo, 'yellow', 0.6);
+  // steps up at the high end
+  const up = ez < sz ? -1 : 1, n = Math.ceil((hi - lo) / 0.4);
+  for (let i = 1; i <= n; i++) {
+    const zEnd = (sy < ey ? ez : sz) - up * 3, z0 = zEnd - up * (n - i + 1) * 0.8;
+    plat(x1, Math.min(z0, zEnd + up * 3), x2, Math.max(z0, zEnd + up * 3), Math.min(hi, lo + 0.4 * i), 'yellow', 0.4);
+  }
+  blocker([x1 - 0.4, lo, za], [x1, lo + 40, zb]);
+  blocker([x1, lo, za - 0.4], [x2, lo + 40, za]);
+  blocker([x1, lo, zb], [x2, lo + 40, zb + 0.4]);
   W.trigger([ex - 3, ey - 1, ez - 3], [ex + 3, ey + 3, ez + 3], () => onDone?.());
   W.trigger([sx - 3, sy - 1, sz - 3], [sx + 3, sy + 3, sz + 3], () => game.hud.message('(Stand-in walkway: the hovercraft dune run plugs in here.)', 3));
   return { standIn: true };
@@ -360,6 +369,57 @@ export function buildSolar(B) {
     }
     PG(x1, y1 - 0.95, z1, x2, y1 - 0.88, z1 + 0.05);
     PG(x1, y1 - 0.95, z2 - 0.05, x2, y1 - 0.88, z2);
+  };
+  // ---- the sun-temple dressing of the yards (the old forecourt's look): broken pillars, fallen drums,
+  // sun-disc reliefs, glyph strips and sun-cloth banners
+  // a broken pillar: drum courses, a glowing glyph band, sometimes its capital still on
+  const brokenPillar = (x, y, z, h, cap = false) => {
+    R(x - 0.75, y, z - 0.75, x + 0.75, y + 0.5, z + 0.75); // plinth
+    R(x - 0.6, y + 0.5, z - 0.6, x + 0.6, y + h, z + 0.6);
+    for (let k = 1.6; k < h - 0.3; k += 1.4) W.deco(x - 0.63, y + k, z - 0.63, x + 0.63, y + k + 0.08, z + 0.63, 'metal', zone);
+    if (h > 2.2) G(x - 0.62, y + h - 0.9, z - 0.62, x + 0.62, y + h - 0.8, z + 0.62);
+    if (cap) R(x - 0.95, y + h, z - 0.95, x + 0.95, y + h + 0.5, z + 0.95);
+  };
+  // a fallen drum lying on the sand
+  const drum = (x, y, z, alongX = true, len = 2.8) => (alongX ? R(x - len / 2, y, z - 0.6, x + len / 2, y + 1.2, z + 0.6) : R(x - 0.6, y, z - len / 2, x + 0.6, y + 1.2, z + len / 2));
+  // carvings on a wall face: n = the way the face looks ('+x' '-x' '+z' '-z'), at = the face's coordinate
+  const onWall = (n, at, u1, y1, u2, y2, depth, kind) => {
+    const sg = n[0] === '+' ? 1 : -1, a = at, b = at + sg * depth;
+    if (n[1] === 'x') W.deco(Math.min(a, b), y1, Math.min(u1, u2), Math.max(a, b), y2, Math.max(u1, u2), kind, zone);
+    else W.deco(Math.min(u1, u2), y1, Math.min(a, b), Math.max(u1, u2), y2, Math.max(a, b), kind, zone);
+  };
+  // a sun disc relief: a ring of rays round a glowing boss, cut in the wall
+  const sunRelief = (n, at, u, yc, r = 1.6) => {
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * Math.PI * 2, cu = u + Math.cos(a) * r, cy = yc + Math.sin(a) * r;
+      onWall(n, at, cu - 0.18, cy - 0.18, cu + 0.18, cy + 0.18, 0.18, 'rock');
+    }
+    onWall(n, at, u - r * 0.55, yc - r * 0.55, u + r * 0.55, yc + r * 0.55, 0.12, 'rock');
+    onWall(n, at, u - r * 0.3, yc - r * 0.3, u + r * 0.3, yc + r * 0.3, 0.16, 'glow1');
+  };
+  // a strip of glyphs: dashes and blocks of glow in a band along a wall
+  const glyphStrip = (n, at, u1, u2, y) => {
+    const end = Math.max(u1, u2);
+    let u = Math.min(u1, u2), k = 0;
+    while (u < end - 0.4) {
+      const w = [0.3, 0.7, 0.2, 0.5, 1.1, 0.25][k % 6], h = [0.3, 0.12, 0.45, 0.12, 0.12, 0.3][k % 6];
+      onWall(n, at, u, y - h / 2, Math.min(u + w, end), y + h / 2, 0.06, 'glow1');
+      u += w + 0.35;
+      k++;
+    }
+    onWall(n, at, Math.min(u1, u2), y - 0.42, end, y - 0.36, 0.08, 'metal');
+    onWall(n, at, Math.min(u1, u2), y + 0.36, end, y + 0.42, 0.08, 'metal');
+  };
+  // banners: sun-cloth hung from the wall tops (one shared texture and mesh for the whole world)
+  const bannerGeos = [];
+  const banner = (n, at, u, yTop, w = 1.8, h = 5) => {
+    const pg = new THREE.PlaneGeometry(w, h);
+    const sg = n[0] === '+' ? 1 : -1;
+    if (n[1] === 'x') pg.rotateY(sg > 0 ? Math.PI / 2 : -Math.PI / 2).translate(at + sg * 0.12, yTop - h / 2, u);
+    else pg.rotateY(sg > 0 ? 0 : Math.PI).translate(u, yTop - h / 2, at + sg * 0.12);
+    bannerGeos.push(pg);
+    if (n[1] === 'x') M(Math.min(at, at + sg * 0.5), yTop - 0.15, u - w / 2 - 0.2, Math.max(at, at + sg * 0.5), yTop + 0.1, u + w / 2 + 0.2);
+    else M(u - w / 2 - 0.2, yTop - 0.15, Math.min(at, at + sg * 0.5), u + w / 2 + 0.2, yTop + 0.1, Math.max(at, at + sg * 0.5));
   };
   // a low sand drift (decor, wade through it)
   const drift = (x, y, z, w, d) => {
@@ -709,7 +769,7 @@ export function buildSolar(B) {
 
   // ================================================================ S4 THE FIRST LENS (puzzle: 1 mirror)
   // The door east is shut. Its receiver sits at the end of a walled slot in the south-west corner; the
-  // mirror stands in the slot's mouth. Turn it (shoot its back, frame or post: any color) until a shot at
+  // mirror stands in the slot's mouth. Turn it (shoot its back, frame or post YELLOW) until a shot at
   // its face from the east runs straight down the slot.
   F(-148, -30, -97, -126, -24, -74);
   R(-150, -30, -97, -148, -10, -72); // west
@@ -737,7 +797,7 @@ export function buildSolar(B) {
   G(-141, -23.97, -83.75, -127, -23.92, -83.65);
   deep([-148, -24, -97], [-124, -10, -72]);
   vault(-148, -97, -126, -74, -24, -10, [[-140, -99, -134, -95], [-128, -83, -124, -77], [-147, -83, -141, -73]], 5.5);
-  hint([-140, -24, -97], [-134, -20, -92], 'A <b>mirror</b> on a turntable. Shoot its <b>back or frame</b> (any color) to turn it; a shot on its <b>face</b> bounces off. Bounce one down the slot into the <b style="color:#ffd23a">receiver</b>.', 8);
+  hint([-140, -24, -97], [-134, -20, -92], 'A <b>mirror</b> on a turntable. Shoot its <b>back or frame</b> <b style="color:#ffd23a">yellow</b> to turn it; a shot on its <b>face</b> bounces off. Bounce one down the slot into the <b style="color:#ffd23a">receiver</b>.', 8);
 
   // ================================================================ S5 THE BANK (puzzle: 2 mirrors) + the Sunken Cache
   // A pit splits the room. The screen on the near bank has a slot in it; the first mirror stands in front of
@@ -881,8 +941,26 @@ export function buildSolar(B) {
   M(-114, S, -48, -112, -5.4, -46);
   glowEdge(-124, -74, -120, -71.5, -6.6, glow, zone);
   glowEdge(-104, -52.5, -100, -50, -6.6, glow, zone);
-  // corner pylons and collector housings round the walls
+  // corner pylons, and the sun-temple forecourt this yard was: broken pillars, fallen drums, drifts, the old
+  // collector tower, sun reliefs, glyph strips and banners on the walls
   for (const [x, z] of [[-133, -83], [-89.5, -83], [-133, -45], [-89.5, -45]]) pylon(x, S, z, 5);
+  for (const [x, z, h, cap] of [[-131, -70, 3.4, true], [-92, -50, 2.2], [-127, -60.5, 1.6], [-106, -76, 4.2, true], [-93, -70, 1.4]]) brokenPillar(x, S, z, h, cap);
+  drum(-118, S, -78, true);
+  drum(-104, S, -46.5, false, 2.4);
+  for (const [x, z, w, d] of [[-126, -66, 6, 4], [-98, -58, 5, 6], [-112, -50, 9, 2.6], [-120, -82, 7, 3]]) drift(x, S, z, w, d);
+  M(-101, S, -84, -97, 2.5, -81);
+  M(-102.5, 2.5, -85.5, -95.5, 4.5, -79.5);
+  PG(-102.6, 3.7, -85.6, -95.4, 4, -79.4);
+  PG(-101.05, S, -84.05, -100.9, 2.5, -83.9);
+  sunRelief('+z', -84, -122, -6, 1.5);
+  sunRelief('-z', -44, -96, -6, 1.5);
+  sunRelief('-x', -90, -72, -6, 1.4);
+  glyphStrip('+z', -84, -133, -104, -4.7);
+  glyphStrip('-z', -44, -133, -91, -4.7);
+  glyphStrip('-x', -90, -83, -45, -4.7);
+  banner('+z', -84, -114, -4, 1.6, 3.2);
+  banner('-z', -44, -116, -4, 1.6, 3.2);
+  banner('-x', -90, -56, -4, 1.6, 3.2);
   const yardPanels = [
     [-130, -79, Math.PI * 1.75], [-112, -80.5, Math.PI], [-94, -79, Math.PI * 1.25], [-92.5, -60, Math.PI * 1.5],
     [-102, -47, Math.PI * 0.25], [-122, -47, Math.PI * 0.75], [-131, -55, Math.PI * 0.5], [-116, -66, 0],
@@ -901,21 +979,21 @@ export function buildSolar(B) {
       [
         { type: 'drone', pos: [-112, -2, -72], color: YELLOW },
         { type: 'drone', pos: [-100, -2, -50], color: YELLOW, delay: 0.5 },
-        { type: 'scarab', pos: [-124, S, -78], color: [YELLOW, RED], burrow: false, delay: 0.8 },
-        { type: 'scarab', pos: [-96, S, -54], color: [YELLOW, RED], burrow: false, delay: 1.1 },
+        { type: 'scarab', pos: [-124, S, -78], color: YELLOW, shields: [RED], burrow: false, delay: 0.8 },
+        { type: 'scarab', pos: [-96, S, -54], color: YELLOW, shields: [RED], burrow: false, delay: 1.1 },
         { type: 'scarab', pos: [-128, S, -62], color: YELLOW, burrow: false, delay: 1.4 },
       ],
       { title: 'REINFORCEMENTS', enemies: [
         { type: 'mummy', pos: [-122, S, -51], color: YELLOW, shieldColor: RED },
-        { type: 'turret', pos: [-89.9, -4.6, -66], colors: [YELLOW, RED], mount: [-1, 0, 0], delay: 0.8 },
+        { type: 'turret', pos: [-89.9, -4.6, -66], color: YELLOW, shields: [RED], mount: [-1, 0, 0], delay: 0.8 },
         { type: 'brute', pos: [-128, S, -76], color: YELLOW, delay: 1.4 },
         { type: 'drone', pos: [-94, -2, -74], color: YELLOW, delay: 2.0 },
-        { type: 'drone', pos: [-130, -2, -50], color: [YELLOW, RED], cycle: 2.4, delay: 2.4 },
+        { type: 'drone', pos: [-130, -2, -50], color: YELLOW, shields: [RED], delay: 2.4 },
       ] },
       [
         { type: 'warden', pos: [-112, -3.5, -58], shield: RED, core: YELLOW },
         { type: 'mortar', pos: [-96, S, -80], color: YELLOW, delay: 1.0 },
-        { type: 'scarab', pos: [-130, S, -80], color: [YELLOW, RED], burrow: false, delay: 1.4 },
+        { type: 'scarab', pos: [-130, S, -80], color: YELLOW, shields: [RED], burrow: false, delay: 1.4 },
         { type: 'scarab', pos: [-94, S, -48], color: YELLOW, burrow: false, delay: 1.7 },
         { type: 'mummy', pos: [-98, S, -73], color: YELLOW, shieldColor: RED, delay: 2.2 },
       ],
@@ -951,7 +1029,7 @@ export function buildSolar(B) {
   lights.push(p8a, p8b, p8c, recv8);
   for (const [x, z] of [[-160.5, -50.5], [-160.5, -79.5]]) pylon(x + 0.8, S, z, 4);
   new Drone(W, { pos: [-150, -3, -64], color: YELLOW, range: 24 });
-  new Drone(W, { pos: [-146, -2.5, -74], color: [YELLOW, RED], cycle: 2.6, range: 24 });
+  new Drone(W, { pos: [-146, -2.5, -74], color: YELLOW, shields: [RED], range: 24 });
   ck([-140, S, -64], Math.PI / 2, [4, 3, 6]);
   devStart('solar8', [-140, S, -64], Math.PI / 2, [0, YELLOW], 'Light puzzle: the Panel Court');
   area([-138, -8.5, -67], [-134, -4.5, -61], mood);
@@ -989,10 +1067,10 @@ export function buildSolar(B) {
   // two timed lances in the cut beyond the glass
   lanceRig(-156, -114, -153, -111, S, 6, { period: 3.6, on: 1.5, warn: 0.7 }, S);
   lanceRig(-152, -120, -149.5, -117.5, S, 6, { period: 3.6, on: 1.5, warn: 0.7, phase: 1.8 }, S);
-  B.turret([-143.9, -4.5, -110], YELLOW, { colors: [YELLOW, RED], mount: [-1, 0, 0] });
+  B.turret([-143.9, -4.5, -110], YELLOW, { shields: [RED], mount: [-1, 0, 0] });
   new Drone(W, { pos: [-151, -3, -90], color: YELLOW, range: 22 });
   new Drone(W, { pos: [-151, -2.5, -122], color: YELLOW, range: 22 });
-  B.scarab([-152, S, -127], { palette: [YELLOW, RED], range: 12 });
+  B.scarab([-152, S, -127], { color: YELLOW, shields: [RED], range: 12 });
   ck([-151, S, -86], 0, [6, 3, 4]);
   devStart('solar9', [-151, S, -85], 0, [0, YELLOW], 'Light puzzle: the Glass Canyon');
   hint([-155, S, -90], [-145, -4, -84], 'A wall of fused <b>sand-glass</b>. Shots glance off — but <b>focused sunlight</b> would boil it away. Aim the lens beam at it.', 7);
@@ -1008,8 +1086,8 @@ export function buildSolar(B) {
   quick(-194, -152, -150, -134, -24, -30, false);
   glowEdge(-150, -152, -144, -134, -4, glow, zone);
   glowEdge(-200, -152, -194, -132, -4, glow, zone);
-  blocker([-202, 0, -156], [-142, SKY, -152]);
-  blocker([-144, -4, -152], [-143.6, SKY, -134]); // (no stepping off the rims into the desert)
+  blocker([-202, 0, -156], [-142, 8, -152]);
+  blocker([-144, -4, -152], [-143.6, 8, -134]); // (no stepping off the rims into the desert)
   blocker([-200.4, -4, -152], [-200, SKY, -132]);
   pillar(-156, -142.5, -153, -139.5, -3.6);
   pillar(-163, -143, -159, -139, -3.2);
@@ -1033,7 +1111,7 @@ export function buildSolar(B) {
   });
   lanceRig(-179, -143, -176, -139, -24, 8, { period: 3.4, on: 1.4, warn: 0.7 }, -30, '-z');
   new Drone(W, { pos: [-166, 2, -146], color: YELLOW, range: 26 });
-  new Drone(W, { pos: [-186, 2.5, -136], color: [YELLOW, RED], cycle: 2.4, range: 26 });
+  new Drone(W, { pos: [-186, 2.5, -136], color: YELLOW, shields: [RED], range: 26 });
   ck([-147, -4, -138], Math.PI / 2, [5, 3, 6]);
   devStart('solar10', [-147, -4, -138], Math.PI / 2, [0, YELLOW], 'The Sun Bridges');
   ck([-173, -3.2, -138.6], Math.PI / 2, [3, 3, 3]);
@@ -1067,7 +1145,7 @@ export function buildSolar(B) {
   devStart('solar11', [-197, -4, -127], Math.PI, [0, YELLOW], 'The Sinking Flats (quicksand drop)');
   area([-200, -4.5, -132], [-194, 0, -116], mood);
   hint([-200, -4, -122], [-194, 0, -116], 'Dead end — except <b>down</b>. The quicksand will catch you; then <b>mash JUMP</b> and fight your way to the <b>lip</b> at the far end.', 7);
-  B.scarab([-196, -13.6, -95.5], { palette: [YELLOW, RED], range: 10 });
+  B.scarab([-196, -13.6, -95.5], { color: YELLOW, shields: [RED], range: 10 });
 
   // ================================================================ S12 THE DOCK YARD (combat + light)
   // The hover dock's yard on the world's west edge. A lens pours onto a heliostat set low on a turntable:
@@ -1098,6 +1176,13 @@ export function buildSolar(B) {
   M(-196, S, -48, -194, -4, -46);
   M(-184, S, -88, -182, -4, -86);
   for (const [x, z] of [[-210, -90], [-210, -44], [-168, -90], [-168, -44]]) pylon(x, S, z, 5);
+  for (const [x, z, h, cap] of [[-206, -64, 4.6, true], [-172, -72, 2.6], [-198, -46, 1.8], [-180, -88, 3.2, true]]) brokenPillar(x, S, z, h, cap);
+  drum(-184, S, -58, true);
+  drum(-200, S, -74, false, 2.4);
+  sunRelief('-x', -166, -78, -5, 1.6);
+  sunRelief('-x', -166, -56, -5, 1.6);
+  glyphStrip('-x', -166, -91, -43, -3);
+  banner('-x', -166, -67, -2, 1.8, 4.4);
   for (const [x, z, w, d] of [[-196, -75, 6, 4], [-178, -62, 5, 6], [-200, -60, 7, 3], [-184, -48, 6, 3]]) drift(x, S, z, w, d);
   B.armor([-202, -6.4, -80.5]);
   B.armor([-176, -6.4, -52.5]);
@@ -1110,9 +1195,9 @@ export function buildSolar(B) {
     waves: [
       [
         { type: 'scarab', pos: [-176, S, -84], color: YELLOW, burrow: false },
-        { type: 'scarab', pos: [-202, S, -86], color: [YELLOW, RED], burrow: false, delay: 0.4 },
+        { type: 'scarab', pos: [-202, S, -86], color: YELLOW, shields: [RED], burrow: false, delay: 0.4 },
         { type: 'scarab', pos: [-176, S, -46], color: YELLOW, burrow: false, delay: 0.8 },
-        { type: 'scarab', pos: [-204, S, -46], color: [YELLOW, RED], burrow: false, delay: 1.2 },
+        { type: 'scarab', pos: [-204, S, -46], color: YELLOW, shields: [RED], burrow: false, delay: 1.2 },
         { type: 'drone', pos: [-189, -2, -82], color: YELLOW, delay: 1.0 },
         { type: 'drone', pos: [-189, -2, -50], color: YELLOW, delay: 1.6 },
       ],
@@ -1126,8 +1211,8 @@ export function buildSolar(B) {
         { type: 'warden', pos: [-189, -5.4, -80], shield: RED, core: YELLOW },
         { type: 'mortar', pos: [-206, S, -88], color: YELLOW, delay: 0.8 },
         { type: 'drone', pos: [-172, -2, -84], color: YELLOW, delay: 1.2 },
-        { type: 'drone', pos: [-206, -2, -48], color: [YELLOW, RED], cycle: 2.2, delay: 1.6 },
-        { type: 'turret', pos: [-165.9, -4.5, -66], colors: [YELLOW, RED], mount: [-1, 0, 0], delay: 2.2 },
+        { type: 'drone', pos: [-206, -2, -48], color: YELLOW, shields: [RED], delay: 1.6 },
+        { type: 'turret', pos: [-165.9, -4.5, -66], color: YELLOW, shields: [RED], mount: [-1, 0, 0], delay: 2.2 },
       ],
     ],
     onClear: () => game.hud.message('The <b>hover dock</b> is open. West, across the dune sea, to the <b>Sun Court</b>.', 5),
@@ -1154,9 +1239,38 @@ export function buildSolar(B) {
     },
   });
   level.solarDunes = duneRun;
-  // the quay: a stone wharf under the court mesa, the lift at its east end
-  F(-212, -30, -210, -184, -6, -190);
-  glowEdge(-212, -210, -184, -190, -6, glow, zone);
+  // the quay: a stone wharf under the court mesa, cut by a quicksand channel. Two great sun discs block the
+  // bridge over it: every two YELLOW hits turn one a quarter turn — turn each notch down onto the bridge.
+  // The lift up the mesa is beyond.
+  F(-212, -30, -210, -200, -6, -190);
+  F(-188, -30, -210, -184, -6, -190);
+  glowEdge(-212, -210, -200, -190, -6, glow, zone);
+  quick(-200, -210, -188, -190, -9, -14);
+  R(-200, -14, -201.5, -188, -6, -198.5); // the bridge
+  glowEdge(-200, -201.5, -188, -198.5, -6, glow, zone);
+  const discParts = [[-0.3, -4.2, -4.2, 0.3, 4.2, -1.5], [-0.3, -4.2, 1.5, 0.3, 4.2, 4.2], [-0.3, -1.0, -1.5, 0.3, 4.2, 1.5]];
+  const dialA = B.shotRotor({ pivot: [-196.5, -1.8, -200], parts: discParts, axis: 'x', color: YELLOW, start: 2, correct: 0, zone });
+  const dialB = B.shotRotor({ pivot: [-191.5, -1.8, -200], parts: discParts, axis: 'x', color: YELLOW, start: 1, correct: 0, zone });
+  // they're heavy: the first hit only rocks one on its axle, the second turns it
+  for (const d of [dialA, dialB]) {
+    const hitTurn = d.onHit.bind(d);
+    let charge = 0;
+    d.onHit = (color, hit) => {
+      if (color !== d.color || d.turning) return hitTurn(color, hit);
+      if (++charge < 2) {
+        d.flash = 1;
+        d.world.fx.sparks(hit?.point || d.pivot, hit?.normal || new THREE.Vector3(0, 1, 0), d.hex, { count: 6, speed: 6, spread: 0.8, life: 0.25 });
+        d.jam = 0.5;
+        return 'hit';
+      }
+      charge = 0;
+      return hitTurn(color, hit);
+    };
+    onRespawn(() => (charge = 0));
+  }
+  blocker([-200, -6, -210], [-188, SKY, -201.5]); // no jumping round the discs over the sand
+  blocker([-200, -6, -198.5], [-188, SKY, -190]);
+  hint([-206, -6, -203], [-200, -3, -197], 'Two great <b>sun discs</b> block the bridge. Every <b>two</b> <b style="color:#ffd23a">yellow</b> hits turn one a quarter turn: turn each <b>notch down</b> onto the bridge.', 7);
   F(-212, -6, -210.6, -184, -5, -210);
   F(-212, -6, -190, -184, -5, -189.4);
   R(-214, -30, -197, -212, -3, -152); // the world's west edge, the quay's opening in it
@@ -1173,7 +1287,6 @@ export function buildSolar(B) {
     for (let y = -4; y < 18; y += 3) PG(-184.25, y, z - 0.65, -179.75, y + 0.1, z + 0.65);
   }
   M(-184.2, 18, -203.4, -179.8, 18.8, -196.6);
-  blocker([-184.4, -6, -203], [-184, 16, -197]); // (the lift's back)
   onRespawn(() => {
     const p = game.checkpoint?.pos;
     if (p && p.y < 0 && p.x < -184) quay.lift.reset();
@@ -1181,7 +1294,7 @@ export function buildSolar(B) {
   // a ring of standing stones on the quay, shadows burned into the stone beside them — LOG NOOK 06
   {
     for (let k = 0; k < 6; k++) {
-      const a = (k / 6) * Math.PI * 2, x = -198 + Math.cos(a) * 3.4, z = -194 + Math.sin(a) * 3.4;
+      const a = (k / 6) * Math.PI * 2, x = -206 + Math.cos(a) * 3.4, z = -193.5 + Math.sin(a) * 3.4;
       R(x - 0.4, -6, z - 0.4, x + 0.4, -4.6 + (k % 3) * 0.5, z + 0.4);
     }
     const shadowMat = new THREE.MeshBasicMaterial({ color: 0x0c0806, transparent: true, opacity: 0.72, depthWrite: false });
@@ -1191,9 +1304,9 @@ export function buildSolar(B) {
       const head = new THREE.CircleGeometry(0.22 * s, 12).translate(0, 0.2 * s, 0);
       for (const g of [body, head]) shapes.push(g.rotateZ(rot).rotateX(-Math.PI / 2).translate(x, -5.98, z));
     };
-    person(-196.5, -192.5, -1.4);
-    person(-195.6, -194.8, -1.5, 0.8);
-    person(-199.6, -196.8, -1.3, 1.1);
+    person(-204.5, -192, -1.4);
+    person(-203.6, -194.3, -1.5, 0.8);
+    person(-207.6, -196.3, -1.3, 1.1);
     W.scene.add(new THREE.Mesh(mergeBoxes(shapes), shadowMat));
   }
   ck([-207, -6, -200], -Math.PI / 2, [4, 3, 6]);
@@ -1261,7 +1374,7 @@ export function buildSolar(B) {
   gateX(-100, 12, -136);
   barrierWallX(-100, 12, YELLOW, zone, -136, 4.7);
   new Drone(W, { pos: [-120, 16.5, -131], color: YELLOW, range: 22 });
-  new Drone(W, { pos: [-80, 16.5, -141], color: [YELLOW, RED], cycle: 2.2, range: 22 });
+  new Drone(W, { pos: [-80, 16.5, -141], color: YELLOW, shields: [RED], range: 22 });
   guideStrip([[-150, 12, -139], [-150, 12, -136], [-146, 12, -136]], amber, { spacing: 1.2 });
   // the Eclipse Vault: SECRET behind a BLUE door on the causeway's south side (come back after Azure)
   R(-67, -14, -134.3, -59, 12, -127.5);
@@ -1329,6 +1442,42 @@ export function buildSolar(B) {
   for (const [xa, xb, top] of [[-36, -56, 10], [-56, -104, 24]]) R(xb, -24.4, -229.5, xa, top, -226);
   strata(-199.5, -226.3, -36, -226, [2, 14]);
 
+  // the banners: one sun-cloth texture and mesh for the whole world
+  if (bannerGeos.length) {
+    const cv = document.createElement('canvas');
+    cv.width = 64;
+    cv.height = 160;
+    const cx2 = cv.getContext('2d');
+    cx2.fillStyle = '#b8862a';
+    cx2.fillRect(0, 0, 64, 160);
+    cx2.fillStyle = '#7a2a18';
+    cx2.fillRect(0, 0, 64, 12);
+    cx2.fillRect(0, 134, 64, 10);
+    cx2.fillStyle = '#ffd86a';
+    cx2.beginPath();
+    cx2.arc(32, 52, 15, 0, Math.PI * 2);
+    cx2.fill();
+    cx2.strokeStyle = '#ffd86a';
+    cx2.lineWidth = 3;
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      cx2.beginPath();
+      cx2.moveTo(32 + Math.cos(a) * 19, 52 + Math.sin(a) * 19);
+      cx2.lineTo(32 + Math.cos(a) * 26, 52 + Math.sin(a) * 26);
+      cx2.stroke();
+    }
+    cx2.fillStyle = '#2a3f8a';
+    for (let y = 84; y < 128; y += 12) cx2.fillRect(14, y, 36, 5);
+    cx2.globalCompositeOperation = 'destination-out';
+    cx2.beginPath();
+    cx2.moveTo(16, 160);
+    cx2.lineTo(32, 146);
+    cx2.lineTo(48, 160);
+    cx2.fill();
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    W.scene.add(new THREE.Mesh(mergeBoxes(bannerGeos), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, side: THREE.DoubleSide, alphaTest: 0.5 })));
+  }
   // the merged dressing
   const addMerged = (geos, material) => geos.length && W.scene.add(new THREE.Mesh(mergeBoxes(geos), material));
   addMerged(cableGeos, new THREE.MeshStandardMaterial({ color: 0x1a1612, roughness: 0.8 }));
@@ -1384,7 +1533,7 @@ export function buildSolar(B) {
     p8a, p8b, p8c, recv8, gate8, glass9, p9a, p9b, recv9, get pad9() {
       return pad9;
     },
-    p10a, recv10a, bridge10a, p10b, recv10b, bridge10b, sweep, yard, dock, quay, court, core, vaultDoor, door1, bridge2,
+    p10a, recv10a, bridge10a, p10b, recv10b, bridge10b, sweep, dialA, dialB, yard, dock, quay, court, core, vaultDoor, door1, bridge2,
     duneStart: DUNE_START, duneEnd: DUNE_END,
     get duneDone() {
       return duneDone;
@@ -1416,7 +1565,7 @@ export function buildSolar(B) {
       if (inBox(p, -206, -184, -132, -92, -30)) return p.y > -8 ? 'Drop into the <b>quicksand</b> — it breaks the fall.' : '<b>Mash JUMP</b> and wade to the <b>lip</b> at the south end, then up the stairs.';
       if (inBox(p, -212, -160, -92, -40, -12)) return dock.state === 'cleared' ? 'Board the <b>hovercraft</b> at the dock, west.' : 'Hold the dock yard. <b>Turn the heliostat</b> to sweep its sunbeam through them; break <b style="color:#ff3344">red</b> shields with red.';
       if (p.x < -212) return 'Ride the dune sea to the <b>Sun Quay</b>.';
-      if (inBox(p, -212, -179, -212, -188, -8)) return 'Ride the <b>lift</b> up to the Sun Court.';
+      if (inBox(p, -212, -179, -212, -188, -8)) return dialA.orientation !== 0 || dialB.orientation !== 0 ? `Turn both ${Y}sun discs${E} (two yellow hits turn one a quarter turn) until their notches sit on the bridge.` : 'Cross the bridge and ride the <b>lift</b> up to the Sun Court.';
       if (inBox(p, -180, -126, -178, -222, 10)) return court.defeated ? `Shoot the ${Y}sun-lens${E} over the court with yellow to shut the engine down.` : 'Defeat <b>the Sphinx</b>: dodge its pounces from the pads, ride its back, blast its gems.';
       return `${Y}Yellow${E} in hand: head for the <b>Sun Court</b> on its mesa, north-west.`;
     },

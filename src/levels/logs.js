@@ -12,7 +12,7 @@ const LOGS = [
   // SOLAR (final, the rebuilt world): her nine seconds; she dims the captive star
   { id: '04', world: 'solar', pos: [-59.5, 4, -121.5], yaw: Math.PI / 2 }, // the lookout balcony off the overlook's north-west corner, facing the captive sun
   { id: '05', world: 'solar', pos: [-107.5, -19.6, -99], yaw: 0 }, // the dig gallery: the ledge off the scaffold tower (walk the side plank), facing the cut's fused sand-glass bands
-  { id: '06', world: 'solar', pos: [-198, -6, -194], yaw: -Math.PI / 2 }, // the Sun Quay under the court mesa (after the dune run): the ring of standing stones, shadows burned into the stone
+  { id: '06', world: 'solar', pos: [-206, -6, -193.5], yaw: -Math.PI / 2 }, // the Sun Quay under the court mesa (after the dune run): the ring of standing stones by the sun discs, shadows burned into the stone
   // VERDANT (final, the rebuilt world): lonely, then frightened
   { id: '07', world: 'verdant', pos: [25.5, 4, -163.5], yaw: Math.PI / 2 }, // the Rain Court, east end of the south terrace: moss, gold light, drizzle
   { id: '08', world: 'verdant', pos: [27, 4.5, -212.2], yaw: Math.PI / 2 }, // the Ruin Bank's east rim over the sludge lake, roots grown through two skeletons
