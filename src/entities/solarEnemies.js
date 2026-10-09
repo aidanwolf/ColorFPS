@@ -836,6 +836,15 @@ let tileGeo = null;
 let chargeGeo = null;
 let mummyProxy = null;
 
+// worship poses (Mummy opts.worship.pose): hips lowered by drop, torso pitched (+ forward) with a slow nod, the
+// head's pitch (+ down), the arms (shoulder pitch, - raises them; spread; forearm; hand) with a gentle wave
+const WORSHIP = {
+  kneel: { drop: 1.2, pitch: 0.35, nod: 0.08, sway: 0.03, head: 0.35, arm: -0.95, spread: -0.18, fore: -1.25, hand: 0.3, wave: 0.05 },
+  bow: { drop: 0.55, pitch: 0.95, nod: 0.22, sway: 0.02, head: 0.5, arm: -0.35, spread: 0.05, fore: -0.4, hand: -0.2, wave: 0.08 },
+  raise: { drop: 0.25, pitch: -0.28, nod: 0.06, sway: 0.08, head: -0.6, arm: -2.7, spread: 0.35, fore: -0.25, hand: 0.5, wave: 0.18 },
+  tend: { drop: 0.75, pitch: 0.6, nod: 0.1, sway: 0.03, head: 0.55, arm: -0.85, spread: 0.12, fore: -0.7, hand: 0.4, wave: 0.12 },
+};
+
 export class Mummy extends Trooper {
   constructor(world, opts) {
     super(world, opts, { radius: 0.5, height: HIP + 1.3, hp: 5, range: 28, color: YELLOW, patrol: 4, speed: 2.4, prefer: [9, 17], dodge: 2.6, accel: 22 });
@@ -930,7 +939,41 @@ export class Mummy extends Trooper {
     this.shield.visible = false;
     this.group.add(this.shield);
     this.applyColor();
+    // a worshipper (opts.worship: { pose: 'kneel' | 'bow' | 'raise' | 'tend', face: yaw, notice: 8 }): it holds
+    // its pose at its post, facing `face`, and only notices you close up (notice m, line of sight), when it's
+    // hit, or when something rouses it (rouse(): a brazier lit, a beam-lock opened nearby); then it rises
+    this.worship = opts.worship ? { pose: 'kneel', notice: 8, ...opts.worship } : null;
+    this.worK = this.worship ? 1 : 0;
+    if (this.worship?.face !== undefined) this.yaw = this.worship.face;
     this.attach();
+  }
+
+  // the chant breaks: up off its knees and at you
+  rouse() {
+    if (this.dead || this.dying || this.aggro) return;
+    this.aggro = true;
+    this.alerted = true;
+    this.lastSeen.copy(this.world.game.player.pos);
+    this.onAlert();
+  }
+
+  // (a worshipper only sees you close up)
+  look(dt, player) {
+    if (!this.worship || this.aggro) return super.look(dt, player);
+    const r = this.range;
+    this.range = this.worship.notice;
+    super.look(dt, player);
+    this.range = r;
+  }
+
+  think(dt, player) {
+    if (this.worship && !this.aggro) {
+      if (this.state !== 'idle') this.setState('idle');
+      this.move.set(0, 0, 0);
+      if (this.worK > 0.5) this.turnToward(this.worship.face ?? this.yaw, 1.5, dt);
+      return;
+    }
+    super.think(dt, player);
   }
 
   applyColor() {
@@ -1285,17 +1328,19 @@ export class Mummy extends Trooper {
     const p = this.gaitPhase;
     // hips: high at mid-stance, lurching over the planted stilt, a slow balancing sway on top
     const bob = (Math.abs(Math.cos(p)) - 0.6) * 0.1 * amp;
-    const hipY = HIP - low * (HIP - LOW_HIP) - lunge * 0.85 - stag * 0.25 + sq * 3 + bob;
+    if (this.worship) this.worK += ((this.aggro ? 0 : 1) - this.worK) * Math.min(1, dt * (this.aggro ? 2.6 : 0.8));
+    const wk = this.worship ? smooth01(this.worK) : 0, W = wk ? WORSHIP[this.worship.pose] || WORSHIP.kneel : null;
+    const hipY = HIP - low * (HIP - LOW_HIP) - lunge * 0.85 - stag * 0.25 + sq * 3 + bob - (W ? wk * W.drop : 0);
     this.hipY = hipY;
     this.height = hipY + 1.3;
-    const sway = -Math.cos(p) * 0.1 * amp + Math.sin(this.t * 0.7 + this.seed) * 0.025;
+    const sway = -Math.cos(p) * 0.1 * amp + Math.sin(this.t * 0.7 + this.seed) * 0.025 + (W ? wk * W.sway * Math.sin(this.t * 0.9 + this.seed) : 0);
     n.body.position.set(sway, hipY, 0);
     this.poseLegs(hipY, sway, amp, lunge, dt);
     // the upper body: leans into the walk, the hunch, its attack lean, flinches; rolls over the stance
     // leg and into a lunge
     const accel = clamp((speed - (this.lastSpeed ?? speed)) / Math.max(dt, 1e-3), -8, 8);
     this.lastSpeed = speed;
-    const pitchT = this.gfk * k * 0.1 + low * 0.5 + this.actPitch + stag * 0.2 + accel * 0.01 + lunge * 0.25;
+    const pitchT = this.gfk * k * 0.1 + low * 0.5 + this.actPitch + stag * 0.2 + accel * 0.01 + lunge * 0.25 + (W ? wk * (W.pitch + W.nod * Math.sin(this.t * 1.15 + this.seed)) : 0);
     const rollT = -this.gsk * k * 0.08 + this.actRoll + Math.cos(p) * 0.05 * amp + (dodging ? -this.rollLocal * 0.4 * lunge : 0) + Math.sin(this.t * 0.7 + this.seed) * 0.02;
     const pitch = this.pS.step(pitchT, dt);
     const roll = this.rS.step(rollT, dt);
@@ -1324,6 +1369,7 @@ export class Mummy extends Trooper {
       const scan = Math.sin(this.t * 0.31 + this.seed) + Math.sin(this.t * 0.77 + this.seed * 2) * 0.5;
       hy = Math.abs(scan) > 0.5 ? scan * 0.7 : 0;
       hp = 0.15 + Math.sin(this.t * 0.45 + this.seed) * 0.08;
+      if (W) (hy *= 1 - wk), (hp = lerp(hp, W.head, wk));
     }
     const hk = Math.min(1, dt * (this.aggro ? 5 : 2));
     this.headYaw += (hy - this.headYaw) * hk;
@@ -1408,6 +1454,22 @@ export class Mummy extends Trooper {
       rz = -0.7;
       lx = rx = -0.4;
       rate = 14;
+    }
+    // a worshipper's hands: pressed together, raised to the obelisk, hung low in a bow, over the coals
+    const wk = this.worship ? smooth01(this.worK) : 0;
+    if (wk > 0.001) {
+      const A = WORSHIP[this.worship.pose] || WORSHIP.kneel, osc = Math.sin(this.t * 0.9 + this.seed) * A.wave;
+      lx = lerp(lx, A.arm + osc, wk);
+      rx = lerp(rx, A.arm - osc, wk);
+      lz = lerp(lz, A.spread, wk);
+      rz = lerp(rz, -A.spread, wk);
+      ly = lerp(ly, 0, wk);
+      ry = lerp(ry, 0, wk);
+      fl = lerp(fl, A.fore, wk);
+      fr = lerp(fr, A.fore, wk);
+      hl = lerp(hl, A.hand, wk);
+      hr = lerp(hr, A.hand, wk);
+      rate = Math.max(rate, 4);
     }
     const sm = Math.min(1, dt * rate);
     n.armL.rotation.set(lerp(n.armL.rotation.x, lx, sm), lerp(n.armL.rotation.y, ly, sm), lerp(n.armL.rotation.z, lz, sm));
