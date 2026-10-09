@@ -86,5 +86,9 @@
  "powerup_get": {
   "prompt": "Mysterious ethereal sci-fi item acquisition jingle in the style of atmospheric late-90s alien-planet adventure game soundtracks: rising out of silence, a hushed shimmering crystalline arpeggio, airy wordless choir and glassy synth pads swelling with awe into a reverent, otherworldly major-key resolution, sparkling chimes, sense of discovering ancient alien power, no drums, instrumental",
   "ms": 8000
+ },
+ "music_temple": {
+  "prompt": "Sacred ancient desert temple music for a sci-fi adventure game: deep male monastic chanting in an unknown ritual language, droning throat-singing low notes, distant female choir answering, slow ritual frame drums, hand bells and metallic chimes, Middle-Eastern modal melody on a reedy wind instrument, warm golden reverb of a vast stone hall, reverent, mysterious and slightly ominous, building tension, instrumental apart from wordless chant, seamless loop",
+  "ms": 120000
  }
 }

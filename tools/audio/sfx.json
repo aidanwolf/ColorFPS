@@ -1393,5 +1393,26 @@
   "text": "Desert raider hover-skiff shot down: a robotic gunner's distorted vocoder scream of panic over a fan engine sputtering and whining down, metal scraping, dramatic sci-fi video game enemy defeated",
   "dur": 2.2,
   "influence": 0.6
+ },
+ "obelisk_crack": {
+  "text": "Massive ancient stone support joint cracking and snapping under enormous strain, deep grinding groan of stone, chips and sand pouring, a huge low boom, epic and heavy",
+  "dur": 2.5,
+  "influence": 0.6
+ },
+ "obelisk_fall": {
+  "text": "A colossal stone obelisk tearing free and crashing down through a temple, thunderous rumbling collapse, stone blocks shattering, an avalanche of rubble and sand, a huge earth-shaking impact boom with a long debris tail, epic cinematic destruction",
+  "dur": 6,
+  "influence": 0.55
+ },
+ "temple_rumble": {
+  "text": "Deep continuous rumble of a huge stone temple shaking and starting to collapse, grinding stone, dust and pebbles falling, low ominous quake",
+  "dur": 5,
+  "influence": 0.5,
+  "loop": true
+ },
+ "energy_surge_stone": {
+  "text": "Ancient stone energy pillar awakening: a rising electric hum and crackle of yellow power surging through stone, glassy resonance, ending in a deep thrum",
+  "dur": 3,
+  "influence": 0.55
  }
 }
