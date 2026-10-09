@@ -9,6 +9,7 @@
  "amb_abyss",
  "amb_canopy",
  "amb_core",
+ "amb_crown",
  "amb_foundry",
  "amb_hub",
  "amb_jungle",
@@ -250,6 +251,7 @@
  "music_solar",
  "music_swamp",
  "music_temple",
+ "music_thornmaw",
  "music_title",
  "music_tree",
  "music_victory",
@@ -263,6 +265,7 @@
  "pad_launch",
  "phase_in",
  "phase_out",
+ "piston_thump",
  "plank_crack",
  "pod_burst",
  "powerup_get",
@@ -337,6 +340,7 @@
  "spike_hit",
  "spore_burst",
  "spore_puff",
+ "spore_vent",
  "squid_charge",
  "squid_hum",
  "squid_jet",
@@ -391,6 +395,7 @@
  "toxic_sink",
  "trapdoor_drop",
  "trapdoor_fall",
+ "trolley_latch",
  "turbine_loop",
  "turbine_pulse",
  "turret_charge",
@@ -424,5 +429,6 @@
  "worm_pain",
  "worm_rumble",
  "worm_screech",
- "worm_slither"
+ "worm_slither",
+ "zip_run"
 ]

@@ -496,6 +496,7 @@ export class ZipLine {
   board(p) {
     this.rider = p;
     p.mount = this;
+    audio.sample(audio.sfxOr('trolley_latch', 'switch_on'), { gain: 0.7 });
     this.v = Math.max(this.vmin, 3);
     p.vel.set(0, 0, 0);
     p.crouching = false;

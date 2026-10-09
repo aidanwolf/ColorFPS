@@ -50,7 +50,7 @@ import { buildVerdantArena } from './verdantArena.js';
 import { makeVerdantKit, kitMaterials } from './verdantKit.js';
 
 // every sample the tree's own pieces play (stand-ins where a wanted one isn't generated yet: audio.sfxOr)
-audio.manifest?.then(() => audio.prefetch(['music_tree', 'amb_canopy', 'branch_groan', 'leaves_rustle', 'spore_vent', 'spore_burst', 'piston_thump', 'door_slam', 'zip_run', 'elevator_loop', 'land', 'checkpoint']));
+audio.manifest?.then(() => audio.prefetch(['music_tree', 'amb_canopy', 'branch_groan', 'leaves_rustle', 'spore_vent', 'spore_burst', 'piston_thump', 'door_slam', 'zip_run', 'elevator_loop', 'trolley_latch', 'music_thornmaw', 'land', 'checkpoint']));
 
 const PI = Math.PI;
 const NORTH = 0, EAST = -PI / 2, SOUTH = PI, WEST = PI / 2; // player yaws
@@ -1461,7 +1461,7 @@ export function buildGodTree(B, ctx = {}) {
   // The tree lifted an old temple into its crown; the hive made it the harvest's heart. Its limbs cradle the
   // courtyard from below and rise round it into the canopy.
   const CROWN = [TREE.x, TREE.crown, TREE.z];
-  const arena = buildVerdantArena(B, { center: CROWN, size: 44, entry: 'w', exit: 's', colors: RYG, reactorColor: GREEN, world: 'verdant' });
+  const arena = buildVerdantArena(B, { center: CROWN, size: 44, entry: 'w', exit: 's', colors: RYG, reactorColor: GREEN, world: 'verdant', music: audio.sfxOr('music_thornmaw', 'music_miniboss') });
   B.armor([CROWN[0] + 18.5, CROWN[1] + 4.2, CROWN[2] - 17.5]);
   B.armor([CROWN[0] - 18.5, CROWN[1] + 4.2, CROWN[2] + 17.5]);
   B.armor([CROWN[0] + 8.8, CROWN[1], CROWN[2]], { base: false });

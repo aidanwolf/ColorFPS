@@ -279,7 +279,7 @@ class VerdantHeart {
   }
 }
 
-export function buildVerdantArena(B, { center, size = 44, entry = 's', exit = 'n', colors = [0, 1, 2], reactorColor = GREEN, world: worldName = 'verdant', onDefeated = null } = {}) {
+export function buildVerdantArena(B, { center, size = 44, entry = 's', exit = 'n', colors = [0, 1, 2], reactorColor = GREEN, world: worldName = 'verdant', onDefeated = null, music = 'music_miniboss' } = {}) {
   const { W, game } = B;
   const [cx, cy, cz] = center;
   const H = size / 2;
@@ -577,7 +577,7 @@ export function buildVerdantArena(B, { center, size = 44, entry = 's', exit = 'n
     heart.reset();
     entryGate.set(false, true);
     exitGate.set(true, true);
-    if (game.musicTrack === 'music_miniboss') game.setMusic('music_green');
+    if (game.musicTrack === music) game.setMusic('music_green');
   }
   exitGate.set(true, true);
   if (game.isWorldDown?.(worldName)) applyDown();
@@ -590,7 +590,7 @@ export function buildVerdantArena(B, { center, size = 44, entry = 's', exit = 'n
     if (boss.state !== 'dormant' || isDown || game.isWorldDown?.(worldName)) return;
     entryGate.set(true);
     exitGate.set(true);
-    game.setMusic('music_miniboss');
+    game.setMusic(music);
     game.hud.zoneTitle('GUARDIAN OF THE VERDANT HEART', 'THE THORNMAW', '#3dff7a');
     boss.start();
   };

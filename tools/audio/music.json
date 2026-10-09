@@ -110,5 +110,9 @@
  "music_escape": {
   "prompt": "Frantic adventure chase music for escaping a collapsing jungle temple with a giant rolling boulder: fast pounding tribal drums, urgent staccato strings, blaring brass hits, rising tension, heroic and breathless, instrumental, seamless loop",
   "ms": 90000
+ },
+ "music_thornmaw": {
+  "prompt": "Tense tribal-organic boss battle music: deep wooden log drums, hollow bamboo flutes, creaking strings and choir swells, an overgrown temple in a giant tree, driving 120 bpm, instrumental, seamless loop",
+  "ms": 90000
  }
 }

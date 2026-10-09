@@ -1866,5 +1866,32 @@
   "text": "Old wooden plank cracking and splintering underfoot, sharp wood snap",
   "dur": 1,
   "influence": 0.6
+ },
+ "zip_run": {
+  "text": "Steel trolley wheels screaming along a long taut cable at speed, a rising metallic whine with rattling pulleys and wind, seamless loop",
+  "dur": 6,
+  "influence": 0.5,
+  "loop": true
+ },
+ "spore_vent": {
+  "text": "A deep organic exhalation bursting up out of a hollow tree, a thick breathy whoosh of spores and air with fine hissing particles",
+  "dur": 1.5,
+  "influence": 0.55
+ },
+ "piston_thump": {
+  "text": "A heavy hydraulic piston shoving a slab of wet wood out of a giant tree trunk, pneumatic hiss then a thick wooden thunk and creak",
+  "dur": 1.0,
+  "influence": 0.6
+ },
+ "trolley_latch": {
+  "text": "A heavy steel trolley clamping onto a cable, sharp clank and ratchet click",
+  "dur": 0.8,
+  "influence": 0.6
+ },
+ "amb_crown": {
+  "text": "Wind high in an enormous rainforest canopy, leaves rushing in waves, distant creaking boughs, faint insects, seamless loop",
+  "dur": 22,
+  "influence": 0.4,
+  "loop": true
  }
 }
