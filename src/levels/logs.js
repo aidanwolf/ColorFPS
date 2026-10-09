@@ -6,7 +6,7 @@
 // Every spot is final: the color worlds' were picked by their rebuilds to match each script.
 const LOGS = [
   // THE PRISM ATRIUM (final): wonder, on the first visit
-  { id: '01', world: 'hub', pos: [-4.3, 4, -105.6], yaw: Math.PI / 4 }, // just in from the red door, south-west of the walk in: the dais, the Prism and the reactor straight ahead
+  { id: '01', world: 'hub', pos: [-9.4, 4, -102.1], yaw: Math.PI * 0.8 }, // in the day-1 research station just west of the red door: by the party table under the WELCOME TEAM banner (hubOffices.js), open floor north-west of it for her ghost, the reactor in view
   { id: '02', world: 'hub', pos: [-3.7, 2.8, -127.7], yaw: Math.PI / 4 }, // down in the dais, its north-west corner between the green and yellow locks, right under the reactor heart, where all four feeds can be seen
   { id: '03', world: 'hub', pos: [23.2, 12, -128], yaw: -Math.PI / 2 }, // the east gallery, just off the lift, by Azure's glass conduit
   // SOLAR (final, the rebuilt world): her nine seconds; she dims the captive star
