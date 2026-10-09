@@ -1,9 +1,10 @@
 // SOLAR — SUNSCORCH MESA, the yellow world: the Lumen's sun-farm round a captive sun, and the excavation
 // under it where the yellow core lies buried. See LAYOUT.md for its region and Hub ports. The loop, in
 // order (devStarts in brackets):
-//  [solar]   Hub west port (z -112, y 4) → THE SUNWARD OVERLOOK (y 4): the whole world laid out ahead — the
-//            arrays, the yard, the glass canyon, the dune sea, the Sun Court and its lens, the windmills
-//  [solar1]  THE DIG SHAFT: the survey gantry over the excavation gives way: a long fall into the quicksand
+//  [solar]   Hub west port (z -112, y 4) → THE SUNWARD OVERLOOK (y 4), a stair up to its survey platform
+//  [solar1]  (y 9.2): the whole world laid out ahead — the arrays, the receiver tower, the yard, the glass
+//            canyon, the dune sea, the Sun Court and its lens, the windmills and the farms to the horizon
+//            THE DIG SHAFT: the survey gantry over the excavation gives way: a long fall into the quicksand
 //            at the bottom of the shaft (it breaks the fall) — mash JUMP and wade to the tunnel
 //  [solar2]  THE DIG GALLERY (underground, no combat): scaffolds, crumbling planks and the plates of a buried
 //            machine over a deep quicksand pit, lamps and daylight through cracks; up to the vault door
@@ -16,7 +17,7 @@
 //  [solar6]  THE GRAND LENS (puzzle, 4 mirrors): shoot the prism; its sunbeam must run round all four
 //            mirrors (the last one throws it up) into the sun-catcher that powers the lift to the surface
 //  [solar7]  THE MIRROR YARD (combat, the first yellow arena): rotatable solar panels round the yard to bank
-//            shots off, quicksand pools, three waves (all yellow)
+//            shots off, quicksand pools, three waves (yellow, with red shields)
 //  [solar8]  THE PANEL COURT (light puzzle): turn three panels so the sky-lens's beam reaches the gate's
 //            sun-catcher
 //  [solar9]  THE GLASS CANYON: aim the lens beam at the sand-glass wall (it boils away), then turn the next
@@ -26,7 +27,8 @@
 //  [solar11] THE SINKING FLATS: the only way on is down — drop into the quicksand basin and struggle to the lip
 //  [solar12] THE DOCK YARD (combat + light): turn the heliostat to sweep the sunbeam through the attackers
 //  [solar13] THE HOVER DOCK → the hovercraft dune run (solarDunes.js: buildDuneRun) over the dune sea →
-//  [solar14] THE SUN QUAY: the lift up the court mesa
+//  [solar14] THE SUN QUAY (puzzle): two heavy sun discs block the bridge over a quicksand channel — every two
+//            YELLOW hits turn one a quarter turn; turn both notches down — then the lift up the court mesa
 //  [solar15] THE SUN COURT: the Sphinx (sphinxArena.js) and the sun-lens it guards: the world's POWER SOURCE.
 //            Shoot it YELLOW → game.shutDownWorld('solar'): the sun is eclipsed, dusk falls, the beams die.
 //  [solar16] SUNSET CAUSEWAY (y 12) → Hub west balcony port (z -136, y 12); one-way (a 4 m drop).

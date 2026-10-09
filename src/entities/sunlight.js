@@ -25,7 +25,7 @@
 //    A slab of fused sand-glass: shots glance off it (the blaster isn't hot enough), focused sunlight heats
 //    it until it boils away (a dissolve with a glowing rim, steam and embers) and the way is open for good.
 //    burned / burn().
-// SunBeam       { from, dir, range: 140, width: 0.45, bounces: 8, enabled: true, near: 110, source: null |
+// SunBeam       { from, dir, range: 140, width: 0.45, bounces: 8, enabled: true, near: 90, source: null |
 //                 'lens' | 'crack' }
 //    Focused sunlight: a beam from `from` along `dir`, bouncing off mirror solids and anything whose
 //    reflects(hit) says so, ending on whatever it strikes: onBeam(dt, hit) with hit.sun = true, or (for
@@ -627,7 +627,16 @@ export class BurnWall {
   }
 
   onBeam(dt, hit) {
-    if (this.burned || !hit?.sun) return 'hit';
+    if (this.burned) return 'hit';
+    if (!hit?.sun) {
+      // the blaster's own beam: it glows a little, but it's no sun
+      this.cool = 0.15;
+      if (!this.warned) {
+        this.warned = true;
+        this.world.game.hud.message(this.hintHtml, 4.5);
+      }
+      return 'hit';
+    }
     this.heat = Math.min(1, this.heat + dt / this.time);
     this.hot = hit.point;
     this.fed = 0;
@@ -713,7 +722,7 @@ const BEAM_FS = `
 const beamGeo = new THREE.CylinderGeometry(1, 1, 1, 10, 1, true);
 
 export class SunBeam {
-  constructor(world, { from, dir, range = 140, width = 0.45, bounces = 8, enabled = true, near = 110, source = null }) {
+  constructor(world, { from, dir, range = 140, width = 0.45, bounces = 8, enabled = true, near = 90, source = null }) {
     this.world = world;
     this.from = v3(from);
     this.dir = v3(dir).normalize();
@@ -838,10 +847,11 @@ export class SunBeam {
       this.roar.setGain(0);
       return;
     }
-    // trace at ~30 Hz (mirrors turn, enemies walk into it)
+    // re-trace at ~30 Hz close by (mirrors turn, enemies walk into it), a few times a second from afar
     this.traceT -= dt;
     if (this.traceT <= 0 || !this.path.length) {
-      this.traceT = 1 / 30;
+      const d = Math.min(player.pos.distanceTo(this.from), this.path.length ? player.pos.distanceTo(this.path[this.path.length - 1]) : 0);
+      this.traceT = d < 40 ? 1 / 30 : 1 / 6;
       this.trace();
     }
     const pts = this.path, I = this.I * (0.92 + 0.08 * Math.sin(this.t * 31));
