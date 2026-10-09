@@ -164,7 +164,7 @@ export class Rage {
         this.aura.position.set(0, o.height * 0.55, 0);
         this.aura.scale.set(Math.max(o.radius, o.height * 0.3) * 1.2, o.height * 0.62, Math.max(o.radius, o.height * 0.3) * 1.2);
       } else {
-        const shells = this.owner.shield?.root;
+        const shells = this.owner.colorShield?.root;
         if (shells) shells.visible = false; // (measure the body, not its shields)
         _box.setFromObject(parent).getBoundingSphere(_s);
         if (shells) shells.visible = true;

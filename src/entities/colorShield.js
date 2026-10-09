@@ -40,8 +40,9 @@ export function parseShields(color, shields = null, fallback = 0) {
   return { body: color ?? fallback, shields: shields ? shields.slice() : [] };
 }
 
-// the color that can hurt this enemy right now: its outermost shell's, else its body's
-export const outerColor = (e) => (e.shield?.up ? e.shield.color : e.color);
+// the color that can hurt this enemy right now: its outermost shell's, else its body's (or, for the Mummy,
+// its own raised hard-light shield's)
+export const outerColor = (e) => (e.colorShield?.up ? e.colorShield.color : e.shieldUp === true && e.shieldColor != null ? e.shieldColor : e.color);
 
 // ---------------------------------------------------------------- the shell: hex tiles of hard light
 // A Goldberg ball of hexagonal (and twelve pentagonal) tiles, each a fan from its center (aEdge 0) to its
@@ -169,17 +170,19 @@ function shellMaterial() {
       void main() {
         float rim = pow(1.0 - abs(dot(normalize(vN), normalize(vView))), 2.0);
         float edge = smoothstep(0.74, 0.97, vEdge);
-        // cracked tiles (the first uCrack of them) lose their fill and their outlines flicker white-hot
+        // cracked tiles (the first uCrack of them) lose their fill and their outlines flicker hot; the
+        // worst of them (the first half) are knocked right out, leaving holes
         float cracked = step(vRand, uCrack);
-        float flick = 0.55 + 0.45 * sin(uTime * 31.0 + vRand * 60.0);
-        float fill = (0.035 + rim * 0.3 + vEdge * vEdge * 0.06) * (1.0 - cracked * 0.85);
-        float lines = edge * (0.42 + rim * 0.4) * (1.0 - cracked * 0.4) + edge * cracked * flick * 1.1;
+        float gone = step(vRand, uCrack * 0.45);
+        float flick = 0.45 + 0.55 * step(0.0, sin(uTime * 27.0 + vRand * 60.0));
+        float fill = (0.035 + rim * 0.3 + vEdge * vEdge * 0.06) * (1.0 - cracked * 0.9);
+        float lines = edge * (0.42 + rim * 0.4) * (1.0 - cracked) + edge * cracked * flick * 0.9;
         // a ripple ring spreading from the last impact
         float d = distance(normalize(vLocal), uHit);
         float ripple = smoothstep(0.2, 0.0, abs(d - uHitT * 2.8)) * max(0.0, 1.0 - uHitT * 2.2);
         float scan = 0.5 + 0.5 * sin(vLocal.y * 9.0 - uTime * 3.0);
-        float a = (fill + lines + scan * 0.02) * uDim + ripple * 0.8 + uFlash * (0.2 + edge * 0.5);
-        vec3 col = uColor * (0.55 + rim * 0.8 + edge * 0.9) + vec3(1.0) * (edge * cracked * flick * 0.8 + uFlash * 0.7 + ripple * 0.6);
+        float a = ((fill + lines + scan * 0.02) * uDim + ripple * 0.8 + uFlash * (0.2 + edge * 0.5)) * (1.0 - gone);
+        vec3 col = uColor * (0.55 + rim * 0.8 + edge * 0.9 + cracked * edge * 0.5) + vec3(1.0) * (edge * cracked * flick * 0.3 + uFlash * 0.7 + ripple * 0.6);
         gl_FragColor = vec4(col, clamp(a, 0.0, 1.0) * (1.0 - uBreak));
       }`,
   });

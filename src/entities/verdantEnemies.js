@@ -762,7 +762,7 @@ export class SpiderBot {
     world.add(this);
     this.voice = new Voice('spider_skitter', { gain: 0.3, near: 3, far: 20, rate: rnd(0.9, 1.1) });
     // the shield: a shell round its body (it rolls and tumbles with it)
-    if (spec.shields.length) this.shield = new ColorShield(this, { shields: spec.shields, hp: shieldHp, regen: shieldRegen }, { parent: this.body, center: [0, 0.1, 0.24], size: [0.46, 0.4, 0.8], detail: 2, spin: 0 });
+    if (spec.shields.length) this.colorShield = new ColorShield(this, { shields: spec.shields, hp: shieldHp, regen: shieldRegen }, { parent: this.body, center: [0, 0.1, 0.24], size: [0.46, 0.4, 0.8], detail: 2, spin: 0 });
     this.reset();
   }
 
@@ -779,7 +779,7 @@ export class SpiderBot {
   reset() {
     if (this.dead) return;
     this.hp = this.maxHp;
-    if (this.shield && !this.shield.intact) this.shield.restore();
+    if (this.colorShield && !this.colorShield.intact) this.colorShield.restore();
     if (this.rage.on) this.rage.calm();
     this.state = 'patrol';
     this.timer = 0;
@@ -902,7 +902,7 @@ export class SpiderBot {
     }
     dt = this.rage.update(dt); // (enraged: everything a beat faster)
     this.t += dt;
-    this.shield?.update(dt);
+    this.colorShield?.update(dt);
     this.sightTimer -= dt;
     if (this.sightTimer <= 0) {
       this.sightTimer = 0.25;
@@ -1209,7 +1209,7 @@ export class SpiderBot {
     if (this.dead) return undefined;
     this.aggro = true;
     // shielded: only the outer layer's color does anything (and the body can't be touched)
-    const r = this.shield?.up ? this.shield.hit(color, hit) : color !== this.color ? 'immune' : null;
+    const r = this.colorShield?.up ? this.colorShield.hit(color, hit) : color !== this.color ? 'immune' : null;
     if (r === 'immune') {
       this.immuneFlash = 1;
       if (this.state === 'engage' || this.state === 'patrol') this.startRoll(this.world.game.player);
@@ -1259,7 +1259,7 @@ export class SpiderBot {
   die() {
     this.dead = true;
     if (this.rage.on) this.rage.calm();
-    this.shield?.dispose(); // (a shell still flying apart goes with it)
+    this.colorShield?.dispose(); // (a shell still flying apart goes with it)
     this.world.removeHittable(this.group);
     blast(this.world, this.pos, this.color, 0.9);
     sfx('critter_die', Math.max(0.3, falloff(this.dist, 6, 60)));
@@ -1377,7 +1377,7 @@ export class SpiderBot {
     this.world.remove(this);
     this.world.scene.remove(this.group);
     this.world.scene.remove(this.thread);
-    this.shield?.dispose();
+    this.colorShield?.dispose();
     this.rage.dispose();
     this.legs.dispose();
     this.sacMat.dispose();

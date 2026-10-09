@@ -178,7 +178,7 @@ export class SubDrone extends Drone {
       return;
     }
     dt = this.rage.update(dt); // (enraged: everything a beat faster)
-    this.shield?.update(dt);
+    this.colorShield?.update(dt);
     this.sightTimer -= dt;
     if (this.sightTimer <= 0) {
       this.sightTimer = 0.25;

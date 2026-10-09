@@ -286,7 +286,7 @@ export class Turret extends Enemy {
     this.dead = true;
     this.state = 'wreck';
     this.wreckT = 0;
-    this.shield?.dispose(); // (a shell still flying apart goes with it)
+    this.colorShield?.dispose(); // (a shell still flying apart goes with it)
     this.sight.hide();
     this.hum?.stop();
     this.hum = null;

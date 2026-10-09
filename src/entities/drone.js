@@ -223,7 +223,7 @@ export class Drone {
     world.addHittable(this.group);
     world.add(this);
     this.applyColor();
-    if (spec.shields.length) this.shield = new ColorShield(this, { shields: spec.shields, hp: shieldHp, regen: shieldRegen }, this.shieldView());
+    if (spec.shields.length) this.colorShield = new ColorShield(this, { shields: spec.shields, hp: shieldHp, regen: shieldRegen }, this.shieldView());
   }
 
   // the heat rim while it's enraged (rage.js)
@@ -299,7 +299,7 @@ export class Drone {
     }
     dt = this.rage.update(dt); // (enraged: everything a beat faster)
     this.t += dt;
-    this.shield?.update(dt);
+    this.colorShield?.update(dt);
     const dist = this.dist;
     this.sightTimer -= dt;
     if (this.sightTimer <= 0) {
@@ -440,7 +440,7 @@ export class Drone {
     if (this.dead) return undefined;
     this.aggro = true;
     // shielded: only the outer layer's color does anything (and the body can't be touched)
-    const r = this.shield?.up ? this.shield.hit(color, hit) : color !== this.color ? 'immune' : null;
+    const r = this.colorShield?.up ? this.colorShield.hit(color, hit) : color !== this.color ? 'immune' : null;
     if (r === 'immune') {
       this.immuneFlash = 1;
       this.startDodge(this.world.game.player, 6);
@@ -498,7 +498,7 @@ export class Drone {
   die() {
     this.dead = true;
     if (this.rage.on) this.rage.calm();
-    this.shield?.dispose(); // (a shell still flying apart goes with it)
+    this.colorShield?.dispose(); // (a shell still flying apart goes with it)
     this.crashing = true;
     this.crashT = 0;
     this.world.removeHittable(this.group);
@@ -635,7 +635,7 @@ export class Drone {
   dispose() {
     this.stopHum();
     this.dead = true;
-    this.shield?.dispose(); // (shared shell / aura geometry: off the model before it's freed)
+    this.colorShield?.dispose(); // (shared shell / aura geometry: off the model before it's freed)
     this.rage.dispose();
     this.world.removeHittable(this.group);
     this.world.remove(this);

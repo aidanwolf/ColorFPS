@@ -210,7 +210,7 @@ export class BlastCrab extends GroundEnemy {
     this.ground = null;
     this.setState('leap');
     esfx('robot_effort', this.pos, 0.6, 1.7); // a strained little servo grunt as it springs
-    this.leapCool = rnd(1.0, 1.6);
+    this.leapCool = rnd(1.0, 1.6) * this.rage.cool;
     const fx = this.world.fx;
     fx.burst(this.pos, 0x5a4a40, { count: 10, speed: 2.5, life: 0.5, size: 0.3, gravity: 3 });
     fx.sparks(this.center(_w), UP, COLORS[this.color].hex, { count: 8, speed: 5, spread: 1.2 });
@@ -524,7 +524,7 @@ export class Welder extends Trooper {
         this.shotT = 0.14;
         this.fireRivet(player);
         if (++this.shots >= 3) {
-          this.fireCool = rnd(2, 3.2);
+          this.fireCool = rnd(2, 3.2) * this.rage.cool; // (enraged: sooner, see rage.js)
           director.release(this);
           this.setState('engage');
         }
@@ -600,7 +600,7 @@ export class Welder extends Trooper {
     dir.x += (Math.random() - 0.5) * 0.04;
     dir.y += (Math.random() - 0.5) * 0.03;
     dir.z += (Math.random() - 0.5) * 0.04;
-    new Bolt(this.world, from, dir.normalize().multiplyScalar(17), this.color, { radius: 0.18, style: 'rivet' });
+    new Bolt(this.world, from, dir.normalize().multiplyScalar(17 * this.rage.shot), this.color, { radius: 0.18, style: 'rivet' });
     this.world.fx.flash(from, COLORS[this.color].hex, { size: 0.4, life: 0.08, k: 1.8 });
     this.world.fx.sparks(from, dir, 0xffd9a0, { count: 6, speed: 9, spread: 0.4, life: 0.2 });
     this.recoil = 1;

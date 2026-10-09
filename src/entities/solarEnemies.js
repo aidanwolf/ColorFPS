@@ -540,7 +540,7 @@ export class Scarab extends GroundEnemy {
   // burst apart: the carapace and legs fly, ceramic shards, sparks and a puff of sand
   die(hit) {
     this.dead = true;
-    this.shield?.dispose(); // (a shell still flying apart goes with it)
+    this.colorShield?.dispose(); // (a shell still flying apart goes with it)
     director.release(this);
     const c = this.center(new THREE.Vector3());
     const fx = this.world.fx;
@@ -1111,7 +1111,7 @@ export class Mummy extends Trooper {
       if (this.stateT >= CAST_T) {
         this.castVolley(player);
         director.release(this);
-        this.castCool = rnd(2.4, 3.4);
+        this.castCool = rnd(2.4, 3.4) * this.rage.cool; // (enraged: sooner, see rage.js)
         this.setState('release');
       }
     } else if (s === 'release') {
@@ -1160,7 +1160,7 @@ export class Mummy extends Trooper {
       dir.applyAxisAngle(UP, a);
       dir.y += 0.05;
       // the outer bolts bend in toward you; the middle one flies true
-      new PlasmaBolt(this.world, p, dir.normalize().multiplyScalar(9.5), this.color, { radius: 0.24, turn: a ? 1.5 : 0.4, turnTime: warning ? 0 : 1.1, life: 5 });
+      new PlasmaBolt(this.world, p, dir.normalize().multiplyScalar(9.5 * this.rage.shot), this.color, { radius: 0.24, turn: a ? 1.5 : 0.4, turnTime: warning ? 0 : 1.1, life: 5 });
       this.world.fx.flash(p, COLORS[this.color].hex, { size: 0.38, life: 0.1, k: 1.5 });
     });
     this.pS.kick(3.5); // follow-through: it throws its weight after the volley

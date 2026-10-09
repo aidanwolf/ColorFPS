@@ -344,10 +344,10 @@ export class GroundEnemy {
     this.world.addHittable(hitRoot);
     this.world.add(this);
     if (this.shieldSpec.shields.length) {
-      this.shield = new ColorShield(this, this.shieldSpec, this.shieldView());
+      this.colorShield = new ColorShield(this, this.shieldSpec, this.shieldView());
       // while a shell is up it takes every hit, before the subclass's own onHit sees it
       const onHit = this.onHit;
-      this.onHit = (color, hit) => (this.shield.up && !this.dead ? this.shieldHit(color, hit) : onHit.call(this, color, hit));
+      this.onHit = (color, hit) => (this.colorShield.up && !this.dead ? this.shieldHit(color, hit) : onHit.call(this, color, hit));
     }
   }
 
@@ -362,7 +362,7 @@ export class GroundEnemy {
       this.aggro = true;
       this.onAlert?.(this.world.game.player);
     }
-    const r = this.shield.hit(color, hit);
+    const r = this.colorShield.hit(color, hit);
     return r === 'immune' ? this.immune(hit) : r;
   }
 
@@ -681,7 +681,7 @@ export class GroundEnemy {
     this.sync();
     this.animate(dt, player);
     this.rage.paint(this.m?.glow);
-    this.shield?.update(dt);
+    this.colorShield?.update(dt);
     this.flash = Math.max(0, this.flash - dt * 6);
     this.immuneFlash = Math.max(0, this.immuneFlash - dt * 5);
     this.updateLoops();
@@ -755,7 +755,7 @@ export class GroundEnemy {
     this.vel.set(0, 0, 0);
     this.move.set(0, 0, 0);
     this.hp = this.maxHp;
-    this.shield?.restore();
+    this.colorShield?.restore();
     if (this.rage.on) this.rage.calm();
     this.aggro = false;
     this.sees = false;
@@ -824,7 +824,7 @@ export class GroundEnemy {
     this.world.scene.remove(this.group);
     for (const d of this.debris || []) this.world.scene.remove(d.obj);
     this.debris = null;
-    this.shield?.dispose();
+    this.colorShield?.dispose();
     this.rage.dispose();
     for (const m of this.mats) m.dispose();
     for (const g of this.ownGeos || []) g.dispose();
@@ -1257,7 +1257,7 @@ export class Trooper extends GroundEnemy {
   die(dir) {
     this.dead = true;
     this.dying = true;
-    this.shield?.dispose(); // (a shell still flying apart goes with it)
+    this.colorShield?.dispose(); // (a shell still flying apart goes with it)
     director.release(this);
     this.dyingT = 0;
     this.deathDir = dir.clone().setY(0).normalize();

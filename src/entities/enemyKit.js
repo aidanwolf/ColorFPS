@@ -373,7 +373,7 @@ export class Enemy {
     this.world.addHittable(this.group);
     this.world.add(this);
     this.applyColor();
-    if (this.shieldSpec.shields.length) this.shield = new ColorShield(this, this.shieldSpec, this.shieldView());
+    if (this.shieldSpec.shields.length) this.colorShield = new ColorShield(this, this.shieldSpec, this.shieldView());
     // enraged, the whole AI runs a beat faster (rage.js): every subclass's update gets the warped dt
     const update = this.update;
     this.update = (dt, player) => update.call(this, this.rage.update(dt), player);
@@ -413,7 +413,7 @@ export class Enemy {
       this.group.scale.setScalar(Math.max(0.01, e * (1 + 0.25 * Math.sin(this.appear * Math.PI))));
     }
     if (this.dist > this.wake) return false;
-    this.shield?.update(dt);
+    this.colorShield?.update(dt);
     this.flash = Math.max(0, this.flash - dt * 6);
     this.immuneFlash = Math.max(0, this.immuneFlash - dt * 5);
     this.sightTimer -= dt;
@@ -462,11 +462,12 @@ export class Enemy {
     if (this.dead || this.gone) return undefined;
     this.aggro = true;
     // shielded: only the outer layer's color does anything (and the body can't be touched)
-    const r = this.shield?.up ? this.shield.hit(color, hit) : color !== this.color || this.deflects(hit) ? 'immune' : null;
+    const wrong = color !== (this.colorShield?.up ? this.colorShield.color : this.color);
+    const r = this.colorShield?.up ? this.colorShield.hit(color, hit) : wrong || this.deflects(hit) ? 'immune' : null;
     if (r === 'immune') {
       this.immuneFlash = 1;
       this.onImmune(hit);
-      this.rage.wrong(hit);
+      if (wrong) this.rage.wrong(hit); // (a right color glancing off armor is no insult)
       return 'immune';
     }
     return r ?? this.damage(hit, this.hitDamage(hit));
@@ -551,7 +552,7 @@ export class Enemy {
     this.world.remove(this);
     this.world.removeHittable(this.group);
     this.world.scene.remove(this.group);
-    this.shield?.dispose(); // (shared shell / aura geometry and materials: off the model before it's freed)
+    this.colorShield?.dispose(); // (shared shell / aura geometry and materials: off the model before it's freed)
     this.rage.dispose();
     disposeTree(this.group);
     for (const m of this.mats) m.dispose();
