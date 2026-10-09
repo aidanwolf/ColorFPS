@@ -1,145 +1,233 @@
-// A floating audio log: a battered handheld field recorder projecting a slowly turning hologram of its
-// waveform, with a faint beam of light above it so it can be spotted from across a room. Walk into it to
-// pick it up; it plays at once (see story/recorder.js) and is gone for good (remembered across reloads).
+// An audio log, waiting: no device, just a ghostly shimmer where Wren once stood and talked to her recorder.
+// A faint flickering column of light over a projector glyph on the floor, light motes drifting up through
+// it, now and then the after-image of a woman standing there; a hair-thin beam above it so it can be spotted
+// from across a room, and a breathy whisper when you're near. Walk into it: her hologram materializes and
+// the log plays (story/recorder.js, story/ghost.js); it's gone for good (remembered across reloads).
 import * as THREE from 'three';
+import { audio } from '../audio.js';
 
-const HOLO = 0x8fe6ff; // the hologram's pale cyan, distinct from the color cores and prism trophies
-const BARS = 28;
-const HOVER = 1.15; // device height above the floor point it's placed on
+const HOLO = 0x8fe6ff;
+const HOVER = 1.15; // the trigger's centre above the floor point (where the old recorder hovered)
+const MOTES = 36;
+const WHISPER_NEAR = 11; // m: the whisper starts this close
 let shared = null;
 
-// geometry and materials every log shares (one set, however many logs are placed)
+const BILL_VERT = /* glsl */ `
+varying vec2 vUv;
+varying float vSeed;
+void main() {
+  vec3 c = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+  vec3 toCam = cameraPosition - c;
+  toCam.y = 0.0;
+  vec3 right = normalize(vec3(toCam.z, 0.0, -toCam.x) + vec3(1e-5, 0.0, 0.0));
+  vec3 w = c + right * position.x + vec3(0.0, position.y, 0.0);
+  vUv = uv;
+  vSeed = fract(c.x * 0.1371 + c.z * 0.3113);
+  gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
+}`;
+// the column, the hotspot, the thin beam, and the after-image of her (a soft signed-distance silhouette)
+const BILL_FRAG = /* glsl */ `
+uniform float uTime;
+varying vec2 vUv;
+varying float vSeed;
+float seg(vec2 p, vec2 a, vec2 b, float r) {
+  vec2 pa = p - a, ba = b - a;
+  float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+  return length(pa - ba * h) - r;
+}
+void main() {
+  float x = (vUv.x - 0.5) * 1.4, y = vUv.y * 6.0;
+  float t = uTime + vSeed * 40.0;
+  float column = exp(-x * x * 26.0) * smoothstep(0.0, 0.35, y) * exp(-max(0.0, y - 1.3) * 1.1);
+  float beam = exp(-x * x * 3000.0) * smoothstep(6.0, 1.6, y) * smoothstep(1.0, 2.2, y);
+  float hot = exp(-(x * x * 1.0 + (y - 1.15) * (y - 1.15)) * 14.0);
+  // her after-image: head, neck, body, arms, legs (she has the recorder up to her mouth)
+  vec2 p = vec2(x, y);
+  float d = length(p - vec2(0.0, 1.6)) - 0.1;
+  d = min(d, seg(p, vec2(0.0, 1.0), vec2(0.0, 1.38), 0.14));
+  d = min(d, seg(p, vec2(-0.08, 0.1), vec2(-0.07, 0.92), 0.06));
+  d = min(d, seg(p, vec2(0.08, 0.1), vec2(0.07, 0.92), 0.06));
+  d = min(d, seg(p, vec2(0.19, 1.38), vec2(0.21, 0.82), 0.045));
+  d = min(d, seg(p, vec2(-0.19, 1.38), vec2(-0.2, 1.12), 0.045));
+  d = min(d, seg(p, vec2(-0.2, 1.12), vec2(-0.06, 1.48), 0.04));
+  float sil = smoothstep(0.03, -0.02, d) * 0.25 + smoothstep(0.035, 0.0, abs(d)) * 0.7;
+  // she's only there now and then, for a breath
+  float appear = pow(max(0.0, sin(t * 0.37) * sin(t * 0.23 + 1.3)), 3.0) * 1.6;
+  float scan = 0.65 + 0.35 * sin(y * 140.0 - uTime * 4.0);
+  float flick = 0.82 + 0.18 * sin(t * 17.0) * sin(t * 5.3);
+  flick *= step(0.04, fract(sin(floor(t * 9.0)) * 4375.85)); // the odd dropped frame
+  float a = (column * 0.22 + beam * 0.5 + hot * 0.4 + sil * appear * smoothstep(0.0, 0.4, y)) * scan * flick;
+  gl_FragColor = vec4(vec3(0.42, 1.25, 1.6), clamp(a, 0.0, 1.0));
+}`;
+// the projector glyph on the floor: two rings, one dashed and turning, a soft pool
+const GLYPH_FRAG = /* glsl */ `
+uniform float uTime;
+varying vec2 vUv;
+void main() {
+  vec2 p = (vUv - 0.5) * 1.6;
+  float r = length(p), a = atan(p.y, p.x);
+  float ring = smoothstep(0.012, 0.0, abs(r - 0.56));
+  float dash = smoothstep(0.01, 0.0, abs(r - 0.46)) * step(0.5, fract(a * 1.91 + uTime * 0.12));
+  float ticks = smoothstep(0.03, 0.0, abs(r - 0.66)) * step(0.85, fract(a * 3.82 - uTime * 0.05));
+  float pool = exp(-r * r * 9.0) * 0.3;
+  float flick = 0.8 + 0.2 * sin(uTime * 11.0 + r * 9.0);
+  gl_FragColor = vec4(vec3(0.42, 1.2, 1.55), (ring * 0.5 + dash * 0.35 + ticks * 0.3 + pool) * flick * smoothstep(0.8, 0.7, r));
+}`;
+const GLYPH_VERT = /* glsl */ `
+varying vec2 vUv;
+void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const MOTE_VERT = /* glsl */ `
+attribute vec4 seed;
+uniform float uTime, uScale;
+varying float vA;
+void main() {
+  float life = fract(uTime * (0.05 + seed.x * 0.08) + seed.y);
+  float ang = seed.z * 6.2832 + uTime * (0.25 + seed.w * 0.35);
+  float r = 0.06 + seed.w * 0.3 + life * 0.08;
+  vec3 p = vec3(cos(ang) * r, 0.15 + seed.z * 0.6 + life * 1.6, sin(ang) * r);
+  vec4 mv = modelViewMatrix * vec4(p, 1.0);
+  vA = sin(3.14159 * life) * (0.35 + 0.65 * fract(seed.y * 9.7 + uTime * 0.9));
+  gl_PointSize = (0.02 + seed.x * 0.02) * uScale / max(0.2, -mv.z);
+  gl_Position = projectionMatrix * mv;
+}`;
+const MOTE_FRAG = /* glsl */ `
+varying float vA;
+void main() {
+  float a = smoothstep(0.5, 0.0, length(gl_PointCoord - 0.5)) * vA;
+  gl_FragColor = vec4(0.55, 1.35, 1.7, a);
+}`;
+
 function assets() {
   if (shared) return shared;
-  const holo = (opacity) => new THREE.MeshBasicMaterial({ color: new THREE.Color(HOLO).multiplyScalar(1.15), transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-  // a soft round glow for the halo billboard
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const g = c.getContext('2d');
-  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  grad.addColorStop(0, 'rgba(255,255,255,0.9)');
-  grad.addColorStop(0.25, 'rgba(160,235,255,0.35)');
-  grad.addColorStop(1, 'rgba(120,220,255,0)');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 64, 64);
-  const beamGeo = new THREE.CylinderGeometry(0.035, 0.035, 3.2, 8, 1, true).translate(0, 1.6 + 0.55, 0);
+  const uniforms = { uTime: { value: 0 }, uScale: { value: 600 } }; // one clock for every log
+  const add = (vertexShader, fragmentShader) =>
+    new THREE.ShaderMaterial({ vertexShader, fragmentShader, uniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  const mg = new THREE.BufferGeometry();
+  const seeds = new Float32Array(MOTES * 4);
+  for (let i = 0; i < seeds.length; i++) seeds[i] = Math.random();
+  mg.setAttribute('seed', new THREE.BufferAttribute(seeds, 4));
+  mg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(MOTES * 3), 3));
+  mg.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 1, 0), 1.2);
   shared = {
-    body: new THREE.MeshStandardMaterial({ color: 0x2b2e38, metalness: 0.7, roughness: 0.38 }),
-    trim: new THREE.MeshStandardMaterial({ color: 0x8a6f4a, metalness: 0.8, roughness: 0.3 }), // worn brass corners
-    screen: new THREE.MeshBasicMaterial({ color: new THREE.Color(HOLO).multiplyScalar(1.3) }),
-    rec: new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff3a3a).multiplyScalar(2) }),
-    bar: holo(0.6),
-    ring: holo(0.45),
-    cone: holo(0.07),
-    beam: holo(0.1),
-    halo: new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), color: HOLO, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false }),
-    beamGeo,
-    barGeo: new THREE.BoxGeometry(0.022, 1, 0.022).translate(0, 0.5, 0),
+    uniforms,
+    bill: add(BILL_VERT, BILL_FRAG),
+    glyph: add(GLYPH_VERT, GLYPH_FRAG),
+    mote: add(MOTE_VERT, MOTE_FRAG),
+    billGeo: new THREE.PlaneGeometry(1.4, 6).translate(0, 3, 0),
+    glyphGeo: new THREE.PlaneGeometry(1.6, 1.6).rotateX(-Math.PI / 2),
+    moteGeo: mg,
   };
   return shared;
 }
 
+// The whisper: one breathy voice for whichever log is nearest (filtered noise wandering through vowel-like
+// formants, gated into phrases, with a faint glassy shimmer), panned toward it, through the world loops bus
+// (so it hushes while paused).
+const whisper = { best: Infinity, pos: new THREE.Vector3(), frame: -1, nodes: null };
+function whisperNodes() {
+  const ctx = audio.ctx;
+  if (whisper.nodes || !ctx || !audio.loopBus || !audio.noiseBuf) return whisper.nodes;
+  const out = ctx.createGain();
+  out.gain.value = 0;
+  const pan = ctx.createStereoPanner();
+  out.connect(pan).connect(audio.loopBus);
+  const src = ctx.createBufferSource();
+  src.buffer = audio.noiseBuf;
+  src.loop = true;
+  const phrase = ctx.createGain();
+  phrase.gain.value = 0.45;
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 350;
+  phrase.connect(hp).connect(out);
+  const lfo = (hz, depth, param) => {
+    const o = ctx.createOscillator();
+    o.frequency.value = hz;
+    const g = ctx.createGain();
+    g.gain.value = depth;
+    o.connect(g).connect(param);
+    o.start();
+  };
+  for (const [f, q, wob, hz, lvl] of [[720, 5, 260, 0.23, 1], [2300, 7, 520, 0.37, 0.7], [3400, 9, 400, 0.51, 0.35]]) {
+    const b = ctx.createBiquadFilter();
+    b.type = 'bandpass';
+    b.frequency.value = f;
+    b.Q.value = q;
+    lfo(hz, wob, b.frequency);
+    const g = ctx.createGain();
+    g.gain.value = lvl;
+    src.connect(b).connect(g).connect(phrase);
+  }
+  lfo(0.61, 0.32, phrase.gain);
+  lfo(1.73, 0.18, phrase.gain);
+  for (const f of [1567, 1571.5]) {
+    const o = ctx.createOscillator();
+    o.frequency.value = f;
+    const g = ctx.createGain();
+    g.gain.value = 0.012;
+    o.connect(g).connect(out);
+    o.start();
+  }
+  src.start();
+  whisper.nodes = { out, pan };
+  return whisper.nodes;
+}
+function whisperFlush() {
+  const n = whisperNodes();
+  if (!n) return;
+  const d = whisper.best;
+  const k = d < WHISPER_NEAR ? (1 - d / WHISPER_NEAR) ** 2 : 0;
+  n.out.gain.setTargetAtTime(k * 0.3, audio.ctx.currentTime, 0.15);
+  if (k > 0) n.pan.pan.setTargetAtTime(audio.panOf(whisper.pos), audio.ctx.currentTime, 0.1);
+}
+
 export class AudioLog {
-  // pos: the floor point it hovers over; yaw: which way it faces at first (it slowly turns)
-  constructor(world, game, { id, pos, yaw = 0 }) {
+  // pos: the floor point it stands on; yaw: unused now (kept for the placement table)
+  constructor(world, game, { id, pos }) {
     this.world = world;
     this.game = game;
     this.id = id;
     this.pos = new THREE.Vector3(pos[0], pos[1] + HOVER, pos[2]);
-    this.t = Math.random() * 10;
     const A = assets();
     this.group = new THREE.Group();
-    this.group.position.copy(this.pos);
-    this.bob = new THREE.Group();
-    this.bob.rotation.y = yaw;
-    this.group.add(this.bob);
-
-    // the recorder: a chunky handheld, tipped back, with a screen, speaker slots, a REC light and an aerial
-    const dev = (this.device = new THREE.Group());
-    const box = (w, h, d, m, x = 0, y = 0, z = 0) => {
-      const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
-      b.position.set(x, y, z);
-      dev.add(b);
-      return b;
-    };
-    box(0.3, 0.19, 0.075, A.body);
-    for (const sx of [-1, 1]) for (const sy of [-1, 1]) box(0.04, 0.04, 0.085, A.trim, sx * 0.135, sy * 0.08, 0);
-    box(0.15, 0.06, 0.01, A.screen, -0.04, 0.035, 0.04);
-    for (let i = 0; i < 4; i++) box(0.05, 0.008, 0.01, A.trim, 0.085, 0.05 - i * 0.022, 0.04);
-    this.recLight = box(0.018, 0.018, 0.01, A.rec, 0.115, -0.065, 0.04);
-    const aerial = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.16, 5), A.trim);
-    aerial.position.set(-0.12, 0.17, 0);
-    dev.add(aerial);
-    dev.rotation.x = -0.35;
-    this.bob.add(dev);
-
-    // the hologram: a turning ring of waveform bars above the device, fed by a faint cone of light
-    const holo = (this.holo = new THREE.Group());
-    holo.position.y = 0.42;
-    this.bars = new THREE.InstancedMesh(A.barGeo, A.bar, BARS);
-    this.bars.frustumCulled = false;
-    holo.add(this.bars);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.006, 4, 48), A.ring);
-    ring.rotation.x = Math.PI / 2;
-    const ring2 = ring.clone();
-    ring2.position.y = 0.36;
-    ring2.scale.setScalar(0.8);
-    holo.add(ring, ring2);
-    this.bob.add(holo);
-    const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.03, 0.34, 20, 1, true), A.cone);
-    cone.position.y = 0.25;
-    this.bob.add(cone);
-    this.halo = new THREE.Sprite(A.halo);
-    this.halo.scale.setScalar(0.95);
-    this.halo.position.y = 0.3;
-    this.bob.add(this.halo);
-    // a hair-thin beacon of light straight up, so it reads from far off (and keeps it out of size culling)
-    this.group.add(new THREE.Mesh(A.beamGeo, A.beam));
-
-    this.m4 = new THREE.Matrix4();
-    this.q = new THREE.Quaternion();
-    this.v = new THREE.Vector3();
-    this.s = new THREE.Vector3();
-    this.animate(0);
+    this.group.position.set(pos[0], pos[1], pos[2]);
+    const glyph = new THREE.Mesh(A.glyphGeo, A.glyph);
+    glyph.position.y = 0.025;
+    const bill = new THREE.Mesh(A.billGeo, A.bill);
+    const motes = new THREE.Points(A.moteGeo, A.mote);
+    this.group.add(glyph, bill, motes);
     world.scene.add(this.group);
     world.add(this);
   }
 
-  animate(dt) {
-    this.t += dt;
-    const t = this.t;
-    this.bob.position.y = Math.sin(t * 1.6) * 0.07;
-    this.bob.rotation.y += dt * 0.5;
-    this.holo.rotation.y -= dt * 0.9;
-    this.recLight.visible = t % 1.4 < 0.8;
-    this.halo.material.opacity = 0.32 + Math.sin(t * 2.3) * 0.08;
-    // a speech-like waveform: a few traveling sines, gated in and out like phrases
-    const gate = 0.55 + 0.45 * Math.sin(t * 0.9) * Math.sin(t * 2.1 + 1);
-    for (let i = 0; i < BARS; i++) {
-      const a = (i / BARS) * Math.PI * 2;
-      const h = 0.04 + gate * Math.abs(Math.sin(a * 3 + t * 5) * 0.16 + Math.sin(a * 7 - t * 8.5) * 0.09 + Math.sin(a * 2 + t * 2.6) * 0.07);
-      this.v.set(Math.cos(a) * 0.26, 0.18 - h / 2, Math.sin(a) * 0.26);
-      this.m4.compose(this.v, this.q.setFromAxisAngle(THREE.Object3D.DEFAULT_UP, -a), this.s.set(1, h, 1));
-      this.bars.setMatrixAt(i, this.m4);
-    }
-    this.bars.instanceMatrix.needsUpdate = true;
-  }
-
   update(dt, player) {
+    const A = shared;
+    A.uniforms.uTime.value = this.world.time;
+    A.uniforms.uScale.value = this.game.renderer.domElement.height * 0.9;
     const dx = player.pos.x - this.pos.x, dz = player.pos.z - this.pos.z;
-    const d2 = dx * dx + dz * dz;
-    if (d2 < 1600) this.animate(dt); // only animate it when you could see it
     const dy = player.pos.y + 0.9 - this.pos.y;
-    if (d2 < 1.3 && Math.abs(dy) < 1.4) this.collect();
+    // the whisper follows the nearest log (flushed once a frame, by the first log to update in the next)
+    if (whisper.frame !== this.world.time) {
+      if (whisper.frame !== -1) whisperFlush();
+      whisper.frame = this.world.time;
+      whisper.best = Infinity;
+    }
+    const d = Math.hypot(dx, dy, dz);
+    if (d < whisper.best) {
+      whisper.best = d;
+      whisper.pos.copy(this.pos);
+    }
+    if (dx * dx + dz * dz < 1.3 && Math.abs(dy) < 1.4) this.collect();
   }
 
   collect() {
     this.group.visible = false;
     this.world.remove(this);
+    whisper.best = Infinity;
+    whisperFlush();
     const fx = this.world.fx;
-    fx.flash(this.pos, HOLO, { size: 1.0, life: 0.2, k: 1.3, hot: 0.6 });
-    fx.ring(this.pos, null, HOLO, { size: 0.25, end: 1.8, life: 0.45, thick: 0.08, k: 1.5 });
-    fx.sparks(this.pos, THREE.Object3D.DEFAULT_UP, HOLO, { count: 14, speed: 6, spread: 3, life: 0.5, gravity: 2 });
+    fx.flash(this.pos, HOLO, { size: 0.8, life: 0.3, k: 1.1, hot: 0.4 });
+    fx.ring(this.group.position, THREE.Object3D.DEFAULT_UP, HOLO, { size: 0.3, end: 1.6, life: 0.6, thick: 0.05, k: 1.2 });
     this.game.recorder.collect(this.id);
   }
 }
