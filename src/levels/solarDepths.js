@@ -556,11 +556,11 @@ export function buildSolarDepths(B, K) {
   const bridge2 = new PhasePlatform(W, { min: [-134, -79.2, -126], max: [-131, -78.8, -118], on: false, zone });
   // the two final pylons in the pit and the lens in the roof (shut until three nodes run)
   for (const x of [-110, -120]) {
-    R(x - 0.9, -92, -108.9, x + 0.9, -68.8, -107.1);
+    R(x - 0.9, -92, -108.9, x + 0.9, -67.3, -107.1);
     for (const y of [-72, -80]) D(x - 0.95, y, -108.95, x + 0.95, y + 0.3, -107.05);
   }
-  const f1 = new RotMirror(W, { pos: [-110, -67, -108], yaw: 0, start: 0, tilt: Math.PI / 4, size: [2.6, 2], post: 1.8, color: RED });
-  const f2 = new RotMirror(W, { pos: [-120, -67, -108], yaw: 0, start: 3, size: [2.6, 2], post: 1.8, color: RED });
+  const f1 = new RotMirror(W, { pos: [-110, -65.5, -108], yaw: 0, start: 0, tilt: Math.PI / 4, size: [2.6, 2], post: 1.8, color: RED });
+  const f2 = new RotMirror(W, { pos: [-120, -65.5, -108], yaw: 0, start: 3, size: [2.6, 2], post: 1.8, color: RED });
   const oculus = new SunBeam(W, { from: [-110, -30.4, -108], dir: [0, -1, 0], source: 'lens', width: 0.6, enabled: false, near: 90 });
   beams.push(oculus);
   lights.push(f1, f2);
@@ -569,15 +569,18 @@ export function buildSolarDepths(B, K) {
   R(-124, -92, -130, -116, -76, -128.4); // its plinth
   R(-128.6, -76, -130, -111.4, -74.8, -128.8);
   // the stargate's heart: a crystal that drinks the sun (it only fires on a full charge)
-  const heart = new LightReceiver(W, { pos: [-120, -67, -127.6], face: '+z', accept: 'sun', size: 2.0 });
+  const heart = new LightReceiver(W, { pos: [-120, -65.5, -127.6], face: '+z', accept: 'sun', size: 2.0 });
   lights.push(heart);
   // the upper gallery (y -64): east arm and south arm, the hole's ledge in the middle of the south arm
   F(-108, -66, -130, -102, -64, -100);
   F(-138, -66, -104, -108, -64, -100);
   glowEdge(-108, -130, -102, -104, -64, dglow, DZ);
   glowEdge(-138, -104, -108, -100, -64, dglow, DZ);
-  M(-108.15, -64, -130, -107.95, -63, -104);
-  M(-138, -64, -104.15, -108, -63, -103.95);
+  // a light rail along the gallery's edges (a top bar on posts: you can shoot down past it)
+  M(-108.15, -63.55, -130, -107.95, -63.4, -104);
+  M(-138, -63.55, -104.15, -108, -63.4, -103.95);
+  for (let z = -129; z <= -105; z += 3) M(-108.12, -64, z - 0.06, -107.98, -63.55, z + 0.06);
+  for (let x = -137; x <= -109; x += 3) M(x - 0.06, -64, -104.12, x + 0.06, -63.55, -103.98);
   for (let x = -136; x <= -110; x += 4) pipe([x, -66, -103], [x, -86, -103], 0.14);
   for (let z = -128; z <= -106; z += 4) pipe([-105, -66, z], [-105, -79.6, z], 0.14);
   // the plug in the south wall: cracked, seamed sandstone that the gate will blow out
@@ -659,7 +662,7 @@ export function buildSolarDepths(B, K) {
   glowEdge(-145, -116, -142, -108, -78.8, dglow, DZ);
   F(-149, -92, -112, -146, -78.4, -109); // P1
   F(-153, -92, -106, -150, -78, -103); // P2, by the south mirror
-  F(-146, -92, -118, -143, -78, -115); // P1b, past the baffle's end
+  F(-146, -92, -116.5, -143, -78, -113.5); // P1b, past the baffle's end
   B.crumble({ min: [-151.5, -78.4, -121], max: [-148.5, -77.8, -118], delay: 1.6, respawn: 5, zone }); // the perch
   R(-155.2, -92, -115, -146.5, -66, -114); // the baffle (it hides the switch from the south)
   for (const [x, z] of [[-156, -124], [-156, -104]]) {
@@ -705,7 +708,7 @@ export function buildSolarDepths(B, K) {
   B.crumble({ min: [-116, -78.8, -142], max: [-113, -78.4, -139], delay: 1.6, respawn: 5, zone }); // r1: wait here for the cart
   F(-127, -92, -142, -125, -78.2, -139); // r2, by the corner mirror
   R(-133, -92, -147, -131, -77.8, -145); // the corner mirror's pillar
-  const cart = new MovingPlatform(W, { min: [-124, -78.6, -148], max: [-120, -78.2, -144], offset: [8, 0, 0], speed: 1.2, pause: 1, zone, kind: 'grate' });
+  const cart = new MovingPlatform(W, { min: [-124, -78.6, -148], max: [-120, -78.2, -144], offset: [8, 0, 0], speed: 1.2, pause: 2.2, zone, kind: 'grate' });
   M(-124.5, -80, -149, -111.5, -79.6, -148.6); // its track
   M(-124.5, -80, -143.4, -111.5, -79.6, -143);
   const crack3 = new SunBeam(W, { from: [-132, -40.05, -146], dir: [0, -1, 0], source: 'crack', width: 0.4, near: 70 });
@@ -718,7 +721,7 @@ export function buildSolarDepths(B, K) {
   devStart('solar5', [-108, -78.8, -136], Math.PI / 2 + 0.3, [RED], 'The north annex (node 3, the lift)');
   lamp(-111, -78.8, -134.8, { h: 2, pool: 0 });
   deep([AX1, -92, AZ1], [AX2, -40, AZ2]);
-  scarab([-126, -78.2, -140.5], { patrol: 0.8 });
+  scarab([-108, -78.8, -136.5], { patrol: 1.5 }); // (on the entry ledge — never on the small perches)
   glyphs('-z', AZ2, -128, -70, 3, 1.4);
   hint([-112, -80, -138], [-104, -76, -134], 'The corner mirror <b>creeps back</b> when it\'s left alone, and the second one rides a <b>cart</b>. The catcher only sees the sun as the cart goes by.', 8);
 

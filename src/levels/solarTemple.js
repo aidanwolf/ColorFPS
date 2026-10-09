@@ -327,7 +327,8 @@ export function buildSolarTemple(B, K, depths) {
   R(TX1, FLOOR, TZ1, TX2, T0, -57.6); // the terrace's rock (the stair face is its north side, z -64)
   for (const [x1, x2] of [[-127, -125.2], [-98.8, -97]]) R(x1, FLOOR, -67.2, x2, T0 + 0.4, TZ1); // buttresses
   for (const [x1, x2] of [[-119, -118.4], [-105.6, -105]]) R(x1, FLOOR, -65, x2, T0, TZ1); // the stair's cheek walls
-  blocker([TX1, T0, -64.6], [TX2, SKY, -64]); // nobody climbs onto the terrace except by the stair
+  blocker([TX1, T0, -64.6], [-118.4, SKY, -64]); // nobody climbs onto the terrace except by the stair
+  blocker([-105.6, T0, -64.6], [TX2, SKY, -64]);
   const STEP = 0.4444, NSTEPS = 27;
   const stepBox = (i) => {
     const top = FLOOR + STEP * (i + 1), zOut = TZ1 - (NSTEPS - i) * STEP;
@@ -695,7 +696,7 @@ export function buildSolarTemple(B, K, depths) {
     F(x1, top - 0.8, z1, x2, top, z2);
     glowEdge(x1, z1, x2, z2, top, glow, zone);
   };
-  column(-104, -73.5, -101, -70.5, -9.6);
+  column(-100, -73.5, -97, -70.5, -9.6);
   column(-101, -79.5, -98, -76.5, -9.2);
   column(-104.5, -86.5, -101, -83, -8.8);
   column(-110, -90, -104.5, -85, -8.4); // the corner landing
