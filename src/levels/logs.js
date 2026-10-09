@@ -34,3 +34,6 @@ const LOGS = [
 export function placeLogs(B) {
   for (const { id, pos, yaw } of LOGS) B.audioLog(id, pos, yaw);
 }
+
+// (read-only: the spots, for tools and tests)
+export const LOG_SPOTS = LOGS;

@@ -179,6 +179,17 @@ const smooth = (a, b, x) => {
   return u * u * (3 - 2 * u);
 };
 const EMPTY = [];
+const SIDES = [1, -1];
+const LR = ['l', 'r'];
+const bf = { x: 0, z: 0, y: 0, s: 0, c: 1 }; // the body frame this frame: position, sin/cos of its yaw
+// a body-frame point → stage
+function toStage(x, y, z, out) {
+  return out.set(bf.x + x * bf.c + z * bf.s, bf.y + y, bf.z - x * bf.s + z * bf.c);
+}
+function angles(bone, P, o, ax, ay, az) {
+  _e.set((P[o] + ax) * D2R, (P[o + 1] + ay) * D2R, (P[o + 2] + az) * D2R, 'YXZ');
+  bone.quaternion.setFromEuler(_e);
+}
 
 // ---------------------------------------------------------------- mote shader (rising light off her)
 const MOTE_VERT = /* glsl */ `
@@ -234,6 +245,11 @@ export class Ghost {
     depth.bind(mesh.skeleton, mesh.bindMatrix);
     const b = (n) => this.bones[BI[n]];
     this.B = Object.fromEntries(Object.keys(BI).map((n) => [n, b(n)]));
+    // per side (left, right): its bones and pose offsets, so the per-frame loops build no strings
+    this.sides = LR.map((s) => ({
+      Clav: b(s + 'Clav'), Arm: b(s + 'Arm'), Fore: b(s + 'Fore'), Hand: b(s + 'Hand'), Thigh: b(s + 'Thigh'), Shin: b(s + 'Shin'), Foot: b(s + 'Foot'),
+      oClav: OFF[s + 'Clav'], oArm: OFF[s + 'Arm'], oFore: OFF[s + 'Fore'], oHand: OFF[s + 'Hand'], oFoot: OFF[s + 'Foot'], oIK: OFF[s + 'IK'],
+    }));
     // motes
     const mg = new THREE.BufferGeometry();
     const seeds = new Float32Array(MOTES * 4);
@@ -270,6 +286,7 @@ export class Ghost {
     this.tailVel = new THREE.Vector3();
     this.tailInit = false;
     this.forceT = null; // tests: pin the vignette clock
+    this.riders = [];
   }
 
   // ---------------------------------------------------------------- lifecycle
@@ -284,6 +301,9 @@ export class Ghost {
         bone.rotation.set(0, (s[3] || 0) * D2R, 0);
       } else bone.position.set(0, -50, 0);
     }
+    // set pieces that ride along with her (a swivel chair spins and rolls with her)
+    this.riders.length = 0;
+    for (const n of c.ride || []) this.riders.push(this.B['set_' + n]);
     this.state = 'in';
     this.k = 0;
     this.fade = 1;
@@ -336,7 +356,7 @@ export class Ghost {
     if (_v.lengthSq() < 1e-4) _v.set(0, 0, -1);
     _v.normalize();
     const base = Math.atan2(_v.x, _v.z);
-    const dist = (c.dist || 3.6) + 0.9; // (a little farther than the stage needs: she stands clear of the log card)
+    const dist = (c.dist || 3.6) + 0.5; // (a little farther than the stage needs: she stands clear of the log card)
     const view = (c.view ?? 28) * D2R;
     const tryFit = (strict) => {
       for (const da of [0, 16, -16, 32, -32, 50, -50, 72, -72, 100, -100]) {
@@ -475,8 +495,11 @@ export class Ghost {
     const o = OFF;
     const bx = P[o.at], by = P[o.at + 1], bz = P[o.at + 2], byaw = P[o.at + 3] * D2R;
     const sb = Math.sin(byaw), cb = Math.cos(byaw);
-    // body-frame point → stage
-    const toStage = (x, y, z, out) => out.set(bx + x * cb + z * sb, by + y, bz - x * sb + z * cb);
+    bf.x = bx;
+    bf.y = by;
+    bf.z = bz;
+    bf.s = sb;
+    bf.c = cb;
     // walk cycle
     const sp = table(c.speed, t), ph = table(c.phase, t);
     const gw = P[o.gait] * smooth(0.12, 0.45, sp);
@@ -496,22 +519,18 @@ export class Ghost {
     toStage(hx, hy, hz, B.hips.position);
     _e.set((P[o.hipsR] + gw * rb * 12) * D2R, byaw + (P[o.hipsR + 1] - gw * 5 * Math.cos(ph * 6.2832)) * D2R, (P[o.hipsR + 2] + idle * 1.2 * Math.sin(T * 1.05)) * D2R, 'YXZ');
     B.hips.quaternion.setFromEuler(_e);
-    const ang = (bone, ch, ax = 0, ay = 0, az = 0) => {
-      _e.set((P[o[ch]] + ax) * D2R, (P[o[ch] + 1] + ay) * D2R, (P[o[ch] + 2] + az) * D2R, 'YXZ');
-      bone.quaternion.setFromEuler(_e);
-    };
-    ang(B.spine, 'spine', -breath * 0.8 + shv * 0.6, gw * 2 * Math.cos(ph * 6.2832));
-    ang(B.chest, 'chest', -breath * 1.4, gw * 3 * Math.cos(ph * 6.2832) + shv);
-    ang(B.neck, 'neck', breath * 0.6);
-    ang(B.head, 'head', idle * (1.8 * Math.sin(T * 0.71 + 1)) + breath * 0.5, idle * (3.2 * Math.sin(T * 0.47) + 1.6 * Math.sin(T * 1.31)), idle * 1.2 * Math.sin(T * 0.53));
+    angles(B.spine, P, o.spine, -breath * 0.8 + shv * 0.6, gw * 2 * Math.cos(ph * 6.2832), 0);
+    angles(B.chest, P, o.chest, -breath * 1.4, gw * 3 * Math.cos(ph * 6.2832) + shv, 0);
+    angles(B.neck, P, o.neck, breath * 0.6, 0, 0);
+    angles(B.head, P, o.head, idle * (1.8 * Math.sin(T * 0.71 + 1)) + breath * 0.5, idle * (3.2 * Math.sin(T * 0.47) + 1.6 * Math.sin(T * 1.31)), idle * 1.2 * Math.sin(T * 0.53));
     // shoulders, arms
-    for (const side of [1, -1]) {
-      const s = side > 0 ? 'l' : 'r';
-      const clav = B[s + 'Clav'];
-      const raise = P[o[s + 'Clav']] + breath * 1.2 + shv * 1.5, fwd = P[o[s + 'Clav'] + 1];
+    for (let si = 0; si < 2; si++) {
+      const side = SIDES[si], S = this.sides[si];
+      const clav = S.Clav;
+      const raise = P[S.oClav] + breath * 1.2 + shv * 1.5, fwd = P[S.oClav + 1];
       _e.set(0, -side * fwd * D2R, side * raise * D2R, 'YXZ');
       clav.quaternion.setFromEuler(_e);
-      const el = Math.min(175, P[o[s + 'Arm']]) * D2R, az = P[o[s + 'Arm'] + 1] * D2R, tw = P[o[s + 'Arm'] + 2] * D2R;
+      const el = Math.min(175, P[S.oArm]) * D2R, az = P[S.oArm + 1] * D2R, tw = P[S.oArm + 2] * D2R;
       _v.set(side * Math.sin(az) * Math.sin(el), -Math.cos(el), Math.cos(az) * Math.sin(el));
       _q.setFromUnitVectors(DOWN, _v);
       _q2.setFromAxisAngle(YV, side * tw);
@@ -519,22 +538,26 @@ export class Ghost {
       // arm swing while walking: the arm opposite the forward leg comes forward
       const swing = gw * P[o.swing] * (16 + 26 * rb) * -side * Math.cos(ph * 6.2832) * D2R;
       _q2.setFromAxisAngle(XV, -swing);
-      B[s + 'Arm'].quaternion.multiplyQuaternions(_q2, _q);
-      _e.set(-(P[o[s + 'Fore']] + gw * rb * 70) * D2R, side * P[o[s + 'Fore'] + 1] * D2R, 0, 'YXZ');
-      B[s + 'Fore'].quaternion.setFromEuler(_e);
-      _e.set(P[o[s + 'Hand']] * D2R, side * P[o[s + 'Hand'] + 1] * D2R, side * P[o[s + 'Hand'] + 2] * D2R, 'YXZ');
-      B[s + 'Hand'].quaternion.setFromEuler(_e);
+      S.Arm.quaternion.multiplyQuaternions(_q2, _q);
+      _e.set(-(P[S.oFore] + gw * rb * 70) * D2R, side * P[S.oFore + 1] * D2R, 0, 'YXZ');
+      S.Fore.quaternion.setFromEuler(_e);
+      _e.set(P[S.oHand] * D2R, side * P[S.oHand + 1] * D2R, side * P[S.oHand + 2] * D2R, 'YXZ');
+      S.Hand.quaternion.setFromEuler(_e);
     }
     // the projection pool follows her across the floor
     B.glow.position.set(bx + hx * cb + hz * sb, by + 0.03, bz - hx * sb + hz * cb);
     this.moteMat.uniforms.uCenter.value.set(B.glow.position.x, by, B.glow.position.z);
+    for (const r of this.riders) {
+      r.position.set(bx, by, bz);
+      r.rotation.set(0, byaw, 0);
+    }
     this.moteMat.uniforms.uTop.value = Math.max(0.7, hy * 1.85);
     this.group.updateMatrixWorld(true);
 
     // legs: two-bone IK onto the feet (keyed, or the walk cycle's)
-    for (const side of [1, -1]) {
-      const s = side > 0 ? 'l' : 'r';
-      const f = o[s + 'Foot'];
+    for (let si = 0; si < 2; si++) {
+      const side = SIDES[si], S = this.sides[si];
+      const f = S.oFoot;
       let fx = P[f], fy = P[f + 1], fz = P[f + 2], fyaw = P[f + 3], fp = P[f + 4];
       if (gw > 0.001) {
         const st = 0.62 - 0.24 * rb, D = stride(sp) * st;
@@ -561,22 +584,22 @@ export class Ghost {
       this.group.localToWorld(_v2); // ankle target, world
       const ky = (fyaw + side * P[o.knees + (side > 0 ? 0 : 1)]) * D2R + byaw;
       _v3.set(Math.sin(ky), 0.15, Math.cos(ky)).applyQuaternion(_gq); // knee pole, world
-      this.solveLimb(B[s + 'Thigh'], B[s + 'Shin'], LEN.thigh, LEN.shin, _v2, _v3, 1, 1);
+      this.solveLimb(S.Thigh, S.Shin, LEN.thigh, LEN.shin, _v2, _v3, 1, 1);
       // the foot: its own yaw and pitch in the world, under the shin
       _e.set(-fp * D2R, byaw + fyaw * D2R, 0, 'YXZ');
       _q.setFromEuler(_e).premultiply(_gq);
-      B[s + 'Foot'].quaternion.copy(_qp.invert()).multiply(_q); // _qp: the shin's world rotation
+      S.Foot.quaternion.copy(_qp.invert()).multiply(_q); // _qp: the shin's world rotation
     }
     // hands reaching for something (rope, wall, pipe): IK, blended over the keyed arm
-    for (const side of [1, -1]) {
-      const s = side > 0 ? 'l' : 'r';
-      const k = o[s + 'IK'], w = P[k + 3];
+    for (let si = 0; si < 2; si++) {
+      const side = SIDES[si], S = this.sides[si];
+      const k = S.oIK, w = P[k + 3];
       if (w < 0.01) continue;
       toStage(P[k], P[k + 1], P[k + 2], _v2);
       this.group.localToWorld(_v2);
       _v3.set(side * 0.5, -0.6, -0.6);
       _v3.applyAxisAngle(UPV, byaw).applyQuaternion(_gq);
-      this.solveLimb(B[s + 'Arm'], B[s + 'Fore'], LEN.arm, LEN.fore, _v2, _v3, -1, Math.min(1, w));
+      this.solveLimb(S.Arm, S.Fore, LEN.arm, LEN.fore, _v2, _v3, -1, Math.min(1, w));
     }
     this.group.updateMatrixWorld(true);
     this.ponytail(dt);

@@ -19,11 +19,11 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 export const PROPS = [
   'recorder', 'tablet', 'stylus', 'notebook', 'pencil', 'brush', 'torch', 'torchBeam', 'probe', 'mirror',
   'mirrorBeam', 'bar', 'pass', 'lamp', 'lampBeam', 'crate', 'tripod', 'rope', 'panel', 'terminal', 'pipe',
-  'conduit', 'ring', 'bigMirror', 'bank', 'rail', 'shaft', 'core',
+  'conduit', 'ring', 'bigMirror', 'bank', 'rail', 'shaft', 'core', 'mug', 'photo', 'chair', 'board',
 ];
 const PID = Object.fromEntries(PROPS.map((n, i) => [n, i + 1]));
 // set pieces sit on their own bone under the root, placed per vignette (ghost.js)
-export const SET_PROPS = ['crate', 'tripod', 'rope', 'panel', 'terminal', 'pipe', 'conduit', 'ring', 'bigMirror', 'bank', 'rail', 'shaft', 'core'];
+export const SET_PROPS = ['crate', 'tripod', 'rope', 'panel', 'terminal', 'pipe', 'conduit', 'ring', 'bigMirror', 'bank', 'rail', 'shaft', 'core', 'chair', 'board'];
 
 // ---------------------------------------------------------------- the skeleton (bind pose, metres)
 // She faces +Z; her left is +X. Arms hang straight down in the bind pose, legs straight.
@@ -119,7 +119,7 @@ void main() {
   float aa = clamp(1.4 - fwidth(sy) * 0.5, 0.0, 1.0);
   float scan = 1.0 - aa * 0.5 * (0.5 + 0.5 * sin(sy));
   float band = smoothstep(0.9, 1.0, fract(h * 0.55 - uTime * 0.32));
-  float a = (0.075 + 0.85 * rim) * scan + band * 0.16 * (0.4 + rim);
+  float a = (0.1 + 0.95 * rim) * scan + band * 0.18 * (0.4 + rim);
   vec3 col = mix(uColA, uColB, smoothstep(0.35, 1.0, fres));
   // a faint chromatic split on the rims
   col += vec3(0.32, -0.12, 0.28) * pow(fres, 5.0) * (0.6 + 0.4 * sin(uTime * 1.7 + vW.y * 5.0));
@@ -150,11 +150,13 @@ void main() {
   // the depth pre-pass: only her solid surfaces (so the hologram shows just her nearest skin, not every
   // overlapping layer); beams and the floor pool never hide anything
   if (vKind > 1.5 && vKind < 2.5 || vKind > 3.5) discard;
-  gl_FragColor = vec4(0.0);
+  // ... and it smokes the world behind her a little, so she reads against bright places too
+  gl_FragColor = vec4(0.0, 0.015, 0.03, 0.2 * feet * uAlpha * (1.0 - uDissolve));
 #endif
 }`;
 
-// depthOf: the colour material whose uniforms the depth pre-pass shares (it lays down her depth first)
+// depthOf: the colour material whose uniforms the depth pre-pass shares (it lays down her depth first,
+// with a faint smoky dimming of what's behind her)
 export function holoMaterial(depthOf = null) {
   if (depthOf) {
     return new THREE.ShaderMaterial({
@@ -162,9 +164,9 @@ export function holoMaterial(depthOf = null) {
       fragmentShader: FRAG,
       uniforms: depthOf.uniforms,
       defines: { DEPTH_ONLY: 1 },
-      colorWrite: false,
       depthWrite: true,
       transparent: true,
+      blending: THREE.NormalBlending,
       side: THREE.FrontSide,
       fog: false,
     });
@@ -186,7 +188,7 @@ export function holoMaterial(depthOf = null) {
       uBase: { value: 0 },
       uHeight: { value: 1.75 },
       uGlitchDir: { value: new THREE.Vector3(1, 0, 0) },
-      uColA: { value: new THREE.Color(0.16, 0.78, 0.95) }, // cyan-teal body
+      uColA: { value: new THREE.Color(0.2, 0.88, 1.08) }, // cyan-teal body
       uColB: { value: new THREE.Color(0.75, 1.45, 1.75) }, // the hot spectral rim (HDR: it blooms)
     },
     transparent: true,
@@ -389,7 +391,7 @@ export function buildFigure() {
   // headlamp: a band round the head, the lamp on the forehead, its beam
   add(put(new THREE.TorusGeometry(0.1, 0.008, 3, 12), [0, 1.665, 0.004], [96, 0, 0], [0.88, 1.0, 1]), headW, { prop: 'lamp', kind: 1 });
   add(put(box(0.045, 0.03, 0.03), [0, 1.67, 0.11]), headW, { prop: 'lamp', kind: 1 });
-  add(put(cyl(0.5, 0.02, 3.2, 12, true), [0, 1.67 - 0.25, 0.12 + 1.58], [99, 0, 0]), headW, { prop: 'lampBeam', kind: 2, f: (v) => Math.min(1, Math.max(0, (v.z - 0.12) / 3.2)) });
+  add(put(cyl(0.36, 0.02, 2.2, 12, true), [0, 1.67 - 0.17, 0.12 + 1.09], [99, 0, 0]), headW, { prop: 'lampBeam', kind: 2, f: (v) => Math.min(1, Math.max(0, (v.z - 0.12) / 2.2)) });
 
   // ---- arms: sleeves with cuffs, hands with a thumb
   for (const [s, side] of [['l', 1], ['r', -1]]) {
@@ -465,6 +467,9 @@ export function buildFigure() {
   add(put(cyl(0.18, 0.02, 2.6, 8, true), [lx - 0.03 - 1.3, 0.79, 0.03], [0, 0, 90]), L, { prop: 'mirrorBeam', kind: 2, f: (v) => Math.min(1, Math.max(0, (lx - 0.03 - v.x) / 2.6)) });
   add(put(box(0.03, 0.1, 0.016), [rx, 0.8, 0.03]), R, { prop: 'bar', kind: 1 });
   add(put(box(0.003, 0.086, 0.054), [lx - 0.02, 0.75, 0.04]), L, { prop: 'pass', kind: 1 });
+  // a coffee mug in the right fist, a photo pinched in the left
+  add([put(cyl(0.042, 0.038, 0.1, 10), [rx + 0.005, 0.82, 0.07]), put(new THREE.TorusGeometry(0.025, 0.007, 3, 8), [rx + 0.005, 0.82, 0.02], [0, 90, 0])], R, { prop: 'mug', kind: 1 });
+  add(put(box(0.003, 0.1, 0.14), [lx - 0.02, 0.74, 0.05]), L, { prop: 'photo', kind: 1 });
 
   // ---- set pieces (each on its own bone; built around the origin, sitting on the floor)
   const S = (n) => rigid('set_' + n);
@@ -506,6 +511,21 @@ export function buildFigure() {
     put(new THREE.TorusGeometry(0.3, 0.02, 3, 14), [0, 1.35, 0]),
     put(sphere(0.12, 8, 6), [0, 1.35, 0]),
   ]);
+
+  // an office swivel chair (it can ride along with her: ghost.js), and a pin board with photos and string
+  set('chair', [
+    put(box(0.46, 0.07, 0.44), [0, 0.48, 0]), put(box(0.42, 0.5, 0.05), [0, 0.8, -0.22], [-8, 0, 0]),
+    put(cyl(0.028, 0.028, 0.4, 6), [0, 0.26, 0]),
+    ...[0, 72, 144, 216, 288].map((a) => bar([0, 0.07, 0], [Math.sin((a * Math.PI) / 180) * 0.3, 0.03, Math.cos((a * Math.PI) / 180) * 0.3], 0.03)),
+    ...[-1, 1].map((sx) => bar([sx * 0.24, 0.52, -0.15], [sx * 0.24, 0.66, 0.1], 0.03)),
+  ]);
+  {
+    const p = [put(box(1.3, 0.9, 0.04), [0, 1.35, 0]), bar([-0.55, 0, 0], [-0.55, 0.9, 0], 0.04), bar([0.55, 0, 0], [0.55, 0.9, 0], 0.04)];
+    const pins = [[-0.4, 1.55], [-0.05, 1.62], [0.38, 1.5], [-0.3, 1.18], [0.12, 1.25], [0.42, 1.12]];
+    for (const [x, y] of pins) p.push(put(box(0.16, 0.12, 0.012), [x, y - 0.07, 0.03], [0, 0, (x * 37) % 9 - 4]));
+    for (let i = 0; i < pins.length - 1; i += 1) p.push(bar([pins[i][0], pins[i][1], 0.04], [pins[i + 1][0], pins[i + 1][1], 0.04], 0.006));
+    set('board', p);
+  }
 
   // ---- the projection pool on the floor under her
   add(put(new THREE.CircleGeometry(0.62, 24), [0, 0, 0], [-90, 0, 0]), rigid('glow'), { kind: 4, f: (v) => Math.min(1, Math.hypot(v.x, v.z) / 0.62) });
