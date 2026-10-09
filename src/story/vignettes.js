@@ -370,6 +370,46 @@ export const VIGNETTES = {
     ],
   },
 
+  // 06b The Pillar (the Sun Temple, beside the obelisk): out of breath, a finger to her dead earpiece; she turns
+  //    to the pillar and looks all the way up it, traces it down with her hand, lays a palm on it and follows
+  //    a socket's rim; looks round at the banners and the offerings and hugs herself; palms up at the god they
+  //    made of it; a hand on her satchel strap; she stares at the hand that touched it, and backs off a step
+  '06b': {
+    props: ['recorder'], dist: 3.6, view: 34,
+    keys: [
+      [0, p(REC_MOUTH, { at: [0, 0, 0.3, 0], spine: [10, 0, 0], head: [8, 0, 0], breath: [2.4, 1.5] })],
+      [2.4, { ...HAND_EAR_L, head: [4, -46, 8], spine: [4, 0, 0] }],
+      [4.4, { lArm: [7, 80, 0], lFore: [12, 0], lHand: [0, 0, 0], head: [16, 10, 0] }],
+      [4.9, { head: [16, -10, 0] }],
+      [5.4, { head: [14, 4, 0], breath: [1.6, 1.1] }],
+      // "There's a pillar hanging from the roof...": she turns to it and looks all the way up
+      [5.9, p(LOOK_UP, { at: [0, 0, 0.3, 150], props: [], rArm: [7, 80, 0], rFore: [12, 0], spine: [-6, 0, 0], head: [-40, 0, 0] })],
+      [8.2, { lArm: [156, 24, 0], lFore: [6, 0], lHand: [-20, 0, 0], head: [-46, 6, 0] }],
+      [9.8, { lArm: [118, 24, 0], head: [-30, 6, 0] }],
+      [11.4, { lArm: [72, 24, 0], lFore: [10, 0], head: [-12, 4, 0], neck: [0, 0, 0], chest: [0, 0, 0] }],
+      // "A battery...": a step in, her palm flat on it, following a socket's rim round
+      [13.06, { at: [-0.25, 0, -0.35, 150], lArm: [7, 80, 0], lFore: [12, 0], lHand: [0, 0, 0], rIK: [-0.08, 1.35, 0.42, 1], head: [-8, 0, 0], spine: [6, 0, 0] }],
+      [14.4, { rIK: [-0.2, 1.25, 0.42, 1] }],
+      [15.4, { rIK: [-0.08, 1.15, 0.42, 1] }],
+      [16.4, { rIK: [0.06, 1.25, 0.42, 1] }],
+      [17.4, { rIK: [-0.08, 1.35, 0.42, 1], head: [-14, 0, 0] }],
+      // "And someone's hung banners on it...": back off, looking round and up at the banners, the bowls
+      [20.44, { ...NOIK, at: [-0.05, 0, 0.1, 160], rArm: [7, 80, 0], rFore: [12, 0], head: [-30, 44, 0], chest: [-6, 14, 0], spine: [0, 0, 0] }],
+      [22.4, { head: [-22, -46, 0], chest: [-4, -14, 0] }],
+      [24.2, p(HUG, { head: [18, -20, 0], chest: [6, 0, 0] })],
+      // "Somebody built a beautiful machine...": palms up to it, then a slow shake of the head
+      [27.01, { at: [-0.05, 0, 0.1, 140], lClav: [10, 0], rClav: [10, 0], lArm: [34, 50, 0], rArm: [34, 50, 0], lFore: [80, -70], rFore: [80, -70], head: [-16, 0, 0], chest: [0, 0, 0] }],
+      [29.6, { head: [-6, 16, 0] }],
+      [30.4, { head: [-6, -16, 0] }],
+      // a hand on her satchel strap
+      [31.2, { lClav: [0, 0], rClav: [6, 0], lArm: [7, 80, 0], lFore: [12, 0], rArm: [44, -52, 0], rFore: [128, 0], rHand: [0, 0, 20], head: [12, 0, 0] }],
+      // "It hummed when I touched it": she stares at that hand; then up at the pillar, and backs off a step
+      [34.24, { lArm: [40, 36, 0], lFore: [104, -64], lHand: [-24, 0, 0], head: [32, 26, 0], spine: [8, 0, 0], shiver: 0.5 }],
+      [36.4, { at: [0.05, 0, 0.55, 150], lArm: [7, 80, 0], lFore: [12, 0], lHand: [0, 0, 0], head: [-32, 0, 0], neck: [-10, 0, 0], spine: [-4, 0, 0], breath: [2.2, 1.4] }],
+      [38.2, {}],
+    ],
+  },
+
   // ------------------------------------------------------------------ VERDANT
   // 07 No Birds: wandering in the rain, a palm up; mum's tomatoes; a hand cupped to the silence; fingers to her
   //    earpiece for the dead link; hugging herself

@@ -34,9 +34,9 @@ export function buildSolarTemple(B, K, depths) {
   // ================================================================ persistence and starts
   const stageAt = (p) => {
     if (depths.stageAt(p) < 8) return 0;
-    if (court.inYard(p) || p.y < -50 || p.x > -100) return 0; // the yard, the tunnel, the gatehouse (and the hall's hole)
-    const s = interior.stageAt(p); // the temple: 1 the vestibule and L0, 2–5 its storeys, 6 the roof and the crossing
+    const s = interior.stageAt(p); // the temple (and the stair's head at its door): 1 the vestibule and L0, 2–5 its storeys, 6 the roof and the crossing
     if (s !== null) return s;
+    if (court.inYard(p) || p.y < -50 || p.x > -100) return 0; // the yard, the tunnel, the gatehouse (and the hall's hole)
     return 6; // past the temple
   };
   const applySaved = (stage) => {

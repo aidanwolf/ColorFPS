@@ -74,17 +74,19 @@ fails). Under the Solar pit she and the team (on the link) puzzle out the buried
 gate? a capacitor?), the mirrors that have to face the right way. Uneasy at how much sunlight is stored
 down there, and half-wondering whether the machine wanted it found, she charges the ring anyway: the plan
 is for the probe to talk to the captive star through it and turn it down, "just for a few seconds, just to
-prove we can". Her last Solar log is the countdown. She did it: the star went dim for nine seconds (we only
+prove we can". Her last log in the pit is the countdown. She did it: the star went dim for nine seconds (we only
 learn that for certain in the Lumen's own records, in Azure). That is what the Lumen notices. She is the
 reason humanity became a threat, and so the reason it was taken, and the reason her team died at the station
-while she lived.
+while she lived. Afterwards, alone (the link nothing but hiss), she climbs out through the Sun Temple, where
+the obelisk hanging from the roof turns out to be a battery like the ring's banks, dormant, once wired into
+the same network, and somebody has hung it with banners and offerings and made it a god (06b).
 
 Her arc, in the order the player finds the logs:
 
 | world | mood | what she learns |
 |---|---|---|
 | Atrium | giddy, wonder | day one at the station with the team: the kettle, the cake, a heart beating overhead that gives out four times what goes in ("we are not calling it Big Fridge"), home for Bea's birthday; four rivers of power meet here; she taps a trickle (oops) and dreams of powering a city |
-| Solar | curious → uneasy → nervous | with the team on the link from the station: glassy conduits under 4,000 summers of glass, leading down into a pit; a stone ring that hums when the sun moves (Priya: a capacitor; Wren: a gate); failed tries to bounce sunlight into it with her compact mirror, while the huge buried mirrors "have to face the right way"; capacitor banks full of more stored sunlight than she can bear to work out; the link keeps dropping; "what if the machine wanted someone to find this?"; the countdown before she talks to the star through the ring |
+| Solar | curious → uneasy → nervous → alone | with the team on the link from the station: glassy conduits under 4,000 summers of glass, leading down into a pit; a stone ring that hums when the sun moves (Priya: a capacitor; Wren: a gate); failed tries to bounce sunlight into it with her compact mirror, while the huge buried mirrors "have to face the right way"; capacitor banks full of more stored sunlight than she can bear to work out; the link keeps dropping; "what if the machine wanted someone to find this?"; the countdown before she talks to the star through the ring; then, alone, the Sun Temple: its hanging pillar is a dormant battery off the same network, and somebody made it a god (banners, offerings, candles); it hums under her hand |
 | Verdant | lonely → frightened | a biomass farm, no birds; the link silent since the countdown, and she keeps talking to Priya anyway (a wren and no other birds); roots through fresh bodies, a bus pass from her own city (but only the team came through, and they never left the station); something follows her "ever since the star" |
 | Azure | homesick → devastated | the last engine; ten minutes, home by seven, Bea's birthday; in the flooded Bell she reads the Lumen's record of the anomaly (her nine seconds, classified threat); in the Cryo Lab the catalogue: everyone from home, taken the day after; Mum, Bea, and not Priya, not Tomas, not Maja: it didn't keep the team |
 | Prism Core | resolve → hope | the four rivers end at the heart: if they go dark, the loop lets go; "I broke it, so I fix it"; the guardian hunts her; she goes for the white door, recorder left on for the company |
@@ -106,8 +108,8 @@ Scripts, titles and caption chunks: `tools/audio/logs.json`, with inline acting 
 `[whispers]`...) that the TTS performs and the captions strip. Voiced with `tools/audio/tts.mjs`
 (`--captions` writes estimated timing without audio). Audio files: `public/audio/memo_XX.mp3`.
 Placement: one table in `src/levels/logs.js` (Atrium and Prism Core spots final; the color-world spots are
-provisional until those worlds are rebuilt). Seventeen logs: Atrium 3, Solar 5 (04, 04b, 05, 05b, 06, along
-the pit's network), Verdant 3, Azure 4 (one in the Flooded Depths), Prism Core 2. Found logs are kept under
+provisional until those worlds are rebuilt). Eighteen logs: Atrium 3, Solar 6 (04, 04b, 05, 05b, 06, along
+the pit's network, and 06b in the Sun Temple, its spot set by the temple's placement), Verdant 3, Azure 4 (one in the Flooded Depths), Prism Core 2. Found logs are kept under
 `chroma-logs-v2`.
 
 Picking one up wakes a hologram of Wren (`src/story/ghost.js`): she materializes a few metres away and acts
@@ -124,6 +126,7 @@ haunted, warbling, reverberant chain (`src/story/voice.js`).
 | 05 | Mirrors | Solar · the mirror gallery |
 | 05b | Full | Solar · the capacitor banks |
 | 06 | Here We Go | Solar · before the ring |
+| 06b | The Pillar | Solar · the Sun Temple, the pilgrims' balcony beside the obelisk |
 | 07 | No Birds | Verdant · the Root Court |
 | 08 | Roots | Verdant · the rim of the Great Hollow |
 | 09 | Something Follows | Verdant · the root island |

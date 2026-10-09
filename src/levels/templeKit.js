@@ -25,6 +25,7 @@ import { audio } from '../audio.js';
 import { boxGeo } from '../materials.js';
 import { nearGain } from '../entities/mechkit.js';
 
+const _c = new THREE.Color(), _u = new THREE.Vector3();
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _q = new THREE.Quaternion(), _m = new THREE.Matrix4(), _e = new THREE.Euler(), _s = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -85,39 +86,51 @@ const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 function sandTexture() {
   seed = 11;
   return canvas(256, 256, (g, w, h) => {
-    g.fillStyle = '#a88a68';
+    // a warm pale ground, mottled
+    g.fillStyle = '#bb9c74';
     g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 260; i++) {
+      const r = 6 + rand() * 26;
+      g.fillStyle = rand() < 0.5 ? `rgba(120,85,50,${0.03 + rand() * 0.05})` : `rgba(240,215,175,${0.03 + rand() * 0.05})`;
+      g.beginPath();
+      g.arc(rand() * w, rand() * h, r, 0, Math.PI * 2);
+      g.fill();
+    }
+    // four courses of ashlar, each block a slightly different stone
     const rows = 4;
     for (let r = 0; r < rows; r++) {
       const y0 = (r * h) / rows, rh = h / rows;
-      const n = 2 + (r % 2);
-      const off = r % 2 ? w / (n * 2) : 0;
+      const n = 2;
+      const off = r % 2 ? w / 4 : 0;
       for (let i = -1; i < n + 1; i++) {
         const x0 = off + (i * w) / n, bw = w / n;
-        const t = 0.82 + rand() * 0.3;
-        g.fillStyle = `rgb(${(172 * t) | 0},${(140 * t) | 0},${(102 * t) | 0})`;
-        g.fillRect(x0 + 2, y0 + 2, bw - 4, rh - 4);
-        // wear: lighter top, darker bottom
-        g.fillStyle = 'rgba(255,235,200,0.10)';
-        g.fillRect(x0 + 2, y0 + 2, bw - 4, 5);
-        g.fillStyle = 'rgba(40,20,5,0.18)';
-        g.fillRect(x0 + 2, y0 + rh - 8, bw - 4, 6);
+        const t = 0.94 + rand() * 0.1;
+        g.fillStyle = `rgba(${(190 * t) | 0},${(158 * t) | 0},${(118 * t) | 0},0.55)`;
+        g.fillRect(x0 + 1.5, y0 + 1.5, bw - 3, rh - 3);
+        // worn arrises: a lit top edge, a shadowed foot
+        g.fillStyle = 'rgba(255,240,210,0.12)';
+        g.fillRect(x0 + 1.5, y0 + 1.5, bw - 3, 3);
+        g.fillStyle = 'rgba(60,35,15,0.16)';
+        g.fillRect(x0 + 1.5, y0 + rh - 5, bw - 3, 3.5);
+        // mortar joints
+        g.fillStyle = 'rgba(70,45,25,0.45)';
+        g.fillRect(x0, y0, 1.5, rh);
       }
+      g.fillStyle = 'rgba(70,45,25,0.45)';
+      g.fillRect(0, y0, w, 1.5);
     }
-    // grain and pits
-    for (let i = 0; i < 2600; i++) {
-      const v = rand();
-      g.fillStyle = v < 0.5 ? `rgba(60,35,10,${0.05 + rand() * 0.12})` : `rgba(255,230,190,${0.04 + rand() * 0.08})`;
-      g.fillRect(rand() * w, rand() * h, 1 + rand() * 2, 1 + rand() * 2);
+    // grain, pits, a crack or two
+    for (let i = 0; i < 2200; i++) {
+      g.fillStyle = rand() < 0.55 ? `rgba(70,45,20,${0.04 + rand() * 0.09})` : `rgba(255,235,200,${0.03 + rand() * 0.06})`;
+      g.fillRect(rand() * w, rand() * h, 1 + rand() * 1.5, 1 + rand() * 1.5);
     }
-    // a few cracks
-    g.strokeStyle = 'rgba(50,28,10,0.45)';
+    g.strokeStyle = 'rgba(60,35,15,0.35)';
     g.lineWidth = 1;
-    for (let k = 0; k < 5; k++) {
+    for (let k = 0; k < 3; k++) {
       let x = rand() * w, y = rand() * h;
       g.beginPath();
       g.moveTo(x, y);
-      for (let s = 0; s < 6; s++) g.lineTo((x += (rand() - 0.5) * 22), (y += rand() * 14));
+      for (let s2 = 0; s2 < 5; s2++) g.lineTo((x += (rand() - 0.5) * 18), (y += rand() * 12));
       g.stroke();
     }
   });
@@ -452,10 +465,10 @@ export function templeMats() {
   const ob = obeliskTextures();
   const cloth = clothTexture();
   MATS = {
-    sand: new THREE.MeshStandardMaterial({ map: sand, color: 0xe6c49a, roughness: 0.95, metalness: 0.02 }),
-    sandDark: new THREE.MeshStandardMaterial({ map: sand, color: 0x9a7a58, roughness: 1, metalness: 0 }),
-    ledge: new THREE.MeshStandardMaterial({ map: sand, color: 0xf0d4a4, roughness: 0.9, metalness: 0.03 }),
-    floor: new THREE.MeshStandardMaterial({ map: sand, color: 0xd2b088, roughness: 0.92, metalness: 0.03 }),
+    sand: new THREE.MeshStandardMaterial({ map: sand, color: 0xf2dcc0, roughness: 0.95, metalness: 0.02 }),
+    sandDark: new THREE.MeshStandardMaterial({ map: sand, color: 0xa8907a, roughness: 1, metalness: 0 }),
+    ledge: new THREE.MeshStandardMaterial({ map: sand, color: 0xfff0d8, roughness: 0.9, metalness: 0.03 }),
+    floor: new THREE.MeshStandardMaterial({ map: sand, color: 0xe0c8a8, roughness: 0.92, metalness: 0.03 }),
     bronze: new THREE.MeshStandardMaterial({ color: 0x9a6a32, roughness: 0.38, metalness: 0.85 }),
     darkBronze: new THREE.MeshStandardMaterial({ color: 0x4a3420, roughness: 0.5, metalness: 0.8 }),
     gold: new THREE.MeshStandardMaterial({ color: 0xe0b050, roughness: 0.22, metalness: 1, emissive: 0x3a2400, emissiveIntensity: 0.4 }),
@@ -471,6 +484,9 @@ export function templeMats() {
     flags: swayMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.95, metalness: 0 }),
     chain: new THREE.MeshStandardMaterial({ color: 0x5a4a38, roughness: 0.5, metalness: 0.9 }),
     socket: new THREE.MeshStandardMaterial({ color: 0x14100c, roughness: 0.6, metalness: 0.6 }),
+    // the ledges' edges: a soft gold line (wayfinding in the dark, brighter as the temple wakes)
+    edge: new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.7, 0.3).multiplyScalar(0.55) }),
+    pulse: new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.85, 0.45).multiplyScalar(2.6) }),
     puff: puffTexture(),
   };
   MATS.dust = new THREE.ShaderMaterial({
@@ -670,6 +686,7 @@ export class Brazier {
   onBeam(dt) {
     if (this.on) return 'hit';
     this.heat += dt;
+    this.fed = 0;
     if (this.heat > 0.35) this.ignite(false, true);
     return 'hit';
   }
@@ -696,7 +713,8 @@ export class Brazier {
 
   update(dt, player) {
     if (!this.on) {
-      this.heat = Math.max(0, this.heat - dt * 0.5);
+      this.fed = (this.fed ?? 9) + dt;
+      if (this.fed > 0.15) this.heat = Math.max(0, this.heat - dt * 0.5);
       return;
     }
     this.t += dt;
@@ -713,7 +731,7 @@ export class Brazier {
     }
     if (d2 < 30 * 30 && Math.random() < dt * 3) {
       _v.copy(this.top).y += 1.6;
-      this.W.fx.puff(_v, rnd(-0.1, 0.1), 0.6, rnd(-0.1, 0.1), _w.set(0.25, 0.2, 0.17), 0.5, 3, 0.35, 3);
+      this.W.fx.puff(_v, rnd(-0.1, 0.1), 0.6, rnd(-0.1, 0.1), _c.setRGB(0.25, 0.2, 0.17), 0.5, 3, 0.35, 3);
     }
   }
 }
@@ -771,7 +789,7 @@ export class Censer {
     this.pos.set(0, -this.len, 0).applyQuaternion(_q).add(this.pivot);
     const near = player.pos.distanceToSquared(this.pos) < 40 * 40;
     if (near && Math.random() < dt * 14) {
-      this.W.fx.puff(_v.copy(this.pos).y += 0.6, rnd(-0.1, 0.1), 0.4, rnd(-0.1, 0.1), _w.set(0.32, 0.28, 0.24), 0.45, 2.2, 0.3, 3.2);
+      this.W.fx.puff(_u.copy(this.pos).setY(this.pos.y + 0.6), rnd(-0.1, 0.1), 0.4, rnd(-0.1, 0.1), _c.setRGB(0.32, 0.28, 0.24), 0.45, 2.2, 0.3, 3.2);
     }
     // a whoosh as it sweeps past the bottom
     if (near && Math.sign(a) !== Math.sign(this.prevA)) {
@@ -875,7 +893,7 @@ export class SlideBlock {
     }
     if (Math.random() < dt * 25) {
       _v.copy(this.center).addScaledVector(this.out, -((1 - this.k) * this.depth) + this.depth * 0.5);
-      this.W.fx.puff(_v, rnd(-0.3, 0.3), rnd(-0.2, 0.3), rnd(-0.3, 0.3), _w.set(0.55, 0.42, 0.28), 0.6, 1.2, 0.35, 3);
+      this.W.fx.puff(_v, rnd(-0.3, 0.3), rnd(-0.2, 0.3), rnd(-0.3, 0.3), _c.setRGB(0.55, 0.42, 0.28), 0.6, 1.2, 0.35, 3);
     }
     this.place();
     if (this.k === 1 && was < 1) {
@@ -1220,7 +1238,7 @@ export class StoneRing {
     this.place();
     if (Math.random() < dt * 20) {
       const d = this.drums[(Math.random() * this.n) | 0];
-      this.W.fx.puff(_v.copy(d.p).y -= 0.7, rnd(-0.3, 0.3), -0.4, rnd(-0.3, 0.3), _w.set(0.5, 0.4, 0.28), 0.5, 1.5, 0.3, 3);
+      this.W.fx.puff(_u.copy(d.p).setY(d.p.y - 0.7), rnd(-0.3, 0.3), -0.4, rnd(-0.3, 0.3), _c.setRGB(0.5, 0.4, 0.28), 0.5, 1.5, 0.3, 3);
     }
     if (this.u >= 1) audio.sample('rotor_lock', { gain: 0.8 * nearGain(this.W, this.c, 50), rate: 0.5 });
     void player;
@@ -1333,7 +1351,7 @@ export class BurnRope {
     this.feed = 0;
     this.heat += dt;
     if (hit?.point && Math.random() < dt * 30) this.W.fx.ember(hit.point, rnd(-1, 1), rnd(0.5, 2), rnd(-1, 1), 0xff8a30, 0.6, 0.05);
-    if (hit?.point && Math.random() < dt * 8) this.W.fx.puff(hit.point, 0, 0.6, 0, _w.set(0.3, 0.25, 0.2), 0.5, 1.5, 0.2, 3);
+    if (hit?.point && Math.random() < dt * 8) this.W.fx.puff(hit.point, 0, 0.6, 0, _c.setRGB(0.3, 0.25, 0.2), 0.5, 1.5, 0.2, 3);
     if (Math.random() < dt * 4) audio.sample('lava_sizzle', { gain: 0.35, rate: 1.4, vary: 0.2 });
     if (this.heat >= this.time) this.burn();
     return 'hit';
@@ -1607,7 +1625,7 @@ export class Debris {
 // mount hook hands it the frame after mouse look, so you can look about while you fly. ease(u) shapes the
 // pace; onDone() when you're set down (on your feet, with a moment's grace).
 export class Launch {
-  constructor(game, pts, { time = 4, ease = (u) => u, onDone = null, shake = (u) => 0 } = {}) {
+  constructor(game, pts, { time = 4, ease = (u) => u, onDone = null, shake = (u) => 0, look = null } = {}) {
     this.game = game;
     this.curve = new THREE.CatmullRomCurve3(pts.map((p) => (p.isVector3 ? p.clone() : new THREE.Vector3(...p))), false, 'centripetal');
     this.time = time;
@@ -1615,6 +1633,7 @@ export class Launch {
     this.t = 0;
     this.onDone = onDone;
     this.shakeF = shake;
+    this.look = look; // (u) => [point, weight] | null: the view is steered toward point (weight 0..1)
     this.prev = this.curve.getPoint(0);
     const p = game.player;
     p.mount = this;
@@ -1641,6 +1660,17 @@ export class Launch {
     p.eye += (1.61 - p.eye) * Math.min(1, dt * 10);
     p.shake = Math.max(0, Math.max(p.shake - dt * 2.5, this.shakeF(u)));
     p.landKick = Math.max(0, (p.landKick || 0) - dt * 1.4);
+    const L = this.look?.(u);
+    if (L && L[1] > 0) {
+      const [t, w] = L;
+      const dx = t.x - p.pos.x, dy = t.y - (p.pos.y + p.eye), dz = t.z - p.pos.z;
+      const yaw = Math.atan2(-dx, -dz), pitch = Math.atan2(dy, Math.hypot(dx, dz));
+      let dyaw = yaw - p.yaw;
+      dyaw = Math.atan2(Math.sin(dyaw), Math.cos(dyaw));
+      const k = Math.min(1, dt * 4 * w);
+      p.yaw += dyaw * k;
+      p.pitch += (Math.max(-1.5, Math.min(1.5, pitch)) - p.pitch) * k;
+    }
     p.updateCamera();
     if (u >= 1) {
       p.mount = null;
