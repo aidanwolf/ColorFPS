@@ -454,7 +454,7 @@ export function buildVerdant(B) {
   B.crumble({ min: [-8.5, 4.5, -191], max: [-6, 5, -188], delay: 0.6, respawn: 3, zone });
   B.crumble({ min: [-4, 4.5, -191], max: [-1.5, 5, -188], delay: 0.35, respawn: 3, disguise: true, zone });
   say([-15, 5, -192], [-13.2, 8, -187], 'The stones east are rotten through. <b>Keep moving</b> — and don\'t trust the last one.', 4);
-  // island two, and two root stumps climbing east out of the sludge onto the plateau
+  // island two, and two root stumps climbing north-east out of the sludge onto the plateau
   ground(0.5, -194, 7, -182, 5.6, 1);
   cp([3.5, 5.6, -186], EAST, [6, 3, 4]);
   column(6, -192.8, 5.6, 4.5, 1);
@@ -465,8 +465,8 @@ export function buildVerdant(B) {
     glowEdge(x1 - 0.03, z1 - 0.03, x2 + 0.03, z2 + 0.03, top - 0.08, GLOW[zone], zone, 0.05);
     vines(x1, z1 - 0.05, x2, z1, top, 3, 2.5);
   };
-  stump(8.6, -189.6, 10.6, -187.4, 6.7);
-  stump(11.8, -193.2, 13.4, -191.2, 7.9);
+  stump(8.8, -196.6, 11.6, -193.8, 6.7);
+  stump(13.4, -201.6, 16.6, -198.4, 7.9);
   // the plateau: the court's great tree, a sludge stream spilling into the moat, the view north
   ground(14, -198, 30, -172, 9, 1);
   giantTree(21, 9, -186, { w: 3.5, h: 25, r: 7, vineCount: 14 });
@@ -583,6 +583,7 @@ export function buildVerdant(B) {
   W.add({
     update(dt, player) {
       if (hive.state !== 'armed' || game.clearedEncounters?.has(hive.id) || !game.blaster.unlocked[GREEN]) return;
+      if (game.isWorldDown?.('verdant')) return hive.restoreCleared(); // (the hive died with the engine)
       if (!hiveDue) {
         if (core.active && W.entities.includes(core)) return hive.restoreCleared();
         hiveDue = true;
@@ -1644,7 +1645,7 @@ export function buildVerdant(B) {
         const dx = bx - ax, dy = by - ay, dz = bz - az, len = Math.hypot(dx, dy, dz);
         const r = r0 + (r1 - r0) * (i / (pts.length - 1));
         root(ax, ay, az, len + r * 0.6, Math.atan2(dz, -dx), Math.acos(dy / len), r);
-        put(barkMat, new THREE.IcosahedronGeometry(r * 1.05, 1), bx, by, bz); // the knuckle at each bend
+        if (i < pts.length - 2) put(barkMat, new THREE.IcosahedronGeometry(r * 0.78, 1), bx, by, bz); // a knuckle at each bend
       }
     };
     for (const [bx, bz, s] of [[10.8, -214, 1], [24.5, -214.2, 1.1], [25.2, -203.6, 0.9], [10.5, -203.4, 1]]) {
@@ -1803,11 +1804,11 @@ export function buildVerdant(B) {
   // ================================================================ WAYFINDING
   const GREEN_HEX = 0x3dff7a;
   guideStrip([[-10, 4, -160], [-12, 4, -168], [-19.5, 4, -171.6]], 0xd2ffb8);
-  guideStrip([[17, 9, -192], [23.5, 9, -197.2]], 0xd2ffb8);
+  guideStrip([[15, 9, -197.3], [22.5, 9, -197.3]], 0xd2ffb8);
   guideStrip([[-10, 4.5, -210.5], [-17.2, 4.5, -210.5]], 0xd2ffb8);
   guideStrip([[-81, -25, -296], [-83, -25, -298.5]], 0xd2ffb8);
   beacon(W, -20, 4.5, -175.5, GREEN_HEX, 6);
-  beacon(W, 12.6, 7.9, -192.2, GREEN_HEX, 5);
+  beacon(W, 15, 7.9, -200, GREEN_HEX, 5);
   beacon(W, -25, 6, -250, GREEN_HEX, 6);
   beacon(W, -2, 18, -306.5, GREEN_HEX, 5);
   beacon(W, 46.5, 12, -279, GREEN_HEX, 4);

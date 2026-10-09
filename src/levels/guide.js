@@ -141,7 +141,7 @@ function verdantObjective(game) {
     if (p.z > -172) return 'Cross the sludge moat on the stepping stones.';
     if (p.z > -203 && p.y > 3) {
       if (p.x < -14.5) return 'Hop east over the crumbling stones to the second island. <b>Don\'t stop on the last one.</b>';
-      if (p.x < 14) return 'Climb the root stumps <b>east</b> onto the great tree\'s plateau.';
+      if (p.x < 14) return 'Climb the root stumps <b>north-east</b> onto the great tree\'s plateau.';
       return 'From the plateau\'s north edge, hop down the stone to the bank and the <b>shrine</b>.';
     }
     return `Take the ${G('VERDANT core')} from the shrine's cradle of roots.`;
