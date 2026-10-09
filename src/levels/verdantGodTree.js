@@ -7,25 +7,31 @@
 // into its branches. Then the harvest line's trolley carries you home over the jungle.
 //
 // buildGodTree(B, ctx) — ctx.landing: [x, y, z], the top centre of the 6 × 6 m landing the rope bridge ends on
-// (the swamp half builds it). Returns { objective(p), arena, ... } (see the end).
+// (this file builds it). Returns { objective(p), arena, homeDoor, fly, zip, ... } (see the end); verdant.js asks
+// objective(p) for the HUD line wherever the swamp half has none.
 //
 // The climb, counter-clockwise round the trunk (bearings: 0 north (-z), 90 east (+x)), each beat on its own:
-//   THE SURFACE ROOT (y 18 → 20): from the landing north-east over the mist to the trunk; the first look
-//   → THE ROOT GATE (y 20, bearing 250): a shrine of standing stones between the buttresses, a giant sap tap
-//   → THE ROOT STAIR (20 → 30): carved steps, a borer in the bark to goo-plug, fungus shelves up the bough
-//   → BOUGH 1 · THE SAP TAP (30, south): a harvest rig on the bough: reactor, pump, slimes and spiders
-//   → THE VINES (30 → 46): a chain of swinging vines round the south-east
-//   → BOUGH 2 · THE HANGING NESTS (46, east): woven nests on ropes, the hive's flyers (flak)
-//   → THE FLY WALL and THE SEED PODS (46 → 52): goo the bark, the rotflies stick, climb them; goo a swinging
-//     seed pod still and hop the pods; a bloom pad throws you up to the next bough
-//   → BOUGH 3 · THE MOSS POND (62, north): a pond in the bough's crotch, flytraps, a charging brute
-//   → THE SAP PISTONS (62 → 77): a flytrap launch, bark slabs on sap pistons to goo still, a goo membrane
-//     over a spore vent, two vines
-//   → BOUGH 4 · THE FUNGUS GROVE (77, west): the glowing grove, the hive's last stand, Wren's log 09
-//   → THE GIANT FLY (77 → 100): a ride round the trunk on a giant fly's back, attacked all the way
-//   → THE CROWN: THE THORNMAW'S COURTYARD (verdantArena.js, cy 100), the Verdant Heart
-//   → THE HARVEST LINE: the trolley down the cable to the aqueduct head → THE AQUEDUCT home to the Hub's
-//     north balcony port (x 10, y 12), through the one-way green door.
+//   THE LANDING and THE SURFACE ROOT (y 18 → 20): the bridge's end, the first look, a root over the mist
+//   (one broken stretch to jump) to the trunk → THE ROOT GATE (y 20, bearing ~250): standing stones, a giant
+//   sap tap, a pump and an algae tank → THE ROOT STAIR (20 → 23.8): carved steps, a BORER in the bark (goo
+//   its hole while it's in, or kill it) → BOUGH 1 · THE SAP TAP (28.6, south): up the sloping bough to a
+//   harvest rig; slimes, spiders, drones; living roots seal the way on till it's won
+//   → THE VINES (28.6 → 46): three swinging vines round the south-east (vineSwing.js)
+//   → BOUGH 2 · THE HANGING NESTS (46, east): woven nests on ropes; swarms, drones, rotflies (flak)
+//   → THE CUT FACE (46 → 50.6): burst the hive nest at its foot, goo the raw heartwood in steps, the rotflies
+//   stick in the goo: climb them onto the cut's lip → the catwalk → THE SEED PODS: goo a swinging pod still
+//   as it comes into line, hop the three → BLOOM PAD 1 (gooPad.js) up onto the third bough
+//   → BOUGH 3 · THE MOSS POND (62, north): a pond in the bough's crotch, snapjaws, slimes, a spider, a brute
+//   (goo the floor to bog it down) → a SNAP PAD (a dormant flytrap) flings you onto the trunk
+//   → THE ROTTED LEDGE (68.4): goo the hole (a membrane that also chokes the spore vent under it) → THE SAP
+//   PISTONS: bark slabs shoved out of the trunk and drawn back in; goo one while it's out → a stub of a
+//   branch and BLOOM PAD 2 onto the fourth bough
+//   → BOUGH 4 · THE FUNGUS GROVE (77, west): giant glowing fungi, the hive's last stand
+//   → THE GIANT FLY (77 → 100): verdantFlyRide.js, a full turn round the trunk, the hive coming at you
+//   → THE CROWN: THE THORNMAW'S COURTYARD (verdantArena.js, centre (75, 100, -385), entry west, exit south)
+//   and the Verdant Heart → THE HARVEST LINE: the trolley down its cable (vineSwing.js ZipLine) to the
+//   aqueduct head (10, 12, -242) → THE AQUEDUCT home to the Hub's north balcony port (x 10, y 12), through
+//   its three gates and the one-way green door (moved here from verdant.js).
 // Falling off the tree is never fatal: a long fall (or the mist) fades you back to the last checkpoint.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -39,6 +45,7 @@ import { GooPad } from '../entities/gooPad.js';
 import { creatureKit } from '../entities/verdantCreatures.js';
 import { VineSwing, ZipLine } from '../entities/vineSwing.js';
 import { regionOf } from './regions.js';
+import { boxGeo } from '../materials.js';
 import { buildVerdantArena } from './verdantArena.js';
 import { makeVerdantKit, kitMaterials } from './verdantKit.js';
 
@@ -47,7 +54,7 @@ audio.manifest?.then(() => audio.prefetch(['music_tree', 'amb_canopy', 'branch_g
 
 const PI = Math.PI;
 const NORTH = 0, EAST = -PI / 2, SOUTH = PI, WEST = PI / 2; // player yaws
-const RY = [RED, YELLOW], RYG = [RED, YELLOW, GREEN];
+const RYG = [RED, YELLOW, GREEN];
 
 // ---------------------------------------------------------------- the tree's shape (shared by mesh and body)
 export const TREE = { x: 75, z: -385, top: 99, crown: 100 };
@@ -111,12 +118,11 @@ export function buildGodTree(B, ctx = {}) {
   const LAND = ctx.landing || [30, 18, -330];
   const rand = mulberry32(90210);
   const R = (a, b) => a + (b - a) * rand();
-  const pick = (arr) => arr[Math.floor(rand() * arr.length)];
   const K = makeVerdantKit(B, { seed: 31 });
   const C = creatureKit(B);
   const KM = kitMaterials();
   const tagC = (hex, t) => `<b style="color:${hex}">${t}</b>`;
-  const G_ = (t) => tagC('#3dff7a', t), Y_ = (t) => tagC('#ffd23a', t), R_ = (t) => tagC('#ff3344', t);
+  const G_ = (t) => tagC('#3dff7a', t);
   const say = (min, max, html, time = 6) => W.trigger(min, max, () => game.hud.message(html, time));
   const cp = (pos, yaw, size = [4, 3, 4], name = null) => new Checkpoint(W, game, { pos, yaw, size, name });
   const MOOD_VIEW = { music: 'music_tree', ambient: 'amb_canopy', atmosphere: 'verdantTreeView' };
@@ -249,7 +255,6 @@ export function buildGodTree(B, ctx = {}) {
   const shaftMat = new THREE.MeshBasicMaterial({ map: shaftTex, color: 0xf6ffd0, transparent: true, opacity: 0.085, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
   const fungusMat = new THREE.MeshStandardMaterial({ color: 0xc9b98e, roughness: 0.85, flatShading: true, vertexColors: true });
   const capGlowMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x5dffc8).multiplyScalar(1.15) });
-  const goldMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffd25a).multiplyScalar(1.4) });
   const stoneMat = KM.granite, glyphMat = KM.glyph;
   const woodTex = canvasTex(64, 64, (g, s) => {
     g.fillStyle = '#5b4630';
@@ -407,13 +412,13 @@ export function buildGodTree(B, ctx = {}) {
   }
 
   // ---------------------------------------------------------------- organic geometry
-  const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _t = new THREE.Vector3(), _n = new THREE.Vector3(), _bn = new THREE.Vector3();
+  const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _n = new THREE.Vector3(), _bn = new THREE.Vector3();
   const UP = new THREE.Vector3(0, 1, 0);
   // A limb along a curve: rings of a superellipse cross-section (flat-topped when flat > 2), radius r(u)
   // (u 0..1 along), knobbly; bark texture along it, shaded. topAt(u) gives the flat top's height there.
   function limb(curve, r0, r1, { seg = 14, rings = 0, flat = 2, squash = 1, knob = 0.12, mat: m = limbMat, shade = barkShade, cap = true } = {}) {
     const len = curve.getLength();
-    const nR = rings || Math.max(4, Math.ceil(len / 1.4));
+    const nR = rings || Math.max(4, Math.min(48, Math.ceil(len / (r0 > 1.2 ? 1.6 : 2.6))));
     const pos = [], uv = [], idx = [];
     const frames = curve.computeFrenetFrames(nR, false);
     for (let i = 0; i <= nR; i++) {
@@ -722,7 +727,7 @@ export function buildGodTree(B, ctx = {}) {
   function wildTree(x, y, z, h, r) {
     const lean = [R(-3, 3), R(-3, 3)];
     const pts = [[x, y - 30, z], [x + lean[0] * 0.3, y + h * 0.4, z + lean[1] * 0.3], [x + lean[0], y + h * 0.8, z + lean[1]], [x + lean[0] * 1.2, y + h, z + lean[1] * 1.2]];
-    limb(curveOf(pts), r, r * 0.55, { seg: 10, flat: 2, knob: 0.1, cap: false });
+    limb(curveOf(pts), r, r * 0.55, { seg: 9, rings: 14, flat: 2, knob: 0.1, cap: false });
     const top = pts[2];
     const n = 5 + Math.floor(rand() * 3);
     for (let i = 0; i < n; i++) {
@@ -735,11 +740,18 @@ export function buildGodTree(B, ctx = {}) {
     for (let i = 0; i < 5; i++) curtain(top[0] + R(-9, 9), top[1] + R(-2, 6), top[2] + R(-9, 9), R(8, 20), R(2.5, 4.5));
   }
   for (const [x, z, h, r] of [
-    [126, -328, 44, 3.4], [142, -366, 52, 4.2], [138, -408, 48, 3.8], [124, -448, 56, 4.4], [92, -470, 50, 4], [54, -470, 46, 3.6], [22, -446, 42, 3.2],
-    [156, -392, 40, 3], [112, -484, 46, 3.4], [70, -492, 58, 4.6], [30, -476, 38, 3], [150, -436, 50, 3.6], [112, -312, 36, 2.8], [10, -404, 38, 2.8],
-    [162, -348, 46, 3.6], [6, -440, 50, 3.8], [84, -500, 44, 3.4], [134, -470, 40, 3.2],
+    [126, -328, 58, 3.6], [142, -366, 70, 4.4], [138, -408, 64, 4.0], [124, -448, 74, 4.6], [92, -470, 66, 4.2], [54, -470, 62, 3.8], [22, -446, 56, 3.4],
+    [156, -392, 52, 3.2], [112, -484, 60, 3.6], [70, -492, 76, 4.8], [30, -476, 50, 3.2], [150, -436, 66, 3.8], [112, -312, 46, 3.0], [10, -404, 52, 3.0],
+    [162, -348, 60, 3.8], [6, -440, 66, 4.0], [84, -500, 58, 3.6], [134, -470, 54, 3.4],
   ])
     wildTree(x, 0, z, h, r);
+  // a second ring further out: a wall of trunks and crowns closing the chasm in
+  for (let i = 0; i < 22; i++) {
+    const a = (i / 22) * PI * 2 + R(-0.1, 0.1), d = R(108, 128);
+    const x = TREE.x + Math.cos(a) * d, z = TREE.z + Math.sin(a) * d;
+    if (z > -300 || x < 0) continue;
+    wildTree(x, 0, z, R(48, 72), R(3, 4.4));
+  }
   flush('chasm');
 
   // ================================================================ THE GREAT ROOTS (buttresses into the mist, and the walkable one)
@@ -912,29 +924,6 @@ export function buildGodTree(B, ctx = {}) {
     }
     return { top, cx, cz, y, rr };
   }
-  // a bark ledge on the trunk at bearing b, y: a flat-topped shelf jutting out (depth d m, width w m along)
-  function ledge(b, y, { d = 3, w = 3, kind = 'bark', solidBox = true } = {}) {
-    const r0 = trunkR(b, y);
-    const [x, , z] = P(b, r0 + d / 2 - 0.3, y);
-    if (kind === 'fungus') {
-      const [fx, , fz] = P(b, r0 - 0.4, y - 0.05);
-      bracket(fx, y - 0.32 * Math.max(d, w) * 0.5 + 0.02, fz, Math.max(d, w) * 0.62, b, rand() < 0.4);
-    } else {
-      const span = (w / (r0 + d / 2)) / DEG;
-      const pts = [];
-      for (let i = 0; i <= 4; i++) {
-        const bb = b - span / 2 + (span * i) / 4;
-        pts.push(P(bb, trunkR(bb, y) + d * 0.35 - 0.4, y - 0.7));
-      }
-      limb(curveOf(pts, 0.5), d * 0.55, d * 0.5, { seg: 12, flat: 3.6, squash: 0.7, knob: 0.12, cap: true });
-      put(mossMat, new THREE.IcosahedronGeometry(Math.min(d, w) * 0.5, 1).scale(1.3, 0.12, 1.3), x, y - 0.03, z);
-    }
-    if (solidBox) {
-      const h = Math.min(d, w) / 2;
-      solid(x - h, y - 1.2, z - h, x + h, y, z + h, kind === 'fungus' ? 'grass' : 'grass');
-    }
-    return [x, y, z];
-  }
   // a giant sap tap drilled into the bark: a collar plate, the drill's housing, a valve wheel, a fat hose
   function giantTap(b, y, { scale = 1, hose = null } = {}) {
     const r0 = trunkR(b, y);
@@ -1004,8 +993,8 @@ export function buildGodTree(B, ctx = {}) {
         const [x, , z] = P(b, r - 0.2, y);
         bracket(x, y, z, R(0.6, 1.6), b, rand() < 0.3);
       } else if (k < 0.8) {
-        const [x, , z] = P(b, r + R(0.5, 1.6), y);
-        leaves(x, y, z, 1.2, 3, [1.4, 3]);
+        const [x, , z] = P(b, r + R(0.15, 0.5), y);
+        leaves(x, y, z, 0.5, 3, [0.9, 1.8]);
       } else {
         const [x, , z] = P(b, r - 0.1, y);
         put(mossMat, new THREE.IcosahedronGeometry(R(0.8, 2), 1).scale(0.5, 1.2, 0.5), x, y, z);
@@ -1085,7 +1074,7 @@ export function buildGodTree(B, ctx = {}) {
     solid(x - 1.25, y - 1, z - 1.25, x + 1.25, y, z + 1.25, 'rock');
     // the carved tread: a granite slab set in the root, its face glyph-cut
     put(stoneMat, new THREE.BoxGeometry(2.4, 0.42, 2.4).rotateY(-b * DEG), x, y - 0.21, z);
-    put(mossMat, new THREE.BoxGeometry(2.2, 0.05, 1.2).rotateY(-b * DEG), x, y + 0.01, z);
+    put(mossMat, boxGeo(2.2, 0.05, 1.2, 0.6).rotateY(-b * DEG), x, y + 0.01, z);
   }
   // the root the steps are cut into, coiling up under them
   limb(curveOf(STEPS.map(([b, y]) => P(b, trunkR(b, y) + 1.2, y - 1.3)), 0.4), 1.6, 1.4, { seg: 10, knob: 0.1 });
@@ -1157,9 +1146,9 @@ export function buildGodTree(B, ctx = {}) {
   // ================================================================ THE VINES (30 → 46), round the south-east
   // Three vines hang from side boughs, each higher than the last: run and jump into one (you grab it), swing,
   // pump with W toward where you look, and jump at the top of the arc to fly to the next.
-  const V1 = vine({ anchor: [87.8, 42.4, -351], length: 12.2, sway: [1, 0] });
-  const V2 = vine({ anchor: [95.6, 50.4, -360.6], length: 12.6, sway: [0.6, -0.8] });
-  const V3 = vine({ anchor: [102.6, 55.4, -369.8], length: 12.8, sway: [0.5, -0.9] });
+  vine({ anchor: [87.8, 42.4, -351], length: 12.2, sway: [1, 0] });
+  vine({ anchor: [95.6, 50.4, -360.6], length: 12.6, sway: [0.6, -0.8] });
+  vine({ anchor: [102.6, 55.4, -369.8], length: 12.8, sway: [0.5, -0.9] });
   say([B1.x + 4, 29, B1.z - 6], [B1.x + 9, 33, B1.z + 6], `<b>Jump into the vine</b> to grab it. Hold <b>W</b> toward where you look to swing higher, <b>JUMP</b> to let go at the top of the arc.`, 8);
   overgrow(100, 175, 30, 50, 46);
 
@@ -1191,7 +1180,7 @@ export function buildGodTree(B, ctx = {}) {
     nest(B2.x + dx, B2.y + r * 0.9, B2.z + dz, r, null);
     solid(B2.x + dx - r * 0.8, B2.y, B2.z + dz - r * 0.8, B2.x + dx + r * 0.8, B2.y + r * 1.9, B2.z + dz + r * 0.8, 'grass');
   }
-  K.reactorTank([B2.x + 5.5, B2.y, B2.z + 4], 5.5, { r: 1.1 });
+  K.reactorTank([B2.x + 5.8, B2.y, B2.z + 3.2], 5.5, { r: 1.0 });
   mistAt(B2.x, 40, B2.z, 18, 3);
   const fight2 = enc({
     trigger: [[98, 45, -382], [104, 50, -376]],
@@ -1200,7 +1189,7 @@ export function buildGodTree(B, ctx = {}) {
       [
         { type: 'swarm', pos: [B2.x + 2, B2.y + 6, B2.z - 4], color: [GREEN], count: 6 },
         { type: 'drone', pos: [B2.x - 4, B2.y + 5, B2.z + 3], color: GREEN, shields: [RED] },
-        { type: 'drone', pos: [B2.x + 5, B2.y + 6, B2.z + 1], color: RED, shields: [GREEN] },
+        { type: 'drone', pos: [B2.x + 3, B2.y + 6, B2.z - 3], color: RED, shields: [GREEN] },
       ],
       [
         { type: 'swarm', pos: [B2.x - 3, B2.y + 7, B2.z - 2], color: [GREEN, YELLOW], count: 7 },
@@ -1265,7 +1254,7 @@ export function buildGodTree(B, ctx = {}) {
     const g = new THREE.BoxGeometry(3.0, 0.8, 4.6).toNonIndexed();
     tint(g, barkShade);
     put(limbMat, g, FACE.x + 0.9, FACE.cap - 0.4, (FACE.z1 - 386) / 2);
-    put(mossMat, new THREE.BoxGeometry(2.8, 0.06, 4.4), FACE.x + 0.9, FACE.cap + 0.01, (FACE.z1 - 386) / 2);
+    put(mossMat, boxGeo(2.8, 0.06, 4.4, 0.6), FACE.x + 0.9, FACE.cap + 0.01, (FACE.z1 - 386) / 2);
     limb(curveOf([[FACE.x + 2.2, FACE.cap - 0.5, -386.2], [FACE.x + 2.6, FACE.cap - 0.4, -388.3], [FACE.x + 2.2, FACE.cap - 0.5, FACE.z1 - 0.2]]), 0.5, 0.5, { seg: 7, knob: 0.2 });
   }
   const CWb = [70, 58];
@@ -1482,7 +1471,7 @@ export function buildGodTree(B, ctx = {}) {
     const g = new THREE.BoxGeometry(7.8, 3, 7.6).toNonIndexed();
     tint(g, barkShade);
     put(limbMat, g, 40, 98.5, -385);
-    put(mossMat, new THREE.BoxGeometry(7.6, 0.06, 7.4), 40, 100.03, -385);
+    put(mossMat, boxGeo(7.6, 0.06, 7.4, 0.6), 40, 100.03, -385);
   }
   cp([41, 100, -385], EAST, [3, 3, 4], 'THE CROWN');
   area([36, 99, -389], [44, 104, -381], MOOD);
@@ -1578,7 +1567,7 @@ export function buildGodTree(B, ctx = {}) {
     const g = new THREE.BoxGeometry(8.4, 3, 9.2).toNonIndexed();
     tint(g, barkShade);
     put(limbMat, g, 75, 98.5, -357.2);
-    put(mossMat, new THREE.BoxGeometry(8.2, 0.06, 9), 75, 100.03, -357.2);
+    put(mossMat, boxGeo(8.2, 0.06, 9, 0.6), 75, 100.03, -357.2);
     // the head frame: two posts and a beam holding the cable's end
     for (const sx of [-1, 1]) K.rod(KM.pipeDark, [75 + sx * 2.2, 100, -353.4], [75 + sx * 0.9, 106, -355.4], 0.18, 0.14, 6);
     K.rod(KM.pipeDark, [73.6, 106, -355.4], [76.4, 106, -355.4], 0.2, 0.2, 6);
