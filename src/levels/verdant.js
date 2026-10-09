@@ -1,29 +1,39 @@
 // VERDANT — the green world, "EMERALD HOLLOW": the Lumen's nature engine, an overgrown bio-lab swallowed by
-// jungle north of the Hub, its sinkhole flooded with toxic sludge. You come in with red + yellow and take
-// GREEN from the Seed Vault halfway; from then on green does the heavy lifting.
+// jungle north of the Hub, its sinkhole flooded with toxic sludge, tended by an insect-like hive network.
+// You come in with red + yellow and find GREEN early, in a shrine on the far bank of the moat, after a
+// quiet climb through the forest; from then on every machine in here is green (with red / yellow shields)
+// and the glob launcher does the heavy lifting: lobs over cover, bursts that catch several things at once,
+// bank shots, rocket jumps, blasting growths apart, pushing movers, bowling enemies off ledges.
 // The loop (region and Hub ports: LAYOUT.md), one beat after another:
 //   GATEHOUSE (Hub north port x -10, y 4) → SOUTH TERRACE (rain court nook; a green catapult shortcut)
-//   → P1 THE SLUDGE MOAT: spike-crowned stones, a crumble run with a betrayer, a raft you push by shooting it
-//   → C1 THE RUIN BANK ambush → Z1 THE ROOT BRIDGE: swing three root arms into a bridge over the Hollow
-//   → P2 THE HOLLOW DESCENT: a trapdoor walkway, red/yellow timed phase stones, root steps to the dock
-//   → ARENA: THE GREENHOUSE (four waves) → lab corridor → Z2 THE SEED VAULT: shoot a platform rack into a
-//   staircase, bank yellow off a mirrored leaf into the core cage, take GREEN, spam the green riser
-//   → P3 THE CANOPY: a jump-pad chimney through green spore membranes, green chroma vines, a crumbling bough,
-//   a green/yellow phase pair you switch mid-jump, a pad onto the Great Tree's crown
-//   → C2 THE CROWN NEST ambush → the spike drop → Z3 THE SLUICE: a sinker race, a green raft through rotor gates
-//   → THE THORNMAW'S COURTYARD (verdantArena.js) and the VERDANT HEART → the aqueduct home over the
-//   dead jungle → the Hub's north balcony port (x 10, y 12).
+//   → P1 THE SLUDGE MOAT (no fights): stepping stones, a crumble run with a betrayer, root stumps up onto the
+//   great tree's plateau, where the shrine across the water comes into view
+//   → THE SEED SHRINE: take GREEN from the root cradle → ARENA 1 · THE HIVE WAKES (the glob launcher's test:
+//   clusters, flyers to bat about, gunners behind parapets, the drop behind them)
+//   → the terrace (first ROCKET JUMP) and the bramble-choked gateway → Z1 THE ROOT BRIDGE: three root arms,
+//   each swung across by a spore bulb you can't see (lob over a wall, drop one into a hollow stump, catch a
+//   pair in one burst)
+//   → P2 THE HOLLOW DESCENT: a trapdoor walkway, phase stones held up by a three-bulb splash switch, root steps
+//   to the dock → ARENA 2 · THE GREENHOUSE (four waves, sludge troughs to knock them into)
+//   → lab corridor → Z2 THE SEED VAULT: shoot a platform rack into a staircase, bank a glob off the mirrored
+//   leaf into the glass cage to wake the Seed (it draws its roots out of the chimney door), glob the green
+//   riser up → P3 THE CANOPY: a jump-pad chimney through spore membranes, green chroma vines, a rocket jump
+//   onto a slime-held bough over the drop, a crumbling bough, a green/yellow phase pair, a hive nest on the
+//   crown pad → ARENA 3 · THE CROWN NEST → the spike drop → Z3 THE SLUICE: a sinker race, a raft you blast
+//   along through rotor gates → THE THORNMAW'S COURTYARD (verdantArena.js) and the VERDANT HEART → the
+//   aqueduct home over the dead jungle → the Hub's north balcony port (x 10, y 12).
 // Shutting the Heart down (game.onPowerDown('verdant'), also on load) kills the jungle: see aftermath().
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RED, YELLOW, GREEN, BLUE } from '../colors.js';
 import { Barrier } from '../entities/barrier.js';
 import { JumpPad, Checkpoint } from '../entities/misc.js';
-import { Mirror, Glass, TargetPanel, SlidingDoor } from '../entities/puzzle.js';
+import { Mirror, Glass, SlidingDoor } from '../entities/puzzle.js';
 import { boxGeo, mat } from '../materials.js';
 import { liquidMaterial } from '../liquid.js';
 import { regionOf } from './regions.js';
 import { buildVerdantArena } from './verdantArena.js';
+import { SporeBulb, BulbCluster, Thicket, SwingRoot, Brink } from '../entities/globPuzzle.js';
 
 // deterministic scatter for plants, vines and canopies
 function mulberry32(a) {
@@ -45,13 +55,21 @@ function softTex(draw) {
 }
 
 // A soft column of light standing on a landing you should head for.
-function beacon(W, x, y, z, hex, h = 7, r = 0.8) {
+// (until: a test that puts it out for good once it's done its job)
+function beacon(W, x, y, z, hex, h = 7, r = 0.8, until = null) {
   const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(0.9), transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.8, r, h, 20, 1, true), m);
   mesh.position.set(x, y + h / 2, z);
   W.scene.add(mesh);
   let t = Math.random() * 6;
-  W.add({ update: (dt) => (t += dt, (m.opacity = 0.13 + Math.sin(t * 2.6) * 0.05)) });
+  W.add({
+    update(dt) {
+      if (!mesh.visible) return;
+      t += dt;
+      m.opacity = 0.13 + Math.sin(t * 2.6) * 0.05;
+      if (until?.()) mesh.visible = false;
+    },
+  });
   return m;
 }
 
@@ -59,7 +77,7 @@ const PI = Math.PI;
 const EAST = -PI / 2, WEST = PI / 2, NORTH = 0, SOUTH = PI; // yaws
 
 export function buildVerdant(B) {
-  const { W, game, level, GLOW, wallX, wallZ, room, corridor, corridorX, plat, pedestal, shieldedShaft, secretRoom, trophy, hint, zoneTitle, area, light, blocker, devStart, guideStrip, glowEdge } = B;
+  const { W, game, level, GLOW, wallX, wallZ, room, corridor, corridorX, plat, pedestal, shieldedShaft, secretRoom, trophy, hint, zoneTitle, area, light, blocker, devStart, guideStrip, glowEdge, hintEvery } = B;
   const zone = 'green';
   const rand = mulberry32(20261008);
   const R = (a, b) => a + (b - a) * rand();
@@ -412,16 +430,15 @@ export function buildVerdant(B) {
     say([-30, 4, -172], [-24, 7, -168.6], `An old ${G_('spore catapult')}, sealed by a living membrane. It would throw you clean over the moat.`, 5);
   }
 
-  // ================================================================ P1 · THE SLUDGE MOAT (z -172 → -203)
+  // ================================================================ P1 · THE SLUDGE MOAT (z -172 → -203): no fights
+  // Hop the stones to island one, run the crumbling stones east to island two, climb the root stumps onto the
+  // great tree's plateau and look across the water: the shrine on the far bank, the core glowing in its roots.
   cliff(-30, -1, -203, 30, 1, -172);
   W.box(-30, 1, -203, 30, 1.5, -172, 'acid', zone, { hazard: 'acid' });
   mist(-8, 2.2, -186, 44, 30);
   mist(14, 2.6, -190, 30, 22);
-  // two stones crowned with spikes: break each with its own color before you land on it
   stone(-21.5, -177, -18.5, -174, 4.5, 1);
-  new Barrier(W, { min: [-21.5, 4.5, -177], max: [-18.5, 5.1, -174], color: RED, kind: 'spike', regen: 5, zone });
   stone(-21.5, -182, -18.5, -179, 5, 1);
-  new Barrier(W, { min: [-21.5, 5, -182], max: [-18.5, 5.6, -179], color: YELLOW, kind: 'spike', regen: 5, zone });
   // island one: checkpoint, a crawl-hole hut (secret)
   ground(-28, -196, -15, -184, 5, 1);
   cp([-18, 5, -186.5], EAST, [6, 3, 5]);
@@ -432,26 +449,25 @@ export function buildVerdant(B) {
   W.deco(-22.95, 6.05, -194.45, -22.9, 6.15, -193.05, GLOW[zone], zone);
   trophy(-25.25, 6, -193.75);
   secretRoom([-27, 5, -195.5], [-23.5, 7.2, -192], 'Overgrown Hut');
-  // slime molds lurk on the islands (yellow goo, red cores: you don't carry green yet)
-  B.slime([-25.5, 5, -186.5], { color: YELLOW, core: RED });
-  B.slime([-21, 5, -194.8], { color: YELLOW, core: RED, size: 0.85 });
   // the crumble run east: two honest stones, then one that looks solid and isn't (don't stop on it)
   B.crumble({ min: [-13, 4.5, -191], max: [-10.5, 5, -188], delay: 0.6, respawn: 3, zone });
   B.crumble({ min: [-8.5, 4.5, -191], max: [-6, 5, -188], delay: 0.6, respawn: 3, zone });
   B.crumble({ min: [-4, 4.5, -191], max: [-1.5, 5, -188], delay: 0.35, respawn: 3, disguise: true, zone });
-  // island two: a turret guards it; a raft you push by shooting it carries you to the bank
+  say([-15, 5, -192], [-13.2, 8, -187], 'The stones east are rotten through. <b>Keep moving</b> — and don\'t trust the last one.', 4);
+  // island two, and two root stumps climbing north-east out of the sludge onto the plateau
   ground(0.5, -194, 7, -182, 5.6, 1);
-  cp([3.5, 5.6, -186], NORTH, [6, 3, 4]);
+  cp([3.5, 5.6, -186], EAST, [6, 3, 4]);
   column(6, -192.8, 5.6, 4.5, 1);
   glowPatch(1, -193.5, 6.5, -182.5, 5.6, 12);
-  B.turret([6, 5.6, -183.2], YELLOW, { mount: 'floor' });
-  B.slime([2.5, 5.6, -191], { color: RED, core: YELLOW });
-  const raft1 = B.shotMover({ min: [2.25, 5.0, -197.3], max: [5.25, 5.6, -194.3], path: [0, 0, -6], color: RED, mode: 'push', back: 1.0, kick: 1.2, zone });
-  say([0.5, 5.6, -194], [7, 9, -188], `The raft only moves while you ${R_('shoot it')}: stand on it and keep firing ${R_('red')} at it. It drifts back when you stop.`, 6);
-  B.enemy('drone', [-16, 10, -180], { color: RED, range: 22 });
-  B.enemy('drone', [-6, 10.5, -194], { color: YELLOW, range: 22 });
-  B.enemy('drone', [-3, 11, -200.5], { color: RY, range: 22 });
-  // the plateau (unreachable): the court's great tree, a sludge stream spilling into the moat
+  const stump = (x1, z1, x2, z2, top) => {
+    bark(x1, 1, z1, x2, top, z2);
+    W.deco(x1 - 0.02, top - 0.01, z1 - 0.02, x2 + 0.02, top + 0.03, z2 + 0.02, 'grass', zone);
+    glowEdge(x1 - 0.03, z1 - 0.03, x2 + 0.03, z2 + 0.03, top - 0.08, GLOW[zone], zone, 0.05);
+    vines(x1, z1 - 0.05, x2, z1, top, 3, 2.5);
+  };
+  stump(8.8, -196.6, 11.6, -193.8, 6.7);
+  stump(13.4, -201.6, 16.6, -198.4, 7.9);
+  // the plateau: the court's great tree, a sludge stream spilling into the moat, the view north
   ground(14, -198, 30, -172, 9, 1);
   giantTree(21, 9, -186, { w: 3.5, h: 25, r: 7, vineCount: 14 });
   W.deco(14, 9, -184.2, 21, 9.06, -182.6, 'acid', zone);
@@ -459,48 +475,127 @@ export function buildVerdant(B) {
   mist(13, 2, -183.4, 6, 6);
   glowPatch(14.5, -197.5, 29.5, -172.5, 9, 30);
   vines(14.05, -197.9, 14.1, -172.2, 9, 20, 5);
+  W.box(25.4, 9, -197.6, 29.6, 9.8, -196.8, 'wall', zone); // a toppled lintel at the lookout
+  cp([20, 9, -194.5], NORTH, [8, 3, 4]);
+  say([14, 9, -198], [24, 12, -192], `Across the water, cradled in roots: a ${G_('chroma core')}. Down the stone to the bank.`, 5);
+  // down to the bank: one stone, then the bank
+  stone(22, -202, 25, -199.5, 7.2, 1);
 
-  // ================================================================ C1 · THE RUIN BANK (z -203 → -214)
+  // ================================================================ THE SEED SHRINE and ARENA 1 · THE HIVE WAKES (z -203 → -214)
+  // The Ruin Bank: a strip of old paving between the moat and the Hollow's rim, a raised shrine in the
+  // middle holding the green core in a cradle of roots (dressing: see INTERIOR DRESSING). Taking it wakes the
+  // hive: its gunners crawl out onto root perches over the drop behind the bank, walled with parapets you lob
+  // globs over; slime molds come in clumps, drones to bat about; anything that stands near either edge can be
+  // bowled off it (Brinks). Then up the terrace at the west end (a rocket jump) to the gateway.
   ground(-30, -214, 30, -203, 4.5, -31);
   area([-30, 4.5, -213.5], [30, 9, -203.5], MOOD);
-  cp([3.5, 4.5, -205.6], WEST, [7, 3, 3]);
-  for (const [x, z, h] of [[-14, -209, 3.2], [-4, -210.5, 2], [16, -209.5, 3.6], [22, -206, 1.4]]) column(x, z, 4.5, h, 1.3);
-  W.box(-9, 4.5, -207, -6, 5.6, -206, 'wall', zone); // low ruined walls for cover
-  W.box(6, 4.5, -211.5, 7, 5.4, -208.5, 'wall', zone);
-  glowPatch(-29.5, -213.5, 29.5, -203.5, 4.5, 30);
-  B.spiderBot([-16, 4.5, -212], { color: RY, leash: 10 });
-  // the gateway to the root bridge, sealed until the bank is clear
-  W.box(-30, 4.5, -214, -25.5, 11, -213.5, 'wall', zone);
-  W.box(-22.5, 4.5, -214, -18, 11, -213.5, 'wall', zone);
-  W.box(-25.5, 7.9, -214, -22.5, 11, -213.5, 'wall', zone);
-  W.box(-30.2, 11, -214.2, -17.8, 11.8, -213.3, 'metal', zone);
-  W.deco(-25.5, 7.85, -213.45, -22.5, 7.95, -213.35, GLOW[zone], zone);
-  vines(-30, -213.3, -18, -213.25, 11, 10, 3);
-  // ARMOR: over the moat at the bank's edge (lean out over the sludge), and up on the column at the east end.
-  B.armor([-11, 4.5, -202.3], { base: false });
-  B.armor([22, 5.9, -206]);
-  const bankFight = B.encounter({
-    trigger: [[-29, 4.5, -213.4], [29, 8, -204.2]],
-    seals: [{ min: [-25.5, 4.5, -214], max: [-22.5, 7.9, -213.5], closed: true }],
-    title: 'AMBUSH', sub: 'THE RUIN BANK', color: '#3dff7a', music: 'music_combat', zone,
-    checkpoint: { pos: [-24, 4.5, -210.5], yaw: NORTH },
+  for (const [x, z, h] of [[-12.5, -210.5, 3.2], [-4, -205.6, 2], [-1, -210.8, 3.6], [26, -206, 1.4]]) column(x, z, 4.5, h, 1.3);
+  W.box(-9.5, 4.5, -212.6, -6.5, 5.6, -211.6, 'wall', zone); // low ruined walls for cover
+  W.box(2.5, 4.5, -205.6, 5.5, 5.4, -204.6, 'wall', zone);
+  glowPatch(-17.5, -213.5, 29.5, -203.5, 4.5, 26);
+  W.trigger([-30, 4, -214], [30, 9, -203], () => !game.blaster.unlocked[GREEN] && game.hud.zoneTitle('A CRADLE OF ROOTS', 'THE SEED SHRINE', '#3dff7a', 2.6));
+  // the shrine: a raised dais, four broken columns, the core on its pedestal
+  W.box(13, 4.5, -212.5, 21, 5.7, -204.5, 'wall', zone);
+  W.box(21, 4.5, -210, 22, 5.1, -207, 'wall', zone); // steps east and west
+  W.box(12, 4.5, -210, 13, 5.1, -207, 'wall', zone);
+  glowEdge(13, -212.5, 21, -204.5, 5.7, GLOW[zone], zone, 0.06);
+  for (const [x, z, h] of [[13.6, -211.9, 3.6], [20.4, -211.9, 2.3], [13.6, -205.1, 1.5], [20.4, -205.1, 4.4]]) column(x, z, 5.7, h, 0.9);
+  const core = pedestal(17, 5.7, -208.5, GREEN, zone);
+  cp([17, 5.7, -205.6], NORTH, [6, 3, 2]);
+  beacon(W, 17, 6.6, -208.5, 0x3dff7a, 10, 0.9, () => !core.active);
+  // the hive's gun perches: root shelves out over the drop behind the bank, walled with parapets
+  for (const [x1, x2, top] of [[-12, -4, 6.8], [21, 28.5, 7.2]]) {
+    bark(x1 + 2, -29, -220, x2 - 2, top - 1, -216);
+    bough(x1, -221, x2, -215.2, top, 1.2);
+    W.box(x1, top, -215.7, x2, top + 1.4, -215.2, 'wall', zone);
+    W.deco(x1, top + 1.4, -215.75, x2, top + 1.48, -215.15, GLOW[zone], zone);
+    vines(x1, -215.2, x2, -215.15, top + 1.4, 6, 1.6);
+  }
+  // either edge: a burst bowls ground enemies standing there into the Hollow (north) or the moat (south)
+  new Brink(W, { min: [-30, 4.5, -214], max: [30, 6, -211.8], dir: [0, 0, -1], killY: -18 });
+  new Brink(W, { min: [-30, 4.5, -205.2], max: [30, 6, -203], dir: [0, 0, 1], killY: 1.6 });
+  // THE TERRACE: the bank's west end, 3.4 m up (a rocket jump), the gateway to the root bridge in its north
+  // wall and a bramble choking it
+  ground(-30, -214, -18, -208.5, 7.9, 4.4);
+  glowEdge(-30, -214, -18, -208.5, 7.9, GLOW[zone], zone, 0.07);
+  vines(-18.05, -213.9, -18, -208.6, 7.9, 8, 2.4);
+  vines(-29.9, -208.5, -18.1, -208.45, 7.9, 10, 2.4);
+  W.box(-30, 7.9, -214, -25.5, 14.4, -213.5, 'wall', zone);
+  W.box(-22.5, 7.9, -214, -18, 14.4, -213.5, 'wall', zone);
+  W.box(-25.5, 11.3, -214, -22.5, 14.4, -213.5, 'wall', zone);
+  W.box(-30.2, 14.4, -214.2, -17.8, 15.2, -213.3, 'metal', zone);
+  W.deco(-25.5, 11.25, -213.45, -22.5, 11.35, -213.35, GLOW[zone], zone);
+  vines(-30, -213.3, -18, -213.25, 14.4, 10, 3);
+  bough(-26, -215.6, -22, -214, 7.9, 0.8); // a root ledge outside the gateway
+  const bramble = new Thicket(W, { min: [-26, 7.9, -213.4], max: [-22, 11.1, -211.8], style: 'bramble', seed: 3 });
+  // a mossy target ring at the foot of the terrace wall: where a first rocket jump starts
+  for (const [x1, z1, x2, z2] of [[-17.6, -211.9, -15.4, -211.7], [-17.6, -209.3, -15.4, -209.1], [-17.6, -211.9, -17.4, -209.1], [-15.6, -211.9, -15.4, -209.1]]) W.deco(x1, 4.51, z1, x2, 4.55, z2, GLOW[zone], zone);
+  // ARMOR: by the terrace's foot, behind the dais, and on the column at the east end
+  B.armor([-19, 4.5, -204.4]);
+  B.armor([17, 5.7, -211.6], { base: false });
+  B.armor([26, 5.9, -206]);
+  let hiveDue = false; // the core's been taken: the hive answers (again after a death mid-fight)
+  const hive = B.encounter({
+    trigger: [[16, 60, -209], [18, 61, -208]], // (started by taking the core, not by walking in: see below)
+    seals: [{ min: [-25.5, 7.9, -214], max: [-22.5, 11.3, -213.5], closed: true }],
+    title: 'THE HIVE WAKES', sub: 'TEST THE GLOB LAUNCHER', color: '#3dff7a', music: 'music_combat', zone, resume: true,
+    checkpoint: { pos: [-15.5, 4.5, -210.5], yaw: WEST },
     waves: [
-      [
-        { type: 'drone', pos: [-20, 9, -209], color: RED },
-        { type: 'drone', pos: [0, 9, -210], color: YELLOW },
-        { type: 'swarm', pos: [-10, 7.5, -208], color: RY, count: 5, delay: 1.4 },
-        { type: 'slime', pos: [-5, 4.5, -207], color: YELLOW, core: RED, delay: 2.2 },
-      ],
-      [
-        { type: 'brute', pos: [-14, 4.5, -205.5], color: YELLOW },
-        { type: 'turret', pos: [10, 8.2, -205.45], color: RED, mount: [0, 0, 1], delay: 0.6 },
-        { type: 'drone', pos: [-24, 10, -207], color: RY, delay: 1.5 },
-        { type: 'slime', pos: [8, 4.5, -210], color: RED, core: YELLOW, delay: 2.2 },
-        { type: 'slime', pos: [-20, 4.5, -211], color: YELLOW, core: RED, delay: 2.6 },
-        { type: 'swarm', pos: [12, 7.5, -209], color: RY, count: 4, delay: 3 },
-      ],
+      { title: 'CLUSTERS AND FLYERS', enemies: [
+        { type: 'slime', pos: [5, 4.5, -209.2], color: GREEN, core: GREEN },
+        { type: 'slime', pos: [6.6, 4.5, -210.8], color: GREEN, core: GREEN, delay: 0.2 },
+        { type: 'slime', pos: [3.6, 4.5, -211], color: GREEN, core: GREEN, size: 0.85, delay: 0.4 },
+        { type: 'slime', pos: [-12, 4.5, -207.5], color: GREEN, core: GREEN, delay: 1.8 },
+        { type: 'slime', pos: [-10.6, 4.5, -209], color: GREEN, core: GREEN, size: 0.85, delay: 2 },
+        { type: 'drone', pos: [-4, 9, -216.8], color: GREEN, delay: 0.9 },
+        { type: 'drone', pos: [17, 9.5, -217], color: GREEN, delay: 1.2 },
+        { type: 'swarm', pos: [4, 8, -208], color: GREEN, count: 5, delay: 2.2 },
+      ] },
+      { title: 'BEHIND THE PARAPETS', enemies: [
+        { type: 'mortar', pos: [-8, 6.8, -218.6], color: GREEN, shields: [YELLOW] },
+        { type: 'mortar', pos: [25, 7.2, -218.6], color: GREEN, delay: 0.5 },
+        { type: 'spider', pos: [-20, 4.5, -206.5], color: GREEN, shields: [RED], delay: 1 },
+        { type: 'spider', pos: [27, 4.5, -209], color: GREEN, shields: [RED], delay: 1.4 },
+        { type: 'slime', pos: [-2, 4.5, -207], color: YELLOW, core: GREEN, delay: 2.2 },
+        { type: 'slime', pos: [-3.6, 4.5, -208.6], color: YELLOW, core: GREEN, size: 0.85, delay: 2.4 },
+      ] },
+      { title: 'HEAVIES', enemies: [
+        { type: 'brute', pos: [-14, 4.5, -206], color: GREEN, shields: [RED] },
+        { type: 'warden', pos: [12, 9, -210], shield: YELLOW, core: GREEN, delay: 0.6 },
+        { type: 'drone', pos: [-20, 10, -216.5], color: GREEN, shields: [RED], delay: 1.2 },
+        { type: 'drone', pos: [20, 10, -216], color: GREEN, shields: [YELLOW], delay: 1.6 },
+        { type: 'swarm', pos: [0, 8, -209], color: GREEN, count: 6, delay: 2.6 },
+        { type: 'slime', pos: [6, 4.5, -207], color: GREEN, core: GREEN, delay: 3.2 },
+        { type: 'slime', pos: [7.4, 4.5, -208.8], color: GREEN, core: GREEN, size: 0.85, delay: 3.4 },
+      ] },
     ],
+    onClear: () => setTimeout(() => game.hud.message(`The gateway's open, up on the old terrace at the <b>west</b> end. Too high to jump — <b>look down, then jump and fire a ${G_('glob')} together</b>.`, 8), 2600),
   });
+  const takeCore = core.onCollect;
+  core.onCollect = (pk, pl) => {
+    hiveDue = true;
+    takeCore(pk, pl);
+  };
+  // the fight starts as you stand up with green in hand (and again on respawning here after a death). Green
+  // from anywhere else: a save that already took the core (the restore pulls it) still owes the fight, a
+  // practice start further on has skipped it.
+  const onBank = (p) => p.x > -30 && p.x < 30 && p.z < -203 && p.z > -214 && p.y > 4 && p.y < 7.6;
+  W.add({
+    update(dt, player) {
+      if (hive.state !== 'armed' || game.clearedEncounters?.has(hive.id) || !game.blaster.unlocked[GREEN]) return;
+      if (game.isWorldDown?.('verdant')) return hive.restoreCleared(); // (the hive died with the engine)
+      if (!hiveDue) {
+        if (core.active && W.entities.includes(core)) return hive.restoreCleared();
+        hiveDue = true;
+      }
+      if (game.state === 'playing' && onBank(player.pos)) {
+        hive.start();
+        setTimeout(() => game.hud.message(`${G_('GLOB LAUNCHER')}: globs arc, and <b>burst</b> on whatever they hit. Lob them over cover; one burst catches a whole clump.`, 6), 2200);
+      }
+    },
+  });
+  hintEvery([-19, 4.5, -213.5], [-14, 8, -208], `Just out of reach. Look at your feet, then <b>jump and fire a ${G_('glob')} together</b>: the burst throws you up.`, 22, 6, () => hive.state === 'cleared' && game.blaster.unlocked[GREEN]);
+  say([-30, 7.9, -213.5], [-18, 11, -208.5], `Brambles. A straight shot glances off them: a ${G_('glob')}'s burst tears them apart.`, 5);
   // the east end, off the path: AUDIO LOG NOOK (08 "Roots"), a rim over the sludge lake where the roots have
   // grown through what's left of the last expedition: [27, 4.5, -212.2]
   bark(23, 2, -214, 30, 5, -213.2);
@@ -513,18 +608,50 @@ export function buildVerdant(B) {
   glowPatch(23, -213, 29, -209, 4.5, 10, 0.1);
 
   // ================================================================ Z1 · THE ROOT BRIDGE (z -214 → -246)
-  // Three root columns rise out of the Hollow, each carrying a root arm on a pivot. Shoot an arm to swing it a
-  // quarter turn; swing each one round until it points back at you, then walk out along it.
-  const arms = [];
-  for (const [zc, color, dir, start, correct, len] of [[-224, RED, -1, 0, 1, 9.5], [-234, YELLOW, 1, 1, 3, 9], [-244, RED, 1, 0, 3, 9]]) {
-    bark(-25, -29, zc - 1, -23, 3.3, zc + 1);
-    W.box(-25.2, 3.3, zc - 1.2, -22.8, 3.9, zc + 1.2, 'rock', zone);
-    glowEdge(-25.2, zc - 1.2, -22.8, zc + 1.2, 3.82, GLOW[zone], zone, 0.06);
-    vines(-25.1, zc - 1.1, -22.9, zc + 1.1, 3.9, 6, 8);
-    arms.push(B.shotRotor({ pivot: [-24, 4.5, zc], parts: [[-1, -0.6, -1, len, 0, 1]], axis: 'y', dir, color, start, correct, zone, kind: 'plat' }));
-  }
-  say([-26, 4.5, -213.4], [-22, 8, -210], `The <b>root arms</b> turn a quarter for every hit of their color. Swing each one round until it <b>points back at you</b>, then walk out along it.`, 7);
-  B.enemy('drone', [-14, 9, -232], { color: YELLOW, range: 20 });
+  // Three root columns rise out of the Hollow, each with a root arm on a knuckle, swung out east over the drop.
+  // A spore bulb on a shelf beside each column swings its arm round into a walkway pointing back at you, and
+  // none of them can simply be shot: (1) behind a root wall (lob over it; its spore plume shows where it is),
+  // (2) down inside a hollow stump (drop one in from above), (3) a pair that only answers to one burst
+  // catching both.
+  const arms = [], bulbs = [];
+  [-224, -234, -244].forEach((zc, i) => {
+    bark(-25, -29, zc - 1, -23, 6.6, zc + 1);
+    W.box(-25.2, 6.6, zc - 1.2, -22.8, 7.2, zc + 1.2, 'rock', zone);
+    glowEdge(-25.2, zc - 1.2, -22.8, zc + 1.2, 7.12, GLOW[zone], zone, 0.06);
+    vines(-25.1, zc - 1.1, -22.9, zc + 1.1, 7.2, 6, 8);
+    arms.push(new SwingRoot(W, { pivot: [-24, 7.8, zc], length: i === 0 ? 8.4 : 9, width: 2, back: 1, thick: 0.6, from: 'e', to: 's', material: barkMat }));
+    // the bulb's shelf on the column's west side
+    const z1 = i === 2 ? -246.4 : zc - 1.6, z2 = i === 2 ? -241.6 : zc + 1.6;
+    bark(-28.9, 6.3, z1, -25.2, 7.2, z2);
+    W.deco(-28.9, 7.19, z1, -25.2, 7.22, z2, 'grass', zone);
+    glowEdge(-28.93, z1 - 0.03, -25.2, z2 + 0.03, 7.12, GLOW[zone], zone, 0.05);
+    vines(-28.9, z1, -25.3, z2, 6.3, 5, 5);
+  });
+  // (1) behind a root wall facing the gateway, a taller one at its back: a glob just clearing the front wall
+  // bursts on the back one, right over the bulb
+  bark(-29, 7.2, -222.6, -25.25, 9.7, -222.1);
+  W.deco(-29.02, 9.7, -222.62, -25.23, 9.78, -222.08, GLOW[zone], zone);
+  vines(-29, -222.08, -25.3, -222.05, 9.7, 6, 2);
+  bark(-29, 7.2, -225.9, -25.25, 11.2, -225.4);
+  bark(-29.4, 7.2, -225.9, -28.9, 10.4, -222.1);
+  vines(-29, -225.95, -25.3, -225.9, 11.2, 5, 3);
+  bulbs.push(new SporeBulb(W, { pos: [-27.2, 7.2, -224.2], size: 1.1, stalk: 0.7, onActivate: () => arms[0].activate() }));
+  // (2) down a hollow stump
+  bark(-28.9, 7.2, -235.6, -25.3, 8.7, -235.25);
+  bark(-28.9, 7.2, -232.75, -25.3, 8.7, -232.4);
+  bark(-28.9, 7.2, -235.25, -28.55, 8.7, -232.75);
+  bark(-25.65, 7.2, -235.25, -25.3, 8.7, -232.75);
+  glowEdge(-28.9, -235.6, -25.3, -232.4, 8.7, GLOW[zone], zone, 0.05);
+  bulbs.push(new SporeBulb(W, { pos: [-27.1, 7.2, -234], size: 1, stalk: 0.35, onActivate: () => arms[1].activate() }));
+  // (3) a pair 3.6 m apart: a burst has to land between them to catch both
+  const pair = [new SporeBulb(W, { pos: [-27.2, 7.2, -242.2], size: 1, stalk: 0.6 }), new SporeBulb(W, { pos: [-27.2, 7.2, -245.8], size: 1, stalk: 0.6 })];
+  bulbs.push(...pair);
+  const pairLock = new BulbCluster(W, { bulbs: pair, window: 0.3, onActivate: () => arms[2].activate() });
+  say([-26, 7.9, -215.6], [-22, 11, -213.4], `A <b>spore bulb</b> swings each root arm across — this one's hidden behind its wall. <b>Lob a ${G_('glob')} over</b>: watch where its spores rise.`, 7);
+  say([-25.2, 7.2, -225.2], [-22.8, 10, -222.8], 'The next bulb sits down inside a <b>hollow stump</b>. Lob high and drop one in.', 6);
+  say([-25.2, 7.2, -235.2], [-22.8, 10, -232.8], `Two bulbs, one arm: they only answer to <b>one burst that catches both</b>. Land a ${G_('glob')} between them.`, 6);
+  B.enemy('drone', [-13, 11, -229], { color: GREEN, shields: [YELLOW], range: 24 });
+  B.enemy('drone', [-11, 12.5, -242], { color: GREEN, range: 24 });
 
   // ================================================================ THE GREAT HOLLOW (shell)
   // A sinkhole open to the sky with a sludge lake at the bottom; it widens north of z -235 (x ±60) and runs
@@ -588,35 +715,37 @@ export function buildVerdant(B) {
   strata('z', -235.5, -1, -59, -31, 6);
 
   // ================================================================ P2 · THE HOLLOW DESCENT (west side)
-  stone(-30, -252, -20, -246, 3, -10);
-  cp([-25, 3, -249], WEST, [8, 3, 5]);
-  area([-30, 3, -252], [-20, 7, -246], MOOD);
-  glowPatch(-29.5, -251.5, -20.5, -246.5, 3, 8);
-  stone(-38, -252, -32, -246, 0, -8);
+  stone(-30, -253, -20, -247, 6, -10);
+  cp([-25, 6, -250], WEST, [8, 3, 5]);
+  area([-30, 6, -253], [-20, 10, -247], MOOD);
+  glowPatch(-29.5, -252.5, -20.5, -247.5, 6, 8);
+  stone(-38, -252, -32, -246, 3, -8);
   // the walkway west: its middle is a trapdoor over a spike pit (sprint or jump it)
   bough(-50, -250.5, -46, -247.5, 0, 0.6);
   bough(-42, -250.5, -38, -247.5, 0, 0.6);
   B.trapdoor({ min: [-46, -0.5, -250.5], max: [-42, 0, -247.5], delay: 0.4, respawn: 3, spikes: -5, zone });
   bark(-46.5, -6, -251, -41.5, -5, -247); // the pit floor under it
   bough(-58, -253, -50, -245, 0, 1.2);
-  say([-38, 0, -252], [-32, 3, -246], 'The walkway sags in the middle. <b>Don\'t dawdle on it.</b>', 4);
-  // red/yellow timed phase stones step down east over the lake: shoot both orbs, then go
-  const phaseA = [], phaseB = [];
-  for (const [i, x1, z1, top] of [[0, -55, -260, -2.5], [1, -49, -264, -5], [2, -43, -268, -7.5], [3, -37, -272, -10]]) {
-    const o = { min: [x1, top - 0.5, z1], max: [x1 + 3, top, z1 + 3], color: i % 2 ? YELLOW : RED, zone };
-    (i % 2 ? phaseB : phaseA).push(B.phasePlatform(o));
-  }
-  sw({ pos: [-47, 1.5, -257], style: 'orb', color: RED, mode: 'timed', time: 7, links: phaseA, size: 1.3 });
-  sw({ pos: [-41, -1.5, -262.5], style: 'orb', color: YELLOW, mode: 'timed', time: 7, links: phaseB, size: 1.3 });
-  say([-58, 0, -253], [-50, 3, -245], `Each orb holds its stones for a few seconds: ${R_('red')} for one set, ${Y_('yellow')} for the other. Shoot both, then go — hit them again to refill.`, 7);
+  say([-38, 3, -252], [-32, 6, -246], 'The walkway sags in the middle. <b>Don\'t dawdle on it.</b>', 4);
+  // phase stones step down east over the lake, held up by a splash switch: three bulbs on a shelf of the west
+  // wall that only answer to one burst catching all three (then they hold the stones for ten seconds)
+  const phase = [[-55, -260, -2.5], [-49, -264, -5], [-43, -268, -7.5], [-37, -272, -10]].map(([x1, z1, top]) => B.phasePlatform({ min: [x1, top - 0.5, z1], max: [x1 + 3, top, z1 + 3], color: GREEN, zone }));
+  cliff(-60, -3, -261.2, -56.6, 1, -255.6);
+  W.box(-60, 0.75, -261.2, -56.6, 1, -255.6, 'grass', zone, { solid: false });
+  glowEdge(-60, -261.2, -56.6, -255.6, 1, GLOW[zone], zone, 0.05);
+  vines(-60, -261.2, -56.6, -255.6, -3, 6, 4);
+  const triBulbs = [[-58.2, -256.7], [-59.5, -258.95], [-56.9, -258.95]].map(([x, z]) => new SporeBulb(W, { pos: [x, 1, z], size: 0.9, stalk: 0.6, plume: 2.4 }));
+  const stoneLock = new BulbCluster(W, { bulbs: triBulbs, window: 0.3, time: 10, links: phase });
+  B.onRespawn(() => stoneLock.reset());
+  say([-58, 0, -253], [-50, 3, -245], `Three bulbs on the shelf hold the stones up for a while — but only when <b>one burst catches all three</b>. Splash them, then go; splash again to refill.`, 7);
   stone(-32, -279, -24, -271, -12.5, -20);
   cp([-28, -12.5, -275], WEST, [6, 3, 6]);
   // root steps back down west to the dock
   stone(-38, -282, -35, -279, -16, -20);
   stone(-42, -284, -39, -281, -19.5, -24);
-  B.enemy('drone', [-40, 5, -255], { color: RED, range: 22 });
-  B.enemy('drone', [-30, -6, -266], { color: YELLOW, range: 22 });
-  B.mortar([-50, -25, -287.5], YELLOW);
+  B.enemy('drone', [-40, 6, -256], { color: GREEN, shields: [RED], range: 24 });
+  B.enemy('drone', [-30, -6, -266], { color: GREEN, range: 24 });
+  B.enemy('mortar', [-50, -25, -287.5], { color: GREEN, shields: [YELLOW] });
   // the dock under the west wall
   ground(-60, -290, -44, -272, -25, -31);
   area([-60, -25, -290], [-44, -20, -272], MOOD);
@@ -624,10 +753,13 @@ export function buildVerdant(B) {
   glowPatch(-59.5, -289.5, -44.5, -272.5, -25, 24);
   column(-46, -273.5, -25, 4, 1);
   column(-58.5, -288.5, -25, 6, 1);
+  W.box(-52, -25, -289.5, -48.5, -23.8, -288.6, 'wall', zone); // a parapet the mortar sits behind
   guideStrip([[-48, -25, -281], [-60.2, -25, -281]], 0xd2ffb8);
-  B.slime([-55, -25, -275], { color: YELLOW, core: RED });
-  B.slime([-49, -25, -287], { color: RED, core: YELLOW });
-  B.slime([-57, -25, -285], { color: YELLOW, core: RED, size: 0.8 });
+  // slime molds by the dock's open edge: a burst bowls them into the lake
+  B.slime([-46.5, -25, -276], { color: GREEN, core: GREEN });
+  B.slime([-45.5, -25, -278], { color: YELLOW, core: GREEN, size: 0.85 });
+  B.slime([-46.8, -25, -284.5], { color: RED, core: GREEN });
+  new Brink(W, { min: [-48.5, -25, -290], max: [-44, -24, -272], dir: [1, 0, 0], killY: -27.6 });
 
   // ================================================================ ARENA · THE GREENHOUSE (x -98..-64, z -263..-299)
   // A glass-roofed growing hall of the bio-lab gone wild: sludge troughs, planters, catwalks reached by pads.
@@ -669,7 +801,7 @@ export function buildVerdant(B) {
   glowPatch(-97.5, -298.5, -94.5, -263.5, -25, 20, 0.3);
   glowPatch(-67.5, -298.5, -64.5, -263.5, -25, 20, 0.3);
   lamp(-81, -13.5, -281, 0xc8ffb0, 45, 40);
-  B.spiderBot([-83, -11.5, -296], { color: RY, ceiling: true, leash: 10 });
+  B.spiderBot([-83, -11.5, -296], { color: GREEN, shields: [YELLOW], ceiling: true, leash: 10 });
   // ARMOR: at the far (south) end of each catwalk (the pads throw you up at the north end), and over the
   // north trough's sludge (jump across it).
   B.armor([-96, -20.5, -267.5]);
@@ -685,35 +817,43 @@ export function buildVerdant(B) {
     checkpoint: { pos: [-83, -25, -302], yaw: NORTH },
     waves: [
       [
-        { type: 'drone', pos: [-88, -19, -284], color: RED },
-        { type: 'drone', pos: [-74, -19, -272], color: YELLOW },
-        { type: 'swarm', pos: [-81, -20, -278], color: RY, count: 5, delay: 1.5 },
-        { type: 'slime', pos: [-90, -25, -280], color: YELLOW, core: RED, delay: 2 },
-        { type: 'slime', pos: [-72, -25, -280], color: RED, core: YELLOW, delay: 2.3 },
+        { type: 'drone', pos: [-88, -19, -284], color: GREEN },
+        { type: 'drone', pos: [-74, -19, -272], color: GREEN, shields: [RED] },
+        { type: 'swarm', pos: [-81, -20, -278], color: GREEN, count: 5, delay: 1.5 },
+        { type: 'slime', pos: [-90, -25, -280], color: YELLOW, core: GREEN, delay: 2 },
+        { type: 'slime', pos: [-88.6, -25, -281.6], color: GREEN, core: GREEN, size: 0.85, delay: 2.1 },
+        { type: 'slime', pos: [-72, -25, -280], color: RED, core: GREEN, delay: 2.3 },
       ],
       [
-        { type: 'turret', pos: [-90, -20, -298.95], color: YELLOW, mount: [0, 0, 1] },
-        { type: 'turret', pos: [-72, -20, -263.05], color: RED, mount: [0, 0, -1], delay: 0.5 },
-        { type: 'swarm', pos: [-81, -21, -270], color: RY, count: 6, delay: 2 },
-        { type: 'drone', pos: [-81, -18, -290], color: RY, delay: 3 },
-        { type: 'spider', pos: [-95, -25, -284], color: RY, delay: 3.5 },
+        { type: 'turret', pos: [-90, -20, -298.95], color: GREEN, shields: [YELLOW], mount: [0, 0, 1] },
+        { type: 'turret', pos: [-72, -20, -263.05], color: GREEN, shields: [RED], mount: [0, 0, -1], delay: 0.5 },
+        { type: 'swarm', pos: [-81, -21, -270], color: GREEN, count: 6, delay: 2 },
+        { type: 'drone', pos: [-81, -18, -290], color: GREEN, shields: [YELLOW, RED], delay: 3 },
+        { type: 'spider', pos: [-95, -25, -284], color: GREEN, shields: [RED], delay: 3.5 },
       ],
       { title: 'HEAVIES', enemies: [
-        { type: 'warden', pos: [-81, -19.5, -290], shield: YELLOW, core: RED },
-        { type: 'brute', pos: [-90, -25, -272], color: RED, delay: 1 },
-        { type: 'mortar', pos: [-94.9, -20.5, -281], color: YELLOW, delay: 2 },
+        { type: 'warden', pos: [-81, -19.5, -290], shield: RED, core: GREEN },
+        { type: 'brute', pos: [-90, -25, -272], color: GREEN, shields: [YELLOW], delay: 1 },
+        { type: 'mortar', pos: [-94.9, -20.5, -281], color: GREEN, delay: 2 },
       ] },
       [
-        { type: 'brute', pos: [-72, -25, -294], color: YELLOW },
-        { type: 'warden', pos: [-90, -19.5, -268], shield: RED, core: YELLOW, delay: 0.6 },
-        { type: 'mortar', pos: [-67.1, -20.5, -282], color: RED, delay: 1.4 },
-        { type: 'turret', pos: [-81, -23.8, -283], colors: RY, delay: 2 },
-        { type: 'swarm', pos: [-81, -20, -275], color: RY, count: 8, delay: 3 },
-        { type: 'spider', pos: [-67, -25, -270], color: [YELLOW, RED], delay: 3.5 },
-        { type: 'slime', pos: [-81, -25, -272], color: YELLOW, core: RED, delay: 4 },
+        { type: 'brute', pos: [-72, -25, -294], color: GREEN, shields: [RED] },
+        { type: 'warden', pos: [-90, -19.5, -268], shield: YELLOW, core: GREEN, delay: 0.6 },
+        { type: 'mortar', pos: [-67.1, -20.5, -282], color: GREEN, shields: [YELLOW], delay: 1.4 },
+        { type: 'turret', pos: [-81, -23.8, -283], color: GREEN, shields: [RED, YELLOW], delay: 2 },
+        { type: 'swarm', pos: [-81, -20, -275], color: GREEN, count: 8, delay: 3 },
+        { type: 'spider', pos: [-67, -25, -270], color: GREEN, shields: [YELLOW], delay: 3.5 },
+        { type: 'slime', pos: [-81, -25, -272], color: GREEN, core: GREEN, delay: 4 },
+        { type: 'slime', pos: [-79.4, -25, -273], color: GREEN, core: GREEN, size: 0.85, delay: 4.1 },
+        { type: 'slime', pos: [-82.5, -25, -273.4], color: YELLOW, core: GREEN, size: 0.85, delay: 4.2 },
       ],
     ],
   });
+  // the sludge troughs: a burst beside one tips ground enemies standing at its lip into it
+  for (const [za, zb] of trough) {
+    new Brink(W, { min: [-94, -25, za - 1.8], max: [-70, -24, za], dir: [0, 0, 1], killY: -25.9, land: (za + zb) / 2 });
+    new Brink(W, { min: [-94, -25, zb], max: [-70, -24, zb + 1.8], dir: [0, 0, -1], killY: -25.9, land: (za + zb) / 2 });
+  }
   // SECRET — the Seed Bank, behind a blue door in the west wall (come back after Azure)
   new Barrier(W, { min: [-98.6, -25, -271.2], max: [-98, -22, -268.8], color: BLUE, kind: 'door', zone });
   corridorX({ xStart: -98.5, xEnd: -101, y: -25, zone, cz: -270, h: 3 });
@@ -739,48 +879,40 @@ export function buildVerdant(B) {
   say([-85, -25, -309], [-81, -21, -305], `The <b>Seed Vault</b>. Shoot the arrows by each ledge to move it a notch — line the four into a <b>staircase</b> up to the balcony.`, 7);
   // 1) the rack: four ledges on the west wall, scrambled
   const rack = B.platformRack({ pos: [-100, -23.6, -308], face: '+x', columns: 4, notches: 6, step: 1, spacing: 3.2, depth: 2, width: 2.4, start: [3, 5, 0, 1], colors: [RED, YELLOW, YELLOW, RED], targetGap: 0.55, zone });
-  // 2) the balcony and the north walkway, the core in its glass cage, a mirrored leaf above it
+  // 2) the balcony and the north walkway, the Seed in its glass cage, a mirrored leaf above it
   W.box(-100, -25, -335, -92, -20.5, -320, 'wall', zone);
   W.box(-92, -25, -335, -70, -20.5, -331, 'wall', zone);
   W.box(-86, -25, -331, -80, -20.5, -325, 'wall', zone);
   for (const [x1, z1, x2, z2] of [[-100, -335, -92, -320], [-92, -335, -70, -331], [-86, -331, -80, -325]]) glowEdge(x1, z1, x2, z2, -20.42, GLOW[zone], zone, 0.06);
   W.deco(-99.9, -20.5, -334.9, -70.1, -20.47, -320.1, 'grass', zone);
-  const CAGE = { x1: -86, x2: -80, z1: -331, z2: -325, top: -17.1 };
+  const CAGE = { x1: -86, x2: -80, z1: -331, z2: -325, top: -15 };
   new Glass(W, { min: [CAGE.x1, -20.5, CAGE.z2 - 0.1], max: [CAGE.x2, CAGE.top, CAGE.z2] });
   new Glass(W, { min: [CAGE.x1 - 0.1, -20.5, CAGE.z1], max: [CAGE.x1, CAGE.top, CAGE.z2] });
   new Glass(W, { min: [CAGE.x2, -20.5, CAGE.z1], max: [CAGE.x2 + 0.1, CAGE.top, CAGE.z2] });
-  new Glass(W, { min: [CAGE.x1, -20.5, CAGE.z1 - 0.05], max: [-84.5, CAGE.top, CAGE.z1 + 0.05] });
-  new Glass(W, { min: [-81.5, -20.5, CAGE.z1 - 0.05], max: [CAGE.x2, CAGE.top, CAGE.z1 + 0.05] });
-  W.box(-84.5, -17.6, CAGE.z1 - 0.05, -81.5, CAGE.top, CAGE.z1 + 0.05, 'metal', zone);
-  const cageDoor = new SlidingDoor(W, { min: [-84.5, -20.5, CAGE.z1 - 0.1], max: [-81.5, -17.6, CAGE.z1 + 0.1], color: YELLOW, zone });
+  new Glass(W, { min: [CAGE.x1, -20.5, CAGE.z1 - 0.05], max: [CAGE.x2, CAGE.top, CAGE.z1 + 0.05] });
   W.deco(CAGE.x1 - 0.1, CAGE.top, CAGE.z1 - 0.1, CAGE.x2 + 0.1, CAGE.top + 0.06, CAGE.z1 + 0.1, GLOW[zone], zone);
   W.deco(CAGE.x1 - 0.1, CAGE.top, CAGE.z2 - 0.1, CAGE.x2 + 0.1, CAGE.top + 0.06, CAGE.z2 + 0.1, GLOW[zone], zone);
   new Mirror(W, { min: [-89, -12.6, -334.5], max: [-77, -12.4, -322.5] });
   bark(-83.3, -12.4, -328.8, -82.7, -9, -328.2, false); // the leaf's stem up into the roof
   for (const [dx, dz] of [[-6, 0], [6, 0], [0, -6], [0, 6]]) W.deco(-83 + dx * 1.02 - 0.15, -12.45, -328.5 + dz * 1.02 - 0.15, -83 + dx * 1.02 + 0.15, -12.35, -328.5 + dz * 1.02 + 0.15, GLOW[zone], zone);
-  let cageOpen = false;
-  const openCage = () => {
-    if (cageOpen) return;
-    cageOpen = true;
-    cageDoor.open();
-    game.hud.message('The cage unlocks.', 2.5);
-  };
-  const cagePanels = [new TargetPanel(W, { min: [CAGE.x1 + 0.05, -20.5, CAGE.z1 + 0.1], max: [CAGE.x2 - 0.05, -20.38, CAGE.z2 - 0.15], color: YELLOW, face: 'up', onActivate: openCage })];
-  cagePanels.forEach((p) => (p.group = cagePanels));
-  const core = pedestal(-83, -20.38, -327.5, GREEN, zone);
-  say([-100, -20.5, -335], [-92, -16, -320], `The core sits in a glass cage. Glass stops shots — but the <b>mirrored leaf</b> above it doesn't. Bank ${Y_('yellow')} off it onto the cage floor.`, 7);
-  // 3) the way out: a green riser you spam up to the chimney door in the east wall
+  // the Seed in its cage: a burst inside wakes it, and it draws its roots out of the chimney door
+  const seedRoots = new Thicket(W, { min: [-70, -13, -331], max: [-69.3, -9.8, -328], style: 'roots', sealed: true, material: barkMat, seed: 7 });
+  const seed = new SporeBulb(W, {
+    pos: [-83, -20.5, -328], size: 2.2, stalk: 0.45, plume: 1.8,
+    onActivate: () => {
+      seedRoots.wither();
+      setTimeout(() => game.hud.message(`The Seed wakes and draws its roots out of the chimney door. Ride the ${G_('green riser')} up: <b>hold fire on it</b>.`, 7), 900);
+    },
+  });
+  say([-100, -20.5, -335], [-92, -16, -320], `The <b>Seed</b> sits in a glass cage, and glass stops globs. The <b>mirrored leaf</b> above it doesn't: bank a ${G_('glob')} off the leaf so it drops into the cage.`, 8);
+  // 3) the way out: a green riser you glob up to the chimney door in the east wall
   const riser = B.riser({ min: [-73, -25, -331], max: [-70, -20.5, -328], rise: 7.5, color: GREEN, kick: 1.4, back: 1.4, zone });
-  const takeCore = core.onCollect;
-  core.onCollect = (pk, pl) => {
-    takeCore(pk, pl);
-    setTimeout(() => game.hud.message(`${G_('GREEN')} is yours. Stand on the ${G_('green riser')} by the east wall and <b>keep firing at it</b> to climb to the door.`, 7), 600);
-  };
   glowPatch(-99.5, -334.5, -92.5, -320.5, -20.5, 10, 0.3);
   cp([-96, -20.5, -327], EAST, [7, 3, 6]); // the balcony: a death after this doesn't send you back down the rack
   vines(VA.x1, VA.zN, VA.x2, VA.zS, VA.y + VA.h, 50, 7);
   W.box(-99.9, -25, -306, -98, -24, -305.1, 'metal', zone);
-  B.spiderBot([-74, -25, -310], { color: RY, leash: 12 });
+  B.spiderBot([-74, -25, -310], { color: GREEN, shields: [YELLOW], leash: 12 });
+  B.spiderBot([-90, -9.5, -312], { color: GREEN, shields: [RED], ceiling: true, leash: 10 });
 
   // ================================================================ THE ROOT CHIMNEY (jump pads through spore membranes)
   // Three pads climb a shaft from y -13 to the canopy at y 14; a green membrane hangs over each one.
@@ -815,11 +947,21 @@ export function buildVerdant(B) {
   // chroma vines: solid only while your blaster is green
   for (const [x1, top] of [[-46.5, 14.5], [-40, 15], [-33.5, 15.5]]) B.chromaPlatform({ min: [x1, top - 0.4, -330.5], max: [x1 + 3, top, -327.5], color: GREEN, zone });
   say([-60, 14, -334], [-50, 18, -324], `${G_('Chroma vines')} hold only while your blaster is ${G_('green')}. Switch away mid-jump and you fall.`, 6);
-  B.enemy('drone', [-38, 20.5, -320], { color: YELLOW, range: 24 });
-  bough(-27, -333, -21, -325, 16, 2);
-  cp([-24, 16, -329], EAST, [5, 3, 6]);
-  B.slime([-22.5, 16, -326.5], { color: GREEN, core: RED });
-  B.slime([-25.5, 16, -331.5], { color: GREEN, core: YELLOW, size: 0.85 });
+  B.enemy('drone', [-38, 20.5, -320], { color: GREEN, shields: [YELLOW], range: 26 });
+  // a mossy stump, and a bough 3.4 m above it: the second rocket jump, out over the drop, slime molds waiting
+  // on top to be bowled off it
+  bough(-29.8, -330.8, -27.6, -327.2, 15.6, 1.2);
+  cp([-28.7, 15.6, -329], EAST, [2, 3, 3]);
+  say([-30, 15.6, -331], [-27.6, 18, -327], `Too high to jump. <b>Rocket jump</b>: look down, then jump and fire a ${G_('glob')} together.`, 6);
+  bough(-27, -333, -21, -325, 19, 2);
+  cp([-24, 19, -329], EAST, [5, 3, 6]);
+  B.slime([-22.5, 19, -326.2], { color: GREEN, core: GREEN });
+  B.slime([-25.5, 19, -331.8], { color: YELLOW, core: GREEN, size: 0.85 });
+  B.slime([-21.8, 19, -331.5], { color: GREEN, core: GREEN, size: 0.85 });
+  new Brink(W, { min: [-27, 19, -333], max: [-21, 20, -331.2], dir: [0, 0, -1], killY: 4 });
+  new Brink(W, { min: [-27, 19, -326.8], max: [-21, 20, -325], dir: [0, 0, 1], killY: 4 });
+  new Brink(W, { min: [-22.6, 19, -333], max: [-21, 20, -325], dir: [1, 0, 0], killY: 4 });
+  say([-27, 19, -333], [-21, 22, -325], 'Slime molds at the edges: a burst beside one <b>bowls it off</b>.', 4);
   // the crumbling bough (the last stretch only looks sound) over a thorn net
   B.crumble({ min: [-21, 15.5, -330], max: [-16, 16, -328], delay: 0.7, respawn: 4, zone });
   B.crumble({ min: [-16, 15.5, -330], max: [-11, 16, -328], delay: 0.7, respawn: 4, zone });
@@ -828,16 +970,22 @@ export function buildVerdant(B) {
   B.spikes([-17, 11.2, -332], [-5, 11.9, -326], { color: GREEN });
   bough(-6, -332, 2, -322, 16, 2);
   cp([-2, 16, -327], SOUTH, [6, 3, 5]);
-  B.enemy('drone', [8, 22, -318], { color: GREEN, range: 22 });
-  B.slime([0.5, 16, -323.5], { color: GREEN, core: RED });
+  B.enemy('drone', [8, 22, -318], { color: GREEN, shields: [RED], range: 24 });
+  B.slime([0.5, 16, -323.5], { color: RED, core: GREEN });
   // the phase pair: green builds one stone and dissolves the other, yellow the reverse — switch mid-jump
   const A1 = B.phasePlatform({ min: [-3.5, 16.3, -319], max: [-0.5, 16.8, -316], color: GREEN, zone });
   const B1 = B.phasePlatform({ min: [-3.5, 16.9, -313], max: [-0.5, 17.4, -310], color: YELLOW, zone });
   sw({ pos: [-6.5, 19.5, -317.5], style: 'orb', color: GREEN, mode: 'pulse', size: 1.3, links: [{ activate: () => (A1.set(true), B1.set(false)) }] });
   sw({ pos: [3, 20.5, -311.5], style: 'orb', color: YELLOW, mode: 'pulse', size: 1.3, links: [{ activate: () => (B1.set(true), A1.set(false)) }] });
-  say([-6, 16, -332], [2, 19, -322], `${G_('Green')} builds the near stone, ${Y_('yellow')} the far one — but each dissolves the other. Shoot yellow <b>in mid-air</b>.`, 7);
-  bough(-4, -307, 0, -304, 18, 1.5);
+  say([-6, 16, -332], [2, 19, -322], `${G_('Green')} builds the near stone, ${Y_('yellow')} the far one — but each dissolves the other. Burn yellow <b>in mid-air</b>.`, 7);
+  // the crown pad, swallowed by a hive nest: burst it (and whatever lives in it)
+  bough(-4, -308.6, 0, -304, 18, 1.5);
   new JumpPad(W, { pos: [-2, 18, -305.5], power: 23, push: [0, 0, 4.5], color: 0x7dff8a });
+  const padNest = new Thicket(W, {
+    min: [-2.9, 18, -306.4], max: [-1.1, 19.5, -304.6], style: 'nest', seed: 5,
+    onBreak: () => B.enemy('swarm', [-2, 21, -306], { color: GREEN, count: 4, aggro: true }),
+  });
+  say([-4, 18, -308.6], [0, 21, -304], 'A hive nest has swallowed the jump pad. <b>Burst it</b> — and mind what lives in it.', 5);
 
   // ================================================================ THE GREAT TREE and C2 · THE CROWN NEST (y 26)
   const TR = { x1: -7.5, x2: 7.5, z1: -293.5, z2: -278.5 };
@@ -893,24 +1041,27 @@ export function buildVerdant(B) {
     waves: [
       [
         { type: 'drone', pos: [-10, 31, -297], color: GREEN },
-        { type: 'drone', pos: [10, 31, -275], color: [GREEN, YELLOW] },
-        { type: 'swarm', pos: [0, 30, -298], color: [GREEN, RED], count: 6, delay: 1.5 },
+        { type: 'drone', pos: [10, 31, -275], color: GREEN, shields: [YELLOW] },
+        { type: 'swarm', pos: [0, 30, -298], color: GREEN, count: 6, delay: 1.5 },
+        { type: 'slime', pos: [-10, 26, -275], color: GREEN, core: GREEN, delay: 2 },
+        { type: 'slime', pos: [-8.6, 26, -276.4], color: GREEN, core: GREEN, size: 0.85, delay: 2.1 },
       ],
       [
-        { type: 'warden', pos: [11, 30, -286], shield: GREEN, core: YELLOW },
-        { type: 'turret', pos: [0, 28.2, -293.55], color: GREEN, mount: [0, 0, -1], delay: 0.6 },
-        { type: 'mortar', pos: [-11, 26, -274], color: RED, delay: 1.4 },
-        { type: 'swarm', pos: [-11, 30, -286], color: RYG, count: 6, delay: 2.5 },
-        { type: 'spider', pos: [10, 26, -274], color: [GREEN, RED], delay: 3 },
+        { type: 'warden', pos: [11, 30, -286], shield: YELLOW, core: GREEN },
+        { type: 'turret', pos: [0, 28.2, -293.55], color: GREEN, shields: [RED], mount: [0, 0, -1], delay: 0.6 },
+        { type: 'mortar', pos: [-11, 26, -274], color: GREEN, shields: [YELLOW], delay: 1.4 },
+        { type: 'swarm', pos: [-11, 30, -286], color: GREEN, count: 6, delay: 2.5 },
+        { type: 'spider', pos: [10, 26, -274], color: GREEN, shields: [RED], delay: 3 },
       ],
       { title: 'FINAL WAVE', enemies: [
         { type: 'warden', pos: [-11, 30, -296], shield: RED, core: GREEN },
-        { type: 'drone', pos: [10, 32, -290], color: GREEN, delay: 0.5 },
-        { type: 'drone', pos: [-10, 32, -276], color: GREEN, delay: 0.9 },
-        { type: 'turret', pos: [0, 28.2, -278.45], colors: [GREEN, RED], mount: [0, 0, 1], delay: 1.2 },
-        { type: 'swarm', pos: [0, 30, -274], color: [GREEN, YELLOW], count: 8, delay: 2.5 },
-        { type: 'slime', pos: [-10, 26, -298], color: GREEN, core: RED, delay: 3 },
-        { type: 'slime', pos: [10, 26, -296], color: GREEN, core: YELLOW, delay: 3.3 },
+        { type: 'brute', pos: [8, 26, -276], color: GREEN, shields: [YELLOW, RED], delay: 0.4 },
+        { type: 'drone', pos: [10, 32, -290], color: GREEN, shields: [RED], delay: 0.8 },
+        { type: 'drone', pos: [-10, 32, -276], color: GREEN, shields: [YELLOW], delay: 1 },
+        { type: 'turret', pos: [0, 28.2, -278.45], color: GREEN, shields: [YELLOW, RED], mount: [0, 0, 1], delay: 1.2 },
+        { type: 'swarm', pos: [0, 30, -274], color: GREEN, count: 8, delay: 2.5 },
+        { type: 'slime', pos: [-10, 26, -298], color: RED, core: GREEN, delay: 3 },
+        { type: 'slime', pos: [10, 26, -296], color: YELLOW, core: GREEN, delay: 3.3 },
       ] },
     ],
   });
@@ -949,7 +1100,7 @@ export function buildVerdant(B) {
   corridorX({ xStart: SD.x2 + 0.6, xEnd: 39.4, y: 12, zone, cz: -298 });
   cp([22.5, 12, -298], EAST, [3, 3, 3]);
   area([21, 12, -299.5], [24, 15, -296.5], MOOD);
-  B.turret([31, 15.2, -298], RED, { mount: 'ceiling' });
+  B.turret([31, 15.2, -298], GREEN, { shields: [RED], mount: 'ceiling' });
   for (const x of [26, 34]) bark(x - 0.8, -29, -299, x + 0.8, 11, -297);
   // the sinker sits in a slot in the sluice house's west wall
   bark(39.4, 6, -299.5, 40, 8.6, -296.5);
@@ -968,12 +1119,12 @@ export function buildVerdant(B) {
   const raft2 = B.shotMover({ min: [47.5, 11.4, -296], max: [50.5, 12, -293], path: [0, 0, 11], color: GREEN, mode: 'push', back: 1.1, kick: 1.1, zone });
   const gateA = B.shotRotor({ pivot: [44, 12, -291], parts: [[0, 0, -0.3, 7.5, 3.6, 0.3]], axis: 'y', dir: 1, color: YELLOW, zone, kind: 'wall' });
   const gateB = B.shotRotor({ pivot: [44, 12, -287], parts: [[0, 0, -0.3, 7.5, 3.6, 0.3]], axis: 'y', dir: -1, color: RED, zone, kind: 'wall' });
-  B.turret([57.95, 15.5, -289], YELLOW, { mount: [-1, 0, 0] });
-  B.enemy('drone', [49, 17, -280], { color: RED, range: 20 });
+  B.turret([57.95, 15.5, -289], GREEN, { shields: [YELLOW], mount: [-1, 0, 0] });
+  B.enemy('drone', [49, 17, -280], { color: GREEN, shields: [RED], range: 22 });
   lamp(49, 18, -288, 0x9dffb0, 30, 28);
-  B.spiderBot([56, 18.8, -279], { color: [GREEN, RED], ceiling: true, leash: 9 });
-  B.slime([52, 12, -278.5], { color: GREEN, core: YELLOW });
-  B.slime([42.5, 12, -279], { color: GREEN, core: RED, size: 0.85 });
+  B.spiderBot([56, 18.8, -279], { color: GREEN, shields: [RED], ceiling: true, leash: 9 });
+  B.slime([52, 12, -278.5], { color: YELLOW, core: GREEN });
+  B.slime([42.5, 12, -279], { color: GREEN, core: GREEN, size: 0.85 });
   cp([44, 12, -298], EAST, [5, 3, 3]);
   cp([46.5, 12, -279], SOUTH, [6, 3, 4]);
   say([40, 12, -300], [58, 15, -296], `Ride the raft: keep it moving with ${G_('green')}. Swing the gates out of the lane with their own colors — the raft won't push you into one.`, 7);
@@ -1116,7 +1267,7 @@ export function buildVerdant(B) {
   })();
   // fireflies: the jungle's ambient life, wandering in little clouds near the paths
   const flies = (() => {
-    const spots = [[25, 5.5, -164, 5], [-10, 5.5, -168, 6], [-22, 6.5, -190, 5], [3, 7, -188, 4], [0, 6, -209, 8], [-52, -23.5, -281, 6], [-81, -22, -281, 9], [-83, -18, -320, 8], [-55, 16, -329, 4], [0, 28, -286, 10], [0, 22.5, -268, 3], [49, 14, -279, 5], [-83, -23.5, -302, 2], [-104.5, -23.5, -270, 2], [49, 14, -298, 4]];
+    const spots = [[25, 5.5, -164, 5], [-10, 5.5, -168, 6], [-22, 6.5, -190, 5], [3, 7, -188, 4], [-8, 6, -209, 6], [17, 8, -208.5, 3.5], [20, 10.5, -193, 4], [-24, 9.5, -229, 4], [-52, -23.5, -281, 6], [-81, -22, -281, 9], [-83, -18, -320, 8], [-55, 16, -329, 4], [0, 28, -286, 10], [0, 22.5, -268, 3], [49, 14, -279, 5], [-83, -23.5, -302, 2], [-104.5, -23.5, -270, 2], [49, 14, -298, 4]];
     const N = spots.length * 22, base = new Float32Array(N * 3), pos = new Float32Array(N * 3), ph = new Float32Array(N);
     let k = 0;
     for (const [x, y, z, r] of spots)
@@ -1437,6 +1588,14 @@ export function buildVerdant(B) {
     }
     for (const [x, z, s] of [[-78, -315, 1.2], [-75, -309, 0.9], [-88, -318, 0.8]]) rootBurst(x, VA.y, z, s);
     root(-80, -20.5, -334.6, 7, 0, 0.35, 0.3); // up the north wall toward the leaf's stem
+    // the Seed's bed in the cage: a mound of moss and four roots curling up round it from the corners
+    put(mossMat, new THREE.IcosahedronGeometry(1.6, 1).scale(1.4, 0.22, 1.4), -83, -20.4, -328);
+    for (const [dx, dz] of [[-2.3, -2.3], [2.3, -2.3], [2.3, 2.3], [-2.3, 2.3]]) {
+      const yaw = Math.atan2(-dz, dx); // (leans it in toward the Seed)
+      root(-83 + dx, -20.5, -328 + dz, 2.6, yaw, 0.95, 0.16);
+      root(-83 + dx * 0.4, -19, -328 + dz * 0.4, 1.4, yaw, 0.3, 0.1);
+    }
+    glowPatch(-85.6, -330.6, -80.4, -325.4, -20.5, 8, 0.6);
     root(-86, -20.5, -334.6, 6, 0, -0.3, 0.25);
     for (let i = 0; i < 26; i++) hangMoss(R(VA.x1 + 1, VA.x2 - 1), top, R(VA.zN + 1, VA.zS - 1), R(1, 4));
     put(mossMat, boxGeo(8.1, 0.06, 15.1, 0.5), -96, -20.47, -327.5);
@@ -1482,6 +1641,53 @@ export function buildVerdant(B) {
     mist(49, 11.7, -289, 18, 14);
     drips([[51, top, -287, 11.4, 2.5]]);
     doorVines(45, -276.1, 48, -276, SL.y + 3.2);
+  }
+  // ---- THE SEED SHRINE: four great roots climb out of the bank round the dais and knot together high over
+  // the core, hung with glowing fruit and moss; a shaft of light falls through the canopy onto it
+  {
+    const C = [17, -208.5], knotY = 13.6;
+    // a root as a chain of tapering limbs through the given points
+    const limb = (pts, r0, r1) => {
+      for (let i = 0; i < pts.length - 1; i++) {
+        const [ax, ay, az] = pts[i], [bx, by, bz] = pts[i + 1];
+        const dx = bx - ax, dy = by - ay, dz = bz - az, len = Math.hypot(dx, dy, dz);
+        const r = r0 + (r1 - r0) * (i / (pts.length - 1));
+        root(ax, ay, az, len + r * 0.6, Math.atan2(dz, -dx), Math.acos(dy / len), r);
+        if (i < pts.length - 2) put(barkMat, new THREE.IcosahedronGeometry(r * 0.78, 1), bx, by, bz); // a knuckle at each bend
+      }
+    };
+    for (const [bx, bz, s] of [[10.8, -214, 1], [24.5, -214.2, 1.1], [25.2, -203.6, 0.9], [10.5, -203.4, 1]]) {
+      const at = (u, y, out = 0) => [bx + (C[0] - bx) * u - (C[0] - bx) * out, y, bz + (C[1] - bz) * u - (C[1] - bz) * out];
+      // up out of the paving, bowing outward, then arching in over the core
+      limb([[bx, 3.4, bz], at(0.04, 6.5 * s, 0.06), at(0.2, 10.2 * s, 0.04), at(0.5, knotY + 1.1), at(0.8, knotY + 0.8), [C[0], knotY, C[1]]], 0.85 * s, 0.32);
+      limb([at(0.1, 5, 0), at(0.3, 7.8, -0.05), at(0.45, 9.2 * s, 0.02)], 0.28, 0.14); // a side shoot
+      for (let i = 0; i < 4; i++) {
+        const u = R(0.25, 0.85);
+        bud(bx + (C[0] - bx) * u + R(-0.3, 0.3), 3.6 + (knotY - 3.6) * Math.min(1, u * 1.3) + 0.2, bz + (C[1] - bz) * u, R(0.9, 1.4));
+      }
+      put(barkMat, new THREE.IcosahedronGeometry(1.1 * s, 1).scale(1.3, 0.5, 1.3), bx, 4.2, bz); // the foot, heaving the paving
+      rootBurst(bx + (C[0] - bx) * 0.12, 4.5, bz + (C[1] - bz) * 0.12, 0.8);
+    }
+    put(barkMat, new THREE.IcosahedronGeometry(1.4, 1).scale(1, 0.7, 1), C[0], knotY + 0.3, C[1]);
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * PI * 2, r = R(0.4, 1.1);
+      hangMoss(C[0] + Math.cos(a) * r, knotY - 0.2, C[1] + Math.sin(a) * r, R(1.2, 3));
+    }
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * PI * 2 + 0.3;
+      put(capMat, new THREE.SphereGeometry(R(0.16, 0.26), 8, 6), C[0] + Math.cos(a) * 0.9, knotY - R(0.8, 1.6), C[1] + Math.sin(a) * 0.9); // glowing fruit hanging off the knot
+    }
+    shaft(C[0], 34, C[1], 29, 3, 0.05);
+    shaft(C[0] + 0.6, 30, C[1] - 0.4, 25, 1.6, 0.03);
+    put(mossMat, boxGeo(7.6, 0.05, 7.6, 0.5), C[0], 5.72, C[1]);
+    for (let i = 0; i < 10; i++) fern(R(13.6, 20.4), 5.7, R(-212, -205), R(0.4, 0.7), 5);
+    glowPatch(13.4, -212.2, 20.6, -204.8, 5.7, 14, 0.5);
+    mist(C[0], 5.9, C[1], 12, 12);
+    // hive nests clinging to the gun perches' backs: the hive network that answers the theft
+    for (const [x, y, z, s] of [[-10.5, 6.8, -220.3, 1], [-6, 6.8, -220.6, 0.8], [23.5, 7.2, -220.4, 0.9], [27, 7.2, -220.5, 1.1]]) {
+      for (let i = 0; i < 4; i++) put(boneMat, new THREE.IcosahedronGeometry(R(0.45, 0.8) * s, 1).scale(1, R(0.7, 1.1), 0.8), x + R(-0.6, 0.6), y + R(0.3, 1.1), z + R(-0.2, 0.2));
+      for (let i = 0; i < 7; i++) put(goldMat, new THREE.CylinderGeometry(0.09, 0.09, 0.1, 6).rotateX(PI / 2), x + R(-0.8, 0.8), y + R(0.4, 1.5), z + 0.62);
+    }
   }
   // ---- the gatehouses at the Hub ports (kept low under the Hub's windows)
   overgrow('z', -11.5, 1, -158.5, -148.5, 4, 7.2, { roots: false, holes: [{ c: -153.5, w: 2.4, h: 3 }] });
@@ -1606,29 +1812,30 @@ export function buildVerdant(B) {
   // ================================================================ WAYFINDING
   const GREEN_HEX = 0x3dff7a;
   guideStrip([[-10, 4, -160], [-12, 4, -168], [-19.5, 4, -171.6]], 0xd2ffb8);
-  guideStrip([[2, 4.5, -205.5], [-20, 4.5, -209], [-24, 4.5, -212.8]], 0xd2ffb8);
+  guideStrip([[15, 9, -197.3], [22.5, 9, -197.3]], 0xd2ffb8);
+  guideStrip([[-10, 4.5, -210.5], [-17.2, 4.5, -210.5]], 0xd2ffb8);
   guideStrip([[-81, -25, -296], [-83, -25, -298.5]], 0xd2ffb8);
   beacon(W, -20, 4.5, -175.5, GREEN_HEX, 6);
-  beacon(W, -25, 3, -249, GREEN_HEX, 6);
-  beacon(W, -2, 18, -305.5, GREEN_HEX, 5);
+  beacon(W, -25, 6, -250, GREEN_HEX, 6);
+  beacon(W, -2, 18, -306.5, GREEN_HEX, 5);
   beacon(W, 46.5, 12, -279, GREEN_HEX, 4);
-  // carrying green out of the cage: the way on is up
-  W.trigger([-92, -20.5, -335], [-70, -16, -331], () => game.blaster.unlocked[GREEN] && riser.u < 0.5 && game.hud.message(`Ride the ${G_('green riser')} up: <b>hold fire on it</b>.`, 4), { once: false });
+  // the Seed awake: the way on is up
+  W.trigger([-92, -20.5, -335], [-70, -16, -331], () => seed.on && riser.u < 0.5 && game.hud.message(`Ride the ${G_('green riser')} up: <b>hold fire on it</b>.`, 4), { once: false });
 
   // ================================================================ STATE (guide.js) and DEV STARTS
-  level.verdant = { raft1, bankFight, arms, phaseA, phaseB, greenhouse, rack, cage: () => cageOpen, riser, A1, B1, crownFight, sinker, raft2, gateA, gateB, arena, homeDoor };
-  devStart('verdant', [-10, 4, -151], NORTH, RY);
-  devStart('verdant1', [-18, 5, -186.5], EAST, RY); // the moat: island one
-  devStart('verdant2', [3.5, 5.6, -186], NORTH, RY); // island two and the raft
-  devStart('verdant3', [3.5, 4.5, -205.6], WEST, RY); // the Ruin Bank (ambush)
-  devStart('verdant4', [-24, 4.5, -210.5], NORTH, RY); // the root bridge
-  devStart('verdant5', [-25, 3, -249], WEST, RY); // the Hollow descent
-  devStart('verdant6', [-62, -25, -281], WEST, RY); // the Greenhouse door
-  devStart('verdant7', [-83, -25, -302], NORTH, RY); // the Seed Vault
-  devStart('verdant8', [-55, 14, -329], EAST, RYG); // the canopy
-  devStart('verdant9', [-2, 16, -327], SOUTH, RYG); // the phase pair and the crown pad
-  devStart('verdant10', [-2, 26, -298.5], SOUTH, RYG); // the Crown Nest
-  devStart('verdant11', [22.5, 12, -298], EAST, RYG); // the sinker race and the sluice
-  devStart('verdant12', arena.checkpoint, EAST, RYG); // the Thornmaw
-  devStart('verdant13', [80, 12, -239], WEST, RYG); // the way home
+  level.verdant = { core, hive, bramble, arms, bulbs, pairLock, stoneLock, phase, greenhouse, rack, seed, riser, A1, B1, padNest, crownFight, sinker, raft2, gateA, gateB, arena, homeDoor };
+  devStart('verdant', [-10, 4, -151], NORTH, RY, 'The Verdant gate');
+  devStart('verdant1', [-18, 5, -186.5], EAST, RY, 'The sludge moat');
+  devStart('verdant2', [3.5, 5.6, -186], EAST, RY, 'Island two: up onto the plateau');
+  devStart('verdant3', [24.5, 4.5, -205.5], WEST, RY, 'The Seed Shrine (the green core)');
+  devStart('verdant4', [-15.5, 4.5, -210.5], WEST, RYG, 'The terrace: first rocket jump');
+  devStart('verdant5', [-24, 7.9, -212.5], NORTH, RYG, 'The root bridge (spore bulbs)');
+  devStart('verdant6', [-25, 6, -250], WEST, RYG, 'The Hollow descent (splash switch)');
+  devStart('verdant7', [-62, -25, -281], WEST, RYG, 'The Greenhouse (arena)');
+  devStart('verdant8', [-83, -25, -302], NORTH, RYG, 'The Seed Vault (bank shot, riser)');
+  devStart('verdant9', [-55, 14, -329], EAST, RYG, 'The canopy (second rocket jump)');
+  devStart('verdant10', [-2, 26, -298.5], SOUTH, RYG, 'The Crown Nest (arena)');
+  devStart('verdant11', [22.5, 12, -298], EAST, RYG, 'The sinker race and the sluice');
+  devStart('verdant12', arena.checkpoint, EAST, RYG, 'The Thornmaw');
+  devStart('verdant13', [80, 12, -239], WEST, RYG, 'The way home');
 }

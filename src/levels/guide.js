@@ -127,57 +127,75 @@ function azureAfter(p, game) {
   return 'Climb on through the station to its engine.';
 }
 
-// ---- Verdant (one loop; green is picked up in the Seed Vault halfway): the next step for the stretch you're in
+// ---- Verdant (one loop; green waits in the Seed Shrine just past the moat): the next step for the stretch you're in
 function verdantObjective(game) {
   const p = game.player.pos, v = game.level.verdant || {}, green = game.blaster.unlocked[GREEN];
   const fought = (e) => e && e.state !== 'armed' && e.state !== 'cleared';
+  const G = (t) => tag(GREEN, t);
   if (game.isWorldDown?.('verdant')) {
     if (p.y > 11 && p.x > 7.5 && p.x < 12.5) return 'Follow the aqueduct home to the Nexus: blast each gate with its color.';
     return `The engine is dead. Take the <b>bridge west</b> from the courtyard's south gate and the aqueduct home.`;
   }
+  if (p.y > 11 && p.z > -158.5 && p.x > 7) return `A dead end from this side. Drop to the Nexus floor and take the ${tag(YELLOW, 'yellow gate')} in the north wall.`;
   if (!green) {
-    if (p.y > 11 && p.z > -158.5 && p.x > 7) return `A dead end from this side. Drop to the Nexus floor and take the ${tag(YELLOW, 'yellow gate')} in the north wall.`;
-    if (p.z > -172) return `Cross the sludge moat: hop the stones, breaking the ${tag(RED, 'red')} and ${tag(YELLOW, 'yellow')} spikes on them first.`;
+    if (p.z > -172) return 'Cross the sludge moat on the stepping stones.';
     if (p.z > -203 && p.y > 3) {
-      if (p.x < -14.5 && p.z > -184) return `Break the spikes on each stone with its own color, then hop on to the island.`;
-      if (p.x < 0.5) return 'Hop east over the crumbling stones to the second island. <b>Don\'t stop on the last one.</b>';
-      return `Ride the raft north to the bank: <b>keep shooting it</b> ${tag(RED, 'red')}.`;
+      if (p.x < -14.5) return 'Hop east over the crumbling stones to the second island. <b>Don\'t stop on the last one.</b>';
+      if (p.x < 14) return 'Climb the root stumps <b>north-east</b> onto the great tree\'s plateau.';
+      return 'From the plateau\'s north edge, hop down the stone to the bank and the <b>shrine</b>.';
     }
-    if (p.z > -214 && p.y > 3) {
-      if (fought(v.bankFight)) return 'Ambush! Clear the bank.';
-      return `Head for the gateway at the bank's <b>west</b> end and the root bridge beyond.`;
-    }
-    if (p.x > -26 && p.x < -22 && p.z > -246 && p.y > 3) return 'Swing each root arm with its color until it <b>points back at you</b>, then walk out along it.';
-    if (p.x > -60 && p.z < -244 && p.y > -1 && p.x > -50) return 'Cross the walkway west. <b>Sprint</b> over its sagging middle.';
-    if (p.x > -60 && p.z < -244 && p.y > -11) return `Shoot the ${tag(RED, 'red')} and ${tag(YELLOW, 'yellow')} orbs, then hop down the phase stones while they hold.`;
-    if (p.x > -44 && p.y > -21) return 'Hop down the root steps west to the dock.';
-    if (p.x > -60) return 'Into the <b>greenhouse</b> through the tunnel in the west wall.';
-    if (p.z > -299.5) return fought(v.greenhouse) ? 'Clear the <b>Greenhouse</b>.' : 'On through the north door to the <b>Seed Vault</b>.';
-    if (v.cage && !v.cage()) {
-      if (p.y > -21) return `Bank ${tag(YELLOW, 'yellow')} off the <b>mirrored leaf</b> above the cage so it drops onto the cage floor.`;
+    return `Take the ${G('VERDANT core')} from the shrine's cradle of roots.`;
+  }
+  // ---- green in hand
+  if (fought(v.hive)) return `The hive's awake: clear the bank. ${G('Globs')} burst through clumps; lob them over the parapets.`;
+  if (p.z > -214 && p.y > 3 && p.y < 16 && p.x > -30.5 && p.x < 30.5) {
+    if (p.z > -203) return v.hive?.state === 'cleared' ? 'The way on is the gateway on the terrace at the bank\'s <b>west</b> end.' : 'Back to the shrine on the far bank.';
+    if (p.y < 7.6) return `Up onto the terrace at the <b>west</b> end: look down, then <b>jump and fire a ${G('glob')} together</b>.`;
+    if (v.bramble && !v.bramble.broken) return `Burst the brambles in the gateway with a ${G('glob')}.`;
+    if (!v.arms?.[0]?.swung) return `Lob a ${G('glob')} over the root wall on the first column: the bulb behind it swings its arm across.`;
+    return 'Out along the root arm to the first column.';
+  }
+  if (p.x > -30.5 && p.x < -20 && p.z > -246.5 && p.y > 6) {
+    const next = (v.arms || []).findIndex((a) => !a.swung);
+    if (next === 0) return `Lob a ${G('glob')} over the root wall on the first column: the bulb behind it swings its arm across.`;
+    if (next === 1) return `Drop a ${G('glob')} into the hollow stump on the next column.`;
+    if (next === 2) return `Land one ${G('glob')} between the two bulbs: one burst has to catch both.`;
+    return 'Over the last root arm to the ledge beyond.';
+  }
+  const hollow = p.x > -60 && p.z < -244 && p.z > -292; // the descent down the Hollow's west side
+  if (hollow && p.y > 2) return 'Down the stones <b>west</b>, onto the old walkway.';
+  if (hollow && p.y > -1 && p.x > -50) return 'Cross the walkway west. <b>Sprint</b> over its sagging middle.';
+  if (hollow && p.y > -11) return v.stoneLock?.on ? 'Down the stones while they hold!' : `Splash all three bulbs on the wall shelf with <b>one</b> ${G('glob')}, then hop down the stones while they hold.`;
+  if (hollow && p.x > -44 && p.y > -21) return 'Hop down the root steps west to the dock.';
+  if (hollow && p.y > -26) return 'Into the <b>greenhouse</b> through the tunnel in the west wall.';
+  if (p.x < -60 && p.z > -299.5 && p.y < -20) return fought(v.greenhouse) ? 'Clear the <b>Greenhouse</b>.' : 'On through the north door to the <b>Seed Vault</b>.';
+  if (p.x < -69.5 && p.z < -299.5 && p.y < -9) {
+    if (v.seed && !v.seed.on) {
+      if (p.y > -21) return `Bank a ${G('glob')} off the <b>mirrored leaf</b> so it drops into the Seed's glass cage.`;
       return 'Shoot the arrows beside each ledge on the west wall to line the four up into a <b>staircase</b> to the balcony.';
     }
-    return `Take the ${tag(GREEN, 'VERDANT core')} from the cage.`;
+    return `Stand on the ${G('green riser')} by the east wall and <b>keep globbing it</b> to climb to the door.`;
   }
-  if (p.x < -69.5 && p.z < -299.5) return `Stand on the ${tag(GREEN, 'green riser')} by the east wall and <b>hold fire on it</b> to climb to the door.`;
-  if (p.x < -61 && p.z < -324 && p.z > -334) return `Burst each spore membrane with ${tag(GREEN, 'green')}, then ride the pad under it.`;
+  if (p.x < -61 && p.z < -324 && p.z > -334) return `Burst each spore membrane with a ${G('glob')}, then ride the pad under it.`;
   if (p.z < -315 && p.y > 13) {
-    if (p.x < -27) return `Cross the chroma vines with your blaster on ${tag(GREEN, 'green')}.`;
+    if (p.x < -30.5) return `Cross the chroma vines with your blaster on ${G('green')}.`;
+    if (p.x < -27 && p.y < 18.5) return `Rocket jump onto the high bough: look down, then <b>jump and fire a ${G('glob')} together</b>.`;
+    if (p.x < -21 && p.y > 18.5) return 'Bowl the slime molds off the bough with bursts beside them, then drop east onto the long bough.';
     if (p.x < -6) return 'Run the bough to the far platform — <b>don\'t stop</b>.';
-    return `${tag(GREEN, 'Green')} builds the near stone, ${tag(YELLOW, 'yellow')} the far one: jump, then shoot yellow in mid-air.`;
+    return `${G('Green')} builds the near stone, ${tag(YELLOW, 'yellow')} the far one: jump, then burn yellow in mid-air.`;
   }
-  if (p.z < -301 && p.z > -315 && p.y > 15) return 'Ride the jump pad onto the <b>Great Tree\'s crown</b>.';
+  if (p.z < -301 && p.z > -315 && p.y > 15) return v.padNest && !v.padNest.broken ? `Burst the hive nest that's swallowed the jump pad.` : 'Ride the jump pad onto the <b>Great Tree\'s crown</b>.';
   if (p.y > 20 && p.y < 23.5 && p.z > -271) return 'A quiet nest. The pad takes you back up.';
   if (p.y > 25 && Math.abs(p.x) < 14.5) {
     if (fought(v.crownFight)) return 'Clear the <b>Crown Nest</b>.';
-    return `Drop down the shaft at the deck's <b>north-east</b> corner: fire through each film's open end, ${tag(GREEN, 'green')}, ${tag(YELLOW, 'yellow')}, ${tag(RED, 'red')}.`;
+    return `Drop down the shaft at the deck's <b>north-east</b> corner: fire through each film's open end, ${G('green')}, ${tag(YELLOW, 'yellow')}, ${tag(RED, 'red')}.`;
   }
-  if (p.x > 13.5 && p.x < 20.6 && p.z < -294.5 && p.z > -301.5) return `Fire through each film's open end as you fall: ${tag(GREEN, 'green')}, ${tag(YELLOW, 'yellow')}, ${tag(RED, 'red')}.`;
-  if (p.x > 20 && p.x < 40 && p.z < -296 && p.z > -300) return `Keep the ${tag(GREEN, 'green sinker')} door shot down as you run at it.`;
-  if (p.x > 40 && p.x < 58.5 && p.z < -276 && p.z > -300.5) return `Push the raft south with ${tag(GREEN, 'green')}; swing the gates out of its lane with ${tag(YELLOW, 'yellow')} and ${tag(RED, 'red')}.`;
+  if (p.x > 13.5 && p.x < 20.6 && p.z < -294.5 && p.z > -301.5) return `Fire through each film's open end as you fall: ${G('green')}, ${tag(YELLOW, 'yellow')}, ${tag(RED, 'red')}.`;
+  if (p.x > 20 && p.x < 40 && p.z < -296 && p.z > -300) return `Keep the ${G('green sinker')} door globbed down as you run at it.`;
+  if (p.x > 40 && p.x < 58.5 && p.z < -276 && p.z > -300.5) return `Blast the raft south with ${G('globs')}; swing the gates out of its lane with ${tag(YELLOW, 'yellow')} and ${tag(RED, 'red')}.`;
   const boss = v.arena?.boss;
   if (p.x > 60.8 && p.x < 107.2 && p.z < -246.8 && p.z > -293.2) {
-    if (boss?.defeated) return `The Heart is exposed: shut it down with ${tag(GREEN, 'green')}.`;
+    if (boss?.defeated) return `The Heart is exposed: shut it down with ${G('green')}.`;
     return boss?.state === 'dormant' ? 'Into the courtyard.' : '';
   }
   return 'Through the courtyard gate: the guardian of the <b>Verdant Heart</b> waits.';
