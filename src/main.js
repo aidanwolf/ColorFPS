@@ -212,6 +212,7 @@ class Game {
     this.resize();
     this.bindUi();
     this.input.onLockChange = (locked) => this.onLockChange(locked);
+    this.input.onLockRefused = () => this.onLockRefused();
     this.touch = new TouchControls(this.input, { onPause: () => this.pause(), onMap: () => this.map.toggle() });
     this.hud.onColor = (i) => this.blaster.has && this.blaster.setColor(i);
     if (COARSE) this.enableTouch();
@@ -526,10 +527,19 @@ class Game {
     const t = Math.floor(this.stats.time);
     $('#pause-stats').textContent = `Time ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} · Secrets ${this.secretsFound}/${this.level.secretsTotal} · Deaths ${this.stats.deaths}`;
     this.showScreen('pause');
+    $('#pause-hint').classList.add('hidden');
     ads.safe(true);
     // free the cursor so the menu is clickable, even if something other than our canvas holds the lock
     // (e.g. a Bonus Round that ended with the pointer still captured)
     if (document.pointerLockElement) document.exitPointerLock();
+  }
+
+  // The browser wouldn't hand the mouse over yet (just after Esc): back to the pause menu, whose Resume
+  // asks again, instead of playing on with a loose cursor.
+  onLockRefused() {
+    if (this.state !== 'playing' || this.touchMode || this.input.lockFailed) return;
+    this.pause();
+    $('#pause-hint').classList.remove('hidden');
   }
 
   onLockChange(locked) {
@@ -1040,6 +1050,14 @@ class Game {
     this.world.updateCulling(this.camera.position, this.camera.far);
 
     this.input.active = this.state === 'playing';
+    // safety net: playing with the mouse loose and no fallback (a lock lost without any event) pauses, so the
+    // cursor never wanders over the page clicking other things
+    const loose = this.state === 'playing' && !this.touchMode && !this.input.locked && !this.input.lockFailed;
+    this.looseT = loose ? (this.looseT || 0) + dt : 0;
+    if (this.looseT > 1.2) {
+      this.looseT = 0;
+      this.pause();
+    }
     audio.setLoopsMuted(this.state !== 'playing');
     this.touch.show(this.touchMode && this.state === 'playing');
     if (this.state === 'playing') {
