@@ -449,7 +449,9 @@ export function buildRed(B) {
   vent(12, 4, -36);
   // SECRET (first visit): a disguised red door in the south wall of the east floor
   new Barrier(W, { min: [37.8, 4, -13.55], max: [40.2, 7, -12.95], color: RED, kind: 'door', zone });
-  room({ x1: 36, x2: 42, zS: -8, zN: -13, y: 4, h: 3.5, zone, n: [{ c: 39, w: 2.4, h: 3 }] });
+  // (its north wall sits 0.1 m inside the Gearworks' south wall, which already has the doorway: the same box
+  // twice z-fought into a flickering patch)
+  room({ x1: 36, x2: 42, zS: -8, zN: -12.9, y: 4, h: 3.5, zone, n: [{ c: 39, w: 2.4, h: 3 }] });
   trophy(39, 5, -10.5);
   W.deco(36.05, 6.6, -12, 36.1, 6.7, -9, 'glow0', zone);
   secretRoom([36, 4, -12.9], [42, 7.4, -8], 'Pressure Vault');
@@ -465,9 +467,8 @@ export function buildRed(B) {
   W.deco(QX1, 13.9, QZ1, QX2, 14, QZ2, 'glow0', zone);
   B.shieldedShaft({ x1: QX1, x2: QX2, z1: QZ1, z2: QZ2, floor: 0, capY: 10, zone, cap: { x1: QX1, x2: QX2, z1: QZ1, z2: -37.5 }, layers: [{ color: RED }, { color: RED }] });
   hint([13.6, 10, GN], [17.5, 13, -34], 'A <b>spike drop</b>. The shields swallow shots: fire through each one\'s <b>glowing open end</b> — the first from here, the next as you fall.', 7);
-  new Checkpoint(W, game, { pos: [15.5, 10, -35], yaw: 0, size: [3.5, 3, 3.5] });
-  // and one out of its foot, so a death on the Smelting Floor doesn't mean the spike drop again every time
-  new Checkpoint(W, game, { pos: [11, 0, -40.5], yaw: Math.PI / 2, size: [2.4, 3, 3] });
+  // (no checkpoint at the top or the foot of the shaft: a death in the Smelting Floor sends you back to the
+  // west landing, so every retry drops into the arena again — the designer's favourite hype moment)
 
   // ===================================================================== 7. THE SMELTING FLOOR (arena)
   const AX1 = -19.5, AX2 = 19.5, AS = -38.5, AN = -55.5, AH = 10;

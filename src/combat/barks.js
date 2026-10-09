@@ -312,6 +312,13 @@ class Barks {
   place(c, snap = false) {
     if (!c.g) return;
     const p = c.speaker.pos;
+    // (the Lumen's PA voice comes from everywhere: no distance or direction)
+    if (c.chain.pa) {
+      hold(c.chain.post.gain, audio.ctx.currentTime);
+      c.chain.post.gain.setValueAtTime(1, audio.ctx.currentTime);
+      c.chain.pan.pan.setValueAtTime(0, audio.ctx.currentTime);
+      return;
+    }
     const d = audio.distTo(p);
     const u = Math.max(0, Math.min(1, (d - VOICE_NEAR) / (VOICE_FAR - VOICE_NEAR)));
     const g = 1 - (1 - VOICE_FLOOR) * u * (2 - u); // eases out: most of the drop is over by mid-range
@@ -445,9 +452,43 @@ class Barks {
     const pan = ctx.createStereoPanner();
     tail.connect(lp).connect(out).connect(post).connect(pan).connect(audio.voiceBus);
     const room = ctx.createGain();
-    room.gain.value = VOICE_ROOM;
+    room.gain.value = fx.pa ? 0.9 : VOICE_ROOM;
     pan.connect(room).connect(audio.verbIn);
-    return (this.chains[persona] = { input, post, pan });
+    if (fx.pa) this.intercoms(pan, room);
+    return (this.chains[persona] = { input, post, pan, pa: !!fx.pa });
+  }
+
+  // The Lumen speaks over the facility's PA, from every intercom at once: the voice repeats from speakers
+  // further off down the halls (later, duller, panned about), and the whole lot rings down a long
+  // corridor echo into a big reverb.
+  intercoms(from, room) {
+    const ctx = audio.ctx;
+    for (const [t, g, p, f] of [[0.07, 0.6, -0.75, 3200], [0.15, 0.45, 0.8, 2600], [0.26, 0.32, -0.35, 2000], [0.4, 0.22, 0.5, 1600]]) {
+      const d = ctx.createDelay(1);
+      d.delayTime.value = t;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = f;
+      const gn = ctx.createGain();
+      gn.gain.value = g;
+      const pn = ctx.createStereoPanner();
+      pn.pan.value = p;
+      from.connect(d).connect(lp).connect(gn).connect(pn).connect(audio.voiceBus);
+      pn.connect(room);
+    }
+    // the corridor echo: a long slapback that feeds itself a few times, darker each pass
+    const echo = ctx.createDelay(1.5);
+    echo.delayTime.value = 0.52;
+    const fb = ctx.createGain();
+    fb.gain.value = 0.34;
+    const dark = ctx.createBiquadFilter();
+    dark.type = 'lowpass';
+    dark.frequency.value = 1800;
+    const send = ctx.createGain();
+    send.gain.value = 0.3;
+    from.connect(send).connect(echo).connect(dark).connect(fb).connect(echo);
+    dark.connect(audio.voiceBus);
+    dark.connect(room);
   }
 
   // ---------------------------------------------------------------- subtitles

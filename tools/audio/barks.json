@@ -142,17 +142,18 @@
     }
    },
    "fx": {
-    "hp": 320,
-    "lp": 5600,
+    "hp": 380,
+    "lp": 4200,
     "ring": 140,
     "ringType": "sine",
-    "ringMix": 0.22,
-    "formant": 2100,
-    "formantGain": 5,
-    "bits": 28,
-    "drive": 1.2,
+    "ringMix": 0.3,
+    "formant": 1900,
+    "formantGain": 7,
+    "bits": 16,
+    "drive": 2.6,
     "gain": 1.4,
-    "babble": 190
+    "babble": 190,
+    "pa": true
    }
   }
  },
