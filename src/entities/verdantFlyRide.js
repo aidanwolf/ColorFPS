@@ -69,7 +69,8 @@ let mountWingMat = null;
 function mountWing() {
   if (!mountWingMat) {
     mountWingMat = wingMaterial().clone();
-    mountWingMat.opacity = 0.26;
+    mountWingMat.opacity = 0.2;
+    mountWingMat.color.set(0x8aa898);
   }
   return mountWingMat;
 }
@@ -191,7 +192,6 @@ export class GiantFlyRide {
     this.world = world;
     this.game = world.game;
     this.opts = opts;
-    this.verdantCreature = true;
     const pts = path.map((p) => new THREE.Vector3(...p));
     this.start = start ? new THREE.Vector3(...start) : pts[0].clone();
     const first = pts[0].distanceTo(this.start) < 0.5 ? pts[1] : pts[0];
