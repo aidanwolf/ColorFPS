@@ -232,6 +232,9 @@ button {
 button:hover { background: rgba(255, 255, 255, 0.14); border-color: #fff; }
 button.primary { border-color: var(--yellow); }
 button.reward { border-color: var(--green); color: var(--green); }
+button.danger { border-color: var(--red); color: var(--red); }
+button.danger:hover { background: rgba(255, 51, 68, 0.16); }
+button:disabled { opacity: 0.4; cursor: default; }
 /* the Continue card (main.js showContinue): a look at the checkpoint, its name, how far through you are */
 #play-btn.continue:has(.cc:not(.hidden)) { padding: 0; min-width: min(460px, 92vw); text-align: left; border-color: var(--cc, var(--yellow)); background: rgba(8, 10, 18, 0.72); }
 #play-btn.continue:has(.cc:not(.hidden)) .play-label { display: none; }

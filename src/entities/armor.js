@@ -10,6 +10,9 @@ import * as THREE from 'three';
 import { audio } from '../audio.js';
 
 export const ARMOR_COLOR = 0x7ff6ff;
+// (loaded up front: a sound that's listed but never fetched plays nothing at all, not its stand-in)
+const ARMOR_SOUNDS = ['armor_pickup', 'armor_on', 'armor_break', 'shield_break', 'shield_absorb', 'shatter', 'boss_slam'];
+audio.manifest?.then(() => audio.prefetch(ARMOR_SOUNDS));
 // causes the shield doesn't stop
 // (lava and the other molten/acid pools, and a boss's stomps and charges, do break a shield)
 export const ARMOR_IGNORES = new Set(['spike', 'landing', 'fall', 'drown', 'sand', 'quicksand', 'crush', 'void']);
@@ -132,8 +135,10 @@ export class ArmorPickup {
     const p = this.pos.clone();
     p.y += 1.15;
     this.world.fx.burst(p, ARMOR_COLOR, { count: 60, speed: 6, life: 0.7, size: 0.25, gravity: 0 });
-    audio.sample(audio.sfxOr('armor_pickup', 'secret'), { gain: 0.9, rate: 1.1 });
-    audio.sample(audio.sfxOr('armor_on', 'charge_up'), { gain: 0.85, delay: 0.12 });
+    // SHIELDS ON: the music dips for a beat under the pickup chime and the power-up hum
+    audio.slam(0.45, 0.2, 0.9);
+    audio.sample(audio.sfxOr('armor_pickup', 'secret'), { gain: 1.5, rate: 1.1, vary: 0, dry: true });
+    audio.sample(audio.sfxOr('armor_on', 'charge_up'), { gain: 1.6, delay: 0.1, vary: 0 });
   }
 
   restore(effect = false) {

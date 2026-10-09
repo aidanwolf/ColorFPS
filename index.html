@@ -178,6 +178,17 @@
       <p class="small hidden" id="pause-hint">The browser needs one more click: press <b>Resume</b> again to grab the mouse.</p>
     </div>
 
+    <!-- New Game over a save asks first (main.js confirmNewGame) -->
+    <div id="screen-newgame" class="screen hidden">
+      <h2 class="danger">Start over?</h2>
+      <p class="tag" id="newgame-what">Your save will be erased.</p>
+      <p class="small">This can't be undone.</p>
+      <div class="buttons">
+        <button data-action="newgame-cancel" class="primary">Keep my save</button>
+        <button data-action="newgame-confirm" class="danger" id="newgame-confirm">Erase and start new</button>
+      </div>
+    </div>
+
     <div id="screen-victory" class="screen hidden">
       <h2 class="win">Warden Shattered</h2>
       <p class="tag">The spectrum is yours. Demo complete.</p>

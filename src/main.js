@@ -341,7 +341,9 @@ class Game {
       } else if (a === 'quit') location.reload();
       else if (a === 'revive') this.reviveTapped = true;
       else if (a === 'continue') this.resume();
-      else if (a === 'newgame') {
+      else if (a === 'newgame') this.confirmNewGame();
+      else if (a === 'newgame-cancel') this.showScreen('title');
+      else if (a === 'newgame-confirm' && !e.target.closest('button').disabled) {
         clearSave();
         location.reload();
       }
@@ -492,6 +494,20 @@ class Game {
     this.setAtmosphere(mood.atmosphere, true);
     this.showContinue(s);
     $('[data-action="newgame"]').classList.remove('hidden');
+  }
+
+  // New Game with a save: a second screen that names what will be lost, whose erase button only wakes
+  // up after a moment (a double-click can't wipe a save).
+  confirmNewGame() {
+    const pr = saveProgress(this, loadSave());
+    $('#newgame-what').innerHTML = pr
+      ? `Your save at <b style="color:${pr.color}">${pr.name}</b> (${pr.pct}% complete) will be erased.`
+      : 'Your save will be erased.';
+    const btn = $('#newgame-confirm');
+    btn.disabled = true;
+    clearTimeout(this.newGameT);
+    this.newGameT = setTimeout(() => (btn.disabled = false), 900);
+    this.showScreen('newgame');
   }
 
   // The title's Continue card: the checkpoint's name and number, the area, how far through the game you
