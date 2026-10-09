@@ -13,7 +13,7 @@ const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
 const _c = new THREE.Color();
 const UP = new THREE.Vector3(0, 1, 0);
-const CRUISE = [20.6, 26]; // travel altitude: above the water conduit, below the magma arteries
+const CRUISE = [20.6, 26]; // travel altitude: above the feeds (they're lower than this outside the rings), below the roof
 const BOUNDS = { x: 22.3, z1: -101.9, z2: -146.2 };
 const SPEED = 5.2;
 const falloff = (d, near, far) => THREE.MathUtils.clamp(1 - (d - near) / (far - near), 0, 1);
