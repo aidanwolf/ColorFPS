@@ -34,7 +34,8 @@ From the Hub you can **see into every world through big windows before you can e
 | Foundry annex (color-locked challenge rooms off the spawn room) | `redAnnex.js` | -45 → 45 | -25 → 30 | 100 → -38 (keep clear of red.js's rooms) |
 | The Hub | `hub.js` | -25 → 25 | 2 → 45 | -99.5 → -148.5 |
 | Prism Core (boss) | `prism.js` | -31 → 31 | -60 → -6 | -88 → -175 |
-| Solar | `solar.js` | -32 → -200 | -30 → 80 | -40 → -230 |
+| Solar | `solar.js` (+ `solarSky.js`, `solarScenery.js`; light puzzles in `entities/sunlight.js`) | -32 → -214 | -30 → 80 | -40 → -232 (the excavation under it: x -66 → -150, y -30 → -10, z -44 → -134) |
+| Solar's dune sea (the hovercraft run) | `solarDunes.js` (`buildDuneRun`) | -214 → -430 | -30 → 80 | -45 → -235; dock points x -216, z -56 (y -8, boarding) and x -216, z -200 (y -6, landing); the docks' open east edges meet Solar at x -212 |
 | Azure | `azure.js` | 32 → 200 | -80 → 40 | -40 → -230 |
 | Azure's Flooded Depths (inside Azure's box, behind the chasm's east cliff) | `azureFlooded.js` | 108 → 161 | -62 → 8 | -100 → -153 |
 | Verdant | `verdant.js` | -31 → 31 (wider, -110 → 110, once z < -235) | -5 → 60 (may go down to -40 once z < -178) | -148.5 → -380 |

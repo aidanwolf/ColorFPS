@@ -193,7 +193,7 @@ export function currentObjective(game) {
   }
   if (!has(YELLOW)) {
     if (where === 'red') return { html: foundryObjective(game) || `Fight north through the ${tag(RED, 'Crimson Foundry')} to the Nexus.`, color: COLORS[RED].css };
-    if (where === 'solar') return { html: solarObjective(game) || `Find the ${tag(YELLOW, 'SOLAR core')} somewhere below the mesas.`, door: null };
+    if (where === 'solar') return { html: solarObjective(game) || `Find the ${tag(YELLOW, 'SOLAR core')}: down the dig shaft beyond the overlook.`, door: null };
     return { html: `Enter the ${tag(YELLOW, 'SOLAR wing')}: the open yellow door on the <b>west</b> side of the Nexus.`, door: 'solar' };
   }
   if (!has(GREEN)) {

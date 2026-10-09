@@ -50,6 +50,8 @@ const LABELS = {
   hub: 'The Prism Atrium',
   boss: 'The Prism Warden (final boss)',
   solar: 'The Solar door',
+  dunes: 'The Dune Sea (hover-sled run)',
+  dunesEnd: 'The Dune Sea: arrival dock',
   verdant: 'The Verdant gate',
   azure: 'The Azure door',
   azurewell: 'The Azure well',
@@ -62,7 +64,7 @@ const LABELS = {
 // the four guardians and the finale, wherever their starts are (first match wins)
 const BOSSES = [
   { start: ['red7'], label: 'The Forge Titan', area: 'red' },
-  { start: ['solar11', 'sun_court', 'sphinx_court'], label: 'The Sphinx', area: 'solar' },
+  { start: ['solar15'], label: 'The Sphinx', area: 'solar' },
   { start: ['verdant12'], label: 'The Thornmaw', area: 'verdant' },
   { start: ['cistern'], label: 'The Leviathan', area: 'azure' },
   { start: ['boss'], label: 'The Prism Warden', area: 'prism' },

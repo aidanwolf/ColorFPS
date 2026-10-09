@@ -31,6 +31,10 @@ const firstColor = (c) => (Array.isArray(c) ? c[0] : c);
 
 // ---------- enemies from data ----------
 // spec: { type, pos: [x, y, z], color, ...options of that enemy's constructor }
+// Shields (entities/colorShield.js): { color: body, shields: [outer, ..., inner], shieldHp } on drones,
+// sub-drones, turrets, scarabs, spiders (any enemy on the drone / combat-kit / ground-kit bases); a legacy
+// palette `color: [body, ..., outer]` (or a turret's `colors`) reads as the body first, the LAST color the
+// outermost shield.
 //  'drone'  { color | [colors], hp, range, orbit, fireInterval }
 //  'subdrone' { color, hp, range, orbit, leash, standoff } (in water only)
 //  'swarm'  { color | colors: [..], count (4-8), divers }
@@ -81,9 +85,11 @@ export function spawnEnemy(world, spec) {
   return null;
 }
 
-// the color a spawn telegraph shows for a spec
+// the color a spawn telegraph shows for a spec: what you'll have to shoot first (its outer shield)
 function specHex(spec) {
-  const c = spec.type === 'warden' ? spec.shield ?? firstColor(spec.color) : firstColor(spec.colors ?? spec.color);
+  const pal = spec.colors ?? spec.color;
+  const outer = spec.shields?.length ? spec.shields[0] : Array.isArray(pal) && spec.type !== 'swarm' && spec.type !== 'fish' ? pal[pal.length - 1] : firstColor(pal);
+  const c = spec.type === 'warden' ? spec.shield ?? firstColor(spec.color) : outer;
   return typeof c === 'number' && COLORS[c] ? COLORS[c].hex : 0xffffff;
 }
 

@@ -28,10 +28,11 @@ class Director {
   }
 
   // Ask to attack. Returns true if `enemy` may fire / lunge now; it keeps the token for `hold` seconds
-  // (cover its wind-up and the shot). Call release() early if the attack is cancelled.
+  // (cover its wind-up and the shot). Call release() early if the attack is cancelled. An enraged enemy
+  // (entities/rage.js) pushes in: it may take one token past the cap.
   request(enemy, hold = 0.8) {
     if (this.holders.has(enemy)) return true;
-    if (this.holders.size >= this.tokens) return false;
+    if (this.holders.size >= this.tokens + (enemy.rage?.on ? 1 : 0)) return false;
     this.holders.set(enemy, hold);
     this.onGrant?.(enemy, this.holders.size); // combat/barks.js: "Flank it!" / "Pinning it down!"
     return true;

@@ -1,325 +1,147 @@
-// SOLAR — SUNSCORCH MESA, the yellow world: an outdoor solar-temple run under a hot, captive sun.
-// See LAYOUT.md for its region and Hub ports. The loop, in order (devStarts in brackets):
-//  [solar]   Hub west port (z -112, y 4) → SUNWARD OVERLOOK (calm vista; the Sun Gate straight ahead)
-//  [solar1]  THE SCORCH DESCENT  platforming: pillars over the quicksand basin, a red phase bridge on a
-//            timed orb, crumbling stones (the last one only LOOKS solid), a sun lance to time
-//  [solar2]  COLLECTOR YARD      combat: a two-wave ambush round the old collector tower
-//  [solar3]  THE SUNDIAL COURT   puzzle: two great sun-disc rotors to turn (red) before the bridge opens,
-//            then a riser + sinker race up to the exit ledge (green stairs bypass it later)
-//  [solar4]  THE SHADE SLOT      platforming: lances pour through the roof in waves; one patch of shade
-//            is a trapdoor (the Sunken Cache crawl hole is in the east wall)
-//  [solar5]  THE SUN WELL        ledges down the east wall to the YELLOW core on its dais; taking it
-//  [solar6]  wakes the SUN WELL AMBUSH (the arena: three waves, red then yellow)
-//  [solar7]  HELIOSTAT HALL      puzzle: two yellow receivers (one over the glass via the mirrors, one by a
-//            bank shot off a wall mirror) wake a jump pad that throws you up onto the terrace
-//  [solar8]  THE GLASS TERRACE + MIRROR MESA  platforming: a platform rack (red/yellow) up the mesa face,
-//            then red/yellow chroma platforms over the chasm with surprise spikes on the landing
-//  [solar9]  GNOMON SUMMIT       combat: the summit guard (the hop pad is sealed until it's clear)
-//  [solar10] jump-pad hops over the quicksand flats to the Sun Court
-//  [solar11] THE SUN COURT       the Sphinx (sphinxArena.js) and the sun-lens it guards: the world's POWER
-//            SOURCE. The collector array focuses the captive sun on the lens and the lens beams it to the
-//            Atrium's west wall. Shoot it YELLOW → game.shutDownWorld('solar'): the sun is eclipsed, dusk
-//            falls, the lances die, the haze stops, the quicksand stills, the mirrors stow.
-//  [solar12] SUNSET CAUSEWAY (y 12) → Hub west balcony port (z -136, y 12); one-way (a 4 m drop).
-// Color locks: GREEN grotto (overlook, secret), GREEN stairs (Sundial bypass), BLUE Eclipse Vault (causeway,
-// secret); the Sunken Cache (secret) needs no color.
-// Sun lances (focused sunlight) incinerate on touch; quicksand swallows you.
+// SOLAR — SUNSCORCH MESA, the yellow world: the Lumen's sun-farm round a captive sun, and the excavation
+// under it where the yellow core lies buried. See LAYOUT.md for its region and Hub ports. The loop, in
+// order (devStarts in brackets):
+//  [solar]   Hub west port (z -112, y 4) → THE SUNWARD OVERLOOK (y 4), a stair up to its survey platform
+//  [solar1]  (y 9.2): the whole world laid out ahead — the arrays, the receiver tower, the yard, the glass
+//            canyon, the dune sea, the Sun Court and its lens, the windmills and the farms to the horizon
+//            THE DIG SHAFT: the survey gantry over the excavation gives way: a long fall into the quicksand
+//            at the bottom of the shaft (it breaks the fall) — mash JUMP and wade to the tunnel
+//  [solar2]  THE DIG GALLERY (underground, no combat): scaffolds, crumbling planks and the plates of a buried
+//            machine over a deep quicksand pit, lamps and daylight through cracks; up to the vault door
+//  [solar3]  THE CORE VAULT: the YELLOW core on its dais in a shaft of sunlight (the unlock cutscene)
+//  [solar4]  THE FIRST LENS (puzzle, 1 mirror): turn the mirror so a shot off its face runs down the slot
+//            to the receiver; the door opens
+//  [solar5]  THE BANK (puzzle, 2 mirrors): bank a shot through the slot in the screen, across the pit, off
+//            the far mirror into the receiver behind the baffle → a hard-light bridge. A daylight crack and a
+//            tilting mirror burn through a sand-glass seal (the Sunken Cache, secret)
+//  [solar6]  THE GRAND LENS (puzzle, 4 mirrors): shoot the prism; its sunbeam must run round all four
+//            mirrors (the last one throws it up) into the sun-catcher that powers the lift to the surface
+//  [solar7]  THE MIRROR YARD (combat, the first yellow arena): rotatable solar panels round the yard to bank
+//            shots off, quicksand pools, three waves (yellow, with red shields)
+//  [solar8]  THE PANEL COURT (light puzzle): turn three panels so the sky-lens's beam reaches the gate's
+//            sun-catcher
+//  [solar9]  THE GLASS CANYON: aim the lens beam at the sand-glass wall (it boils away), then turn the next
+//            panel onto the catcher that wakes the jump pad
+//  [solar10] THE SUN BRIDGES (platforming + light): pillars over a deep quicksand chasm; turn the panel on
+//            each pillar onto its catcher to raise the next hard-light bridge; time the lance
+//  [solar11] THE SINKING FLATS: the only way on is down — drop into the quicksand basin and struggle to the lip
+//  [solar12] THE DOCK YARD (combat + light): turn the heliostat to sweep the sunbeam through the attackers
+//  [solar13] THE HOVER DOCK → the hovercraft dune run (solarDunes.js: buildDuneRun) over the dune sea →
+//  [solar14] THE SUN QUAY (puzzle): two heavy sun discs block the bridge over a quicksand channel — every two
+//            YELLOW hits turn one a quarter turn; turn both notches down — then the lift up the court mesa
+//  [solar15] THE SUN COURT: the Sphinx (sphinxArena.js) and the sun-lens it guards: the world's POWER SOURCE.
+//            Shoot it YELLOW → game.shutDownWorld('solar'): the sun is eclipsed, dusk falls, the beams die.
+//  [solar16] SUNSET CAUSEWAY (y 12) → Hub west balcony port (z -136, y 12); one-way (a 4 m drop).
+// Before the core: no fights and no gun puzzles. From the core on, every enemy's body is yellow with red layered
+// in (red shields on the stilt-walkers, scarabs, drones and turrets, a warden's red shell, the Sphinx's red paw
+// gems) so fights keep you switching 1 ↔ 2, and every shooting puzzle runs on yellow.
+// Color locks: GREEN grotto (overlook, secret), BLUE Eclipse Vault (causeway, secret); the Sunken Cache
+// (secret) is burned open with sunlight.
+// Light puzzles: src/entities/sunlight.js (RotMirror, LightReceiver, BurnWall, SunBeam, SunEmitter).
 import * as THREE from 'three';
 import { RED, YELLOW, GREEN, BLUE } from '../colors.js';
 import { Barrier } from '../entities/barrier.js';
 import { Drone } from '../entities/drone.js';
 import { JumpPad, Checkpoint } from '../entities/misc.js';
-import { Mirror, Glass, TargetPanel } from '../entities/puzzle.js';
-import { boxOverlap } from '../world.js';
+import { Elevator } from '../entities/elevator.js';
+import { PhasePlatform } from '../entities/mechanics.js';
+import { Seal } from '../entities/combat.js';
+import { RotMirror, LightReceiver, BurnWall, SunBeam, SunEmitter, LightShaft } from '../entities/sunlight.js';
 import { liquidMaterial } from '../liquid.js';
 import { mat } from '../materials.js';
 import { audio } from '../audio.js';
 import { buildSphinxArena } from './sphinxArena.js';
-import { regionOf } from './regions.js';
+import { SUN_DIR, inSolar, underground, POWER_ZONE, Sun, SunLance, hazeMat, heatHaze, hazeMeshes, CollectorArray, PowerBeam, DUSK, mergeBoxes } from './solarSky.js';
+import { solarScenery, PVArray } from './solarScenery.js';
 
-// where the sunlight comes from: west, a little north, 30° up (also the atmosphere's sunDir)
-const SUN_DIR = [-0.85, 0.5, -0.12];
-// the region (plus the Hub, whose west windows look out over it) — the sun only shows from here
-const inSolar = (p) => (p.x < -31.5 && p.x > -201 && p.z < -38 && p.z > -232 && p.y > -32) || (p.x < 25 && p.z < -99.5 && p.z > -148.5 && p.y > 2);
-// the glowing trims that run on sunlight (lance housings, collector rims): they go dark at the shutdown
-const POWER_ZONE = 'sunpower';
+// The hovercraft dune run is its own module (solarDunes.js). It's optional here: without it a stand-in
+// walkway joins the two docks, so the world still builds and plays.
+const duneModule = Object.values(import.meta.glob('./solarDunes.js', { eager: true }))[0] || null;
 
-// ------------------------------------------------------------------ the sun
-const NOISE = `
-  float hash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
-  float noise(vec3 x){
-    vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
-    return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x), mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
-               mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+const SOUNDS = ['floor_collapse', 'sand_sink', 'land_sand', 'elevator_start', 'gate_open', 'switch_on', 'energy_crackle', 'servo_heavy', 'hydraulic_hiss'];
+audio.manifest?.then(() => audio.prefetch(SOUNDS));
+
+const _v = new THREE.Vector3(), _q = new THREE.Quaternion(), _m = new THREE.Matrix4();
+const UP = new THREE.Vector3(0, 1, 0);
+
+// a rectangle minus rectangular holes, as a few rectangles ([u1, v1, u2, v2])
+function rectMinus(u1, v1, u2, v2, holes) {
+  const cl = (x, a, b) => Math.max(a, Math.min(b, x));
+  const uniq = (a) => [...new Set(a)].sort((p, q) => p - q);
+  const us = uniq([u1, u2, ...holes.flatMap((h) => [cl(h[0], u1, u2), cl(h[2], u1, u2)])]);
+  const vs = uniq([v1, v2, ...holes.flatMap((h) => [cl(h[1], v1, v2), cl(h[3], v1, v2)])]);
+  const inHole = (u, v) => holes.some((h) => u > h[0] && u < h[2] && v > h[1] && v < h[3]);
+  const out = [];
+  for (let j = 0; j < vs.length - 1; j++) {
+    let start = null;
+    const cv = (vs[j] + vs[j + 1]) / 2;
+    for (let i = 0; i < us.length - 1; i++) {
+      const solid = !inHole((us[i] + us[i + 1]) / 2, cv);
+      if (solid && start === null) start = us[i];
+      if (!solid && start !== null) (out.push([start, vs[j], us[i], vs[j + 1]]), (start = null));
+    }
+    if (start !== null) out.push([start, vs[j], us[us.length - 1], vs[j + 1]]);
   }
-  float fbm(vec3 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++){ s += a * noise(p); p *= 2.03; a *= 0.5; } return s; }`;
-
-// A huge churning sun with a corona whose rays fan downward. It rides along with the camera (always
-// the same spot in the sky, like a real sun) and fades out when you leave the Solar world and the Hub.
-// eclipse(): once the world's engine is shut down a shadow covers it, leaving a burning ring.
-class Sun {
-  constructor(W, game) {
-    this.game = game;
-    this.dir = new THREE.Vector3(...SUN_DIR).normalize();
-    this.fade = 1;
-    this.dist = 470;
-    this.ecl = 0; // 0 = blazing, 1 = eclipsed
-    this.eclTarget = 0;
-    const R = 66, S = 360;
-    this.discMat = new THREE.ShaderMaterial({
-      fog: false, transparent: true, depthWrite: false,
-      uniforms: { uTime: { value: 0 }, uFade: { value: 1 }, uEcl: { value: 0 } },
-      vertexShader: `
-        varying vec3 vN; varying float vMu;
-        void main(){
-          vN = normal;
-          vec4 wp = modelMatrix * vec4(position, 1.0);
-          vMu = clamp(dot(normalize(mat3(modelMatrix) * normal), normalize(cameraPosition - wp.xyz)), 0.0, 1.0);
-          gl_Position = projectionMatrix * viewMatrix * wp;
-        }`,
-      fragmentShader: `
-        uniform float uTime, uFade, uEcl; varying vec3 vN; varying float vMu;
-        ${NOISE}
-        void main(){
-          vec3 n = normalize(vN);
-          float churn = fbm(n * 3.5 + vec3(uTime * 0.03, -uTime * 0.025, uTime * 0.02));
-          float cells = fbm(n * 11.0 - vec3(0.0, uTime * 0.07, uTime * 0.03));
-          float t = churn * 0.6 + cells * 0.4;
-          vec3 c = mix(vec3(1.5, 0.62, 0.12), vec3(1.75, 1.35, 0.72), smoothstep(0.38, 0.72, t));
-          c = mix(vec3(1.1, 0.28, 0.03), c, pow(max(vMu, 1e-4), 0.4)); // the limb burns deeper orange
-          // eclipsed: a black disc with a thin burning ring at the limb
-          vec3 dark = vec3(0.02, 0.012, 0.01) + vec3(2.2, 0.9, 0.35) * pow(1.0 - vMu, 7.0) * (0.8 + 0.4 * churn);
-          c = mix(c, dark, uEcl);
-          gl_FragColor = vec4(c, uFade);
-        }`,
-    });
-    this.disc = new THREE.Mesh(new THREE.SphereGeometry(R, 48, 24), this.discMat);
-    this.disc.renderOrder = 1;
-    this.coronaMat = new THREE.ShaderMaterial({
-      fog: false, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uFade: { value: 1 }, uSize: { value: (2 * S) / R }, uEcl: { value: 0 } },
-      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: `
-        uniform float uTime, uFade, uSize, uEcl; varying vec2 vUv;
-        void main(){
-          vec2 p = (vUv - 0.5) * uSize; // in sun radii
-          float r = length(p), ang = atan(p.y, p.x + 1e-5); // (atan(0, 0) is undefined: NaN would black out the bloom)
-          float glow = exp(-max(r - 1.0, 0.0) * 2.0) * 0.8 + exp(-r * 0.45) * 0.22;
-          float rays = pow(max(0.5 + 0.5 * sin(ang * 11.0 + sin(ang * 3.0 + uTime * 0.12) * 2.5), 0.0), 8.0)
-                     + 0.6 * pow(max(0.5 + 0.5 * sin(ang * 23.0 - uTime * 0.05 + 1.3), 0.0), 14.0);
-          float down = 0.25 + 0.75 * smoothstep(0.3, -0.9, sin(ang)); // the beams irradiate downward
-          rays *= down * exp(-r * 0.2) * smoothstep(0.9, 1.7, r);
-          vec3 col = vec3(1.0, 0.6, 0.24) * glow + vec3(1.0, 0.78, 0.42) * rays * 0.4;
-          // eclipsed: only a pale, ragged corona hugging the black disc
-          vec3 ecl = vec3(0.9, 0.55, 0.45) * exp(-max(r - 1.0, 0.0) * 5.0) * 0.7 * smoothstep(0.97, 1.03, r)
-                   + vec3(0.7, 0.5, 0.6) * rays * 0.12;
-          col = mix(col, ecl, uEcl);
-          col *= smoothstep(uSize * 0.5, uSize * 0.32, r);
-          gl_FragColor = vec4(col * uFade, 1.0);
-        }`,
-    });
-    this.corona = new THREE.Mesh(new THREE.PlaneGeometry(2 * S, 2 * S), this.coronaMat);
-    this.group = new THREE.Group();
-    this.group.add(this.disc, this.corona);
-    this.group.userData.noCull = true; // follows the camera; World culling would misplace it
-    W.scene.add(this.group);
-    W.add(this);
-  }
-
-  eclipse(instant = false) {
-    this.eclTarget = 1;
-    if (instant) this.ecl = 1;
-  }
-
-  update(dt, player) {
-    const cam = this.game.camera;
-    // stay inside the camera's far plane (it follows the fog), scaled so it looks the same size
-    const d = Math.min(this.dist, cam.far * 0.85);
-    this.group.position.copy(cam.position).addScaledVector(this.dir, d);
-    this.group.scale.setScalar(d / this.dist);
-    this.corona.lookAt(cam.position);
-    const want = inSolar(player.pos) ? 1 : 0;
-    this.fade += (want - this.fade) * Math.min(1, dt * 2);
-    this.group.visible = this.fade > 0.01;
-    this.ecl += (this.eclTarget - this.ecl) * Math.min(1, dt * 0.35);
-    this.discMat.uniforms.uTime.value += dt;
-    this.coronaMat.uniforms.uTime.value += dt;
-    this.discMat.uniforms.uFade.value = this.fade;
-    this.coronaMat.uniforms.uFade.value = this.fade;
-    this.discMat.uniforms.uEcl.value = this.ecl;
-    this.coronaMat.uniforms.uEcl.value = this.ecl;
-  }
+  return out;
 }
 
-// ------------------------------------------------------------------ sun lances
-// A column of focused sunlight that incinerates on contact. period 0 = always on; otherwise it fires for
-// `on` seconds every `period`, after a `warn`-second flicker. `enabled = false` shuts it off for good.
-const lanceGeo = new THREE.CylinderGeometry(Math.SQRT1_2, Math.SQRT1_2, 1, 4, 1, true).rotateY(Math.PI / 4);
-const LANCE_VS = 'varying vec2 vUv; varying float vY; void main(){ vUv = uv; vY = position.y + 0.5; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
-const LANCE_FS = `
-  uniform float uI, uTime; varying vec2 vUv; varying float vY;
-  void main(){
-    float f = fract(vUv.x * 4.0);                 // across each face of the square column
-    float core = pow(max(sin(f * 3.14159), 0.0), 12.0);     // a white-hot seam down the middle of each face
-    float threads = pow(abs(sin((vUv.x * 12.0 + sin(vY * 3.0 + uTime) * 0.08 + uTime * 0.15) * 3.14159)), 30.0);
-    float shimmer = 0.8 + 0.2 * sin(vY * 14.0 - uTime * 13.0 + vUv.x * 40.0);
-    float fade = smoothstep(1.0, 0.7, vY) * (1.0 + smoothstep(0.1, 0.0, vY));
-    vec3 col = mix(vec3(1.0, 0.36, 0.05), vec3(1.4, 1.2, 0.8), core);
-    gl_FragColor = vec4(min(col * uI * (0.1 + 0.6 * core + 0.35 * threads) * shimmer * fade, vec3(2.5)), 1.0);
-  }`;
-
-const _lp = new THREE.Vector3();
-
-class SunLance {
-  constructor(W, { min, max, period = 0, on = 1.5, warn = 0.7, phase = 0 }) {
-    this.min = new THREE.Vector3(...min);
-    this.max = new THREE.Vector3(...max);
-    // the deadly volume is a touch smaller than the visible column, so grazing the glow is forgiven
-    this.kmin = this.min.clone().add(new THREE.Vector3(0.15, 0, 0.15));
-    this.kmax = this.max.clone().sub(new THREE.Vector3(0.15, 0, 0.15));
-    this.period = period;
-    this.on = on;
-    this.warn = warn;
-    this.phase = phase;
-    this.t = 0;
-    this.I = 0;
-    this.lethal = false;
-    this.enabled = true;
-    const size = new THREE.Vector3().subVectors(this.max, this.min);
-    const center = new THREE.Vector3().addVectors(this.min, this.max).multiplyScalar(0.5);
-    this.mat = new THREE.ShaderMaterial({
-      vertexShader: LANCE_VS, fragmentShader: LANCE_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-      uniforms: { uI: { value: 0 }, uTime: { value: Math.random() * 10 } },
-    });
-    this.mesh = new THREE.Mesh(lanceGeo, this.mat);
-    this.mesh.position.copy(center);
-    this.mesh.scale.copy(size);
-    W.scene.add(this.mesh);
-    // the scorched plate it burns into the floor glows as it heats up
-    this.plateMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
-    const plate = new THREE.Mesh(new THREE.PlaneGeometry(size.x, size.z), this.plateMat);
-    plate.rotation.x = -Math.PI / 2;
-    plate.position.set(center.x, this.min.y + 0.03, center.z);
-    W.scene.add(plate);
-    // a soft glow of scattered light around the column (a camera-facing sheet that fades to nothing at
-    // its edges), so the rays read from across the canyon without a visible tube
-    this.haloMat = new THREE.ShaderMaterial({
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-      uniforms: { uI: { value: 0 } },
-      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: `uniform float uI; varying vec2 vUv;
-        void main(){
-          float x = (vUv.x - 0.5) * 2.0;
-          float g = exp(-x * x * 7.0) * smoothstep(1.0, 0.75, vUv.y) * smoothstep(0.0, 0.08, vUv.y);
-          gl_FragColor = vec4(vec3(1.0, 0.55, 0.18) * g * uI * 0.55, 1.0);
-        }`,
-    });
-    this.halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.haloMat);
-    this.halo.position.copy(center);
-    this.halo.scale.set(Math.min(size.x, size.z) * 2.6, size.y, 1);
-    W.scene.add(this.halo);
-    this.size = size;
-    this.world = W;
-    this.roar = audio.createLoop('incinerator_roar');
-    this.fxT = 0;
-    W.add(this);
-  }
-
-  update(dt, player) {
-    this.t += dt;
-    const wasLethal = this.lethal;
-    let I = 0, heat = 0;
-    this.lethal = false;
-    if (!this.enabled) I = 0;
-    else if (!this.period) {
-      I = 0.92 + 0.08 * Math.sin(this.t * 31);
-      heat = 1;
-      this.lethal = true;
-    } else {
-      const c = (((this.t + this.phase) % this.period) + this.period) % this.period;
-      if (c < this.on) {
-        this.lethal = true;
-        I = Math.min(1, c / 0.1) * (0.92 + 0.08 * Math.sin(this.t * 31));
-        heat = 1;
-      } else if (c > this.period - this.warn) {
-        // warm-up: a thin flickering thread that brightens until it fires
-        const k = (c - (this.period - this.warn)) / this.warn;
-        I = 0.08 + 0.32 * k * (0.55 + 0.45 * Math.sin(this.t * 55));
-        heat = 0.2 + 0.6 * k;
-      } else {
-        const k = Math.max(0, 1 - (c - this.on) / 0.3);
-        I = 0.05 + 0.6 * k * k;
-        heat = 0.15 + 0.6 * k;
-      }
-    }
-    this.I = I;
-    this.mat.uniforms.uI.value = I;
-    this.mat.uniforms.uTime.value += dt;
-    this.mesh.visible = I > 0.001;
-    this.plateMat.color.setRGB(1, 0.36, 0.08).multiplyScalar(this.enabled ? 0.12 + 0.75 * heat : 0.02);
-    this.haloMat.uniforms.uI.value = I;
-    this.halo.visible = I > 0.01;
-    if (this.halo.visible) {
-      // turn the glow sheet to face the camera around the vertical axis
-      const cam = this.world.game.camera.position;
-      this.halo.rotation.y = Math.atan2(cam.x - this.halo.position.x, cam.z - this.halo.position.z);
-    }
-    // the roar of each incinerator, by distance; a blast as it ignites
-    const dx = player.pos.x - (this.min.x + this.max.x) / 2, dz = player.pos.z - (this.min.z + this.max.z) / 2;
-    const near = Math.max(0, 1 - Math.hypot(dx, dz) / 38);
-    this.roar.setGain(near * near * (this.lethal ? 0.85 : I * 0.6));
-    this.roar.setRate(0.9 + I * 0.15);
-    if (this.lethal && !wasLethal && near > 0) audio.sample('incinerator_ignite', { gain: 0.9 * near, vary: 0.08 });
-    // sunfire streaming down the column and splashing off the scorched plate
-    if (this.lethal && near > 0) {
-      this.fxT -= dt;
-      const fx = this.world.fx;
-      while (this.fxT <= 0) {
-        this.fxT += 0.025;
-        const p = _lp.set(this.min.x + Math.random() * this.size.x, this.max.y - Math.random() * this.size.y * 0.4, this.min.z + Math.random() * this.size.z);
-        fx.ember(p, (Math.random() - 0.5) * 0.6, -14 - Math.random() * 8, (Math.random() - 0.5) * 0.6, 0xffb24a, 0.5 + Math.random() * 0.4, 0.1);
-        if (Math.random() < 0.5) {
-          p.set(this.min.x + Math.random() * this.size.x, this.min.y + 0.1, this.min.z + Math.random() * this.size.z);
-          fx.ember(p, (Math.random() - 0.5) * 7, 1 + Math.random() * 4, (Math.random() - 0.5) * 7, 0xff7a1a, 0.5, 0.08);
-        }
-      }
-    }
-    if (this.lethal) {
-      const b = player.bounds();
-      if (boxOverlap(b.min, b.max, this.kmin, this.kmax)) player.damage(1, 'burn');
-    }
-  }
+// a box geometry stretched from a to b (w × h across), for cables, braces and pipes
+function beamGeo(a, b, w = 0.1, h = w) {
+  const len = a.distanceTo(b);
+  const g = new THREE.BoxGeometry(w, h, len);
+  _m.lookAt(a, b, Math.abs(b.y - a.y) > len * 0.95 ? new THREE.Vector3(1, 0, 0) : UP);
+  _q.setFromRotationMatrix(_m);
+  g.applyQuaternion(_q);
+  g.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+  return g;
 }
 
-// Heat haze: faint, slowly boiling sheets of glow over the quicksand (one shared material; uK fades it
-// out once the sun is gone).
-const hazeMat = new THREE.ShaderMaterial({
-  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-  uniforms: { uTime: { value: 0 }, uK: { value: 1 } },
-  vertexShader: 'varying vec3 vW; void main(){ vec4 wp = modelMatrix * vec4(position, 1.0); vW = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }',
-  fragmentShader: `
-    uniform float uTime, uK; varying vec3 vW;
-    ${NOISE}
-    void main(){
-      float n = noise(vec3(vW.xz * 0.12, uTime * 0.2 + vW.y * 0.7));
-      float m = noise(vec3(vW.xz * 0.45 + vec2(uTime * 0.25, -uTime * 0.18), vW.y * 2.0));
-      float a = smoothstep(0.42, 0.9, n * 0.65 + m * 0.35) * 0.09 * uK;
-      gl_FragColor = vec4(vec3(1.0, 0.42, 0.08) * a, 1.0);
-    }`,
-});
-const hazeMeshes = [];
-function heatHaze(W, x1, z1, x2, z2, y) {
-  for (const dy of [0.7, 2.0, 3.8]) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(x2 - x1, z2 - z1), hazeMat);
-    m.rotation.x = -Math.PI / 2;
-    m.position.set((x1 + x2) / 2, y + dy, (z1 + z2) / 2);
-    W.scene.add(m);
-    hazeMeshes.push(m);
+// the hard-light glyph panels of the Lumen's buried machines: abstract geometry (circuit traces, nested
+// squares, dot grids), drawn once
+let glyphPanelTex = null;
+function glyphPanel() {
+  if (glyphPanelTex) return glyphPanelTex;
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, 256, 128);
+  g.strokeStyle = '#fff';
+  g.fillStyle = '#fff';
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  g.lineWidth = 2;
+  g.strokeRect(4, 4, 248, 120);
+  for (let k = 0; k < 4; k++) {
+    // nested squares
+    const x = 16 + k * 60, s = 36;
+    for (let r = 0; r < 3; r++) g.strokeRect(x + r * 5, 22 + r * 5, s - r * 10, s - r * 10);
+    g.fillRect(x + 15, 37, 6, 6);
   }
+  // circuit traces with nodes
+  for (let k = 0; k < 9; k++) {
+    let x = 10 + rnd() * 236, y = 74 + rnd() * 40;
+    g.beginPath();
+    g.moveTo(x, y);
+    for (let s = 0; s < 3; s++) {
+      if (s % 2) x += (rnd() - 0.5) * 60;
+      else y = 70 + rnd() * 48;
+      g.lineTo(x, y);
+    }
+    g.stroke();
+    g.beginPath();
+    g.arc(x, y, 3, 0, Math.PI * 2);
+    g.fill();
+  }
+  for (let i = 0; i < 24; i++) g.fillRect(12 + i * 10, 64, 3, 3);
+  glyphPanelTex = new THREE.CanvasTexture(c);
+  glyphPanelTex.colorSpace = THREE.SRGBColorSpace;
+  return glyphPanelTex;
 }
 
-// Quicksand swallows you (it's a solid box you'd stand on: this checks for touching its surface), sun
-// lances hum, and dust motes drift up in the heat. down: the engine is off (no hum, cold dust).
+// Quicksand drags you down (player.js sinkIn), sun lances hum, and dust drifts in the heat — or, in the
+// excavation, hangs in the lamplight. down: the engine is off (no hum, cold dust).
 class SolarDirector {
   constructor(W, game) {
     this.world = W;
@@ -347,7 +169,6 @@ class SolarDirector {
         }
       }
     }
-    // the oppressive hum swells near lances that are burning
     let g = 0;
     for (const l of this.lances) {
       const dx = Math.max(l.min.x - p.x, 0, p.x - l.max.x), dy = Math.max(l.min.y - p.y, 0, p.y - l.max.y), dz = Math.max(l.min.z - p.z, 0, p.z - l.max.z);
@@ -356,242 +177,90 @@ class SolarDirector {
     this.hum.setGain(g * 0.55);
     hazeMat.uniforms.uTime.value += dt;
     this.moteT += dt;
-    if (this.moteT > (this.down ? 0.25 : 0.07)) {
+    const deep = underground(p);
+    if (this.moteT > (deep ? 0.08 : this.down ? 0.25 : 0.07)) {
       this.moteT = 0;
-      const m = new THREE.Vector3(p.x + (Math.random() - 0.5) * 36, p.y - 1 + Math.random() * 9, p.z + (Math.random() - 0.5) * 36);
-      if (this.down) this.world.fx.burst(m, 0x9a8aa0, { count: 1, speed: 0.3, life: 3.2, size: 0.08, gravity: 0.15, drag: 0.4, spread: 1 });
+      const r = deep ? 16 : 36;
+      const m = new THREE.Vector3(p.x + (Math.random() - 0.5) * r, p.y - 1 + Math.random() * (deep ? 5 : 9), p.z + (Math.random() - 0.5) * r);
+      // (down here a mote right in front of the eye would bloom into a blob: keep them a few metres off)
+      if (deep) m.distanceTo(this.game.camera.position) > 3 && this.world.fx.burst(m, Math.random() < 0.3 ? 0xb08040 : 0x806a50, { count: 1, speed: 0.12, life: 4, size: 0.035, gravity: -0.03, drag: 0.8, spread: 1 });
+      else if (this.down) this.world.fx.burst(m, 0x9a8aa0, { count: 1, speed: 0.3, life: 3.2, size: 0.08, gravity: 0.15, drag: 0.4, spread: 1 });
       else this.world.fx.burst(m, Math.random() < 0.3 ? 0xff9a3a : 0xffd890, { count: 1, speed: 0.4, life: 3.2, size: 0.11, gravity: -0.35, drag: 0.4, spread: 1 });
     }
   }
 }
 
-// ------------------------------------------------------------------ the collector array
-// Fields of heliostats, each mirror turned to bounce the captive sun onto the sun-lens over the Sun Court,
-// with a thread of light from every mirror to the lens. stow(): the mirrors tip flat and the threads die.
-const _q = new THREE.Quaternion(), _m4 = new THREE.Matrix4(), _s = new THREE.Vector3(), _v = new THREE.Vector3(), _n = new THREE.Vector3();
-const Z_AXIS = new THREE.Vector3(0, 0, 1), Y_AXIS = new THREE.Vector3(0, 1, 0);
-// the mirror face: a silvery-gold sheet in six facets with a bright streak across it (drawn once)
-let mirrorTex = null;
-function mirrorFace() {
-  if (mirrorTex) return mirrorTex;
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const g = c.getContext('2d');
-  const grad = g.createLinearGradient(0, 0, 128, 128);
-  grad.addColorStop(0, '#fffaf0');
-  grad.addColorStop(0.35, '#f2d79a');
-  grad.addColorStop(0.7, '#c99a45');
-  grad.addColorStop(1, '#f7e3b0');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 128, 128);
-  // a glancing streak of reflected sky
-  const sg = g.createLinearGradient(20, 128, 108, 0);
-  sg.addColorStop(0.38, 'rgba(255,255,255,0)');
-  sg.addColorStop(0.5, 'rgba(255,255,255,0.95)');
-  sg.addColorStop(0.62, 'rgba(255,255,255,0)');
-  g.fillStyle = sg;
-  g.fillRect(0, 0, 128, 128);
-  // facet seams
-  g.strokeStyle = 'rgba(70,45,15,0.75)';
-  g.lineWidth = 3;
-  for (const x of [43, 85]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 128); g.stroke(); }
-  g.beginPath(); g.moveTo(0, 64); g.lineTo(128, 64); g.stroke();
-  mirrorTex = new THREE.CanvasTexture(c);
-  mirrorTex.colorSpace = THREE.SRGBColorSpace;
-  return mirrorTex;
+// A stand-in for the hovercraft dune run (until solarDunes.js is in): a walkway between the two docks.
+function standInDuneRun(B, { start, end, onDone }) {
+  const { W, game, plat, blocker } = B;
+  const [sx, sy, sz] = start, [ex, ey, ez] = end;
+  const x1 = Math.min(sx, ex) - 3, x2 = Math.max(sx, ex) + 4; // (out to the world edge, where the docks would be)
+  const za = Math.min(sz, ez) - 3, zb = Math.max(sz, ez) + 3, lo = Math.min(sy, ey), hi = Math.max(sy, ey);
+  plat(x1, za, x2, zb, lo, 'yellow', 0.6);
+  // steps up at the high end
+  const up = ez < sz ? -1 : 1, n = Math.ceil((hi - lo) / 0.4);
+  for (let i = 1; i <= n; i++) {
+    const zEnd = (sy < ey ? ez : sz) - up * 3, z0 = zEnd - up * (n - i + 1) * 0.8;
+    plat(x1, Math.min(z0, zEnd + up * 3), x2, Math.max(z0, zEnd + up * 3), Math.min(hi, lo + 0.4 * i), 'yellow', 0.4);
+  }
+  blocker([x1 - 0.4, lo, za], [x1, lo + 40, zb]);
+  blocker([x1, lo, za - 0.4], [x2, lo + 40, za]);
+  blocker([x1, lo, zb], [x2, lo + 40, zb + 0.4]);
+  W.trigger([ex - 3, ey - 1, ez - 3], [ex + 3, ey + 3, ez + 3], () => onDone?.());
+  W.trigger([sx - 3, sy - 1, sz - 3], [sx + 3, sy + 3, sz + 3], () => game.hud.message('(Stand-in walkway: the hovercraft dune run plugs in here.)', 3));
+  return { standIn: true };
 }
-
-class CollectorArray {
-  constructor(W, { target, sites }) {
-    this.world = W;
-    this.target = new THREE.Vector3(...target);
-    const sun = new THREE.Vector3(...SUN_DIR).normalize();
-    const n = sites.length;
-    // the panel: a mirror face toward the lens (local +z) in a bronze frame, dark metal behind
-    this.faceMat = new THREE.MeshBasicMaterial({ map: mirrorFace(), color: 0xffffff });
-    this.frameMat = new THREE.MeshStandardMaterial({ color: 0xb08840, metalness: 0.6, roughness: 0.4, emissive: 0x3a2a10 });
-    // (the backs are polished too, a little duller: from the causeway and the Hub you see them from behind)
-    this.backMat = new THREE.MeshBasicMaterial({ map: mirrorFace(), color: 0xb0a080 });
-    const F = this.frameMat;
-    this.panels = new THREE.InstancedMesh(new THREE.BoxGeometry(3.4, 2.4, 0.1), [F, F, F, F, this.faceMat, F], n);
-    this.frames = new THREE.InstancedMesh(new THREE.BoxGeometry(3.8, 2.8, 0.14), [F, F, F, F, F, this.backMat], n);
-    // where each thread of light lands: a hot glint on the mirror
-    this.spotMat = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
-    this.spots = new THREE.InstancedMesh(new THREE.CircleGeometry(0.55, 16), this.spotMat, n);
-    this.beamMat = new THREE.MeshBasicMaterial({ color: 0xffc060, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false });
-    this.beams = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 5, 1, true), this.beamMat, n);
-    this.items = sites.map(([x, y, z], i) => {
-      const c = new THREE.Vector3(x, y + 3.6, z);
-      const to = _v.copy(this.target).sub(c).normalize();
-      const live = new THREE.Quaternion().setFromUnitVectors(Z_AXIS, _n.copy(to).add(sun).normalize());
-      // stowed: face up, tipped a little toward the lens
-      const stow = new THREE.Quaternion().setFromUnitVectors(Z_AXIS, _n.set(to.x * 0.25, 1, to.z * 0.25).normalize());
-      // the beam: a thin cylinder from the mirror to the lens
-      const len = c.distanceTo(this.target);
-      const mid = c.clone().add(this.target).multiplyScalar(0.5);
-      _q.setFromUnitVectors(Y_AXIS, to);
-      this.beams.setMatrixAt(i, _m4.compose(mid, _q, _s.set(0.09, len, 0.09)));
-      return { c, live, stow, phase: (i * 2.399) % (Math.PI * 2) };
-    });
-    this.k = 1; // 1 = tracking, 0 = stowed
-    this.target1 = 1;
-    this.col = new THREE.Color();
-    this.place();
-    for (let i = 0; i < n; i++) this.panels.setColorAt(i, this.col.setRGB(1, 1, 1));
-    for (const m of [this.panels, this.frames, this.spots, this.beams]) {
-      m.userData.noCull = true;
-      W.scene.add(m);
-    }
-    this.t = Math.random() * 10;
-    W.add(this);
-  }
-
-  place() {
-    this.items.forEach((it, i) => {
-      _q.copy(it.stow).slerp(it.live, this.k);
-      _n.copy(Z_AXIS).applyQuaternion(_q);
-      this.panels.setMatrixAt(i, _m4.compose(it.c, _q, _s.set(1, 1, 1)));
-      this.frames.setMatrixAt(i, _m4.compose(_v.copy(it.c).addScaledVector(_n, -0.07), _q, _s));
-      this.spots.setMatrixAt(i, _m4.compose(_v.copy(it.c).addScaledVector(_n, 0.07), _q, _s));
-    });
-    for (const m of [this.panels, this.frames, this.spots]) m.instanceMatrix.needsUpdate = true;
-  }
-
-  stow(instant = false) {
-    this.target1 = 0;
-    if (instant) {
-      this.k = 0;
-      this.place();
-    }
-  }
-
-  update(dt, player) {
-    this.t += dt;
-    if (this.k !== this.target1) {
-      this.k = Math.max(0, this.k - dt * 0.25);
-      this.place();
-    }
-    const live = this.k;
-    this.beamMat.opacity = live > 0.7 ? 0.36 + 0.14 * Math.sin(this.t * 3.1) : 0;
-    this.beams.visible = this.beamMat.opacity > 0;
-    this.spotMat.opacity = live > 0.7 ? 0.75 + 0.2 * Math.sin(this.t * 5.3) : 0;
-    this.spots.visible = this.spotMat.opacity > 0;
-    // glints: now and then a mirror flares as the sun catches it (only worth doing where it can be seen)
-    if (inSolar(player.pos)) {
-      const base = 0.18 + 0.82 * live;
-      this.items.forEach((it, i) => {
-        const g = live > 0.7 ? Math.pow(Math.max(0, Math.sin(this.t * 0.8 + it.phase)), 24) * 1.6 : 0;
-        this.panels.setColorAt(i, this.col.setRGB(base + g, base + g * 0.9, base + g * 0.7));
-      });
-      this.panels.instanceColor.needsUpdate = true;
-    }
-    this.backMat.color.setRGB(0.69, 0.63, 0.5).multiplyScalar(0.25 + 0.75 * live);
-  }
-}
-
-// The power beam: the captive sun's light, focused by the lens, poured across the sky into the Atrium's
-// west wall (behind which the Atrium's own captive-sun lens feeds the reactor heart). kill() flickers it out.
-class PowerBeam {
-  constructor(W, a, b) {
-    this.world = W;
-    const A = new THREE.Vector3(...a), Bv = new THREE.Vector3(...b);
-    const len = A.distanceTo(Bv), mid = A.clone().add(Bv).multiplyScalar(0.5);
-    _q.setFromUnitVectors(Y_AXIS, Bv.clone().sub(A).normalize());
-    this.mat = new THREE.ShaderMaterial({
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-      uniforms: { uI: { value: 1 }, uTime: { value: 0 }, uLen: { value: len } },
-      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: `uniform float uI, uTime, uLen; varying vec2 vUv;
-        void main(){
-          float across = pow(max(sin(fract(vUv.x * 3.0) * 3.14159), 0.0), 3.0);
-          float pulse = 0.6 + 0.4 * pow(0.5 + 0.5 * sin(vUv.y * uLen * 0.35 - uTime * 9.0), 4.0);
-          vec3 c = mix(vec3(1.0, 0.45, 0.1), vec3(1.4, 1.15, 0.7), across) * (0.25 + 0.75 * across) * pulse;
-          gl_FragColor = vec4(c * uI, 1.0);
-        }`,
-    });
-    this.core = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, len, 8, 1, true), this.mat);
-    this.haloMat = new THREE.MeshBasicMaterial({ color: 0xff9a3a, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-    this.halo = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, len, 10, 1, true), this.haloMat);
-    for (const m of [this.core, this.halo]) {
-      m.position.copy(mid);
-      m.quaternion.copy(_q);
-      m.userData.noCull = true;
-      W.scene.add(m);
-    }
-    // a splash of light where it strikes the Atrium wall
-    this.splashMat = new THREE.MeshBasicMaterial({ color: 0xffc070, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false });
-    this.splash = new THREE.Mesh(new THREE.SphereGeometry(1.3, 16, 8), this.splashMat);
-    this.splash.position.copy(Bv);
-    this.splash.userData.noCull = true;
-    W.scene.add(this.splash);
-    this.I = 1;
-    this.dying = -1;
-    W.add(this);
-  }
-
-  kill(instant = false) {
-    if (instant) this.dying = 99;
-    else if (this.dying < 0) this.dying = 0;
-  }
-
-  update(dt) {
-    this.mat.uniforms.uTime.value += dt;
-    if (this.dying >= 0) {
-      this.dying += dt;
-      const k = Math.max(0, 1 - this.dying / 2.5);
-      this.I = k * (Math.random() < 0.35 ? 0.2 : 1);
-    }
-    this.mat.uniforms.uI.value = this.I;
-    this.haloMat.opacity = 0.12 * this.I;
-    this.splashMat.opacity = 0.8 * this.I * (0.85 + 0.15 * Math.sin(this.mat.uniforms.uTime.value * 7));
-    const on = this.I > 0.002;
-    this.core.visible = this.halo.visible = this.splash.visible = on;
-  }
-}
-
-// the look of the world after the shutdown: the eclipse's long dusk
-const DUSK = {
-  fog: 0x4a2c3c, fogNear: 70, fogFar: 430,
-  skyTop: [0.05, 0.035, 0.11], skyMid: [0.3, 0.12, 0.2], skyHorizon: [0.7, 0.3, 0.2], aurora: 0, stars: 0.5,
-  hemiSky: 0xb08aa8, hemiGround: 0x2a1a22, hemiIntensity: 0.62,
-  sunColor: 0xff9a6a, sunIntensity: 0.9, sunDir: SUN_DIR,
-  exposure: 0.98, bloom: 0.42,
-};
 
 export function buildSolar(B) {
-  const { W, game, level, CH, GLOW, room, corridor, corridorX, plat, pedestal, secretRoom, trophy, hint, hintEvery, zoneTitle, area, light, barrierWallX, blocker, killZone, devStart, guideStrip, glowEdge, onRespawn } = B;
+  const { W, game, level, GLOW, corridorX, plat, pedestal, secretRoom, trophy, hint, hintEvery, zoneTitle, area, light, barrierWallX, blocker, killZone, devStart, guideStrip, glowEdge, onRespawn } = B;
   const zone = 'yellow';
   const glow = GLOW[zone];
   const R = (x1, y1, z1, x2, y2, z2) => W.box(x1, y1, z1, x2, y2, z2, 'rock', zone);
   const M = (x1, y1, z1, x2, y2, z2) => W.box(x1, y1, z1, x2, y2, z2, 'metal', zone);
+  const F = (x1, y1, z1, x2, y2, z2) => W.box(x1, y1, z1, x2, y2, z2, 'floor', zone); // dressed stone
+  const GR = (x1, y1, z1, x2, y2, z2) => W.box(x1, y1, z1, x2, y2, z2, 'grate', zone);
+  const D = (x1, y1, z1, x2, y2, z2, kind = 'metal') => W.deco(x1, y1, z1, x2, y2, z2, kind, zone);
   const G = (x1, y1, z1, x2, y2, z2) => W.deco(x1, y1, z1, x2, y2, z2, glow, zone); // wayfinding glow (stays lit)
   const PG = (x1, y1, z1, x2, y2, z2) => W.deco(x1, y1, z1, x2, y2, z2, 'glow1', POWER_ZONE); // sun-powered glow (dies)
   const SKY = 60;
-  const amber = 0xffc23a, red = 0xff4433;
+  const S = -8; // the surface (the desert floor)
+  const amber = 0xffc23a;
   const director = new SolarDirector(W, game);
   const lances = director.lances;
   const has = (c) => game.blaster.has && game.blaster.unlocked[c];
   const mood = { music: 'music_solar', ambient: 'amb_solar', atmosphere: 'solar' };
   const ck = (pos, yaw, size = [4, 3, 4]) => new Checkpoint(W, game, { pos, yaw, size });
-  // quicksand: a pool whose surface (top at y) swallows you, with heat haze over it
-  const quick = (x1, z1, x2, z2, y, base = y - 6) => {
+  // the excavation's mood: quiet, dark, dusty (and once you hold yellow, the Solar theme comes back)
+  level.atmospheres.solarDeep = {
+    fog: 0x140c06, fogNear: 6, fogFar: 58,
+    skyTop: [0.03, 0.02, 0.015], skyMid: [0.06, 0.04, 0.025], skyHorizon: [0.1, 0.07, 0.04], aurora: 0, stars: 0,
+    hemiSky: 0xc8a078, hemiGround: 0x20140c, hemiIntensity: 0.34,
+    sunColor: 0xffc890, sunIntensity: 0.1, sunDir: [0.2, 1, 0.1],
+    exposure: 1.1, bloom: 0.75,
+  };
+  const deep = (min, max) =>
+    W.trigger(min, max, () => {
+      game.setMusic(has(YELLOW) ? 'music_yellow' : 'music_haunt');
+      game.setAmbient('amb_wind');
+      game.setAtmosphere('solarDeep');
+    }, { once: false });
+  // quicksand: a pool whose surface (top at y) drags you down, with heat haze over it out in the sun
+  const quick = (x1, z1, x2, z2, y, base = y - 6, haze = true) => {
     R(x1, base, z1, x2, y - 0.4, z2);
     director.slag.push(W.box(x1, y - 0.4, z1, x2, y, z2, 'acid', zone));
-    heatHaze(W, Math.min(x1, x2), Math.min(z1, z2), Math.max(x1, x2), Math.max(z1, z2), y);
+    if (haze) heatHaze(W, Math.min(x1, x2), Math.min(z1, z2), Math.max(x1, x2), Math.max(z1, z2), y);
   };
-  // a sandstone pillar standing out of the quicksand with a trimmed slab on top
-  const pillar = (x1, z1, x2, z2, top, base = -14) => {
+  // a pillar standing out of a pit with a trimmed slab on top
+  const pillar = (x1, z1, x2, z2, top, base = -30) => {
     R(x1, base, z1, x2, top - 0.6, z2);
     plat(x1, z1, x2, z2, top, zone, 0.6);
   };
-  // sandstone strata: thin bands standing proud of a cliff face (decor, not ledges)
   const strata = (x1, z1, x2, z2, ys) => ys.forEach((y) => W.deco(x1, y, z1, x2, y + 0.5, z2, 'rock', zone));
   const lance = (o) => {
     const l = new SunLance(W, o);
     lances.push(l);
     return l;
   };
-  // a collector lens housing over a lance: a metal block with a sun-powered rim round its aperture
   const housing = (x1, z1, x2, z2, y) => {
     M(x1 - 0.3, y, z1 - 0.3, x2 + 0.3, y + 0.8, z2 + 0.3);
     const t = 0.12, b = y - 0.05;
@@ -600,37 +269,111 @@ export function buildSolar(B) {
     PG(x1, b, z1, x1 + t, y, z2);
     PG(x2 - t, b, z1, x2, y, z2);
   };
-  // a lance with its housing on a mast (out in the open, where there's no roof to hang it from)
-  const lanceRig = (x1, z1, x2, z2, y0, y1, o = {}, mastBase = -14) => {
+  // (mast: which side of the housing its mast stands: '+x' or '-z')
+  const lanceRig = (x1, z1, x2, z2, y0, y1, o = {}, mastBase = -30, mast = '+x') => {
     housing(x1, z1, x2, z2, y1);
-    M(x2 + 0.3, mastBase, (z1 + z2) / 2 - 0.35, x2 + 1.0, y1 + 0.8, (z1 + z2) / 2 + 0.35);
+    if (mast === '-z') M((x1 + x2) / 2 - 0.35, mastBase, z1 - 1.0, (x1 + x2) / 2 + 0.35, y1 + 0.8, z1 - 0.3);
+    else M(x2 + 0.3, mastBase, (z1 + z2) / 2 - 0.35, x2 + 1.0, y1 + 0.8, (z1 + z2) / 2 + 0.35);
     return lance({ min: [x1, y0, z1], max: [x2, y1, z2], ...o });
   };
-  // a heliostat: a post holding a mirror panel that faces the sun (it really reflects shots)
-  const heliostat = (x, y, z, alongZ = true) => {
-    M(x - 0.18, y, z - 0.18, x + 0.18, y + 2.2, z + 0.18);
-    if (alongZ) new Mirror(W, { min: [x - 0.06, y + 2.2, z - 1.4], max: [x + 0.06, y + 4.0, z + 1.4] });
-    else new Mirror(W, { min: [x - 1.4, y + 2.2, z - 0.06], max: [x + 1.4, y + 4.0, z + 0.06] });
-    // out here a polished mirror catches the full sun and blows the bloom out across the screen: brush it
-    // (the Mirror keeps its own material; it's the last thing it added to the scene)
-    const m = W.scene.children[W.scene.children.length - 1]?.material;
-    if (m && m.metalness === 1) {
-      m.metalness = 0.6;
-      m.roughness = 0.55;
-      m.color.set(0xb0a07a);
-      m.emissive?.set(0x1a1206);
+  // merged dressing meshes in custom materials (one draw each): cables, steel pipes, lamp faces, glyphs
+  const cableGeos = [], pipeGeos = [], lampGeos = [], poolGeos = [], glyphGeos = [];
+  const cable = (pts, w = 0.07) => {
+    for (let i = 0; i < pts.length - 1; i++) cableGeos.push(beamGeo(new THREE.Vector3(...pts[i]), new THREE.Vector3(...pts[i + 1]), w));
+  };
+  // a sagging cable between two points
+  const droop = (a, b, sag = 0.8, n = 6) => {
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      pts.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - sag * 4 * t * (1 - t), a[2] + (b[2] - a[2]) * t]);
     }
-    // a bronze frame round the panel
-    if (alongZ) {
-      W.deco(x - 0.1, y + 2.1, z - 1.5, x + 0.1, y + 2.2, z + 1.5, 'metal', zone);
-      W.deco(x - 0.1, y + 4.0, z - 1.5, x + 0.1, y + 4.1, z + 1.5, 'metal', zone);
-    } else {
-      W.deco(x - 1.5, y + 2.1, z - 0.1, x + 1.5, y + 2.2, z + 0.1, 'metal', zone);
-      W.deco(x - 1.5, y + 4.0, z - 0.1, x + 1.5, y + 4.1, z + 0.1, 'metal', zone);
+    cable(pts);
+  };
+  const pipe = (a, b, w = 0.12) => pipeGeos.push(beamGeo(new THREE.Vector3(...a), new THREE.Vector3(...b), w));
+  // a work lamp: a caged head on a pole (or hung from above) throwing a pool of light on the floor
+  const lamp = (x, y, z, { h = 2.6, hang = false, pool = 2.4, real = false, dir = 0 } = {}) => {
+    const hy = hang ? y : y + h;
+    if (!hang) {
+      pipe([x, y, z], [x, hy, z], 0.08);
+      for (let k = 0; k < 3; k++) {
+        const a = dir + (k / 3) * Math.PI * 2;
+        pipe([x, y + 0.9, z], [x + Math.cos(a) * 0.55, y, z + Math.sin(a) * 0.55], 0.05);
+      }
+    }
+    D(x - 0.22, hy - 0.05, z - 0.22, x + 0.22, hy + 0.25, z + 0.22);
+    lampGeos.push(new THREE.BoxGeometry(0.36, 0.06, 0.36).translate(x, hy - 0.08, z));
+    if (pool) poolGeos.push(new THREE.CircleGeometry(pool, 18).rotateX(-Math.PI / 2).translate(x, (hang ? y - h : y) + 0.035, z));
+    if (real) light(x, hy - 0.4, z, 0xffc888, 14, 13);
+  };
+  // a hard-light glyph panel on a wall: n = the way the face looks
+  const glyphs = (n, at, u, y, w = 2.4, h = 1.2) => {
+    const g = new THREE.PlaneGeometry(w, h);
+    if (n === '+x') g.rotateY(Math.PI / 2).translate(at + 0.04, y, u);
+    else if (n === '-x') g.rotateY(-Math.PI / 2).translate(at - 0.04, y, u);
+    else if (n === '+z') g.translate(u, y, at + 0.04);
+    else g.rotateY(Math.PI).translate(u, y, at - 0.04);
+    glyphGeos.push(g);
+  };
+  // a sensor pylon: a slim mast with glowing bands and a sensor eye at the top
+  const pylon = (x, y, z, h = 4.5) => {
+    M(x - 0.35, y, z - 0.35, x + 0.35, y + 0.4, z + 0.35);
+    D(x - 0.18, y + 0.4, z - 0.18, x + 0.18, y + h, z + 0.18);
+    for (let k = 1.2; k < h - 0.4; k += 1.1) PG(x - 0.2, y + k, z - 0.2, x + 0.2, y + k + 0.07, z + 0.2);
+    D(x - 0.3, y + h, z - 0.3, x + 0.3, y + h + 0.5, z + 0.3);
+    PG(x - 0.31, y + h + 0.18, z - 0.31, x + 0.31, y + h + 0.32, z + 0.31);
+  };
+  // a scaffold: steel pipes at the corners and rails every couple of metres down to `base` (the deck itself
+  // is the level's own solid)
+  const scaffold = (x1, z1, x2, z2, base, top) => {
+    for (const [x, z] of [[x1 + 0.1, z1 + 0.1], [x2 - 0.1, z1 + 0.1], [x1 + 0.1, z2 - 0.1], [x2 - 0.1, z2 - 0.1]]) pipe([x, base, z], [x, top, z], 0.1);
+    for (let y = top - 0.1; y > base; y -= 2.2) {
+      pipe([x1, y, z1 + 0.1], [x2, y, z1 + 0.1], 0.07);
+      pipe([x1, y, z2 - 0.1], [x2, y, z2 - 0.1], 0.07);
+      pipe([x1 + 0.1, y, z1], [x1 + 0.1, y, z2], 0.07);
+      pipe([x2 - 0.1, y, z1], [x2 - 0.1, y, z2], 0.07);
+      if (y - 2.2 > base) {
+        pipe([x1 + 0.1, y, z1 + 0.1], [x2 - 0.1, y - 2.2, z1 + 0.1], 0.06);
+        pipe([x1 + 0.1, y - 2.2, z2 - 0.1], [x2 - 0.1, y, z2 - 0.1], 0.06);
+      }
     }
   };
-  // a gatehouse frame over a deck (for barrier walls across a 3 m path along x)
-  // ---- temple dressing (all static boxes, merged per material; the banners share one mesh)
+  // a slab of the Lumen's buried machinery jutting out of the sand: a dark metal plate with glowing seams
+  const machinePlate = (x1, z1, x2, z2, top, base = -30) => {
+    M(x1, base, z1, x2, top, z2);
+    PG(x1 - 0.02, top - 0.35, z1 - 0.02, x2 + 0.02, top - 0.27, z2 + 0.02);
+    D(x1 + 0.3, top, z1 + 0.3, x2 - 0.3, top + 0.06, z2 - 0.3, 'grate');
+  };
+  // dress a machine vault (interior x1..x2 / z1..z2, floor y0, roof y1): metal ribs up the walls every few
+  // metres carrying a beam across the roof, a conduit along the foot of each wall with sun-powered bands, a
+  // glowing trim under the roof. avoid: [[x1, z1, x2, z2], ...] keeps doorways and stairs clear.
+  const vault = (x1, z1, x2, z2, y0, y1, avoid = [], every = 6) => {
+    const clear = (ax, az, bx, bz) => !avoid.some(([u1, v1, u2, v2]) => ax < u2 && bx > u1 && az < v2 && bz > v1);
+    const t = 0.45;
+    for (let x = x1 + every / 2; x < x2 - 1; x += every) {
+      for (const [za, zb] of [[z1, z1 + t], [z2 - t, z2]]) if (clear(x - 0.45, za, x + 0.45, zb)) D(x - 0.45, y0, za, x + 0.45, y1, zb);
+      if (clear(x - 0.3, z1, x + 0.3, z2)) D(x - 0.3, y1 - 0.7, z1, x + 0.3, y1, z2);
+    }
+    for (let z = z1 + every / 2; z < z2 - 1; z += every) for (const [xa, xb] of [[x1, x1 + t], [x2 - t, x2]]) if (clear(xa, z - 0.45, xb, z + 0.45)) D(xa, y0, z - 0.45, xb, y1, z + 0.45);
+    // conduits at the foot of the walls, broken at doorways
+    const run = (ax, az, bx, bz) => {
+      if (!clear(Math.min(ax, bx) - 0.3, Math.min(az, bz) - 0.3, Math.max(ax, bx) + 0.3, Math.max(az, bz) + 0.3)) return;
+      pipe([ax, y0 + 0.35, az], [bx, y0 + 0.35, bz], 0.32);
+    };
+    const step = 3;
+    for (let x = x1; x < x2 - 0.01; x += step) {
+      run(x, z1 + 0.25, Math.min(x + step, x2), z1 + 0.25);
+      run(x, z2 - 0.25, Math.min(x + step, x2), z2 - 0.25);
+    }
+    for (let z = z1; z < z2 - 0.01; z += step) {
+      run(x1 + 0.25, z, x1 + 0.25, Math.min(z + step, z2));
+      run(x2 - 0.25, z, x2 - 0.25, Math.min(z + step, z2));
+    }
+    PG(x1, y1 - 0.95, z1, x2, y1 - 0.88, z1 + 0.05);
+    PG(x1, y1 - 0.95, z2 - 0.05, x2, y1 - 0.88, z2);
+  };
+  // ---- the sun-temple dressing of the yards (the old forecourt's look): broken pillars, fallen drums,
+  // sun-disc reliefs, glyph strips and sun-cloth banners
   // a broken pillar: drum courses, a glowing glyph band, sometimes its capital still on
   const brokenPillar = (x, y, z, h, cap = false) => {
     R(x - 0.75, y, z - 0.75, x + 0.75, y + 0.5, z + 0.75); // plinth
@@ -641,10 +384,6 @@ export function buildSolar(B) {
   };
   // a fallen drum lying on the sand
   const drum = (x, y, z, alongX = true, len = 2.8) => (alongX ? R(x - len / 2, y, z - 0.6, x + len / 2, y + 1.2, z + 0.6) : R(x - 0.6, y, z - len / 2, x + 0.6, y + 1.2, z + len / 2));
-  // a sand drift: three soft steps, low enough to wade through (decor, not solid)
-  const drift = (x, y, z, w, d) => {
-    for (let k = 0; k < 3; k++) W.deco(x - w / 2 + k * w * 0.15, y, z - d / 2 + k * d * 0.15, x + w / 2 - k * w * 0.12, y + 0.1 * (k + 1), z + d / 2 - k * d * 0.12, 'plat', zone);
-  };
   // carvings on a wall face: n = the way the face looks ('+x' '-x' '+z' '-z'), at = the face's coordinate
   const onWall = (n, at, u1, y1, u2, y2, depth, kind) => {
     const sg = n[0] === '+' ? 1 : -1, a = at, b = at + sg * depth;
@@ -684,59 +423,110 @@ export function buildSolar(B) {
     if (n[1] === 'x') M(Math.min(at, at + sg * 0.5), yTop - 0.15, u - w / 2 - 0.2, Math.max(at, at + sg * 0.5), yTop + 0.1, u + w / 2 + 0.2);
     else M(u - w / 2 - 0.2, yTop - 0.15, Math.min(at, at + sg * 0.5), u + w / 2 + 0.2, yTop + 0.1, Math.max(at, at + sg * 0.5));
   };
-  const gateX = (x, y, cz, w = 3, h = 4.7) => {
-    M(x - 0.4, y - 3, cz - w / 2 - 1, x + 0.4, y + h + 0.8, cz - w / 2);
-    M(x - 0.4, y - 3, cz + w / 2, x + 0.4, y + h + 0.8, cz + w / 2 + 1);
-    M(x - 0.4, y + h, cz - w / 2, x + 0.4, y + h + 0.8, cz + w / 2);
-    G(x - 0.45, y + h + 0.4, cz - w / 2 - 1, x + 0.45, y + h + 0.55, cz + w / 2 + 1);
+  // a low sand drift (decor, wade through it)
+  const drift = (x, y, z, w, d) => {
+    for (let k = 0; k < 3; k++) W.deco(x - w / 2 + k * w * 0.15, y, z - d / 2 + k * d * 0.15, x + w / 2 - k * w * 0.12, y + 0.12 * (k + 1), z + d / 2 - k * d * 0.12, 'plat', zone);
   };
+  // a lens mast: a steel mast with an arm holding a collector lens out over `at`, which pours a sunbeam
+  // straight down from height y
+  const skyLens = (at, y, mast) => {
+    const [mx, mz] = mast;
+    M(mx - 0.4, at[1], mz - 0.4, mx + 0.4, y + 1.6, mz + 0.4);
+    for (let k = at[1] + 3; k < y; k += 3) PG(mx - 0.42, k, mz - 0.42, mx + 0.42, k + 0.1, mz + 0.42);
+    pipe([mx, y + 1.3, mz], [at[0], y + 1.3, at[2]], 0.35);
+    pipe([mx, y - 2, mz], [at[0], y + 1.1, at[2]], 0.18);
+    return new SunBeam(W, { from: [at[0], y, at[2]], dir: [0, -1, 0], source: 'lens', width: 0.5 });
+  };
+  const doorLink = (seal) => ({ activate: () => seal.open(), deactivate: () => {} });
+  // underground the ledges' outlines glow dimmer (the lamplight carries the mood)
+  mat('glow1', 'solarDeep').color.multiplyScalar(0.42);
+  const dglow = 'glow1', DZ = 'solarDeep';
+  const lights = []; // the light-puzzle pieces, for the shutdown and restored saves
+  const seamMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.62, 0.2).multiplyScalar(1.15) }); // the buried machines' seams
+  const beams = [];
 
   const sun = new Sun(W, game);
   level.atmospheres.solar = {
-    fog: 0xc8884a, fogNear: 80, fogFar: 460,
+    fog: 0xc8884a, fogNear: 90, fogFar: 520,
     skyTop: [0.3, 0.19, 0.1], skyMid: [0.72, 0.4, 0.15], skyHorizon: [0.92, 0.6, 0.3], aurora: 0, stars: 0,
     hemiSky: 0xffd9a8, hemiGround: 0x5a3420, hemiIntensity: 0.8,
     sunColor: 0xffd29a, sunIntensity: 2.7, sunDir: SUN_DIR,
     exposure: 0.95, bloom: 0.35,
   };
 
-  // ================================================================ S0 ENTRY + SUNWARD OVERLOOK (y 4)
-  // A sandstone shelf high over the Scorch Basin. Walls on both long sides, so the only way on is straight
-  // ahead: west through the Sun Gate, whose lintel glows and whose beacon lights the first pillar.
+  // ================================================================ THE SURFACE FLOOR (y -8)
+  // One slab over everything (it's the excavation's roof), with holes for the dig shaft, the lift hatch,
+  // the yard's quicksand pools, the chasm, the sinking flats and the stairs out of them.
+  const HOLES = [
+    [-80, -120, -66, -104], // the dig shaft
+    [-107, -61, -103, -57], // the lift hatch
+    [-126, -54, -118, -48], // yard pool 1
+    [-100, -78, -94, -70], // yard pool 2
+    [-200, -152, -144, -132], // the chasm and its rims
+    [-206, -132, -184, -92], // the ledge and the sinking flats
+    [-184, -132, -162, -92], // the plateau
+    [-200, -92, -192, -84], // the stairs up out of the flats
+  ];
+  for (const [x1, z1, x2, z2] of rectMinus(-212, -232, -32, -40, HOLES)) R(x1, -10, z1, x2, S, z2);
+  killZone([-440, -40, -240], [-31.5, -30.5, -38]);
+
+  // ================================================================ S0 ENTRY + THE SUNWARD OVERLOOK (y 4)
+  // A sandstone promontory high over the desert floor. Parapets all round; the only way on is out along
+  // the survey gantry over the dig shaft.
   corridorX({ xStart: -25, xEnd: -38, y: 4, zone, cz: -112 });
-  R(-38, -24.4, -124, -32, 3, -100); // bedrock under the port, with boulders either side of the corridor
+  R(-38, -24.4, -124, -32, 3, -100);
   R(-38, 3, -110, -32, 8, -100);
   R(-38, 3, -124, -32, 8, -114);
-  M(-31, -6, -113, -28, 3, -111); // a strut under the corridor in the gap
+  M(-31, -6, -113, -28, 3, -111);
   area([-30, 4, -113.5], [-27, 7.2, -110.5], mood);
-  devStart('solar', [-27, 4, -112], Math.PI / 2, [RED]);
-  R(-58, -14, -119, -38, 4, -105); // the deck
-  R(-58, -14, -105, -38, 6.5, -72); // the cliff on its south side (the yard and the basin lie below it)
+  devStart('solar', [-27, 4, -112], Math.PI / 2, [0], 'Solar: the entrance');
+  R(-66, -30, -120, -38, 4, -104); // the promontory
+  R(-66, -30, -124, -63, 5.2, -120);
   zoneTitle([-40, 4, -114], [-38, 8, -110], 'SOLAR', 'SUNSCORCH MESA', '#ffd23a', 'music_solar');
   area([-44, 4, -117], [-38, 8, -107], mood);
+  area([-66, 4, -120], [-44, 14, -104], mood);
   ck([-44, 4, -112], Math.PI / 2, [6, 3, 10]);
-  // the Sun Gate: two obelisks and a glowing lintel framing the way down
-  for (const [z1, z2] of [[-107.2, -104.8], [-119.2, -116.8]]) {
-    R(-59.2, 4, z1, -56.8, 13, z2);
-    W.deco(-59.3, 13, z1 - 0.1, -56.7, 13.6, z2 + 0.1, 'metal', zone);
-    G(-59.25, 12.2, z1 - 0.05, -56.75, 12.4, z2 + 0.05);
-    G(-59.25, 8, z1 - 0.05, -56.75, 8.15, z2 + 0.05);
+  // parapets: south, and the west edge either side of the gantry
+  F(-66, 4, -104.6, -38, 4.5, -104);
+  F(-66.4, 4, -120, -65.6, 4.5, -113.3);
+  F(-66.4, 4, -110.7, -65.6, 4.5, -104.6);
+  for (const [x1, z1, x2, z2] of [[-66, -104.5, -38, -104.1], [-66.3, -120, -65.7, -113.3], [-66.3, -110.7, -65.7, -104.5]]) M(x1, 5.05, z1, x2, 5.15, z2);
+  // the survey platform: a stair up to a high deck at the west end, the best view of the whole world
+  const SV = 9.2;
+  for (let i = 0; i < 13; i++) F(-51.5 - 0.5 * (i + 1), 4, -114, -51.5 - 0.5 * i, 4 + 0.4 * (i + 1), -110);
+  F(-66, 4, -116, -58, SV, -108);
+  glowEdge(-66, -116, -58, -108, SV, glow, zone);
+  for (const [x1, z1, x2, z2] of [[-66, -116, -58, -115.8], [-66, -108.2, -58, -108], [-58.2, -116, -58, -114], [-58.2, -110, -58, -108], [-66, -116, -65.8, -113.2], [-66, -110.8, -65.8, -108]]) {
+    M(x1, SV + 1, z1, x2, SV + 1.1, z2);
+    blocker([x1, SV, z1], [x2, SV + 40, z2]);
   }
-  M(-59, 12.4, -116.8, -57, 13.4, -107.2);
-  G(-59.05, 12.3, -116.8, -56.95, 12.4, -107.2);
-  W.deco(-58.4, 13.4, -113, -57.6, 15.4, -111, 'glow1', zone); // the sun mark on the lintel
-  light(-58, 9.5, -112, 0xffb860, 22, 24); // (light 1/4) the gate beacon
-  guideStrip([[-38.5, 4, -112], [-57.6, 4, -112]], amber, { spacing: 1.6, scale: 1.2 });
-  G(-58, 3.9, -116.8, -57.9, 4.04, -107.2); // the deck's lip at the gate
-  heliostat(-50, 4, -107.4, false);
-  heliostat(-50, 4, -116.6, false);
-  hint([-50, 4, -117], [-44, 7, -107], 'Through the <b>Sun Gate</b> and down: hop the <b>sandstone pillars</b>. The basin floor is <b>quicksand</b>.', 5);
+  for (const [x, z] of [[-58.1, -115.9], [-58.1, -108.1], [-65.9, -115.9], [-65.9, -108.1], [-62, -115.9], [-62, -108.1]]) M(x - 0.06, SV, z - 0.06, x + 0.06, SV + 1, z + 0.06);
+  M(-58.2, 4, -114.2, -51.5, 4.1, -114); // the stair's side rails
+  M(-58.2, 4, -110, -51.5, 4.1, -109.8);
+  for (let x = -64; x > -40; x -= 4) M(x - 0.06, 4.5, -104.36, x + 0.06, 5.05, -104.24);
+  blocker([-66, 4, -105], [-38, SKY, -103.5]);
+  blocker([-67, 4, -120], [-65.6, SKY, -113.3]);
+  blocker([-67, 4, -110.7], [-65.6, SKY, -104]);
+  // the survey pylons framing the view, with a truss across carrying a hard-light survey board and lamps
+  for (const z of [-116.6, -107.4]) {
+    M(-65.6, SV, z - 0.3, -65, 20.5, z + 0.3);
+    for (let y = SV + 2; y < 20; y += 2.2) PG(-65.65, y, z - 0.35, -64.95, y + 0.12, z + 0.35);
+    D(-65.8, 20.5, z - 0.45, -64.8, 21.1, z + 0.45);
+  }
+  M(-65.5, 19.6, -116.6, -65.1, 20.1, -107.4);
+  glyphs('+x', -65.1, -112, 18.5, 5.6, 1.5);
+  lamp(-65.3, 19.6, -110.4, { hang: true, h: 10, pool: 0 });
+  lamp(-65.3, 19.6, -113.6, { hang: true, h: 10, pool: 0 });
+  light(-60, 13, -112, 0xffb860, 18, 22); // the overlook beacon
+  guideStrip([[-38.5, 4, -112], [-51, 4, -112]], amber, { spacing: 1.6, scale: 1.2 });
+  guideStrip([[-58.5, SV, -112], [-65.6, SV, -112]], amber, { spacing: 1.4, scale: 1.1 });
+  hint([-56, 4, -118], [-48, 8, -106], 'The <b>Sunward Overlook</b>. Somewhere under all this, the Lumen buried the <b style="color:#ffd23a">yellow core</b>. The survey gantry runs out over the <b>dig shaft</b>.', 6);
   // the lookout (NW corner, off the path): the best seat for the captive sun — LOG NOOK 04
   R(-63, -14, -124, -55, 4, -119);
   R(-63, 4, -124, -62.4, 5, -119);
   R(-63, 4, -124, -55, 5, -123.4);
   G(-62.45, 4.95, -123.4, -62.35, 5.05, -119);
-  W.deco(-61.6, 4, -121.9, -60.4, 4.6, -120.7, 'metal', zone); // a little brass sighting post
+  D(-61.6, 4, -121.9, -60.4, 4.6, -120.7); // a brass sighting post
   // the north wall, with the GREEN Sunshade Grotto in it (come back after Verdant)
   R(-55, -14, -132, -38, 4, -119);
   R(-55, 4, -132, -50.5, 9, -119);
@@ -750,155 +540,720 @@ export function buildSolar(B) {
   trophy(-47, 5, -123.5);
   G(-50.4, 7.35, -125.9, -43.6, 7.45, -119.6);
   secretRoom([-50.5, 4, -126], [-43.5, 7.5, -119.5], 'Sunshade Grotto');
-  hintEvery([-50.5, 4, -120.5], [-43.5, 7, -119], 'Sealed with <b style="color:#46ff7a">GREEN</b> energy — come back later. The way on is <b>west</b>, through the Sun Gate.', 25, 5, () => !has(GREEN));
-  blocker([-58, 6.5, -105], [-38, SKY, -72]);
+  hintEvery([-50.5, 4, -120.5], [-43.5, 7, -119], 'Sealed with <b style="color:#46ff7a">GREEN</b> energy — come back later.', 25, 5, () => !has(GREEN));
   blocker([-55, 9, -132], [-38, SKY, -119]);
-  blocker([-63.6, 4, -124], [-62.4, SKY, -119]); // the lookout's parapets
+  blocker([-63.6, 4, -124], [-62.4, SKY, -119]);
   blocker([-63.6, 4, -124.6], [-55, SKY, -123.4]);
-  blocker([-38, 8, -132], [-25, SKY, -100]); // the bedrock either side of the entry corridor, and its roof
+  blocker([-38, 8, -132], [-25, SKY, -100]);
+  strata(-66.3, -120, -66, -104, [-4, 0]);
+  strata(-66, -104.3, -38, -104, [-5, -1, 2]);
 
-  // ================================================================ S1 THE SCORCH DESCENT (platforming)
-  // Pillars over the quicksand basin: shoot the red spikes, ride the phase bridge (a timed red orb), then
-  // south over crumbling stones (the third one only looks solid) and a sun lance to time.
-  quick(-58, -72, -104, -119, -12, -18);
-  quick(-63, -119, -104, -124, -12, -18);
-  R(-104, -14, -130, -63, 8, -124); // north cliff
-  R(-110, -14, -124, -104, 7, -72); // west cliff
-  pillar(-65.5, -114, -61.5, -110, 3.4);
-  pillar(-72.5, -114.5, -68.5, -109.5, 2.8);
-  new Barrier(W, { min: [-72.5, 2.8, -114.5], max: [-68.5, 3.4, -109.5], color: RED, kind: 'spike', regen: 5, zone });
-  const bridge = B.phasePlatform({ min: [-82.5, 2.4, -113], max: [-72.5, 2.8, -111], color: RED, zone });
-  B.colorSwitch({ pos: [-76, 6.6, -108.2], style: 'orb', color: RED, mode: 'timed', time: 6, links: [bridge], zone, light: false });
-  pillar(-89, -116.5, -82.5, -107.5, 2.8);
-  ck([-86, 2.8, -113.5], Math.PI, [6, 3, 5]);
-  devStart('solar1', [-86, 2.8, -113.5], Math.PI, [RED]);
-  new Barrier(W, { min: [-89, 2.8, -107.9], max: [-82.5, 6, -107.5], color: RED, kind: 'wall', regen: 6, zone });
-  B.crumble({ min: [-87.5, 1.9, -104.5], max: [-84, 2.4, -101], delay: 0.6, respawn: 3, zone });
-  B.crumble({ min: [-87.5, 1.5, -98], max: [-84, 2.0, -94.5], delay: 0.6, respawn: 3, zone });
-  B.crumble({ min: [-87.5, 1.1, -91.5], max: [-84, 1.6, -88], delay: 0.12, respawn: 3, disguise: true, zone }); // RAGE: looks solid
-  pillar(-88, -85, -83.5, -81.5, 1.2);
-  // a sun lance across the last jump, on a gantry
-  M(-90.8, -14, -79.1, -90.2, 9.8, -78.4);
-  M(-81.8, -14, -79.1, -81.2, 9.8, -78.4);
-  M(-90.8, 9.8, -79.1, -81.2, 10.4, -78.4);
-  housing(-89, -80.5, -83, -77, 9);
-  lance({ min: [-89, -12, -80.5], max: [-83, 9, -77], period: 3.2, on: 1.4, warn: 0.7 });
-  // two more out in the basin (show, not path)
-  lanceRig(-69, -91, -66, -88, -12, 10, { period: 4.2, on: 1.8, phase: 1.1 });
-  lanceRig(-100, -107, -97, -104, -12, 10, { period: 3.8, on: 1.6, phase: 2.3 });
-  new Drone(W, { pos: [-76, 9, -100], color: RED, range: 24 });
-  new Drone(W, { pos: [-96, 6, -90], color: RED, range: 22 });
-  B.scarab([-87, 2.8, -114.5], { color: RED, range: 9 }); // dug in on the landing
-  guideStrip([[-83, 2.8, -112], [-86, 2.8, -112], [-86, 2.8, -108.4]], red, { spacing: 1.1 });
-  hint([-89, 2.8, -116.5], [-82.5, 6, -107.5], 'Shoot the <b style="color:#ff3344">red</b> wall, then <b>keep moving</b> over the cracked stones. Watch the <b>lance</b> at the end.', 5);
+  // ================================================================ S1 THE DIG SHAFT
+  // A square shaft sunk through the desert floor into the excavation, open to the sky. The survey gantry
+  // over it gives way under you: a long fall into the quicksand at the bottom (it swallows the fall),
+  // then a struggle west to the tunnel lip. A gantry crane straddles it.
+  R(-84, -30, -124, -66, S, -120); // north wall
+  R(-84, -30, -104, -75, S, -102); // south wall, the tunnel mouth in it (x -75 … -71)
+  R(-71, -30, -104, -66, S, -102);
+  R(-75, -15.6, -104, -71, S, -102);
+  R(-75, -30, -104, -71, -19.6, -102);
+  R(-84, -30, -120, -80, S, -104); // west wall
+  quick(-80, -120, -66, -104, -20, -26, false);
+  strata(-80, -120, -66, -119.7, [-17, -14, -11.5]);
+  strata(-80, -104.3, -66, -104, [-16, -12.5]);
+  B.trapdoor({ min: [-75.5, SV - 0.4, -113], max: [-66, SV, -111], delay: 0.4, respawn: 4, trigger: { min: [-70, SV, -113.6], max: [-67.2, SV + 3, -110.4] }, zone, kind: 'grate' });
+  // (invisible walls round the rim: a running fall can't carry you over the far side)
+  blocker([-80.6, S, -120], [-80, 16, -104]);
+  blocker([-80, S, -120.6], [-66, 16, -120]);
+  blocker([-80, S, -104], [-66, 16, -103.4]);
+  W.trigger([-76, -8, -121], [-65, 0, -103], () => {
+    audio.sample('fall_wind', { gain: 0.8 });
+  });
+  // the gantry crane: two towers on the rims, a beam across, the trolley's cable down to a bucket
+  for (const z of [-122.4, -101.6]) {
+    M(-74.6, S, z - 0.9, -73.4, 19, z + 0.9);
+    M(-75.4, S, z - 1.4, -72.6, S + 0.6, z + 1.4);
+    for (let y = S + 2; y < 19; y += 3) PG(-74.65, y, z - 0.95, -73.35, y + 0.1, z + 0.95);
+    pipe([-74, S, z - 2.4], [-74, 12, z], 0.2);
+  }
+  M(-74.8, 19, -123, -73.2, 20.4, -101);
+  M(-75.2, 18.2, -113.4, -72.8, 19, -110.6); // the trolley
+  cable([[-74, 18.2, -112], [-74, -3, -112]], 0.06);
+  M(-75, -4.8, -113, -73, -3, -111); // the bucket
+  D(-75.1, -3.2, -113.1, -72.9, -3, -110.9, 'hazard');
+  lamp(-74, 18.2, -117, { hang: true, h: 26, pool: 0 });
+  lamp(-74, 18.2, -106, { hang: true, h: 26, pool: 0 });
+  // inside: a wrecked ladder and scaffold down the wall, cables hanging from the rim
+  scaffold(-79.8, -103.9, -77.6, -102.6, -20, -9);
+  for (const [a, b] of [[[-80, -9, -118], [-80, -16, -116]], [[-66.2, -9, -106], [-66.2, -15, -110]], [[-79.8, -9, -105], [-79.8, -17.5, -108.5]]]) droop(a, b, 1.2);
+  area([-80, -26, -120], [-66, -11, -104], mood);
+  // the tunnel out of the shaft's south-east corner (its lip is just above the sand: hop out), west to the dig
+  R(-88, -30, -102, -70, -19.6, -98);
+  R(-88, -19.6, -98, -70, -10, -96);
+  R(-71, -19.6, -102, -70, -10, -98);
+  R(-88, -19.6, -104, -84, -10, -102);
+  R(-88, -15.6, -102, -70, -10, -98);
+  for (const x of [-74, -77.5, -81, -84.5, -87.4]) {
+    D(x - 0.15, -19.6, -97.95, x + 0.15, -15.6, -97.6);
+    D(x - 0.15, -19.6, -102.4, x + 0.15, -15.6, -102.05);
+    D(x - 0.15, -15.9, -102, x + 0.15, -15.6, -98);
+  }
+  G(-75, -19.65, -102.05, -71, -19.55, -101.95); // the lip
+  G(-75, -15.65, -104, -71, -15.55, -103.9);
+  lamp(-73, -15.7, -100, { hang: true, h: 3.9, pool: 1.6, real: true });
+  lamp(-82.5, -15.7, -100, { hang: true, h: 3.9, pool: 1.4 });
+  guideStrip([[-73, -19.6, -101.7], [-73, -19.6, -100], [-87.6, -19.6, -100]], amber, { spacing: 1.1 });
+  zoneTitle([-88, -19.6, -102], [-85, -16, -98], 'SOLAR · BELOW', 'THE DIG SITE', '#ffd23a');
+  cable([[-70.4, -16, -101.6], [-88, -16, -101.6]], 0.06);
+  deep([-88, -20, -104], [-70, -15, -96]);
+  devStart('solar1', [-60, SV, -112], Math.PI / 2, [0], 'The vista (survey platform)');
+  hint([-70, SV, -113.6], [-67.2, SV + 3, -110.4], 'It\'s <b>giving way</b> —', 2);
+  hint([-80, -21, -120], [-66, -12, -104], 'Into the <b>quicksand</b>! Mash <b>JUMP</b> to keep your head up and wade to the <b>lit tunnel</b> in the south-east corner.', 5);
 
-  // ================================================================ S2 COLLECTOR YARD (combat)
-  R(-104, -14, -72, -74, -1, -42);
-  R(-90, -14, -76.5, -82, -1, -72); // the jetty you land on
-  glowEdge(-90, -76.5, -82, -72, -1, glow, zone);
-  R(-104, -14, -42, -74, 8, -40); // south wall
-  R(-74, -14, -72, -38, 8, -40); // east cliff
-  R(-106, -14, -72, -104, 8, -58.5); // west wall with the door in it
-  R(-106, -14, -55.5, -104, 8, -42);
-  R(-106, 2.2, -58.5, -104, 8, -55.5);
-  R(-104, -1, -72.6, -90, 0.2, -72); // parapet over the basin
-  R(-82, -1, -72.6, -74, 0.2, -72);
-  area([-90, -1, -76.5], [-82, 3, -70], mood);
-  // the collector tower: it used to drink the sun
-  M(-91, -1, -59, -87, 10, -55);
-  M(-92.5, 10, -60.5, -85.5, 12, -53.5);
-  PG(-92.6, 11.2, -60.6, -85.4, 11.5, -53.4);
-  PG(-91.05, -1, -59.05, -90.9, 10, -58.9);
-  PG(-87.1, -1, -55.1, -86.95, 10, -54.95);
-  // cover: tumbled blocks and two heliostats you can bank shots off
-  R(-99, -1, -51, -95, 0.8, -48);
-  R(-81, -1, -50, -78, 1.4, -46);
-  R(-100, -1, -67, -97, 1.2, -63);
-  R(-80, -1, -66, -77, 0.8, -62);
-  heliostat(-96, -1, -58);
-  heliostat(-82, -1, -56);
-  // dressing: the yard was a sun temple's forecourt
-  for (const [x, z, h, cap] of [[-101, -45, 5.5, true], [-101, -69, 2.4], [-77, -45, 3.6], [-95, -54, 1.6], [-77, -69, 6.2, true]]) brokenPillar(x, -1, z, h, cap);
-  drum(-93, -1, -66, true);
-  drum(-84, -1, -45.5, false, 2.4);
-  for (const [x, z, w, d] of [[-99, -60, 6, 4], [-79, -52, 5, 6], [-88, -44, 9, 2.6], [-96, -70, 7, 3]]) drift(x, -1, z, w, d);
-  sunRelief('-z', -42, -95, 4, 1.6);
-  sunRelief('-z', -42, -83, 4, 1.6);
-  sunRelief('-x', -74, -63, 4, 1.4);
-  glyphStrip('-z', -42, -103, -75, 6.6);
-  glyphStrip('-x', -74, -71, -43, 6.6);
-  glyphStrip('+x', -104, -71, -59.5, 4.8);
-  glyphStrip('+x', -104, -54.5, -43, 4.8);
-  banner('-z', -42, -89, 7.6);
-  banner('-x', -74, -55, 7.6);
-  banner('+x', -104, -48, 7.6, 1.6, 4.4);
-  // ARMOR: up on the north-west block (hop the drum beside it), on the broken pillar by the tower in the
-  // turret's sights, and on the low east block (a jump up, where the scarabs come in).
-  B.armor([-98.5, 1.2, -65]);
-  B.armor([-95, 0.6, -54]);
-  B.armor([-78.5, 0.8, -64]);
-  B.encounter({
-    trigger: [[-104, -1, -69], [-74, 6, -42]],
-    seals: [
-      { min: [-90, -1, -72.6], max: [-82, 3.4, -72] },
-      { min: [-104.6, -1, -58.5], max: [-104, 2.2, -55.5], closed: true },
-    ],
-    title: 'COLLECTOR YARD', sub: 'AMBUSH', color: '#ff5a3a', music: 'music_combat', zone,
-    checkpoint: { pos: [-108, -1, -57], yaw: Math.PI / 2 },
+  // ================================================================ S2 THE DIG GALLERY (underground)
+  // The excavation's main cut: a deep pit of quicksand under scaffolds and the plates of a buried machine.
+  // Walk the balcony, hop the scaffold, run the crumbling planks, climb the plates north and west to the
+  // ledge by the vault door. A side plank leads to the fused-glass strata (LOG NOOK 05).
+  R(-88, -30, -132, -84, -10, -102); // east wall, the tunnel's mouth in it
+  R(-88, -30, -98, -84, -10, -94);
+  R(-126, -30, -134, -84, -10, -130); // north
+  R(-126, -30, -96, -84, -10, -94); // south
+  R(-126, -30, -130, -124, -10, -114); // west, the vault opening cut in it
+  R(-126, -30, -110, -124, -10, -96);
+  R(-126, -30, -114, -124, -16, -110);
+  R(-126, -12.8, -114, -124, -10, -110);
+  quick(-124, -130, -88, -96, -27, -30, false);
+  // the balcony
+  F(-94, -30, -108, -88, -19.6, -96);
+  glowEdge(-94, -108, -88, -96, -19.6, dglow, DZ);
+  D(-88, -19.6, -107.9, -94, -18.6, -107.7); // its rail
+  devStart('solar2', [-90, -19.6, -100], Math.PI / 2, [0], 'The dig site: lower galleries');
+  ck([-90.5, -19.6, -100], Math.PI / 2, [5, 3, 7]);
+  // a drill rig parked on it
+  M(-92.5, -19.6, -106.8, -90, -18, -105.2);
+  M(-91.6, -18, -106.4, -90.9, -12, -105.6);
+  D(-92, -14, -106.8, -90.5, -13.6, -105.2, 'hazard');
+  lamp(-89.2, -19.6, -106.6, { real: true });
+  // the scaffold walkway, north to the planks
+  plat(-99, -114, -96, -101, -19.6, zone, 0.3, 'grate');
+  scaffold(-99, -114, -96, -101, -27, -19.9);
+  // the crumbling planks
+  B.crumble({ min: [-102.6, -19.9, -112.8], max: [-99, -19.6, -111.2], delay: 0.6, respawn: 3, zone });
+  B.crumble({ min: [-106, -19.9, -112.8], max: [-102.6, -19.6, -111.2], delay: 0.6, respawn: 3, zone });
+  // the tower
+  plat(-110, -115, -106, -109, -19.6, zone, 0.3, 'grate');
+  scaffold(-110, -115, -106, -109, -27, -19.9);
+  lamp(-106.6, -19.6, -114.4, { h: 2.2, pool: 1.6 });
+  // the side plank south to the strata wall, and the ledge there (LOG NOOK 05)
+  plat(-108.6, -109, -107.4, -102, -19.6, zone, 0.25, 'plat');
+  F(-110.5, -30, -102, -104.5, -19.6, -96);
+  glowEdge(-110.5, -102, -104.5, -96, -19.6, dglow, DZ);
+  {
+    // the fused sand-glass bands in the cut: thousands of summers of burned sand
+    const gm = new THREE.MeshStandardMaterial({ color: 0xd8a860, emissive: 0x6a3a10, emissiveIntensity: 0.8, metalness: 0.3, roughness: 0.08, transparent: true, opacity: 0.85 });
+    const geos = [];
+    let y = -19.2, k = 0;
+    while (y < -12) {
+      const h = 0.05 + ((k * 37) % 7) * 0.03;
+      for (let x = -114; x < -100.4; x += 2.4) geos.push(new THREE.BoxGeometry(2.4, h, 0.1).translate(x + 1.2, y + Math.sin(k * 1.7 + x * 0.6) * 0.12, -95.96));
+      y += 0.45 + ((k * 53) % 5) * 0.16;
+      k++;
+    }
+    W.scene.add(new THREE.Mesh(mergeBoxes(geos), gm));
+  }
+  lamp(-105.2, -19.6, -96.8, { h: 2, pool: 1.8 });
+  // the plates of the buried machine, stepping up north then west
+  machinePlate(-114, -120, -111, -117, -18.8);
+  machinePlate(-118, -124.5, -115, -121.5, -18.0);
+  machinePlate(-123, -127.5, -119, -123.5, -17.2);
+  // the ledge along the west wall to the vault door
+  F(-124, -30, -122, -120, -16, -107);
+  glowEdge(-124, -122, -120, -107, -16, dglow, DZ);
+  pylon(-121, -16, -108.2, 3.6);
+  lamp(-123.2, -16, -118.8, { h: 2.2, pool: 1.6, real: true });
+  {
+    // the buried machine: a colossal ring half sunk in the north wall and the sand, seams still glowing
+    const ringMat = new THREE.MeshStandardMaterial({ color: 0x2a2620, metalness: 0.85, roughness: 0.35 });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(9, 1.5, 10, 40), ringMat);
+    ring.position.set(-106, -21, -130.4);
+    W.scene.add(ring);
+    const seam = new THREE.Mesh(new THREE.TorusGeometry(9, 0.14, 6, 48), seamMat);
+    seam.position.set(-106, -21, -129);
+    W.scene.add(seam);
+    const hubMat = new THREE.MeshStandardMaterial({ color: 0x1a1612, metalness: 0.7, roughness: 0.5 });
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.8, 1.6, 8), hubMat);
+    hub.rotation.x = Math.PI / 2;
+    hub.position.set(-106, -21, -130.6);
+    W.scene.add(hub);
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      M(-106 + Math.cos(a) * 9 - 0.9, -21 + Math.sin(a) * 9 - 0.9, -131.6, -106 + Math.cos(a) * 9 + 0.9, -21 + Math.sin(a) * 9 + 0.9, -128.6);
+      pipe([-106 + Math.cos(a) * 3.6, -21 + Math.sin(a) * 3.6, -129.8], [-106 + Math.cos(a) * 7.6, -21 + Math.sin(a) * 7.6, -129.8], 0.5);
+    }
+    light(-106, -17, -126, 0xffb050, 12, 16);
+  }
+  // excavation dressing: cables along the walls, glyph panels uncovered on the cut faces, a sunlit crack
+  droop([-88.2, -12, -116], [-124, -12, -116.5], 1.5, 10);
+  droop([-88.2, -11.5, -100], [-124, -11.5, -99], 2, 10);
+  cable([[-96, -10, -112], [-96, -19.4, -112]], 0.05);
+  glyphs('-z', -96, -116, -14, 3.2, 1.4);
+  glyphs('-x', -88, -101, -13.5, 3, 1.3);
+  glyphs('+x', -124, -125, -13, 3, 1.3);
+  glyphs('-x', -88, -124, -14, 3, 1.3);
+  new LightShaft(W, { top: [-100, -10.05, -104], bottom: [-100, -27, -104], r: 1.1 });
+  new LightShaft(W, { top: [-115.5, -10.05, -112], bottom: [-115.5, -27, -112], r: 0.8 });
+  new LightShaft(W, { top: [-93, -10.05, -125], bottom: [-93, -27, -125], r: 0.7 });
+  deep([-124, -30, -130], [-80, -10.5, -96]);
+  guideStrip([[-93.6, -19.6, -103], [-97.5, -19.6, -103], [-97.5, -19.6, -112]], amber, { spacing: 1 });
+  hint([-94, -19.6, -108], [-88, -16, -96], 'The Lumen\'s <b>dig site</b>. Don\'t fall in: that pit is <b>deep</b>. The planks won\'t hold you long — <b>keep moving</b>.', 6);
+
+  // ================================================================ S3 THE CORE VAULT
+  // A tall chamber at the bottom of the dig: a balcony at the door, a grand stair down the north wall, and
+  // the YELLOW core on its dais in a shaft of daylight, cables from every wall running to it.
+  F(-148, -30, -124, -126, -24, -100);
+  R(-150, -30, -126, -124, -10, -124); // north
+  R(-150, -30, -124, -148, -10, -97); // west
+  R(-150, -30, -100, -138.5, -10, -97); // south, the door to the First Lens in it
+  R(-135.5, -30, -100, -124, -10, -97);
+  R(-138.5, -20.8, -100, -135.5, -10, -97);
+  F(-138.5, -30, -100, -135.5, -24, -97);
+  F(-130, -30, -124, -126, -16, -106); // the balcony
+  glowEdge(-130, -124, -126, -106, -16, dglow, DZ);
+  for (let i = 0; i < 20; i++) F(-130.8 - 0.8 * i, -30, -124, -130 - 0.8 * i, -16.4 - 0.4 * i, -120.6);
+  G(-146, -23.95, -120.6, -130, -23.85, -120.5);
+  devStart('solar3', [-128, -16, -110], Math.PI / 2, [0], 'The reveal chamber (yellow core)');
+  ck([-128, -16, -110], Math.PI / 2, [4, 3, 6]);
+  F(-142, -24, -116, -134, -23.6, -108); // the dais
+  glowEdge(-142, -116, -134, -108, -23.6, dglow, DZ);
+  const core = pedestal(-138, -23.6, -112, YELLOW, zone);
+  new LightShaft(W, { top: [-138, -10.05, -112], bottom: [-138, -23.6, -112], r: 1.6, intensity: 0.42 });
+  light(-138, -17, -112, 0xffd060, 16, 18);
+  for (const [x, z] of [[-142.6, -116.6], [-133.4, -116.6], [-142.6, -107.4], [-133.4, -107.4]]) pylon(x, -24, z, 4.2);
+  for (const [a, b] of [[[-148, -14, -108], [-142, -23.5, -110]], [[-148, -15, -118], [-142, -23.5, -114]], [[-138, -10.2, -124], [-138, -23.5, -116.2]], [[-126.2, -17, -101], [-134, -23.5, -109]]]) droop(a, b, 1.6);
+  glyphs('+x', -148, -112, -16, 4, 1.8);
+  glyphs('+z', -124, -138, -15.5, 4, 1.6);
+  {
+    // a great sensor ring stands over the dais
+    const rm = new THREE.MeshStandardMaterial({ color: 0x302a22, metalness: 0.85, roughness: 0.35 });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(6.2, 0.35, 8, 40), rm);
+    ring.position.set(-138, -16.5, -112);
+    ring.rotation.y = Math.PI / 2;
+    W.scene.add(ring);
+    const seam = new THREE.Mesh(new THREE.TorusGeometry(6.2, 0.06, 6, 48), seamMat);
+    seam.position.set(-137.62, -16.5, -112);
+    seam.rotation.y = Math.PI / 2;
+    W.scene.add(seam);
+    M(-138.6, -24, -118.6, -137.4, -22.2, -117.4);
+    M(-138.6, -24, -106.6, -137.4, -22.2, -105.4);
+  }
+  lamp(-129, -16, -122.6, { h: 2.2, pool: 1.5 });
+  const vaultDoor = new Seal(W, { min: [-138.5, -24, -99.2], max: [-135.5, -20.8, -98.2], color: null, zone, closed: true });
+  // taking the core opens the way south (also on a restored save that already has yellow)
+  let vaultOpen = false;
+  const openVault = (say) => {
+    if (vaultOpen) return;
+    vaultOpen = true;
+    vaultDoor.open();
+    if (say) setTimeout(() => game.hud.message('The vault wakes: the <b>south door</b> grinds open. Find your way back up — the Lumen\'s lenses will need your <b style="color:#ffd23a">yellow</b>.', 6), 6400);
+  };
+  if (core) {
+    const collect = core.onCollect;
+    core.onCollect = (pk, pl) => {
+      collect?.(pk, pl);
+      openVault(true);
+    };
+  }
+  W.add({ update: () => !vaultOpen && has(YELLOW) && openVault(false) });
+  onRespawn(() => vaultOpen && vaultDoor.open(true));
+  deep([-148, -30, -126], [-124, -10, -97]);
+  vault(-148, -124, -126, -100, -24, -10, [[-140, -102, -134, -97], [-131, -125, -124, -105], [-148, -125, -128, -119.5]], 5.5);
+  hint([-130, -16, -116], [-126, -12, -106], 'There it is: the <b style="color:#ffd23a">YELLOW core</b>. Take the stair down.', 5);
+
+  // ================================================================ S4 THE FIRST LENS (puzzle: 1 mirror)
+  // The door east is shut. Its receiver sits at the end of a walled slot in the south-west corner; the
+  // mirror stands in the slot's mouth. Turn it (shoot its back, frame or post YELLOW) until a shot at
+  // its face from the east runs straight down the slot.
+  F(-148, -30, -97, -126, -24, -74);
+  R(-150, -30, -97, -148, -10, -72); // west
+  R(-150, -30, -74, -124, -10, -72); // south
+  R(-126, -30, -97, -124, -10, -81.5); // east, the door in it
+  R(-126, -30, -78.5, -124, -10, -72);
+  R(-126, -20.8, -81.5, -124, -10, -78.5);
+  F(-126, -30, -81.5, -124, -24, -78.5);
+  R(-146.6, -24, -82, -146, -10, -74); // the slot's walls
+  R(-142, -24, -82, -141.4, -10, -74);
+  G(-146, -23.95, -82.05, -142, -23.85, -81.95);
+  const lens1 = new RotMirror(W, { pos: [-144, -22.4, -83.7], yaw: 0, start: 0, size: [2.8, 2.0], post: 1.6 });
+  const door1 = new Seal(W, { min: [-125.4, -24, -81.5], max: [-124.6, -20.8, -78.5], color: YELLOW, zone, closed: true });
+  const recv1 = new LightReceiver(W, { pos: [-144, -22.2, -74.25], face: '-z', size: 2.2, links: [doorLink(door1)], cable: [[-142.6, -19.8, -74.2], [-126.2, -19.8, -74.2], [-126.2, -19.8, -78.2]] });
+  lights.push(lens1, recv1);
+  ck([-137, -24, -94], Math.PI, [6, 3, 4]);
+  devStart('solar4', [-137, -24, -94], Math.PI, [0, YELLOW], 'Mirror climb 1: the First Lens');
+  lamp(-128, -24, -95.6, { h: 2.4, pool: 1.6 });
+  lamp(-128, -24, -75.6, { h: 2.4, pool: 1.6 });
+  light(-136, -14, -86, 0xffc070, 12, 20);
+  glyphs('+x', -148, -90, -17, 3.2, 1.4);
+  glyphs('-x', -126, -90, -17, 3.2, 1.4);
+  pylon(-133, -24, -76, 4);
+  // a line on the floor from the mirror's mouth east: where to stand
+  G(-141, -23.97, -83.75, -127, -23.92, -83.65);
+  deep([-148, -24, -97], [-124, -10, -72]);
+  vault(-148, -97, -126, -74, -24, -10, [[-140, -99, -134, -95], [-128, -83, -124, -77], [-147, -83, -141, -73]], 5.5);
+  hint([-140, -24, -97], [-134, -20, -92], 'A <b>mirror</b> on a turntable. Shoot its <b>back or frame</b> <b style="color:#ffd23a">yellow</b> to turn it; a shot on its <b>face</b> bounces off. Bounce one down the slot into the <b style="color:#ffd23a">receiver</b>.', 8);
+
+  // ================================================================ S5 THE BANK (puzzle: 2 mirrors) + the Sunken Cache
+  // A pit splits the room. The screen on the near bank has a slot in it; the first mirror stands in front of
+  // the slot, the second across the pit; the receiver hides behind a baffle on the far side, by the way out.
+  // Shot: up the near bank into mirror 1 → through the slot → mirror 2 → the receiver → a hard-light bridge.
+  // A crack lets daylight down onto a tilting mirror on the near bank: turn it onto the sand-glass seal in
+  // the south wall and the sun burns it open (the Sunken Cache).
+  R(-124, -24, -82, -122, -20.8, -81.5); // the passage from the First Lens
+  R(-124, -24, -78.5, -122, -20.8, -78);
+  R(-124, -20.8, -82, -122, -10, -78);
+  F(-124, -30, -81.5, -122, -24, -78.5);
+  R(-124, -30, -94, -96, -10, -92); // north
+  R(-124, -30, -92, -122, -10, -81.5); // west, round the passage
+  R(-124, -30, -78.5, -122, -10, -72);
+  R(-98, -30, -92, -96, -10, -72); // east
+  // south: the cache seal (x -122 … -119) and the way out to the Grand Lens (x -105.2 … -102.2)
+  R(-124, -30, -72, -122, -10, -70);
+  R(-119, -30, -72, -105.2, -10, -70);
+  R(-102.2, -30, -72, -96, -10, -70);
+  R(-122, -20.8, -72, -119, -10, -70);
+  R(-105.2, -20.8, -72, -102.2, -10, -70);
+  F(-105.2, -30, -72, -102.2, -24, -70);
+  F(-122, -30, -72, -119, -24, -70);
+  F(-122, -30, -92, -113, -24, -72); // the near bank
+  F(-107, -30, -92, -98, -24, -72); // the far bank
+  quick(-113, -92, -107, -72, -27.5, -30, false);
+  glowEdge(-113.6, -92, -113, -72, -24, dglow, DZ);
+  glowEdge(-107, -92, -106.4, -72, -24, dglow, DZ);
+  // the screen and its slot
+  R(-114, -24, -92, -113, -10, -88.6);
+  R(-114, -24, -87.4, -113, -10, -81);
+  R(-114, -24, -88.6, -113, -23.4, -87.4);
+  R(-114, -21.2, -88.6, -113, -10, -87.4);
+  G(-114.05, -23.45, -88.6, -112.95, -23.35, -87.4);
+  G(-114.05, -21.25, -88.6, -112.95, -21.15, -87.4);
+  R(-106, -24, -80, -105.4, -10, -72); // the baffle
+  const bankA = new RotMirror(W, { pos: [-115.4, -22.4, -88], yaw: 0, start: 2, size: [2.6, 2.0], post: 1.6 });
+  const bankB = new RotMirror(W, { pos: [-100, -22.4, -88], yaw: 0, start: 6, size: [2.6, 2.0], post: 1.6 });
+  const bridge2 = new PhasePlatform(W, { min: [-113, -24.4, -79.5], max: [-107, -24, -75.5], on: false, zone });
+  const recv2 = new LightReceiver(W, { pos: [-100, -22.2, -72.25], face: '-z', size: 2, links: [bridge2], cable: [[-98.8, -19.4, -72.2], [-98.2, -19.4, -72.2], [-98.2, -24, -75.6]] });
+  lights.push(bankA, bankB, recv2);
+  onRespawn(() => recv2.on && bridge2.activate());
+  // the cache: a crack, a tilting mirror, the sand-glass seal
+  const crack2 = new SunBeam(W, { from: [-120.5, -10.05, -78], dir: [0, -1, 0], source: 'crack', width: 0.38, near: 60 });
+  const tilt2 = new RotMirror(W, { pos: [-120.5, -22.6, -78], yaw: 0, start: 2, tilt: Math.PI / 4, size: [1.8, 1.4], post: 1.4 });
+  beams.push(crack2);
+  lights.push(tilt2);
+  const seal2 = new BurnWall(W, { min: [-122, -24, -72], max: [-119, -20.8, -70], time: 1.2 });
+  lights.push(seal2);
+  F(-124, -30, -70, -119, -24, -62); // the Sunken Cache
+  R(-126, -30, -72, -124, -10, -60);
+  R(-124, -30, -62, -119, -10, -60);
+  R(-124, -20, -70, -119, -10, -62);
+  trophy(-121.5, -23, -65);
+  light(-121.5, -21.5, -65.5, 0xffcc55, 6, 7);
+  G(-123.9, -20.2, -69.9, -119.1, -20.1, -62.1);
+  secretRoom([-124, -24, -70], [-119, -20, -62], 'Sunken Cache');
+  ck([-118, -24, -80], Math.PI / 2, [5, 3, 4]);
+  devStart('solar5', [-119, -24, -80], -Math.PI / 2, [0, YELLOW], 'Mirror climb 2: the Bank');
+  lamp(-121, -24, -90.6, { h: 2.4, pool: 1.8 });
+  lamp(-99, -24, -90.6, { h: 2.4, pool: 1.8 });
+  light(-110, -13, -82, 0xffc070, 12, 20);
+  glyphs('+z', -92, -103, -16, 3.6, 1.4);
+  glyphs('+z', -92, -118, -16, 3.6, 1.4);
+  deep([-124, -24, -92], [-96, -10, -70]);
+  vault(-122, -92, -98, -72, -24, -10, [[-124, -83, -120, -77], [-123, -74, -101, -70], [-115, -93, -105, -71]], 6);
+  hint([-122, -24, -82], [-119, -20, -78], 'Across the pit: a second <b>mirror</b>, and the receiver hides behind the <b>baffle</b> by the way out. Bounce a shot off the mirror by the <b>slot</b>, through it, off the far one.', 8);
+  hint([-122, -24, -80], [-118, -20, -74], 'Daylight through a crack — and a mirror that <b>tilts</b> it sideways. That glassy seal in the wall looks like it would <b>burn</b>…', 6);
+
+  // ================================================================ S6 THE GRAND LENS (puzzle: 4 mirrors) → the lift
+  // The lift up to the surface is dead. Shoot the prism on the west wall YELLOW: it throws a sunbeam east.
+  // The beam must run round the lift — A south, B east, C north — into D, which tips it straight up into
+  // the sun-catcher in the roof. Glowing channels in the floor show the way it should run.
+  F(-118, -30, -70, -96, -24, -46);
+  R(-119, -30, -70, -118, -10, -46); // west
+  R(-120, -30, -46, -94, -10, -44); // south
+  R(-96, -30, -72, -94, -10, -44); // east
+  const emitter = new SunEmitter(W, { pos: [-117.1, -21, -66], dir: [1, 0, 0], time: 3 });
+  D(-118, -22.4, -67.2, -117.5, -19.6, -64.8);
+  beams.push(emitter.beam);
+  const grandA = new RotMirror(W, { pos: [-110, -21, -66], yaw: 0, start: 0, size: [2.2, 1.6], post: 3 });
+  const grandB = new RotMirror(W, { pos: [-110, -21, -52], yaw: 0, start: 2, size: [2.2, 1.6], post: 3 });
+  const grandC = new RotMirror(W, { pos: [-100, -21, -52], yaw: 0, start: 4, size: [2.2, 1.6], post: 3 });
+  const grandD = new RotMirror(W, { pos: [-100, -21, -62], yaw: 0, start: 0, tilt: Math.PI / 4, size: [2.2, 1.6], post: 3 });
+  // the channels: dim until the catcher wakes
+  const chMat = mat('glow1', 'solarChannel');
+  chMat.color.multiplyScalar(0.18);
+  const ch = (x1, z1, x2, z2) => W.deco(x1, -23.98, z1, x2, -23.93, z2, 'glow1', 'solarChannel');
+  ch(-117, -66.1, -110, -65.9);
+  ch(-110.1, -66, -109.9, -52);
+  ch(-110, -52.1, -100, -51.9);
+  ch(-100.1, -62, -99.9, -52);
+  let lift3Powered = false;
+  const lift3 = new Elevator(W, { min: [-107, -24, -61], max: [-103, -23.6, -57], path: [[0, 15.6, 0]], speed: 2.6, zone, kind: 'grate', delay: 0.6 });
+  const recv3 = new LightReceiver(W, { pos: [-100, -10.3, -62], face: 'down', accept: 'sun', size: 1.8, cable: [[-101.2, -10.3, -62], [-103.2, -10.3, -60]], onOn: () => {
+    lift3Powered = true;
+    chMat.color.setRGB(1, 0.8, 0.2).multiplyScalar(1.6);
+    audio.sample('elevator_start', { gain: 0.7 });
+    game.hud.message('Sun-catcher lit — the <b>lift</b> to the surface has power. Step on.', 4);
+  } });
+  lights.push(grandA, grandB, grandC, grandD, recv3);
+  W.trigger([-106.8, -24, -60.8], [-103.2, -21, -57.2], () => lift3Powered && lift3.arm(), { once: false });
+  onRespawn(() => {
+    if (yard.state !== 'cleared') lift3.reset();
+  });
+  M(-107.4, -24, -61.4, -102.6, -23.95, -56.6); // the lift's well rim
+  M(-107.6, -10, -61.6, -102.4, -9.6, -61); // the hatch frame in the roof
+  M(-107.6, -10, -57, -102.4, -9.6, -56.4);
+  ck([-103.7, -24, -68], Math.PI, [5, 3, 3]);
+  devStart('solar6', [-103.7, -24, -68], Math.PI, [0, YELLOW], 'Mirror climb 3: the Grand Lens');
+  lamp(-116, -24, -47.6, { h: 2.4, pool: 1.8 });
+  lamp(-97.6, -24, -68.4, { h: 2.4, pool: 1.8 });
+  light(-105, -14, -58, 0xffc070, 12, 20);
+  glyphs('+x', -118, -55, -16, 3.6, 1.6);
+  glyphs('-x', -96, -55, -16, 3.6, 1.6);
+  deep([-118, -24, -70], [-96, -10.5, -46]);
+  vault(-118, -70, -96, -46, -24, -10, [[-106, -72, -101, -66], [-119, -68, -115, -64], [-108, -62, -102, -56]], 5.5);
+  hint([-105.2, -24, -70], [-102.2, -20, -66], 'The <b>Grand Lens</b>. Shoot the <b style="color:#ffd23a">prism</b> on the west wall and its sunbeam runs east. Turn the four mirrors to walk it round the <b>channels</b> — the last one tips it <b>up</b> into the roof.', 9);
+
+  // ================================================================ S7 THE MIRROR YARD (combat: the first yellow arena)
+  // You ride up into a walled yard. Rotatable solar panels stand round it (bank shots off their glossy faces
+  // into enemies behind cover); two quicksand pools; three waves, all yellow. The west seal opens on a clear.
+  R(-138, -10, -44, -88, -4, -42); // south
+  R(-138, -10, -86, -88, -4, -84); // north
+  R(-90, -10, -84, -88, -4, -44); // east
+  R(-138, -10, -84, -134, -4, -66); // west, the way on cut in it
+  R(-138, -10, -62, -134, -4, -44);
+  R(-138, -4.8, -66, -134, -4, -62);
+  for (const [x1, z1, x2, z2] of [[-138, -44, -88, -42], [-138, -86, -88, -84], [-90, -84, -88, -44]]) PG(x1 - 0.02, -4.4, z1 - 0.02, x2 + 0.02, -4.3, z2 + 0.02);
+  blocker([-138, -4, -44], [-88, SKY, -42]);
+  blocker([-138, -4, -86], [-88, SKY, -84]);
+  blocker([-90, -4, -84], [-88, SKY, -44]);
+  blocker([-138, -4, -84], [-134, SKY, -44]);
+  quick(-126, -54, -118, -48, S, -10);
+  quick(-100, -78, -94, -70, S, -10);
+  // cover
+  F(-124, S, -74, -120, -6.6, -71.5);
+  F(-104, S, -52.5, -100, -6.6, -50);
+  M(-118.5, S, -62, -116, -4.6, -59.5);
+  M(-99, S, -64, -96.5, -4.6, -61.5);
+  M(-114, S, -48, -112, -5.4, -46);
+  glowEdge(-124, -74, -120, -71.5, -6.6, glow, zone);
+  glowEdge(-104, -52.5, -100, -50, -6.6, glow, zone);
+  // corner pylons, and the sun-temple forecourt this yard was: broken pillars, fallen drums, drifts, the old
+  // collector tower, sun reliefs, glyph strips and banners on the walls
+  for (const [x, z] of [[-133, -83], [-89.5, -83], [-133, -45], [-89.5, -45]]) pylon(x, S, z, 5);
+  for (const [x, z, h, cap] of [[-131, -70, 3.4, true], [-92, -50, 2.2], [-127, -60.5, 1.6], [-106, -76, 4.2, true], [-93, -70, 1.4]]) brokenPillar(x, S, z, h, cap);
+  drum(-118, S, -78, true);
+  drum(-104, S, -46.5, false, 2.4);
+  for (const [x, z, w, d] of [[-126, -66, 6, 4], [-98, -58, 5, 6], [-112, -50, 9, 2.6], [-120, -82, 7, 3]]) drift(x, S, z, w, d);
+  M(-101, S, -84, -97, 2.5, -81);
+  M(-102.5, 2.5, -85.5, -95.5, 4.5, -79.5);
+  PG(-102.6, 3.7, -85.6, -95.4, 4, -79.4);
+  PG(-101.05, S, -84.05, -100.9, 2.5, -83.9);
+  sunRelief('+z', -84, -122, -6, 1.5);
+  sunRelief('-z', -44, -96, -6, 1.5);
+  sunRelief('-x', -90, -72, -6, 1.4);
+  glyphStrip('+z', -84, -133, -104, -4.7);
+  glyphStrip('-z', -44, -133, -91, -4.7);
+  glyphStrip('-x', -90, -83, -45, -4.7);
+  banner('+z', -84, -114, -4, 1.6, 3.2);
+  banner('-z', -44, -116, -4, 1.6, 3.2);
+  banner('-x', -90, -56, -4, 1.6, 3.2);
+  const yardPanels = [
+    [-130, -79, Math.PI * 1.75], [-112, -80.5, Math.PI], [-94, -79, Math.PI * 1.25], [-92.5, -60, Math.PI * 1.5],
+    [-102, -47, Math.PI * 0.25], [-122, -47, Math.PI * 0.75], [-131, -55, Math.PI * 0.5], [-116, -66, 0],
+  ].map(([x, z, yaw]) => new RotMirror(W, { pos: [x, -5, z], yaw, start: 0, size: [3.4, 2.2], look: 'pv', post: 3 }));
+  lights.push(...yardPanels);
+  B.armor([-131.5, S, -46]);
+  B.armor([-92, S, -82]);
+  B.armor([-122, -6.6, -72.7]);
+  const yardSeal = { min: [-134.6, S, -66], max: [-134, -4.8, -62], closed: true };
+  const yard = B.encounter({
+    trigger: [[-134, -8.5, -84], [-90, -4, -44]],
+    seals: [yardSeal],
+    title: 'THE MIRROR YARD', sub: 'YELLOW HOSTILES', color: '#ffd23a', music: 'music_combat', zone,
+    checkpoint: { pos: [-137, S, -64], yaw: Math.PI / 2 },
     waves: [
       [
-        { type: 'drone', pos: [-80, 4, -50], color: RED },
-        { type: 'drone', pos: [-98, 5, -66], color: RED },
-        { type: 'mummy', pos: [-96, -1, -46], color: RED, shieldColor: RED, delay: 2 },
-        { type: 'turret', pos: [-89, 6, -54.95], color: RED, mount: [0, 0, 1], delay: 1.2 },
+        { type: 'drone', pos: [-112, -2, -72], color: YELLOW },
+        { type: 'drone', pos: [-100, -2, -50], color: YELLOW, delay: 0.5 },
+        { type: 'scarab', pos: [-124, S, -78], color: YELLOW, shields: [RED], burrow: false, delay: 0.8 },
+        { type: 'scarab', pos: [-96, S, -54], color: YELLOW, shields: [RED], burrow: false, delay: 1.1 },
+        { type: 'scarab', pos: [-128, S, -62], color: YELLOW, burrow: false, delay: 1.4 },
       ],
+      { title: 'REINFORCEMENTS', enemies: [
+        { type: 'mummy', pos: [-122, S, -51], color: YELLOW, shieldColor: RED },
+        { type: 'turret', pos: [-89.9, -4.6, -66], color: YELLOW, shields: [RED], mount: [-1, 0, 0], delay: 0.8 },
+        { type: 'brute', pos: [-128, S, -76], color: YELLOW, delay: 1.4 },
+        { type: 'drone', pos: [-94, -2, -74], color: YELLOW, delay: 2.0 },
+        { type: 'drone', pos: [-130, -2, -50], color: YELLOW, shields: [RED], delay: 2.4 },
+      ] },
       [
-        { type: 'scarab', pos: [-84, -1, -47], color: RED, burrow: false },
-        { type: 'scarab', pos: [-94, -1, -46], color: RED, burrow: false, delay: 0.4 },
-        { type: 'scarab', pos: [-80, -1, -60], color: RED, burrow: false, delay: 0.8 },
-        { type: 'brute', pos: [-97, -1, -48], color: RED, delay: 1.0 },
-        { type: 'drone', pos: [-78, 5, -64], color: RED, delay: 2.2 },
+        { type: 'warden', pos: [-112, -3.5, -58], shield: RED, core: YELLOW },
+        { type: 'mortar', pos: [-96, S, -80], color: YELLOW, delay: 1.0 },
+        { type: 'scarab', pos: [-130, S, -80], color: YELLOW, shields: [RED], burrow: false, delay: 1.4 },
+        { type: 'scarab', pos: [-94, S, -48], color: YELLOW, burrow: false, delay: 1.7 },
+        { type: 'mummy', pos: [-98, S, -73], color: YELLOW, shieldColor: RED, delay: 2.2 },
       ],
     ],
+    onClear: () => game.hud.message('Yard secured. The <b>west gate</b> is open — the sun-farm beyond runs on <b>light</b>.', 5),
   });
-  ck([-86, -1, -74.5], Math.PI, [8, 3, 4]);
-  devStart('solar2', [-86, -1, -74.5], Math.PI, [RED]);
-  blocker([-104, 8, -42], [-74, SKY, -40]);
-  blocker([-74, 8, -72], [-58, SKY, -40]);
-  blocker([-106, 8, -72], [-104, SKY, -42]);
+  area([-134, -8.5, -84], [-90, -2, -44], mood);
+  devStart('solar7', [-112, S, -66.5], Math.PI, [0, YELLOW], 'The surface arena (Mirror Yard)');
+  hint([-108, -9, -62], [-102, -6, -56], 'Surface! Those <b>solar panels</b> turn when you shoot their frames, and their faces <b>reflect</b>: bank shots round cover.', 6);
 
-  // ================================================================ S3 THE SUNDIAL COURT (puzzle)
-  // A bridge over quicksand, blocked by two great sun discs. Each red hit turns a disc a quarter turn:
-  // turn each one's notch down to the bridge. Beyond, the exit is up on a ledge behind a sinker door: shoot
-  // the door down, then ride the red riser up (it only climbs while you shoot it) before the door rises.
-  corridorX({ xStart: -104, xEnd: -110, y: -1, zone, cz: -57 });
-  R(-114, -14, -70, -110, -1, -49); // entry ledge
-  R(-136, -14, -70, -128, -1, -49); // west floor
-  quick(-114, -70, -128, -49, -3, -14);
-  R(-128, -14, -58.5, -114, -1, -55.5); // the bridge
-  glowEdge(-128, -58.5, -114, -55.5, -1, glow, zone);
-  R(-138, -14, -72, -106, 9, -70); // north wall
-  R(-138, -14, -49, -106, 9, -47); // south wall
-  R(-110, -1, -70, -106, 9, -59); // east wall round the corridor
-  R(-110, -1, -55, -106, 9, -49);
-  R(-110, 2.7, -59, -106, 9, -55);
-  R(-138, -14, -70, -136, 9, -58.5); // west wall, round the doorway out
-  R(-138, -14, -55.5, -136, 9, -49);
-  R(-138, -14, -58.5, -136, 3.5, -55.5);
-  R(-138, 6.7, -58.5, -136, 9, -55.5);
-  R(-136, -1, -58.5, -132, 3.5, -51); // the exit ledge: a porch behind the sinker door, and the stairs' landing
-  R(-136, 3.5, -59, -132, 7.2, -58.5); // the porch's walls
-  R(-133.6, 3.5, -55.5, -132, 7.2, -51);
-  R(-136, 7.2, -59, -132, 7.6, -51);
-  G(-132.05, 3.4, -58.5, -131.95, 3.52, -55.5);
-  area([-114, -1, -59], [-110, 3, -55], mood);
-  ck([-112, -1, -57], Math.PI / 2, [4, 3, 6]);
-  devStart('solar3', [-112, -1, -57], Math.PI / 2, [RED]);
-  const disc = [[-0.3, -4.2, -4.2, 0.3, 4.2, -1.5], [-0.3, -4.2, 1.5, 0.3, 4.2, 4.2], [-0.3, -1.0, -1.5, 0.3, 4.2, 1.5]];
-  const dialA = B.shotRotor({ pivot: [-117.5, 3.2, -57], parts: disc, axis: 'x', color: RED, start: 2, correct: 0, zone });
-  const dialB = B.shotRotor({ pivot: [-124.5, 3.2, -57], parts: disc, axis: 'x', color: RED, start: 1, correct: 0, zone });
-  // the discs are heavy: it takes two red hits to shift one a quarter turn (the first one only rocks it),
-  // so the first needs 4 hits and the second 6
+  // ================================================================ S8 THE PANEL COURT (light puzzle: 3 panels)
+  // A walled court with a sky-lens pouring a sunbeam onto a tilted panel. Turn it to throw the beam west,
+  // the next to throw it north, the third to throw it east into the sun-catcher that opens the north gate.
+  R(-138, -10, -67, -134, -4.8, -66); // the passage from the yard
+  R(-138, -10, -62, -134, -4.8, -61);
+  R(-138, -4.8, -67, -134, -4, -61);
+  R(-138, -4, -67, -136, -2, -61);
+  R(-162, -10, -82, -153, -2, -80); // north, the gate in it (x -153 … -149)
+  R(-149, -10, -82, -136, -2, -80);
+  R(-153, -3.8, -82, -149, -2, -80);
+  R(-162, -10, -50, -136, -2, -48); // south
+  R(-162, -10, -80, -160, -2, -50); // west
+  R(-138, -10, -80, -136, -2, -67); // east (behind it, the yard's wall)
+  R(-138, -10, -61, -136, -2, -50);
+  blocker([-162, -2, -82], [-136, SKY, -48]);
+  const gate8 = new Seal(W, { min: [-153, S, -81.3], max: [-149, -3.8, -80.7], color: YELLOW, zone, closed: true });
+  const lens8 = skyLens([-141, S, -56], 11, [-137.2, -52]);
+  beams.push(lens8);
+  const p8a = new RotMirror(W, { pos: [-141, -5.6, -56], yaw: 0, start: 0, tilt: Math.PI / 4, size: [2.6, 2.0], look: 'pv', post: 2.4 });
+  const p8b = new RotMirror(W, { pos: [-157, -5.6, -56], yaw: 0, start: 1, size: [2.6, 2.0], look: 'pv', post: 2.4 });
+  const p8c = new RotMirror(W, { pos: [-157, -5.6, -76], yaw: 0, start: 3, size: [2.6, 2.0], look: 'pv', post: 2.4 });
+  const recv8 = new LightReceiver(W, { pos: [-138.25, -5.6, -76], face: '-x', accept: 'sun', size: 1.8, links: [doorLink(gate8)], cable: [[-138.2, -4.4, -77.2], [-138.2, -3, -79.8], [-148.8, -3, -79.8]] });
+  lights.push(p8a, p8b, p8c, recv8);
+  for (const [x, z] of [[-160.5, -50.5], [-160.5, -79.5]]) pylon(x + 0.8, S, z, 4);
+  new Drone(W, { pos: [-150, -3, -64], color: YELLOW, range: 24 });
+  new Drone(W, { pos: [-146, -2.5, -74], color: YELLOW, shields: [RED], range: 24 });
+  ck([-140, S, -64], Math.PI / 2, [4, 3, 6]);
+  devStart('solar8', [-140, S, -64], Math.PI / 2, [0, YELLOW], 'Light puzzle: the Panel Court');
+  area([-138, -8.5, -67], [-134, -4.5, -61], mood);
+  hint([-142, S, -68], [-138, -4, -60], 'A <b>sky-lens</b> pours the sun onto that tilted panel. Turn the panels to carry the beam <b>west</b>, <b>north</b>, then <b>east</b> into the gate\'s <b>sun-catcher</b>.', 8);
+
+  // ================================================================ S9 THE GLASS CANYON (burn-through, 2 panels → a pad)
+  // A cut through a sandstone ridge, choked by a wall of fused sand-glass. A lens on the rim pours onto a
+  // tilted panel: aim it north and the sun boils the wall away. The beam then reaches a second panel; turn
+  // it west onto the catcher that wakes the jump pad up onto the chasm rim.
+  R(-162, -10, -134, -158, -1, -82); // the ridge's west half
+  R(-144, -10, -134, -138, -1, -82); // east half
+  R(-158, -10, -134, -144, -4, -132); // the cut's north end (the rim beyond is higher)
+  R(-158, S, -102, -155, -1, -99); // buttresses either side of the glass
+  R(-145, S, -102, -144, -1, -99);
+  blocker([-162, -1, -134], [-158, SKY, -82]);
+  blocker([-144, -1, -134], [-138, SKY, -82]);
+  strata(-158.3, -132, -158, -82, [-6, -3.5]);
+  strata(-144, -132, -143.7, -82, [-6.5, -3]);
+  const glass9 = new BurnWall(W, { min: [-155, S, -101], max: [-145, -1, -100], time: 1.6 });
+  const lens9 = skyLens([-147, S, -92], 11, [-143.4, -92]);
+  const p9a = new RotMirror(W, { pos: [-147, -5.6, -92], yaw: 0, start: 6, tilt: Math.PI / 4, size: [2.4, 1.8], look: 'pv', post: 2.4 });
+  const p9b = new RotMirror(W, { pos: [-147, -5.6, -124], yaw: 0, start: 4, size: [2.4, 1.8], look: 'pv', post: 2.4 });
+  let pad9 = null;
+  const deadPad9 = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.15, 0.2, 24), new THREE.MeshStandardMaterial({ color: 0x2a2620, metalness: 0.8, roughness: 0.4 }));
+  deadPad9.position.set(-147, S + 0.1, -128);
+  W.scene.add(deadPad9);
+  const recv9 = new LightReceiver(W, { pos: [-157.75, -5.6, -124], face: '+x', accept: 'sun', size: 1.6, cable: [[-157.7, -6.8, -125.2], [-157.7, -7.9, -128], [-148.2, -7.9, -128]], onOn: () => {
+    if (pad9) return;
+    pad9 = new JumpPad(W, { pos: [-147, S, -128], power: 16, push: [0, 0, -8], color: 0xffd23a });
+    deadPad9.visible = false;
+    game.hud.message('Jump pad online! Up onto the <b>chasm rim</b>.', 3.5);
+  } });
+  beams.push(lens9);
+  lights.push(glass9, p9a, p9b, recv9);
+  // two timed lances in the cut beyond the glass
+  lanceRig(-156, -114, -153, -111, S, 6, { period: 3.6, on: 1.5, warn: 0.7 }, S);
+  lanceRig(-152, -120, -149.5, -117.5, S, 6, { period: 3.6, on: 1.5, warn: 0.7, phase: 1.8 }, S);
+  B.turret([-143.9, -4.5, -110], YELLOW, { shields: [RED], mount: [-1, 0, 0] });
+  new Drone(W, { pos: [-151, -3, -90], color: YELLOW, range: 22 });
+  new Drone(W, { pos: [-151, -2.5, -122], color: YELLOW, range: 22 });
+  B.scarab([-152, S, -127], { color: YELLOW, shields: [RED], range: 12 });
+  ck([-151, S, -86], 0, [6, 3, 4]);
+  devStart('solar9', [-151, S, -85], 0, [0, YELLOW], 'Light puzzle: the Glass Canyon');
+  hint([-155, S, -90], [-145, -4, -84], 'A wall of fused <b>sand-glass</b>. Shots glance off — but <b>focused sunlight</b> would boil it away. Aim the lens beam at it.', 7);
+  hint([-155, S, -110], [-145, -4, -104], 'Through! Time the <b>sun lances</b>, then turn the beam onto the <b>catcher</b> by the dead jump pad.', 6);
+
+  // ================================================================ S10 THE SUN BRIDGES (platforming + light over a deep chasm)
+  // Pillars across a chasm of deep quicksand. On each of two pillars a lens pours onto a tilted panel: turn
+  // it west onto its catcher and the hard-light bridge ahead rises. A lance guards the gap between.
+  R(-150, -30, -152, -144, -4, -132); // the east rim
+  R(-200, -30, -152, -194, -4, -132); // the west rim
+  R(-202, -30, -156, -142, 0, -152); // the north cliff
+  R(-194, -30, -134, -158, -2, -132); // the south lip (behind it, the plateau)
+  quick(-194, -152, -150, -134, -24, -30, false);
+  glowEdge(-150, -152, -144, -134, -4, glow, zone);
+  glowEdge(-200, -152, -194, -132, -4, glow, zone);
+  blocker([-202, 0, -156], [-142, 8, -152]);
+  blocker([-144, -4, -152], [-143.6, 8, -134]); // (no stepping off the rims into the desert)
+  blocker([-200.4, -4, -152], [-200, SKY, -132]);
+  pillar(-156, -142.5, -153, -139.5, -3.6);
+  pillar(-163, -143, -159, -139, -3.2);
+  const bridge10a = new PhasePlatform(W, { min: [-170, -3.6, -141.8], max: [-163, -3.2, -140.2], on: false, zone });
+  pillar(-176, -144, -170, -137, -3.2);
+  pillar(-183, -143, -179, -139, -2.8);
+  const bridge10b = new PhasePlatform(W, { min: [-194, -3.2, -141.8], max: [-183, -2.8, -140.2], on: false, zone });
+  const lens10a = skyLens([-161, -3.2, -142.4], 12, [-161, -153]);
+  const p10a = new RotMirror(W, { pos: [-161, -0.8, -142.4], yaw: 0, start: 6, tilt: Math.PI / 4, size: [2.2, 1.6], look: 'pv', post: 2.4 });
+  M(-174, -3.2, -143.4, -173.4, 0.2, -142.2);
+  const recv10a = new LightReceiver(W, { pos: [-173.1, -0.8, -142.4], face: '+x', accept: 'sun', size: 1.5, links: [bridge10a] });
+  const lens10b = skyLens([-181, -2.8, -142.4], 12, [-181, -153]);
+  const p10b = new RotMirror(W, { pos: [-181, -0.4, -142.4], yaw: 0, start: 0, tilt: Math.PI / 4, size: [2.2, 1.6], look: 'pv', post: 2.4 });
+  M(-197, -4, -143.4, -196.4, 0.6, -142.2);
+  const recv10b = new LightReceiver(W, { pos: [-196.1, -0.4, -142.4], face: '+x', accept: 'sun', size: 1.5, links: [bridge10b] });
+  beams.push(lens10a, lens10b);
+  lights.push(p10a, recv10a, p10b, recv10b);
+  onRespawn(() => {
+    if (recv10a.on) bridge10a.activate();
+    if (recv10b.on) bridge10b.activate();
+  });
+  lanceRig(-179, -143, -176, -139, -24, 8, { period: 3.4, on: 1.4, warn: 0.7 }, -30, '-z');
+  new Drone(W, { pos: [-166, 2, -146], color: YELLOW, range: 26 });
+  new Drone(W, { pos: [-186, 2.5, -136], color: YELLOW, shields: [RED], range: 26 });
+  ck([-147, -4, -138], Math.PI / 2, [5, 3, 6]);
+  devStart('solar10', [-147, -4, -138], Math.PI / 2, [0, YELLOW], 'The Sun Bridges');
+  ck([-173, -3.2, -138.6], Math.PI / 2, [3, 3, 3]);
+  area([-150, -4.5, -152], [-144, 0, -134], mood);
+  hint([-150, -4, -146], [-144, 0, -134], 'The <b>Sun Bridges</b>. Each lens pours on a panel; turn it <b>west</b> onto the catcher ahead and a hard-light bridge rises. The chasm is <b>deep</b>.', 7);
+
+  // ================================================================ S11 THE SINKING FLATS (the must-drop quicksand crossing)
+  // A walled ledge south off the west rim ends over a basin of quicksand. There's no other way: drop in (it
+  // breaks the fall), then mash JUMP and fight your way 16 m south to the low lip, and up the stairs.
+  R(-200, -30, -132, -194, -4, -116); // the ledge
+  R(-206, -30, -132, -200, -2, -116); // its walls
+  R(-194, -30, -132, -184, -2, -116);
+  R(-214, -30, -150, -206, -4, -92); // the basin's west wall (the dune sea beyond)
+  R(-184, -30, -132, -162, -2, -92); // the plateau (its east wall)
+  quick(-206, -116, -186, -98, -14, -18, true);
+  R(-186, -30, -116, -184, -6, -98);
+  F(-206, -30, -98, -186, -13.6, -94); // the lip and the landing
+  G(-206, -13.65, -98.05, -186, -13.55, -97.95);
+  R(-206, -30, -94, -200, -6, -84); // either side of the stairs
+  R(-192, -30, -94, -184, -6, -84);
+  for (let i = 0; i < 14; i++) F(-200, -30, -94 + i * 0.72, -192, -13.6 + 0.4 * (i + 1), -94 + (i + 1) * 0.72);
+  G(-200, -8.05, -84.1, -192, -7.95, -84);
+  blocker([-206, -2, -132], [-200, SKY, -116]);
+  blocker([-194, -2, -132], [-184, SKY, -116]);
+  blocker([-214, -4, -150], [-206, SKY, -92]);
+  blocker([-184, -2, -132], [-162, SKY, -92]);
+  strata(-206, -116, -205.7, -98, [-11, -8]);
+  guideStrip([[-197, -4, -124], [-197, -4, -116.6]], amber, { spacing: 1.2 });
+  G(-200, -4.05, -116.1, -194, -3.95, -116);
+  ck([-197, -4, -127], Math.PI, [6, 3, 5]);
+  devStart('solar11', [-197, -4, -127], Math.PI, [0, YELLOW], 'The Sinking Flats (quicksand drop)');
+  area([-200, -4.5, -132], [-194, 0, -116], mood);
+  hint([-200, -4, -122], [-194, 0, -116], 'Dead end — except <b>down</b>. The quicksand will catch you; then <b>mash JUMP</b> and fight your way to the <b>lip</b> at the far end.', 7);
+  B.scarab([-196, -13.6, -95.5], { color: YELLOW, shields: [RED], range: 10 });
+
+  // ================================================================ S12 THE DOCK YARD (combat + light)
+  // The hover dock's yard on the world's west edge. A lens pours onto a heliostat set low on a turntable:
+  // turn it and the beam sweeps the yard at waist height, burning whatever it finds (it scorches shields
+  // too). Attackers come from every side; the dock gate opens once they're down.
+  R(-214, -10, -94, -200, -4, -92); // north
+  R(-192, -10, -94, -160, -2, -92);
+  R(-166, -10, -92, -160, -2, -40); // east (the panel court is beyond)
+  R(-212, -10, -42, -160, -6.6, -40); // south: a parapet over the sun-farm
+  R(-214, -10, -92, -212, -5, -61); // west, the dock opening in it (the dock's width)
+  R(-214, -10, -51, -212, -5, -40);
+  blocker([-212, -6.6, -42], [-160, SKY, -39.5]);
+  blocker([-166, -2, -92], [-160, SKY, -40]);
+  blocker([-214, -5, -92], [-212, SKY, -61]);
+  blocker([-214, -5, -51], [-212, SKY, -40]);
+  G(-212, -6.65, -42, -160, -6.55, -41.9);
+  const lens12 = skyLens([-189, S, -67], 12, [-189, -62.6]);
+  const sweep = new RotMirror(W, { pos: [-189, -6.6, -67], yaw: 0, start: 0, tilt: Math.PI / 4, size: [2.4, 1.8], look: 'pv', post: 1.4 });
+  beams.push(lens12);
+  lights.push(sweep);
+  F(-191, S, -69, -187, -7.85, -65);
+  glowEdge(-191, -69, -187, -65, -7.85, glow, zone);
+  // cover, and lanes to sweep
+  F(-204, S, -82, -200, -6.4, -79);
+  F(-178, S, -80, -174, -6.4, -77);
+  F(-204, S, -52, -200, -6.4, -49);
+  F(-178, S, -54, -174, -6.4, -51);
+  M(-196, S, -48, -194, -4, -46);
+  M(-184, S, -88, -182, -4, -86);
+  for (const [x, z] of [[-210, -90], [-210, -44], [-168, -90], [-168, -44]]) pylon(x, S, z, 5);
+  for (const [x, z, h, cap] of [[-206, -64, 4.6, true], [-172, -72, 2.6], [-198, -46, 1.8], [-180, -88, 3.2, true]]) brokenPillar(x, S, z, h, cap);
+  drum(-184, S, -58, true);
+  drum(-200, S, -74, false, 2.4);
+  sunRelief('-x', -166, -78, -5, 1.6);
+  sunRelief('-x', -166, -56, -5, 1.6);
+  glyphStrip('-x', -166, -91, -43, -3);
+  banner('-x', -166, -67, -2, 1.8, 4.4);
+  for (const [x, z, w, d] of [[-196, -75, 6, 4], [-178, -62, 5, 6], [-200, -60, 7, 3], [-184, -48, 6, 3]]) drift(x, S, z, w, d);
+  B.armor([-202, -6.4, -80.5]);
+  B.armor([-176, -6.4, -52.5]);
+  const dockGate = { min: [-212.6, S, -61], max: [-212, -5, -51], closed: true };
+  const dock = B.encounter({
+    trigger: [[-206, -8.5, -84], [-170, -4, -46]],
+    seals: [dockGate],
+    title: 'THE DOCK YARD', sub: 'AMBUSH', color: '#ffd23a', music: 'music_combat', zone,
+    checkpoint: { pos: [-207, S, -56], yaw: Math.PI / 2 },
+    waves: [
+      [
+        { type: 'scarab', pos: [-176, S, -84], color: YELLOW, burrow: false },
+        { type: 'scarab', pos: [-202, S, -86], color: YELLOW, shields: [RED], burrow: false, delay: 0.4 },
+        { type: 'scarab', pos: [-176, S, -46], color: YELLOW, burrow: false, delay: 0.8 },
+        { type: 'scarab', pos: [-204, S, -46], color: YELLOW, shields: [RED], burrow: false, delay: 1.2 },
+        { type: 'drone', pos: [-189, -2, -82], color: YELLOW, delay: 1.0 },
+        { type: 'drone', pos: [-189, -2, -50], color: YELLOW, delay: 1.6 },
+      ],
+      { title: 'SHIELDS: BURN THE GOLD, BREAK THE RED', enemies: [
+        { type: 'mummy', pos: [-172, S, -66], color: YELLOW, shieldColor: YELLOW },
+        { type: 'mummy', pos: [-206, S, -68], color: YELLOW, shieldColor: RED, delay: 1.2 },
+        { type: 'brute', pos: [-189, S, -86], color: YELLOW, delay: 2.0 },
+        { type: 'scarab', pos: [-189, S, -46], color: YELLOW, burrow: false, delay: 2.6 },
+      ] },
+      [
+        { type: 'warden', pos: [-189, -5.4, -80], shield: RED, core: YELLOW },
+        { type: 'mortar', pos: [-206, S, -88], color: YELLOW, delay: 0.8 },
+        { type: 'drone', pos: [-172, -2, -84], color: YELLOW, delay: 1.2 },
+        { type: 'drone', pos: [-206, -2, -48], color: YELLOW, shields: [RED], delay: 1.6 },
+        { type: 'turret', pos: [-165.9, -4.5, -66], color: YELLOW, shields: [RED], mount: [-1, 0, 0], delay: 2.2 },
+      ],
+    ],
+    onClear: () => game.hud.message('The <b>hover dock</b> is open. West, across the dune sea, to the <b>Sun Court</b>.', 5),
+  });
+  ck([-196, S, -82], Math.PI, [8, 3, 4]);
+  devStart('solar12', [-196, S, -82], Math.PI, [0, YELLOW], 'The Dock Yard (arena)');
+  area([-200, -8.5, -86], [-192, -4, -82], mood);
+  hint([-200, S, -84], [-192, -4, -80], 'The <b>Dock Yard</b>. That low heliostat throws the lens beam across the yard: <b>turn it</b> to sweep the sunbeam through whatever comes.', 7);
+
+  // ================================================================ S13 THE HOVER DOCK → the dune run → S14 THE SUN QUAY
+  // The dune run (solarDunes.js) boards at `start` just outside the dock gate and sets you down at `end` on
+  // the Sun Quay, which a lift climbs to the Sun Court's west door. Its docks are 8 × 10 m platforms whose open
+  // east edge lies 4 m east of the dock point: dock points at x -216 butt them against Solar's west edge (x -212).
+  const DUNE_START = [-216, S, -56], DUNE_END = [-216, -6, -200];
+  devStart('solar13', [-208, S, -56], Math.PI / 2, [0, YELLOW], 'The hover dock (dune run)');
+  let duneDone = false;
+  const quay = { lift: null };
+  const buildRun = duneModule?.buildDuneRun || standInDuneRun;
+  const duneRun = buildRun(B, {
+    start: DUNE_START, startYaw: Math.PI / 2, end: DUNE_END, endYaw: -Math.PI / 2,
+    onDone: () => {
+      duneDone = true;
+      game.hud.message('The <b>Sun Quay</b>. The lift climbs to the <b>Sun Court</b>.', 4);
+    },
+  });
+  level.solarDunes = duneRun;
+  // the quay: a stone wharf under the court mesa, cut by a quicksand channel. Two great sun discs block the
+  // bridge over it: every two YELLOW hits turn one a quarter turn — turn each notch down onto the bridge.
+  // The lift up the mesa is beyond.
+  F(-212, -30, -210, -200, -6, -190);
+  F(-188, -30, -210, -184, -6, -190);
+  glowEdge(-212, -210, -200, -190, -6, glow, zone);
+  quick(-200, -210, -188, -190, -9, -14);
+  R(-200, -14, -201.5, -188, -6, -198.5); // the bridge
+  glowEdge(-200, -201.5, -188, -198.5, -6, glow, zone);
+  const discParts = [[-0.3, -4.2, -4.2, 0.3, 4.2, -1.5], [-0.3, -4.2, 1.5, 0.3, 4.2, 4.2], [-0.3, -1.0, -1.5, 0.3, 4.2, 1.5]];
+  const dialA = B.shotRotor({ pivot: [-196.5, -1.8, -200], parts: discParts, axis: 'x', color: YELLOW, start: 2, correct: 0, zone });
+  const dialB = B.shotRotor({ pivot: [-191.5, -1.8, -200], parts: discParts, axis: 'x', color: YELLOW, start: 1, correct: 0, zone });
+  // they're heavy: the first hit only rocks one on its axle, the second turns it
   for (const d of [dialA, dialB]) {
     const hitTurn = d.onHit.bind(d);
     let charge = 0;
@@ -907,7 +1262,7 @@ export function buildSolar(B) {
       if (++charge < 2) {
         d.flash = 1;
         d.world.fx.sparks(hit?.point || d.pivot, hit?.normal || new THREE.Vector3(0, 1, 0), d.hex, { count: 6, speed: 6, spread: 0.8, life: 0.25 });
-        d.jam = 0.5; // it rocks on its axle (the rotor's own wobble)
+        d.jam = 0.5;
         return 'hit';
       }
       charge = 0;
@@ -915,471 +1270,113 @@ export function buildSolar(B) {
     };
     onRespawn(() => (charge = 0));
   }
-  B.riser({ min: [-131.8, -1, -58.5], max: [-128.8, 0, -55.5], rise: 4, color: RED, zone });
-  const sinker = B.sinker({ min: [-133.6, 3.5, -58.5], max: [-132, 6.7, -55.5], depth: 5, color: RED, back: 0.9, zone });
-  new Drone(W, { pos: [-121, 8, -51], color: RED, range: 20 });
-  hint([-114, -1, -59], [-110, 3, -55], 'The sun discs are heavy: every <b>two</b> <b style="color:#ff3344">red</b> hits turn one a quarter turn. Turn each <b>notch down</b> onto the bridge.', 6);
-  hint([-128, -1, -60], [-126, 3, -54], 'Shoot the <b>door</b> on the ledge down into the rock, then stand on the <b>riser</b> and keep shooting it to climb. Quick — the door comes back up.', 7);
-  // GREEN stairs up to the ledge along the south wall: a shortcut for later (it skips the race)
-  R(-130, -1, -51, -128, -0.59, -49); // (the bottom step is the width of the barrier)
-  for (let i = 1; i <= 10; i++) R(-130 - 0.6 * i, -1, -51, -130 - 0.6 * (i - 1), -1 + 0.41 * (i + 1), -49);
-  R(-132, -1, -51.4, -130, 4.4, -51); // a wall between the stairs and the floor, the barrier at its foot
-  new Barrier(W, { min: [-130, -1, -51.3], max: [-128, 2.6, -50.9], color: GREEN, kind: 'wall', zone });
-  blocker([-128, -1, -51], [-127.8, SKY, -49]); // no jumping onto the stairs from over the pool
-  blocker([-138, 9, -72], [-106, SKY, -47]);
-
-  // ================================================================ S4 THE SHADE SLOT (platforming)
-  // A slot canyon roofed by an old lens array. Sunlight lances down through the gaps in waves; the roofed
-  // stretches are shade — all but one, which is a trapdoor.
-  R(-140, -14, -124, -138, 12, -105); // east wall (the cache crawl hole and the court door cut in it)
-  R(-140, -14, -103, -138, 12, -59);
-  R(-140, -14, -105, -138, 2, -103);
-  R(-140, 3, -105, -138, 12, -103);
-  R(-140, -14, -55, -138, 12, -46);
-  R(-140, -14, -59, -138, 3.5, -55);
-  R(-140, 6.7, -59, -138, 12, -55);
-  R(-150, -14, -112, -147, 12, -46); // west wall (the Sun Well's east wall), the well door cut in it
-  R(-150, 1.2, -118, -147, 12, -112);
-  R(-150, -14, -118, -147, -2, -112); // the doorway's sill
-  R(-150, -14, -124, -147, 12, -118);
-  R(-150, -14, -50, -138, 12, -46); // south end
-  R(-150, -14, -124, -138, 12, -120); // north end
-  R(-147, -14, -74, -140, 3.5, -50); // A
-  R(-147, -14, -88, -140, 2, -74); // B
-  quick(-147, -94, -140, -88, -6, -14); // the pit under the trapdoor
-  B.trapdoor({ min: [-147, 1.6, -94], max: [-140, 2, -88], delay: 0.5, respawn: 2.5, zone });
-  R(-147, -14, -106, -140, 2, -94); // C
-  R(-147, -14, -120, -140, -2, -106); // D
-  for (const [a, b] of [[-50, -62], [-68, -78], [-84, -96], [-102, -108], [-111, -120]]) {
-    R(-147, 9, b, -140, 9.8, a);
-    PG(-147, 8.94, a - 0.2, -140, 9, a);
-    PG(-147, 8.94, b, -140, 9, b + 0.2);
+  blocker([-200, -6, -210], [-188, SKY, -201.5]); // no jumping round the discs over the sand
+  blocker([-200, -6, -198.5], [-188, SKY, -190]);
+  hint([-206, -6, -203], [-200, -3, -197], 'Two great <b>sun discs</b> block the bridge. Every <b>two</b> <b style="color:#ffd23a">yellow</b> hits turn one a quarter turn: turn each <b>notch down</b> onto the bridge.', 7);
+  F(-212, -6, -210.6, -184, -5, -210);
+  F(-212, -6, -190, -184, -5, -189.4);
+  R(-214, -30, -195, -212, -3, -152); // the world's west edge, the quay's opening in it (the dock's width)
+  R(-214, -30, -232, -212, -3, -205);
+  blocker([-212, -6, -211], [-184, SKY, -210]);
+  blocker([-212, -6, -190], [-184, SKY, -189]);
+  blocker([-214, -3, -195], [-212, SKY, -150]);
+  blocker([-214, -3, -232], [-212, SKY, -205]);
+  quay.lift = new Elevator(W, { min: [-184, -6.4, -202], max: [-180, -6, -198], path: [[0, 22, 0]], speed: 3, delay: 0.6, zone, kind: 'grate', trigger: { min: [-183.6, -6, -201.6], max: [-180.4, -3, -198.4] } });
+  for (const z of [-203.4, -196.6]) {
+    M(-184.2, -6, z - 0.6, -183.2, 18, z + 0.6);
+    M(-180.8, -6, z - 0.6, -179.8, 18, z + 0.6);
+    for (let y = -4; y < 18; y += 3) PG(-184.25, y, z - 0.65, -179.75, y + 0.1, z + 0.65);
   }
-  [[-62, -68, 3.5], [-78, -84, 2], [-96, -102, 2], [-108, -111, -2]].forEach(([a, b, y], i) => {
-    housing(-147, b, -140, a, 12);
-    lance({ min: [-147, y, b], max: [-140, 12, a], period: 3.4, on: 1.6, warn: 0.6, phase: -0.85 * i });
+  M(-184.2, 18, -203.4, -179.8, 18.8, -196.6);
+  onRespawn(() => {
+    const p = game.checkpoint?.pos;
+    if (p && p.y < 0 && p.x < -184) quay.lift.reset();
   });
-  new Barrier(W, { min: [-147, 2, -78], max: [-140, 2.6, -74], color: RED, kind: 'spike', regen: 4, zone });
-  new Drone(W, { pos: [-143.5, 6, -104], color: RED, orbit: 0.8, range: 20 });
-  B.scarab([-143.5, 2, -100], { color: RED, range: 10 }); // in the sand of the slot floor
-  area([-144.5, 3.5, -59], [-140, 7, -55], mood);
-  ck([-143.5, 3.5, -57], 0, [6, 3, 4]);
-  devStart('solar4', [-143.5, 3.5, -57], 0, [RED]);
-  ck([-143.5, 3.5, -71], 0, [6, 3, 3]);
-  hint([-147, 3.5, -62], [-140, 7, -58], 'Keep to the <b>shade</b>: the lances pour through the roof in waves. <b>Not all shade is safe.</b>', 6);
-  guideStrip([[-139.2, 3.5, -57], [-143.5, 3.5, -57], [-143.5, 3.5, -61]], amber, { spacing: 1.2 });
-  blocker([-150, 12, -124], [-138, SKY, -46]);
-
-  // the Slot Mesa (between the basin and the slot), with the Sunken Cache in it: SECRET (crawl in at z -104)
-  R(-138, -14, -124, -110, 2, -72);
-  R(-138, 2, -100, -110, 7, -72);
-  R(-138, 2, -124, -110, 7, -108);
-  R(-124, 2, -108, -110, 7, -100);
-  R(-138, 2, -108, -132, 7, -105);
-  R(-138, 2, -103, -132, 7, -100);
-  R(-138, 3, -105, -132, 7, -103);
-  R(-132, 5, -108, -124, 7, -100);
-  W.deco(-140.05, 3, -105.2, -139.95, 3.15, -102.8, 'hazard', zone);
-  trophy(-128, 3, -104);
-  light(-128, 4.4, -104, 0xffcc55, 7, 8); // (light 2/4)
-  secretRoom([-132, 2, -108], [-124, 5, -100], 'Sunken Cache');
-  blocker([-138, 7, -124], [-110, SKY, -72]);
-
-  // ================================================================ S5 THE SUN WELL (descent, the core, the ambush)
-  // A deep, sun-flooded pit. Ledges step down its east wall to a sandstone plaza ringed by quicksand; the
-  // YELLOW core blazes on a dais in the middle. Taking it wakes the well's guardians.
-  R(-196, -30, -46, -147, 6, -42); // south wall
-  R(-200, -30, -122, -194, -10, -42); // west rim, low: the sun hangs right over it
-  R(-196, -30, -124, -173.5, -4, -122); // north wall, the exit door in it
-  R(-170.5, -30, -124, -147, -4, -122);
-  R(-173.5, -16.8, -124, -170.5, -4, -122);
-  quick(-194, -122, -150, -46, -21, -30);
-  R(-189, -30, -62, -155, -20, -50); // the plaza, round two sinkholes
-  R(-189, -30, -70, -170, -20, -62);
-  R(-164, -30, -70, -155, -20, -62);
-  R(-189, -30, -98, -155, -20, -70);
-  R(-189, -30, -106, -180, -20, -98);
-  R(-174, -30, -106, -155, -20, -98);
-  R(-189, -30, -118, -155, -20, -106);
-  R(-174, -30, -122, -170, -20, -118); // the walk to the door
-  glowEdge(-189, -118, -155, -50, -20, glow, zone);
-  for (const [x, z] of [[-162, -56], [-182, -56], [-162, -112], [-182, -112]]) {
-    R(x - 1, -20, z - 1, x + 1, -9, z + 1);
-    W.deco(x - 1.1, -9, z - 1.1, x + 1.1, -8.6, z + 1.1, 'metal', zone);
-    PG(x - 1.05, -12, z - 1.05, x + 1.05, -11.8, z + 1.05);
-  }
-  R(-176, -20, -88, -168, -19.6, -80); // the dais
-  G(-176.05, -19.7, -88.05, -167.95, -19.55, -79.95);
-  pedestal(-172, -19.6, -84, YELLOW, zone);
-  light(-172, -14, -84, 0xffd060, 26, 28); // (light 3/4)
-  // dressing: the plaza of a sunken temple
-  for (const [x, z, h, cap] of [[-158, -84, 3.2], [-186, -84, 5.4, true], [-172, -53, 2.2], [-158, -98, 1.4], [-186, -66, 2.8], [-176, -116, 4.2, true]]) brokenPillar(x, -20, z, h, cap);
-  drum(-180, -20, -92, true);
-  drum(-164, -20, -76, false);
-  drum(-170, -20, -108, true, 2.2);
-  for (const [x, z, w, d] of [[-160, -58, 6, 5], [-184, -102, 6, 6], [-178, -60, 5, 4], [-163, -114, 6, 3]]) drift(x, -20, z, w, d);
-  // a sun-ray inlay round the dais
-  for (let k = 0; k < 16; k++) {
-    const a = (k / 16) * Math.PI * 2, x = -172 + Math.cos(a) * 7.5, z = -84 + Math.sin(a) * 7.5;
-    W.deco(x - 0.25, -20, z - 0.25, x + 0.25, -19.96, z + 0.25, 'glow1', zone);
-  }
-  sunRelief('-z', -46, -165, -12, 2.2);
-  sunRelief('-z', -46, -179, -12, 2.2);
-  sunRelief('+z', -122, -184, -11, 1.8);
-  glyphStrip('-z', -46, -193, -151, -7.5);
-  glyphStrip('+z', -122, -193, -175.5, -8);
-  glyphStrip('+z', -122, -168.5, -151, -8);
-  banner('-z', -46, -172, -4, 2.2, 7);
-  banner('+z', -122, -160, -5, 1.8, 6);
-  banner('+z', -122, -184, -5, 1.8, 6);
-  // the rim and the ledges down the east wall
-  R(-158, -30, -120, -150, -2, -110);
-  R(-158.5, -2, -120, -158, -1, -110);
-  G(-158.55, -1.05, -120, -157.95, -0.95, -110);
-  area([-150, -2, -118], [-147, 1.2, -112], mood);
-  ck([-154, -2, -115], (3 * Math.PI) / 4, [6, 3, 8]);
-  devStart('solar5', [-154, -2, -115], (3 * Math.PI) / 4, [RED]);
-  hint([-158, -2, -120], [-150, 1, -110], 'The <b style="color:#ffd23a">YELLOW core</b> blazes at the bottom of the Sun Well. Hop down the ledges along the wall.', 5);
-  const ledges = [[-106, -102, -4.5], [-98, -94, -7], [-90, -86, -9.5], [-82, -78, -12], [-74, -70, -14.5], [-66, -62, -17]];
-  for (const [z1, z2, top] of ledges) pillar(-155, z1, -150, z2, top, -30);
-  new Barrier(W, { min: [-155, -7, -98], max: [-150, -6.4, -94], color: RED, kind: 'spike', regen: 4, zone });
-  new Drone(W, { pos: [-162, -6, -88], color: RED, range: 24 });
-  guideStrip([[-154, -2, -111], [-152.5, -2, -110.4]], red, { spacing: 0.8 });
-  blocker([-158.6, -2, -120], [-158, SKY, -110]);
-  blocker([-196, 6, -46], [-147, SKY, -42]);
-  blocker([-200, -10, -122], [-194, SKY, -42]);
-  // ARMOR: over the north sinkhole's lip (lean out), up on the broken pillar by the south wall, and on the
-  // short pillar on the east side under the drones.
-  B.armor([-167, -20, -62.7], { base: false });
-  B.armor([-172, -17.8, -53]);
-  B.armor([-158, -18.6, -98]);
-  // the ambush: it wakes once you're holding yellow and step down off the dais
-  const ambush = B.encounter({
-    trigger: [[0, -500, 0], [1, -499, 1]], // started by hand (below)
-    seals: [{ min: [-173.5, -20, -122.6], max: [-170.5, -16.8, -122.1], closed: true }],
-    title: 'THE SUN WELL', sub: 'GUARDIANS AWAKE', color: '#ffd23a', music: 'music_combat', zone, resume: true,
-    checkpoint: { pos: [-172, -20, -127.5], yaw: 0 },
-    waves: [
-      [
-        { type: 'scarab', pos: [-166, -20, -74], color: RED, burrow: false },
-        { type: 'scarab', pos: [-178, -20, -74], color: RED, burrow: false, delay: 0.3 },
-        { type: 'scarab', pos: [-172, -20, -66], color: RED, burrow: false, delay: 0.6 },
-        { type: 'drone', pos: [-162, -14, -102], color: RED, delay: 0.8 },
-        { type: 'drone', pos: [-182, -14, -100], color: RED, delay: 1.4 },
-      ],
-      { title: 'YELLOW HOSTILES — SWITCH WITH 2', enemies: [
-        { type: 'drone', pos: [-160, -14, -76], color: YELLOW },
-        { type: 'drone', pos: [-184, -14, -92], color: YELLOW, delay: 0.6 },
-        { type: 'turret', pos: [-172, -13, -121.9], color: YELLOW, mount: [0, 0, 1], delay: 1.2 },
-        { type: 'mummy', pos: [-180, -20, -110], color: YELLOW, shieldColor: RED, delay: 2.0 },
-        { type: 'scarab', pos: [-164, -20, -104], color: [YELLOW, RED], burrow: false, delay: 3.0 },
-        { type: 'scarab', pos: [-180, -20, -60], color: [YELLOW, RED], burrow: false, delay: 3.4 },
-      ] },
-      [
-        { type: 'warden', pos: [-172, -13, -98], shield: YELLOW, core: RED },
-        { type: 'brute', pos: [-165, -20, -64], color: YELLOW, delay: 1.0 },
-        { type: 'mortar', pos: [-186, -20, -114], color: RED, delay: 1.8 },
-        { type: 'mummy', pos: [-160, -20, -110], color: RED, shieldColor: YELLOW, delay: 2.4 },
-      ],
-    ],
-    onClear: () => game.hud.message('The north door is open. <b style="color:#ffd23a">Yellow</b> is yours — use it.', 5),
-  });
-  ck([-172, -19.6, -86.5], 0, [6, 3, 3]);
-  devStart('solar6', [-172, -19.6, -86.5], 0, [RED, YELLOW]);
+  // a ring of standing stones on the quay, shadows burned into the stone beside them — LOG NOOK 06
   {
-    let wait = 0;
-    W.add({
-      update(dt, player) {
-        if (ambush.state !== 'armed' || game.state !== 'playing' || !has(YELLOW)) return (wait = 0);
-        const p = player.pos;
-        if (p.x < -189 || p.x > -155 || p.z < -118 || p.z > -50 || p.y > -17) return (wait = 0);
-        if ((wait += dt) > 1.2) ambush.start();
-      },
-    });
-  }
-
-  // ================================================================ S6 HELIOSTAT HALL (puzzle)
-  // The jump pad up to the terrace is dead. Two yellow receivers wake it: one behind glass in the north
-  // wall (fire over the glass and the mirrors carry the shot down), one on the back of the pillar in the
-  // mirror bay (bank a shot off the wall mirror behind it).
-  corridor({ zStart: -124, zEnd: -130, y: -20, zone, cx: -172 });
-  room({ x1: -190, x2: -154, zS: -130, zN: -158, y: -20, h: 16, zone, ceiling: false, s: [{ c: -172, w: 3, h: CH }], n: [{ c: -172, w: 3.2, h: 4 }], e: [{ c: -153, w: 5, y0: 11, h: 5 }], wallKind: 'rock' }); // (the east notch: the pad's way out)
-  area([-173.5, -20, -133], [-170.5, -16.8, -130], mood);
-  ck([-172, -20, -133], 0, [6, 3, 3]);
-  devStart('solar7', [-172, -20, -133], 0, [RED, YELLOW]);
-  light(-172, -10, -146, 0xffc070, 8, 22); // (light 4/4)
-  const receivers = { glass: false, bank: false };
-  let pad = null;
-  const deadPad = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.15, 0.2, 24), new THREE.MeshStandardMaterial({ color: 0x2a2620, metalness: 0.8, roughness: 0.4 }));
-  deadPad.position.set(-158, -19.9, -153);
-  W.scene.add(deadPad);
-  const powerPad = () => {
-    if (pad) return;
-    pad = new JumpPad(W, { pos: [-158, -20, -153], power: 29, push: [5, 0, 0], color: 0xffd23a });
-    deadPad.visible = false;
-    audio.sample('elevator_start', { gain: 0.7 });
-    game.hud.message('Jump pad online! It throws you <b>east</b>, up onto the terrace.', 4);
-  };
-  const receiverOn = (which) => {
-    if (receivers[which]) return;
-    receivers[which] = true;
-    if (receivers.glass && receivers.bank) powerPad();
-    else game.hud.message('Receiver online: <b>1 / 2</b>.', 2.5);
-  };
-  {
-    // receiver 1: the glass alcove in the north wall
-    const x1 = -173.6, x2 = -170.4, zf = -158, zb = -162.5, y = -20, top = -16, gt = -17.4;
-    M(x1 - 0.2, y, zb - 0.2, x1, top + 0.2, zf);
-    M(x2, y, zb - 0.2, x2 + 0.2, top + 0.2, zf);
-    M(x1 - 0.2, y, zb - 0.2, x2 + 0.2, top + 0.2, zb);
-    M(x1 - 0.2, top, zb - 0.2, x2 + 0.2, top + 0.2, zf);
-    new Glass(W, { min: [x1, y, zf - 0.1], max: [x2, gt, zf] });
-    G(x1, gt, zf - 0.15, x2, gt + 0.06, zf + 0.05);
-    new Mirror(W, { min: [x1, top - 0.15, zb], max: [x2, top, zf - 0.1] });
-    new Mirror(W, { min: [x1, y, zb + 0.2], max: [x1 + 0.1, top - 0.15, zf - 0.1] });
-    new Mirror(W, { min: [x2 - 0.1, y, zb + 0.2], max: [x2, top - 0.15, zf - 0.1] });
-    const panels = [
-      new TargetPanel(W, { min: [x1 + 0.1, y, zb + 0.2], max: [x2 - 0.1, y + 0.12, zf - 0.1], color: YELLOW, face: 'up', onActivate: () => receiverOn('glass') }),
-      new TargetPanel(W, { min: [x1 + 0.1, y + 0.12, zb], max: [x2 - 0.1, top - 0.15, zb + 0.2], color: YELLOW, face: '+z', onActivate: () => receiverOn('glass') }),
-    ];
-    panels.forEach((p) => (p.group = panels));
-  }
-  {
-    // receiver 2: the mirror bay on the east wall. Rock walls close its ends, the pillar stands in its
-    // mouth with the receiver on its back, and only a shot banked off the wall mirror can reach it.
-    R(-160.6, -20, -136.6, -154, -12, -136); // south end wall
-    R(-160.6, -20, -148.6, -154, -12, -148); // north end wall
-    R(-160.6, -20, -144.5, -160, -12, -141.5); // the pillar
-    G(-160.65, -12.1, -144.55, -159.95, -11.95, -141.45);
-    new Mirror(W, { min: [-154.25, -19.5, -147.6], max: [-154, -12.5, -137] });
-    new TargetPanel(W, { min: [-160, -17.6, -144], max: [-159.85, -15.4, -142], color: YELLOW, face: '+x', onActivate: () => receiverOn('bank') });
-    R(-160.8, -20, -141.5, -160.6, -19, -136.6); // low rails across the gaps either side of the pillar
-    R(-160.8, -20, -148, -160.6, -19, -144.5);
-    G(-160.85, -19.05, -148, -160.55, -18.95, -136.6);
-    blocker([-160.8, -20, -148], [-160.6, -4, -136.6]);
-  }
-  heliostat(-182, -20, -136, false);
-  heliostat(-182, -20, -152, false);
-  new Drone(W, { pos: [-178, -12, -146], color: YELLOW, range: 24 });
-  new Drone(W, { pos: [-165, -12, -137], color: RED, range: 22 });
-  hint([-176, -20, -136], [-168, -16, -130], 'The pad is dead. Wake both <b style="color:#ffd23a">yellow receivers</b>: one behind the <b>glass</b> (fire over it, the mirrors do the rest), one on the back of the <b>pillar</b> in the mirror bay (bank a shot off the wall mirror).', 8);
-  guideStrip([[-166, -20, -150], [-160, -20, -153]], amber, { spacing: 1.3 });
-  G(-154.05, -9.1, -155.5, -153.45, -8.95, -150.5); // the notch's sill
-
-  // ================================================================ S7 THE GLASS TERRACE + MIRROR MESA (platforming)
-  // The pad drops you on the terrace. Shoot the rack's ledges into a staircase up the mesa face (each
-  // arrow target moves its ledge a notch: red or yellow), then cross the chasm on chroma platforms (solid
-  // only while you hold their color): red, yellow, red, yellow. The landing's spikes are a surprise.
-  R(-153.5, -30, -162, -134, -4, -124); // the terrace
-  R(-153.5, -4, -166, -134, 8, -162); // its north wall
-  R(-153.5, -4, -124, -134, 9, -120); // its south wall: fused sand-glass strata in the cut
-  {
-    // the glass rings: thousands of summers of burned sand, fused in bands — LOG NOOK 05
-    const gm = new THREE.MeshStandardMaterial({ color: 0x9fd6c2, emissive: 0x2f5a4a, emissiveIntensity: 0.6, metalness: 0.3, roughness: 0.06, transparent: true, opacity: 0.82 });
-    const geos = [];
-    let y = -3.2, k = 0;
-    while (y < 8.4) {
-      const h = 0.06 + ((k * 37) % 7) * 0.035;
-      for (let x = -153.4; x < -134.2; x += 2.4) {
-        const wob = Math.sin(k * 1.7 + x * 0.6) * 0.12;
-        geos.push(new THREE.BoxGeometry(2.4, h, 0.1).translate(x + 1.2, y + wob, -124.04));
-      }
-      y += 0.35 + ((k * 53) % 5) * 0.14;
-      k++;
-    }
-    W.scene.add(new THREE.Mesh(mergeBoxes(geos), gm));
-  }
-  area([-153.5, -4, -162], [-147, 2, -124], mood);
-  ck([-147, -4, -148], -Math.PI / 2, [8, 3, 8]);
-  devStart('solar8', [-147, -4, -148], -Math.PI / 2, [RED, YELLOW]);
-  // the mesa: summit block (y 12), the shelf and the chasm, the landing
-  R(-134, -30, -170, -104, 12, -134);
-  R(-136, -30, -132.6, -130, 3.1, -124.6); // the shelf
-  glowEdge(-136, -132.6, -130, -124.6, 3.1, glow, zone);
-  quick(-130, -134, -110.5, -124, -10, -30);
-  R(-110.5, -30, -134, -104, 4, -124); // the landing
-  glowEdge(-110.5, -134, -104, -124, 4, glow, zone);
-  R(-104, 4, -134, -103.2, 8, -124); // its far wall (the collector field is below)
-  B.platformRack({ pos: [-134, -2.4, -147.2], face: '-x', along: [0, 0, 1], columns: 5, notches: 7, step: 1.1, targetGap: 0.7, start: [3, 0, 6, 1, 6], colors: [RED, YELLOW], zone });
-  R(-136.5, -4, -150.5, -134, -3.2, -148.6); // a step up to the first ledge
-  glowEdge(-136.5, -150.5, -134, -148.6, -3.2, glow, zone);
-  hint([-153.5, -4, -152], [-140, 0, -140], 'Shoot the arrows above and below each rail: <b style="color:#ff3344">red</b> or <b style="color:#ffd23a">yellow</b> moves that ledge a notch. Build a <b>staircase</b> south to the shelf.', 7);
-  ck([-133, 3.1, -128.6], -Math.PI / 2, [4, 3, 6]);
-  const chroma = [[-128.5, -126, 3.2, RED], [-124, -121.5, 3.4, YELLOW], [-119.5, -117, 3.6, RED], [-115, -112.5, 3.8, YELLOW]];
-  for (const [x1, x2, top, c] of chroma) B.chromaPlatform({ min: [x1, top - 0.4, -131.5], max: [x2, top, -128.5], color: c, zone });
-  hint([-136, 3.1, -132.6], [-130, 6.5, -124.6], 'These stones are solid only while your blaster is <b>their color</b>. Switch (<b>1</b>/<b>2</b>) as you jump.', 6);
-  // the surprise: spikes grow on the landing's edge as you reach the third stone (red: shoot them from it)
-  const surprise = new Barrier(W, { min: [-110.5, 4, -133.5], max: [-108.5, 4.6, -124.5], color: RED, kind: 'spike', zone });
-  const hideSurprise = () => {
-    surprise.broken = true;
-    surprise.solid.enabled = false;
-    surprise.group.visible = false;
-    surprise.regen = 0;
-    surprise.armed = true;
-  };
-  hideSurprise();
-  onRespawn(hideSurprise);
-  // the area restock (restock.js) rebuilds broken barriers when you leave Solar: hide the trap again while
-  // you're away so it's a surprise every time, never a plain spike layer
-  W.add({ update: (dt, player) => regionOf(player.pos) !== 'solar' && !(surprise.broken && surprise.armed) && hideSurprise() });
-  W.trigger([-119.6, 3.5, -131.6], [-116.9, 6.5, -128.4], () => {
-    if (!surprise.armed || !surprise.broken) return;
-    surprise.armed = false;
-    surprise.regen = 0.8;
-    surprise.timer = 0.8;
-    surprise.onBreak = () => (surprise.regen = 0);
-  }, { once: false });
-  new JumpPad(W, { pos: [-106, 4, -129], power: 21, push: [0, 0, -7], color: 0xffd23a });
-  new Drone(W, { pos: [-120, 9, -127], color: YELLOW, range: 20 });
-  blocker([-134, 7, -124], [-104, SKY, -123.4]); // the chasm's south rim
-  blocker([-104, 8, -134], [-103.2, SKY, -124]);
-  blocker([-153.5, 9, -124], [-134, SKY, -120]);
-  blocker([-153.5, 8, -166], [-134, SKY, -162]);
-  blocker([-153.5, -4, -124.2], [-134, SKY, -124]); // no walking off the terrace onto the well's wall
-
-  // ================================================================ S8 GNOMON SUMMIT (combat)
-  // The great sundial's gnomon, heliostats and a ring of standing stones with burned shadows (LOG NOOK 06).
-  M(-121, 12, -154, -117, 32, -150);
-  M(-121.6, 32, -154.6, -116.4, 34, -149.4);
-  for (const y of [18, 24, 30]) PG(-121.05, y, -154.05, -116.95, y + 0.3, -149.95);
-  for (let k = 0; k < 12; k++) {
-    const a = (k / 12) * Math.PI * 2, cx = -119 + Math.cos(a) * 8, cz = -152 + Math.sin(a) * 8;
-    G(cx - 0.35, 12, cz - 0.35, cx + 0.35, 12.06, cz + 0.35);
-  }
-  heliostat(-110, 12, -140, false);
-  heliostat(-128, 12, -142);
-  {
-    // standing stones and the shadows burned into the rock beside them: people who stood here once
     for (let k = 0; k < 6; k++) {
-      const a = (k / 6) * Math.PI * 2, x = -128 + Math.cos(a) * 3.6, z = -164 + Math.sin(a) * 3.6;
-      R(x - 0.4, 12, z - 0.4, x + 0.4, 13.4 + (k % 3) * 0.5, z + 0.4);
+      const a = (k / 6) * Math.PI * 2, x = -206 + Math.cos(a) * 3.4, z = -193.5 + Math.sin(a) * 3.4;
+      R(x - 0.4, -6, z - 0.4, x + 0.4, -4.6 + (k % 3) * 0.5, z + 0.4);
     }
     const shadowMat = new THREE.MeshBasicMaterial({ color: 0x0c0806, transparent: true, opacity: 0.72, depthWrite: false });
     const shapes = [];
     const person = (x, z, rot, s = 1) => {
-      // a body and a head, stretched long the way a low sun throws them (away from the sun, east)
       const body = new THREE.CircleGeometry(0.32 * s, 12).scale(1, 3.2, 1).translate(0, -1.1 * s, 0);
       const head = new THREE.CircleGeometry(0.22 * s, 12).translate(0, 0.2 * s, 0);
-      for (const g of [body, head]) shapes.push(g.rotateZ(rot).rotateX(-Math.PI / 2).translate(x, 12.02, z));
+      for (const g of [body, head]) shapes.push(g.rotateZ(rot).rotateX(-Math.PI / 2).translate(x, -5.98, z));
     };
-    person(-126.5, -162.5, -1.4);
-    person(-125.6, -164.8, -1.5, 0.8);
-    person(-129.6, -166.8, -1.3, 1.1);
+    person(-204.5, -192, -1.4);
+    person(-203.6, -194.3, -1.5, 0.8);
+    person(-207.6, -196.3, -1.3, 1.1);
     W.scene.add(new THREE.Mesh(mergeBoxes(shapes), shadowMat));
   }
-  // ARMOR: on a standing stone in the ring (where the mummy rises), and over the west cliff edge (lean out).
-  B.armor([-129.8, 13.9, -167.12]);
-  B.armor([-134.7, 12, -146], { base: false });
-  const hopSeal = B.seal([-113.5, 12, -168.5], [-110.5, 14.5, -165.5], { color: YELLOW, zone, closed: true });
-  B.encounter({
-    trigger: [[-134, 12, -152], [-104, 17, -137.5]],
-    seals: [hopSeal],
-    title: 'GNOMON SUMMIT', sub: 'THE SUMMIT GUARD', color: '#ffd23a', music: 'music_combat', zone,
-    checkpoint: { pos: [-112, 12, -162], yaw: 0 },
-    waves: [
-      [
-        { type: 'drone', pos: [-110, 17, -150], color: YELLOW },
-        { type: 'drone', pos: [-128, 17, -158], color: YELLOW, delay: 0.5 },
-        { type: 'turret', pos: [-116.95, 16, -152], colors: [RED, YELLOW], mount: [1, 0, 0], delay: 1.0 },
-      ],
-      [
-        { type: 'mortar', pos: [-130, 12, -140], color: YELLOW },
-        { type: 'scarab', pos: [-124, 12, -144], color: [RED, YELLOW], burrow: false, delay: 0.8 },
-        { type: 'scarab', pos: [-114, 12, -146], color: [YELLOW, RED], burrow: false, delay: 1.1 },
-        { type: 'mummy', pos: [-128, 12, -164], color: YELLOW, shieldColor: RED, delay: 2.2 },
-        { type: 'warden', pos: [-112, 16, -160], shield: RED, core: YELLOW, delay: 1.6 },
-      ],
-    ],
-    onClear: () => game.hud.message('The <b>hop pad</b> at the north edge is open.', 4),
-  });
-  area([-112, 12, -140], [-104, 16, -134], mood);
-  ck([-108, 12, -138], 0, [6, 3, 4]);
-  devStart('solar9', [-108, 12, -138], 0, [RED, YELLOW]);
-  R(-104, 12, -170, -103.4, 13, -134); // a parapet over the collector field
-  blocker([-104, 12, -170], [-103.4, SKY, -134]);
-  hint([-112, 12, -140], [-104, 16, -134], 'The Gnomon Summit. Clear the guard; the <b>hop pad</b> at the north edge opens when it\'s done.', 5);
+  ck([-207, -6, -200], -Math.PI / 2, [4, 3, 6]);
+  devStart('solar14', [-207, -6, -200], -Math.PI / 2, [0, YELLOW], 'The Sun Quay');
+  area([-212, -6.5, -210], [-184, -2, -190], mood);
+  hint([-188, -6, -203], [-184, -3, -197], 'The <b>lift</b> climbs to the <b>Sun Court</b> — the guardian and its sun-lens.', 5);
 
-  // ================================================================ S9 HOPS TO THE SUN COURT
-  quick(-134, -205, -104, -170, -10, -30);
-  new JumpPad(W, { pos: [-112, 12, -167], power: 15, push: [0, 0, -8], color: 0xffd23a });
-  pillar(-115, -180, -109, -175, 13);
-  new JumpPad(W, { pos: [-112, 13, -177.5], power: 16, push: [0, 0, -7.5], color: 0xffd23a });
-  pillar(-115, -190, -109, -185, 15.5);
-  R(-117, -14, -199, -109.5, 15.4, -191); // the arrival, joining the court's west stub
-  plat(-117, -199, -109.5, -191, 16, zone, 0.6);
-  new Drone(W, { pos: [-121, 19, -183], color: YELLOW, range: 22 });
-  barrierWallX(-110, 16, YELLOW, zone, -195, 3.2);
-  ck([-113, 16, -195], -Math.PI / 2, [4, 3, 6]);
-  devStart('solar10', [-112, 12, -164], 0, [RED, YELLOW]);
-  guideStrip([[-112, 12, -158], [-112, 12, -165.6]], amber, { spacing: 1.2 });
-  blocker([-117.6, 16, -199.6], [-109.5, SKY, -199]);
-  blocker([-117.6, 16, -199.6], [-117, SKY, -190.4]);
-  blocker([-109.5, 16, -193.5], [-109.2, SKY, -191]); // either side of the stub
-  blocker([-109.5, 16, -199], [-109.2, SKY, -196.5]);
-
-  // ================================================================ S10 THE SUN COURT — the guardian and the power source
+  // ================================================================ S15 THE SUN COURT — the guardian and the power source
   // The Sphinx's sandstone court (sphinxArena.js) on a mesa, entered from the west, left by the south door
-  // once the sun-lens over it is shot dark. The lens is the world's power source: the collector array
-  // focuses the captive sun on it and it beams the light into the Atrium's west wall.
-  const COURT = [-80, 16, -195];
-  R(-104, -14, -219, -56, 13.6, -171); // the mesa under the court
-  R(-110, -14, -197, -103.5, 15, -193); // under the stubs
-  R(-82, -14, -171.5, -78, 15, -165.5);
-  const court = buildSphinxArena(B, { center: COURT, size: 44, entry: 'w', exit: 's', stub: 6, powerSource: true, world: 'solar', sunDir: SUN_DIR });
+  // once the sun-lens over it is shot dark. Its body and core are yellow, its paw gems red.
+  const COURT = [-150, 16, -200];
+  R(-174, -30, -224, -126, 13.6, -176); // the mesa
+  R(-180, -30, -202, -173.5, 15, -198); // under the stubs
+  R(-152, -30, -176.5, -148, 15, -170.5);
+  strata(-174.3, -224, -174, -176, [-2, 4, 9]);
+  strata(-174, -176.3, -126, -176, [0, 6]);
+  const court = buildSphinxArena(B, { center: COURT, size: 44, entry: 'w', exit: 's', stub: 6, powerSource: true, world: 'solar', sunDir: SUN_DIR, colors: [RED, YELLOW] });
   level.solarCourt = court;
-  // ARMOR: on the two sun-altar ledges (ride their jump pads up): a breather off the court floor.
-  B.armor([-80, 20.6, -215.5]);
-  B.armor([-59.5, 20.6, -195]);
-  area([-109.5, 16, -196.5], [-103.5, 19.2, -193.5], mood);
-  area([-81.5, 16, -171.5], [-78.5, 19.2, -165.5], mood);
-  devStart('solar11', court.checkpoint, court.checkpointYaw, [RED, YELLOW]);
+  B.armor([-150, 20.6, -220.5]);
+  B.armor([-129.5, 20.6, -200]);
+  area([-179.5, 16, -201.5], [-173.5, 19.2, -198.5], mood);
+  area([-151.5, 16, -176.5], [-148.5, 19.2, -170.5], mood);
+  devStart('solar15', court.checkpoint, court.checkpointYaw, [0, YELLOW], 'The Sun Court (the Sphinx)');
   const lensPos = [COURT[0], COURT[1] + 15, COURT[2]];
   const beam = new PowerBeam(W, lensPos, [-25.15, 27.6, -117]);
-  // the collector array: one field below the causeway, one on the north-west flats
+  // the collector array: one field on the terrace under the causeway, one on the north flats
   const sitesA = [], sitesB = [];
   for (const x of [-42, -50, -58, -66, -74, -88, -96]) for (const z of [-142, -150, -158, -166]) sitesA.push([x, 0, z + (Math.abs(x / 8) % 2) * 1.5]);
-  for (const x of [-142, -152, -162, -172, -182, -192]) for (const z of [-172, -184, -196, -208, -220]) sitesB.push([x, -4, z]);
-  R(-104, -14, -171, -36, 0, -130); // the collector flat
-  R(-200, -30, -230, -134, -4, -164); // the north-west flats
-  R(-196, -30, -164, -173.8, -4, -158.5); // the rock behind the Heliostat Hall, round its receiver alcove
-  R(-170.2, -30, -164, -154, -4, -158.5);
-  R(-173.8, -30, -164, -170.2, -20, -158.5);
-  R(-173.8, -15.8, -164, -170.2, -4, -158.5);
-  R(-173.8, -20, -164, -170.2, -15.8, -162.7);
+  for (const x of [-64, -74, -84, -94, -104, -114]) for (const z of [-184, -196, -208, -220]) sitesB.push([x, S, z]);
+  R(-104, -14, -171, -36, 0, -130); // the collector terrace
   for (const [x, y, z] of [...sitesA, ...sitesB]) {
     M(x - 0.18, y, z - 0.18, x + 0.18, y + 3.4, z + 0.18);
     W.deco(x - 0.6, y, z - 0.6, x + 0.6, y + 0.3, z + 0.6, 'metal', zone);
   }
   const array = new CollectorArray(W, { target: lensPos, sites: [...sitesA, ...sitesB] });
 
-  // ================================================================ S11 SUNSET CAUSEWAY (y 12) → Hub
-  // Out of the court's south door you drop onto the causeway (no way back up: the return is one-way),
-  // walk it home over the collector field and in through the Hub's west balcony port.
-  plat(-81.5, -165.5, -78.5, -137.5, 12, zone, 1.0);
-  plat(-81.5, -137.5, -38, -134.5, 12, zone, 1.0);
-  for (const z of [-160, -150, -142]) M(-80.6, 0, z - 0.6, -79.4, 11, z + 0.6);
-  for (const x of [-72, -62, -52, -44]) M(x - 0.6, 0, -136.6, x + 0.6, 11, -135.4);
-  M(-81.7, 12, -165.5, -81.5, 13, -134.3); // rails
-  M(-78.5, 12, -165.5, -78.3, 13, -137.5);
-  M(-78.5, 12, -137.7, -38, 13, -137.5);
-  M(-78.3, 12, -134.5, -64.2, 13, -134.3); // (a gap for the Eclipse Vault's door)
+  // ================================================================ S16 SUNSET CAUSEWAY (y 12) → Hub
+  // Out of the court's south door you drop onto the causeway (one-way), walk it south over the chasm's end,
+  // then east above the yard, the dig and the collector terrace, in through the Hub's west balcony port.
+  plat(-151.5, -170.5, -148.5, -134.5, 12, zone, 1.0);
+  plat(-148.5, -137.5, -38, -134.5, 12, zone, 1.0);
+  M(-150.6, -24, -136.6, -149.4, 11, -135.4);
+  M(-150.6, S, -160.6, -149.4, 11, -159.4);
+  for (const x of [-138, -122, -106, -90]) M(x - 0.6, S, -136.6, x + 0.6, 11, -135.4);
+  for (const x of [-74, -58, -44]) M(x - 0.6, 0, -136.6, x + 0.6, 11, -135.4);
+  M(-151.7, 12, -170.5, -151.5, 13, -134.3); // rails
+  M(-148.5, 12, -170.5, -148.3, 13, -137.5);
+  M(-148.5, 12, -137.7, -38, 13, -137.5);
+  M(-151.5, 12, -134.5, -64.2, 13, -134.3); // (a gap for the Eclipse Vault's door)
   M(-61.8, 12, -134.5, -38, 13, -134.3);
-  M(-81.7, 12, -134.5, -78.5, 13, -134.3);
-  blocker([-81.9, 12, -165.5], [-81.5, SKY, -134.3]);
-  blocker([-78.5, 12, -165.5], [-78.1, SKY, -137.5]);
-  blocker([-78.5, 12, -137.9], [-38, SKY, -137.5]);
-  blocker([-81.9, 12, -134.5], [-64.2, SKY, -134.1]);
+  blocker([-151.9, 12, -170.5], [-151.5, SKY, -134.3]);
+  blocker([-148.5, 12, -170.5], [-148.1, SKY, -137.5]);
+  blocker([-148.5, 12, -137.9], [-38, SKY, -137.5]);
+  blocker([-151.9, 12, -134.5], [-64.2, SKY, -134.1]);
   blocker([-61.8, 12, -134.5], [-38, SKY, -134.1]);
-  area([-81.5, 12, -165.5], [-78.5, 15, -160], mood);
-  ck([-80, 12, -160], Math.PI, [3, 3, 4]);
-  devStart('solar12', [-80, 12, -160], Math.PI, [RED, YELLOW]);
-  gateX(-66, 12, -136);
-  barrierWallX(-66, 12, YELLOW, zone, -136, 4.7);
-  gateX(-48, 12, -136);
-  barrierWallX(-48, 12, RED, zone, -136, 4.7);
-  new Drone(W, { pos: [-72, 16.5, -131], color: [RED, YELLOW], range: 22, cycle: 2.2 });
-  new Drone(W, { pos: [-56, 16.5, -141], color: YELLOW, range: 22 });
-  guideStrip([[-80, 12, -139], [-80, 12, -136], [-76, 12, -136]], amber, { spacing: 1.2 });
+  area([-151.5, 12, -170.5], [-148.5, 15, -165], mood);
+  ck([-150, 12, -165], Math.PI, [3, 3, 4]);
+  devStart('solar16', [-150, 12, -165], Math.PI, [0, YELLOW], 'The Sunset Causeway');
+  const gateX = (x, y, cz, w = 3, h = 4.7) => {
+    M(x - 0.4, y - 3, cz - w / 2 - 1, x + 0.4, y + h + 0.8, cz - w / 2);
+    M(x - 0.4, y - 3, cz + w / 2, x + 0.4, y + h + 0.8, cz + w / 2 + 1);
+    M(x - 0.4, y + h, cz - w / 2, x + 0.4, y + h + 0.8, cz + w / 2);
+    G(x - 0.45, y + h + 0.4, cz - w / 2 - 1, x + 0.45, y + h + 0.55, cz + w / 2 + 1);
+  };
+  gateX(-100, 12, -136);
+  barrierWallX(-100, 12, YELLOW, zone, -136, 4.7);
+  new Drone(W, { pos: [-120, 16.5, -131], color: YELLOW, range: 22 });
+  new Drone(W, { pos: [-80, 16.5, -141], color: YELLOW, shields: [RED], range: 22 });
+  guideStrip([[-150, 12, -139], [-150, 12, -136], [-146, 12, -136]], amber, { spacing: 1.2 });
   // the Eclipse Vault: SECRET behind a BLUE door on the causeway's south side (come back after Azure)
   R(-67, -14, -134.3, -59, 12, -127.5);
   R(-67, 12, -134.3, -66, 16, -127.5);
@@ -1400,25 +1397,53 @@ export function buildSolar(B) {
   area([-38, 12, -137.5], [-30, 15.2, -134.5], mood);
 
   // ================================================================ SCENERY
-  // distant mesas on the north and west horizons (the west stays low where the sun hangs over the Well)
+  // the sun-farm: massive arrays on gantries over the desert (they reflect shots), farms to the horizon on
+  // every side, giant solar windmills in the haze, distant mesas
+  new PVArray(W, { x1: -90, x2: -120, z1: -100, z2: -126, y: S, rows: 3, cols: 6, w: 4.6, h: 3.2, post: 4.6, tilt: 0.6 });
+  new PVArray(W, { x1: -72, x2: -84, z1: -52, z2: -96, y: S, rows: 2, cols: 7, w: 6.4, h: 4.4, post: 7.5, tilt: 0.6 });
+  new PVArray(W, { x1: -166, x2: -192, z1: -158, z2: -186, y: S, rows: 3, cols: 5, w: 4.6, h: 3.2, post: 5, tilt: 0.6 });
+  new PVArray(W, { x1: -122, x2: -146, z1: -232, z2: -232, y: S, rows: 4, cols: 1, w: 4.6, h: 3.2, post: 5, tilt: 0.6, hittable: false });
+  for (const [x, z, w, d] of [[-120, -150, 14, 8], [-170, -170, 10, 6], [-96, -190, 12, 8], [-190, -222, 10, 6], [-80, -110, 8, 6]]) drift(x, S, z, w, d);
+  {
+    // the receiver tower: the farm's collecting spire, straight ahead of the overlook, its crown white-hot
+    const tx = -128, tz = -115;
+    M(tx - 4, S, tz - 4, tx + 4, S + 3, tz + 4);
+    M(tx - 2.4, S + 3, tz - 2.4, tx + 2.4, 18, tz + 2.4);
+    M(tx - 1.7, 18, tz - 1.7, tx + 1.7, 30, tz + 1.7);
+    for (let y = S + 6; y < 30; y += 4) PG(tx - 2.45 + (y > 18 ? 0.7 : 0), y, tz - 2.45 + (y > 18 ? 0.7 : 0), tx + 2.45 - (y > 18 ? 0.7 : 0), y + 0.2, tz + 2.45 - (y > 18 ? 0.7 : 0));
+    M(tx - 3.2, 30, tz - 3.2, tx + 3.2, 31, tz + 3.2);
+    W.deco(tx - 2.6, 31, tz - 2.6, tx + 2.6, 35, tz + 2.6, 'glow1', POWER_ZONE); // the crown
+    M(tx - 3.2, 35, tz - 3.2, tx + 3.2, 35.8, tz + 3.2);
+    M(tx - 0.3, 35.8, tz - 0.3, tx + 0.3, 41, tz + 0.3);
+    for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) pipe([tx + dx * 7, S, tz + dz * 7], [tx + dx * 2.4, 16, tz + dz * 2.4], 0.4);
+  }
+  const sc = solarScenery(W, game, { visible: (p) => inSolar(p) && !underground(p) });
+  sc.dunes(-66, -100, -88, -44, S, 1.4, 1);
+  sc.dunes(-84, -130, -124, -96, S, 1.2, 2);
+  sc.dunes(-126, -190, -212, -156, S, 1.8, 3);
+  sc.dunes(-36, -232, -126, -172, S, 1.0, 4);
+  sc.dunes(-212, -152, -200, -132, S, 1.2, 5);
+  sc.ground(-50, -40, -700, 400, -9.6);
+  sc.ground(-112, -236, -700, -560, -9.6);
+  sc.ground(-440, -236, -700, -40, -9.6);
+  sc.farm({ x1: -60, z1: -20, x2: -420, z2: 150, y: -9.6, rowGap: 10, colGap: 4.8 });
+  sc.farm({ x1: -130, z1: -250, x2: -420, z2: -360, y: -9.6, rowGap: 10, colGap: 4.8 });
+  sc.farm({ x1: -460, z1: -60, x2: -560, z2: -230, y: -9.6, rowGap: 10, colGap: 4.8 });
+  sc.finish();
+  for (const [x, z, h, yaw] of [[-170, 110, 120, 1.4], [-310, 50, 130, 1.6], [-90, 200, 110, 1.3], [-470, -100, 140, 1.6], [-490, -215, 130, 1.5], [-260, -320, 125, 1.7], [-140, -380, 115, 1.5], [-380, -300, 120, 1.6]]) sc.turbine([x, -9.6, z], { height: h, blade: h * 0.45, yaw, speed: 0.1 + Math.random() * 0.06 });
+  sc.mesa(-480, 120, -560, 200, 40);
+  sc.mesa(-600, -60, -650, 40, 55);
+  sc.mesa(-600, -260, -660, -150, 48);
+  sc.mesa(-330, -420, -430, -380, 44);
+  // distant mesas behind the court
   for (const [xa, xb, top] of [[-104, -124, 34], [-124, -152, 27], [-152, -178, 46], [-178, -199.5, 36]]) {
-    R(xb, -24.4, -229.5, xa, top, -224);
-    if (top > 20) R(xb + 4, top, -228, xa - 4, top + 6, -225);
+    R(xb, -24.4, -229.5, xa, top, -226);
+    if (top > 20) R(xb + 4, top, -228.5, xa - 4, top + 6, -226.5);
   }
-  for (const [xa, xb, top] of [[-36, -56, 10], [-56, -104, 30]]) R(xb, -24.4, -229.5, xa, top, -222);
-  for (const [za, zb, top] of [[-124, -160, 30], [-160, -224, 42]]) {
-    R(-199.5, -30, zb, -196, top, za);
-    R(-199.5, top, zb + 5, -197, top + 5, za - 5);
-  }
-  strata(-38.3, -100, -38, -72, [-6, 0]);
-  strata(-104, -124, -103.7, -72, [-8, -2, 3]);
-  strata(-150.3, -122, -150, -46, [-14, -8]);
-  strata(-194, -46.3, -150, -46, [-14, -8, -2]);
-  strata(-134.3, -170, -134, -147.5, [6, 9]);
-  strata(-196.3, -224, -196, -124, [-2, 10, 22]);
-  strata(-199.5, -222.3, -36, -222, [2, 14]);
-  killZone([-201, -40, -232], [-31.5, -30.5, -38]);
+  for (const [xa, xb, top] of [[-36, -56, 10], [-56, -104, 24]]) R(xb, -24.4, -229.5, xa, top, -226);
+  strata(-199.5, -226.3, -36, -226, [2, 14]);
 
+  // the banners: one sun-cloth texture and mesh for the whole world
   if (bannerGeos.length) {
     const cv = document.createElement('canvas');
     cv.width = 64;
@@ -1444,7 +1469,6 @@ export function buildSolar(B) {
     }
     cx2.fillStyle = '#2a3f8a';
     for (let y = 84; y < 128; y += 12) cx2.fillRect(14, y, 36, 5);
-    // a swallowtail hem
     cx2.globalCompositeOperation = 'destination-out';
     cx2.beginPath();
     cx2.moveTo(16, 160);
@@ -1453,19 +1477,27 @@ export function buildSolar(B) {
     cx2.fill();
     const tex = new THREE.CanvasTexture(cv);
     tex.colorSpace = THREE.SRGBColorSpace;
-    const bm = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, side: THREE.DoubleSide, alphaTest: 0.5 });
-    W.scene.add(new THREE.Mesh(mergeBoxes(bannerGeos), bm));
+    W.scene.add(new THREE.Mesh(mergeBoxes(bannerGeos), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, side: THREE.DoubleSide, alphaTest: 0.5 })));
   }
+  // the merged dressing
+  const addMerged = (geos, material) => geos.length && W.scene.add(new THREE.Mesh(mergeBoxes(geos), material));
+  addMerged(cableGeos, new THREE.MeshStandardMaterial({ color: 0x1a1612, roughness: 0.8 }));
+  addMerged(pipeGeos, new THREE.MeshStandardMaterial({ color: 0x6a5a40, metalness: 0.7, roughness: 0.45 }));
+  addMerged(lampGeos, new THREE.MeshBasicMaterial({ color: new THREE.Color(1.0, 0.86, 0.6).multiplyScalar(2.2) }));
+  addMerged(poolGeos, new THREE.MeshBasicMaterial({ color: new THREE.Color(0.55, 0.38, 0.18), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+  addMerged(glyphGeos, new THREE.MeshBasicMaterial({ map: glyphPanel(), color: new THREE.Color(1.0, 0.72, 0.25).multiplyScalar(1.3), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
 
   // ================================================================ THE SHUTDOWN: what changes
-  // The sun is eclipsed and dusk falls, every lance dies, the haze and the hum stop, the quicksand goes
-  // still, the sun-powered trims go dark, the mirrors stow and the beam to the Atrium flickers out.
+  // The sun is eclipsed and dusk falls, every lance and sunbeam dies, the haze and the hum stop, the
+  // quicksand goes still, the sun-powered trims go dark, the mirrors stow, the beam to the Atrium flickers
+  // out. Anything the sun locked opens for good (a restored save can still walk the world).
   let down = false;
   const powerDown = (instant) => {
     if (down) return;
     down = true;
     director.down = true;
     for (const l of lances) l.enabled = false;
+    for (const b of beams) b.enabled = false;
     hazeMat.uniforms.uK.value = 0;
     for (const m of hazeMeshes) m.visible = false;
     for (const surface of [true, false]) {
@@ -1474,6 +1506,16 @@ export function buildSolar(B) {
       if (m.uniforms.uAmp) m.uniforms.uAmp.value = 0;
     }
     mat('glow1', POWER_ZONE).color.setRGB(0.12, 0.07, 0.03);
+    seamMat.color.setRGB(0.1, 0.06, 0.03);
+    for (const e of W.entities) if (e instanceof LightShaft) e.down();
+    for (const p of lights) {
+      if (p instanceof LightReceiver && p.mode === 'latch' && !p.on) {
+        p.keep = true;
+        p.setOn(true, null, instant);
+      }
+      if (p instanceof BurnWall) p.burn(true);
+    }
+    lift3Powered = true;
     sun.eclipse(instant);
     array.stow(instant);
     beam.kill(instant);
@@ -1486,60 +1528,47 @@ export function buildSolar(B) {
 
   // ================================================================ the HUD objective (guide.js asks this)
   const inBox = (p, x1, x2, z1, z2, y1 = -99, y2 = 99) => p.x >= Math.min(x1, x2) && p.x <= Math.max(x1, x2) && p.z >= Math.min(z1, z2) && p.z <= Math.max(z1, z2) && p.y >= y1 && p.y <= y2;
-  const Y = '<b style="color:#ffd23a">', Rd = '<b style="color:#ff3344">', E = '</b>';
+  const Y = '<b style="color:#ffd23a">', E = '</b>';
   level.solar = {
-    sinker,
-    receivers,
-    get pad() {
-      return pad;
+    lens1, recv1, bankA, bankB, recv2, tilt2, seal2, emitter, grandA, grandB, grandC, grandD, recv3, lift3,
+    p8a, p8b, p8c, recv8, gate8, glass9, p9a, p9b, recv9, get pad9() {
+      return pad9;
     },
-    ambush,
+    p10a, recv10a, bridge10a, p10b, recv10b, bridge10b, sweep, dialA, dialB, yard, dock, quay, court, core, vaultDoor, door1, bridge2,
+    duneStart: DUNE_START, duneEnd: DUNE_END,
+    get duneDone() {
+      return duneDone;
+    },
     objective(p) {
       if (game.isWorldDown?.('solar')) {
-        if (inBox(p, -56, -110, -165, -219, 10)) return 'The engine is dark. Leave by the <b>south door</b> and take the causeway home.';
+        if (inBox(p, -128, -172, -178, -222, 10)) return 'The engine is dark. Leave by the <b>south door</b> and take the causeway home.';
         return 'Solar is shut down. Follow the <b>Sunset Causeway</b> east to the Nexus balcony.';
       }
       if (!has(YELLOW)) {
         if (inBox(p, -38, -25, -114, -110)) return 'Head through to the <b>Sunward Overlook</b>.';
-        if (inBox(p, -63, -38, -124, -105, 3.5)) return `Walk west through the ${Y}Sun Gate${E} and hop down the pillars.`;
-        if (inBox(p, -58, -104, -72, -124, -14, 12) && p.z < -107.5) return `Shoot the ${Rd}red spikes${E}, then the ${Rd}red orb${E} to raise the bridge — cross before it fades.`;
-        if (inBox(p, -58, -104, -72, -124, -14, 12)) return 'Hop south over the cracked stones — keep moving — and time the jump past the <b>sun lance</b>.';
-        if (inBox(p, -74, -104, -42, -76.5)) return 'Clear the <b>Collector Yard</b>; the west door opens when it\'s quiet.';
-        if (inBox(p, -104, -138, -47, -72)) {
-          if (dialA.orientation !== 0 || dialB.orientation !== 0) return `Turn both ${Rd}sun discs${E} (shoot them) until their notches sit on the bridge.`;
-          return `Shoot the ${Rd}door${E} on the ledge down, then ride the ${Rd}riser${E} up (keep shooting it) and get through.`;
-        }
-        if (inBox(p, -138, -150, -46, -124)) return 'Run north through the <b>Shade Slot</b> between the waves of sunlight.';
-        if (inBox(p, -147, -196, -42, -124)) return `Hop down the ledges to the ${Y}YELLOW core${E} on the dais.`;
-        return `Find the ${Y}SOLAR core${E}: west, down in the Sun Well.`;
+        if (inBox(p, -66, -38, -124, -104, 3)) return 'Climb to the <b>survey platform</b> and walk out along its gantry over the dig shaft.';
+        if (inBox(p, -80, -66, -120, -104, -22, 3)) return '<b>Mash JUMP</b> to keep your head above the quicksand and wade <b>west</b> to the lit tunnel.';
+        if (inBox(p, -124, -80, -130, -96, -30, -10)) return 'Cross the <b>dig</b>: scaffold, planks (keep moving), the machine\'s plates, the ledge to the <b>vault door</b>.';
+        if (inBox(p, -148, -124, -124, -100, -30, -10)) return `Take the ${Y}YELLOW core${E} from its dais.`;
+        return `Find the ${Y}yellow core${E}: down the dig shaft from the overlook.`;
       }
-      if (inBox(p, -147, -196, -42, -124)) return ambush.state === 'cleared' ? 'Take the <b>north door</b> out of the well.' : `Survive the guardians — ${Y}yellow${E} breaks yellow (press <b>2</b>).`;
-      if (inBox(p, -150, -194, -124, -162, -21, -5)) return pad ? 'Ride the <b>jump pad</b> in the east corner up to the terrace.' : `Wake both ${Y}receivers${E}: over the glass (north wall) and the bank shot off the mirror (east bay).`;
-      if (inBox(p, -134, -154, -124, -166, -5, 2.6)) return `Shoot the rack's arrows (${Rd}red${E} / ${Y}yellow${E}) into a staircase up to the shelf.`;
-      if (inBox(p, -104, -136, -124, -134, 2.6, 11)) return `Cross the chroma stones, switching ${Rd}red${E} / ${Y}yellow${E} as you jump; the pad on the landing throws you up.`;
-      if (inBox(p, -104, -134, -134, -170, 11)) return 'Clear the <b>summit guard</b>, then take the hop pad at the north edge.';
-      if (inBox(p, -104, -134, -170, -200, 5)) return 'Ride the pads north to the <b>Sun Court</b>.';
-      if (inBox(p, -56, -110, -165, -219, 10)) return court.defeated ? `Shoot the ${Y}sun-lens${E} over the court with yellow to shut the engine down.` : 'Defeat <b>the Sphinx</b>: dodge its pounces from the pads, ride its back, blast its gems.';
-      return `${Y}Yellow${E} in hand: follow the way north to the Sun Court.`;
+      if (inBox(p, -148, -124, -124, -100, -30, -10)) return 'Through the <b>south door</b>: the way back up.';
+      if (inBox(p, -148, -124, -97, -72, -30, -10)) return recv1.on ? 'The door is open: <b>east</b>.' : `Turn the <b>mirror</b> (shoot its back), then bounce a shot off its face down the slot into the ${Y}receiver${E}.`;
+      if (inBox(p, -124, -96, -92, -70, -30, -10)) return recv2.on ? 'Cross the <b>hard-light bridge</b>; the way out is by the baffle.' : `Bounce a shot off the mirror by the <b>slot</b>, through it, off the far mirror into the ${Y}receiver${E} behind the baffle.`;
+      if (inBox(p, -118, -96, -70, -46, -30, -10)) return lift3Powered ? 'Ride the <b>lift</b> up to the surface.' : `Shoot the ${Y}prism${E}, and turn the four mirrors to walk its beam round the channels and up into the roof.`;
+      if (inBox(p, -134, -90, -84, -44, -12)) return yard.state === 'cleared' ? 'The <b>west gate</b> is open.' : `Hold the yard: ${Y}yellow${E} bodies, <b style="color:#ff3344">red</b> shields — switch <b>1</b> ↔ <b>2</b>. Bank shots off the <b>panels</b>.`;
+      if (inBox(p, -160, -134, -80, -50, -12)) return recv8.on ? 'The gate is open: <b>north</b> into the canyon.' : 'Turn the panels: carry the lens beam <b>west</b>, <b>north</b>, then <b>east</b> into the gate\'s sun-catcher.';
+      if (inBox(p, -158, -144, -132, -80, -12)) {
+        if (!glass9.burned) return 'Aim the lens beam at the <b>sand-glass wall</b>: turn the panel under the lens until it points <b>north</b>.';
+        return pad9 ? 'Take the <b>jump pad</b> up onto the chasm rim.' : 'Turn the far panel to throw the beam <b>west</b> onto the catcher by the dead jump pad.';
+      }
+      if (inBox(p, -200, -144, -152, -132, -30)) return 'Cross the chasm: turn each pillar\'s panel <b>west</b> onto its catcher to raise the next <b>bridge</b>.';
+      if (inBox(p, -206, -184, -132, -92, -30)) return p.y > -8 ? 'Drop into the <b>quicksand</b> — it breaks the fall.' : '<b>Mash JUMP</b> and wade to the <b>lip</b> at the south end, then up the stairs.';
+      if (inBox(p, -212, -160, -92, -40, -12)) return dock.state === 'cleared' ? 'Board the <b>hovercraft</b> at the dock, west.' : 'Hold the dock yard. <b>Turn the heliostat</b> to sweep its sunbeam through them; break <b style="color:#ff3344">red</b> shields with red.';
+      if (p.x < -212) return 'Ride the dune sea to the <b>Sun Quay</b>.';
+      if (inBox(p, -212, -179, -212, -188, -8)) return dialA.orientation !== 0 || dialB.orientation !== 0 ? `Turn both ${Y}sun discs${E} (two yellow hits turn one a quarter turn) until their notches sit on the bridge.` : 'Cross the bridge and ride the <b>lift</b> up to the Sun Court.';
+      if (inBox(p, -180, -126, -178, -222, 10)) return court.defeated ? `Shoot the ${Y}sun-lens${E} over the court with yellow to shut the engine down.` : 'Defeat <b>the Sphinx</b>: dodge its pounces from the pads, ride its back, blast its gems.';
+      return `${Y}Yellow${E} in hand: head for the <b>Sun Court</b> on its mesa, north-west.`;
     },
   };
-}
-
-// merge plain geometries (position/normal/uv, non-indexed or indexed) into one
-function mergeBoxes(geos) {
-  const list = geos.map((g) => (g.index ? g.toNonIndexed() : g));
-  const total = list.reduce((n, g) => n + g.attributes.position.count, 0);
-  const out = new THREE.BufferGeometry();
-  for (const [name, size] of [['position', 3], ['normal', 3], ['uv', 2]]) {
-    const arr = new Float32Array(total * size);
-    let o = 0;
-    for (const g of list) {
-      const a = g.attributes[name];
-      if (a) arr.set(a.array, o);
-      o += g.attributes.position.count * size;
-    }
-    out.setAttribute(name, new THREE.BufferAttribute(arr, size));
-  }
-  out.computeBoundingSphere();
-  return out;
 }

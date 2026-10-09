@@ -23,6 +23,7 @@ import { buildForgeRange } from './levels/forgeRange.js';
 import { buildEnemyRangeB } from './levels/enemyRangeB.js';
 import { buildEnemyRangeA } from './levels/enemyRangeA.js';
 
+
 export function buildLevel(world, game) {
   const level = {
     secretsTotal: 0,
