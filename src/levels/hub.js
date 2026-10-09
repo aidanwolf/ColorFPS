@@ -12,6 +12,8 @@
 //   toward that world's door; each lock beams up into the Prism. With all four attuned the seal drops and the
 //   lift rides down to the Prism Core antechamber (prism.js): a 4 m drop, a 14 m run south under the floor,
 //   then the 46.8 m plunge.
+//   Round the edges (corners and under the gallery), what's left of the day-1 research station: glass rooms,
+//   a cubicle pod, papers, bones (hubOffices.js); the middle and every route to the doors stay open.
 import * as THREE from 'three';
 import { COLORS, RED, YELLOW, GREEN, BLUE } from '../colors.js';
 import { Barrier } from '../entities/barrier.js';
@@ -23,6 +25,7 @@ import { boxOverlap } from '../world.js';
 import { buildReactor } from './reactor.js';
 import { WorkerSwarm } from '../entities/workerDrone.js';
 import { regionOf } from './regions.js';
+import { buildOffices } from './hubOffices.js';
 
 const FLOOR = 4; // main floor top
 const GAL = 12; // gallery / balcony floor top
@@ -644,6 +647,8 @@ export function buildHub(B) {
     game.hud.message('All four frequencies attuned. <b>The Prism Core is open</b> — step onto the lift.', 6);
   }
   const centreLight = light(0, 8, PZ, 0xcfe4ff, 12, 32); // over the dais, under the Prism
+  // the research station the team set up round the edges on day 1, as they left it (hubOffices.js)
+  buildOffices(B);
   // the reactor heart hanging over the middle of it all, fed from every world (reactor.js)
   level.reactor = buildReactor(B);
   // its maintenance crew: white worker drones flying service routes from four wall bays (workerDrone.js)

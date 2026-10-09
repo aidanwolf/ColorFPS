@@ -8,8 +8,9 @@ import { regionOf } from './regions.js';
 const tag = (c, text) => `<b style="color:${COLORS[c].css}">${text}</b>`;
 const FLOOR = 4;
 
-// Floor paths in the Hub (x, z), skirting the Prism lift in the middle of the sunken dais (x -2..2,
-// z -126..-122: sealed, then a hole while the car is away).
+// Floor paths in the Hub (x, z), routed round whatever stands on the floor (the research station's rooms,
+// columns) and the Prism lift in the middle of the sunken dais (x -2..2, z -126..-122: sealed, then a hole
+// while the car is away).
 // Where the floor path ends for each goal (just inside its doorway; for the dais, at the lift's edge on
 // your side), the lift to route around, and the Hub's return gallery (y 12): from up there the path leads
 // to the edge nearest the goal.
@@ -311,32 +312,124 @@ export function buildGuide(W, game) {
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1);
   const col = new THREE.Color(), base = new THREE.Color(), down = new THREE.Vector3(0, -1, 0), probe = new THREE.Vector3();
   let marks = [], t = 0, rebuildT = 0, lastGoal = null;
-  // does the segment a→b cross the dais (with margin)?
-  const crossesDais = (a, b) => {
-    for (let k = 0; k <= 20; k++) {
-      const x = a[0] + ((b[0] - a[0]) * k) / 20, z = a[1] + ((b[1] - a[1]) * k) / 20;
-      if (x > DAIS.x1 && x < DAIS.x2 && z > DAIS.z1 && z < DAIS.z2) return true;
+  // Floor routes: A* over a grid of the Hub floor, blocked wherever a solid stands in the way at walking
+  // height (walls, columns, the research station's desks, partitions and glass: hubOffices.js) or over the
+  // Prism lift, then pulled taut into straight runs. Built the first time it's needed (every solid exists).
+  const G = { x0: -24.5, z0: -148, cell: 0.25, nx: 196, nz: 192, pad: 0.3 };
+  let grid = null;
+  const cellOf = (x, z) => [Math.floor((x - G.x0) / G.cell), Math.floor((z - G.z0) / G.cell)];
+  const centre = (i, j) => [G.x0 + (i + 0.5) * G.cell, G.z0 + (j + 0.5) * G.cell];
+  const blocked = (i, j) => i < 0 || j < 0 || i >= G.nx || j >= G.nz || grid[j * G.nx + i] === 1;
+  const buildGrid = () => {
+    grid = new Uint8Array(G.nx * G.nz);
+    G.gs = new Float32Array(grid.length);
+    G.from = new Int32Array(grid.length);
+    G.done = new Uint8Array(grid.length);
+    const fill = (x1, z1, x2, z2) => {
+      const [i1, j1] = cellOf(x1, z1), [i2, j2] = cellOf(x2, z2);
+      for (let j = Math.max(0, j1); j <= Math.min(G.nz - 1, j2); j++) for (let i = Math.max(0, i1); i <= Math.min(G.nx - 1, i2); i++) grid[j * G.nx + i] = 1;
+    };
+    for (const s of W.solids) {
+      if (!s.static || s.max.y < FLOOR + 0.5 || s.min.y > FLOOR + 1.6) continue;
+      if (s.max.x < G.x0 - 1 || s.min.x > -G.x0 + 1 || s.max.z < G.z0 - 1 || s.min.z > -100 + 1) continue;
+      fill(s.min.x - G.pad, s.min.z - G.pad, s.max.x + G.pad, s.max.z + G.pad);
     }
-    return false;
+    fill(DAIS.x1, DAIS.z1, DAIS.x2 - 0.01, DAIS.z2 - 0.01);
   };
-  const len = (pts) => pts.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0), 0);
-  // a floor route from a to b that skirts the dais through one or two of its corners
+  // nearest open cell to (i, j) (you can stand closer to a wall than the padding allows)
+  const free = (i, j) => {
+    for (let r = 0; r < 8; r++)
+      for (let dj = -r; dj <= r; dj++)
+        for (let di = -r; di <= r; di++) if (Math.max(Math.abs(di), Math.abs(dj)) === r && !blocked(i + di, j + dj)) return [i + di, j + dj];
+    return null;
+  };
+  // can you walk straight from cell a to cell b? (every cell the segment touches is open)
+  const clear = (a, b) => {
+    const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * 2) + 1;
+    for (let k = 0; k <= n; k++) if (blocked(Math.round(a[0] + ((b[0] - a[0]) * k) / n), Math.round(a[1] + ((b[1] - a[1]) * k) / n))) return false;
+    return true;
+  };
   const route = (a, b) => {
-    if (!crossesDais(a, b)) return [a, b];
-    const C = [[DAIS.x1, DAIS.z1], [DAIS.x2, DAIS.z1], [DAIS.x1, DAIS.z2], [DAIS.x2, DAIS.z2]];
-    let best = null;
-    for (const c of C) {
-      if (crossesDais(a, c) || crossesDais(c, b)) continue;
-      const p = [a, c, b];
-      if (!best || len(p) < len(best)) best = p;
-    }
-    for (const c of C)
-      for (const d of C) {
-        if (c === d || crossesDais(a, c) || crossesDais(c, d) || crossesDais(d, b)) continue;
-        const p = [a, c, d, b];
-        if (!best || len(p) < len(best)) best = p;
+    if (!grid) buildGrid();
+    const s0 = free(...cellOf(a[0], a[1])), g0 = free(...cellOf(b[0], b[1]));
+    if (!s0 || !g0) return [a, b];
+    if (clear(s0, g0)) return [a, b];
+    // A* (8-connected, no corner cutting), octile heuristic, a binary heap of [f, cell]
+    const { gs, from, done } = G;
+    gs.fill(Infinity);
+    from.fill(-1);
+    done.fill(0);
+    const gi = g0[1] * G.nx + g0[0], si = s0[1] * G.nx + s0[0];
+    const h = (i, j) => {
+      const dx = Math.abs(i - g0[0]), dz = Math.abs(j - g0[1]);
+      return Math.max(dx, dz) + 0.4142 * Math.min(dx, dz);
+    };
+    const heap = [];
+    const push = (f, c) => {
+      heap.push([f, c]);
+      for (let k = heap.length - 1; k > 0; ) {
+        const p = (k - 1) >> 1;
+        if (heap[p][0] <= heap[k][0]) break;
+        [heap[p], heap[k]] = [heap[k], heap[p]];
+        k = p;
       }
-    return best || [a, b];
+    };
+    const pop = () => {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        for (let k = 0; ; ) {
+          const l = 2 * k + 1, r = l + 1;
+          let m = k;
+          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+          if (m === k) break;
+          [heap[m], heap[k]] = [heap[k], heap[m]];
+          k = m;
+        }
+      }
+      return top;
+    };
+    gs[si] = 0;
+    push(h(...s0), si);
+    let found = false;
+    while (heap.length) {
+      const [, c] = pop();
+      if (done[c]) continue;
+      done[c] = 1;
+      if (c === gi) {
+        found = true;
+        break;
+      }
+      const ci = c % G.nx, cj = (c - ci) / G.nx;
+      for (let dj = -1; dj <= 1; dj++)
+        for (let di = -1; di <= 1; di++) {
+          if (!di && !dj) continue;
+          const ni = ci + di, nj = cj + dj;
+          if (blocked(ni, nj) || (di && dj && (blocked(ci + di, cj) || blocked(ci, cj + dj)))) continue;
+          const n = nj * G.nx + ni, g = gs[c] + (di && dj ? 1.4142 : 1);
+          if (g < gs[n]) {
+            gs[n] = g;
+            from[n] = c;
+            push(g + h(ni, nj), n);
+          }
+        }
+    }
+    if (!found) return [a, b];
+    const cells = [];
+    for (let c = gi; c !== -1; c = from[c]) cells.push([c % G.nx, Math.floor(c / G.nx)]);
+    cells.reverse();
+    // pull it taut: from each corner, jump to the farthest cell still in a straight line
+    const pts = [a];
+    let k = 0;
+    while (k < cells.length - 1) {
+      let m = cells.length - 1;
+      while (m > k + 1 && !clear(cells[k], cells[m])) m--;
+      if (m < cells.length - 1) pts.push(centre(...cells[m]));
+      k = m;
+    }
+    pts.push(b);
+    return pts;
   };
   const rebuild = (player, goal) => {
     const onGallery = player.pos.y > GALLERY_Y - 1.5;
