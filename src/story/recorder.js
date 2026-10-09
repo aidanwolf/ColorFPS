@@ -6,6 +6,8 @@
 import LOGS from './logdata.json';
 import { audio } from '../audio.js';
 import { loadLogs, writeLogs } from '../save.js';
+import { Ghost } from './ghost.js';
+import { ghostVoice } from './voice.js';
 
 const AUDIO_URL = `${import.meta.env.BASE_URL}audio/`;
 const $ = (s) => document.querySelector(s);
@@ -13,7 +15,9 @@ const $ = (s) => document.querySelector(s);
 const clean = (s) => s.replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').replace(/\s+([,.!?])/g, '$1').trim();
 const HOLD_TO_STOP = 0.5; // seconds holding T
 const DUCK = 0.2; // music level while a log plays (about -14 dB)
-const LEVEL = 2.5; // her voice after the field-recorder EQ, into the voice bus (≈ -13 LUFS on the output)
+// her voice after the ghost chain (voice.js), into the voice bus: 0.9 dB under the old field-recorder EQ's
+// 2.5, which the chain's own gain makes up (matched offline, BS.1770 gated loudness): ≈ -13 LUFS on the output
+const LEVEL = 2.25;
 
 export class Recorder {
   constructor(game) {
@@ -28,6 +32,9 @@ export class Recorder {
     this.holdEl = this.card.querySelector('.log-skip');
     this.holdT = 0;
     this.updateButton();
+    // her hologram, built now (hidden) so the startup shader pass compiles it
+    this.ghost = new Ghost(game);
+    this.ghost.recorder = this;
     audio.manifest.then(() => audio.prefetch(['log_pickup']));
 
     addEventListener('keydown', (e) => {
@@ -91,7 +98,19 @@ export class Recorder {
     this.lineEl.textContent = '';
     if (audio.available?.has(log.file)) this.startAudio(log);
     this.duck(true);
+    this.ghost.start(log.id);
     this.loop();
+  }
+
+  // where the playing log is, in seconds (the audio's clock, or the wall clock without audio)
+  time() {
+    if (!this.cur) return 0;
+    return this.useClock ? (performance.now() - this.t0) / 1000 : this.el.currentTime;
+  }
+
+  // the hologram glitched: her voice stutters with it
+  ghostGlitch(dur) {
+    this.voice?.glitch(dur);
   }
 
   startAudio(log) {
@@ -100,21 +119,11 @@ export class Recorder {
       this.el.preload = 'auto';
       const ctx = audio.ctx;
       if (ctx && audio.voiceBus) {
-        // a field-recorder voice: thinned lows, rolled-off highs, a little presence, dry (no room reverb)
+        // her voice as a ghost's: warbling, doubled an octave down, crushed, drowned in a long dark tail,
+        // a whisper ahead of her words, stuttering when the hologram glitches (voice.js)
         const src = ctx.createMediaElementSource(this.el);
-        const hp = ctx.createBiquadFilter();
-        hp.type = 'highpass';
-        hp.frequency.value = 170;
-        const lp = ctx.createBiquadFilter();
-        lp.type = 'lowpass';
-        lp.frequency.value = 7200;
-        const pk = ctx.createBiquadFilter();
-        pk.type = 'peaking';
-        pk.frequency.value = 2600;
-        pk.gain.value = 3;
-        const g = ctx.createGain();
-        g.gain.value = LEVEL;
-        src.connect(hp).connect(pk).connect(lp).connect(g).connect(audio.voiceBus);
+        this.voice = ghostVoice(ctx, audio.voiceBus, LEVEL);
+        src.connect(this.voice.input);
       } else this.el.volume = this.game.settings.volume;
     }
     const el = this.el;
@@ -147,6 +156,7 @@ export class Recorder {
     if (this.el) this.el.pause();
     cancelAnimationFrame(this.raf);
     this.duck(false);
+    if (!quiet) this.ghost.end();
     if (quiet) return;
     document.body.classList.remove('log-on');
     this.card.classList.add('out');

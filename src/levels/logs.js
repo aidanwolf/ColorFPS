@@ -1,9 +1,9 @@
-// Where Wren Ashby's fifteen audio logs wait (scripts: tools/audio/logs.json, story: src/story/STORY.md).
-// One table, in story order: the Atrium first, then Solar, Verdant, Azure and the Prism Core. Her voice
+// Where Wren Ashby's seventeen audio logs wait (scripts: tools/audio/logs.json, story: src/story/STORY.md).
+// One table, mostly in story order: the Atrium first, then Solar, Verdant, Azure and the Prism Core. Her voice
 // is first heard in the Prism Atrium: no log goes in the cell block or the Crimson Foundry (or its annex).
 //   world: which area it belongs to · pos: the floor point the recorder hovers over (1.15 m up)
 //   yaw: which way the recorder faces at first (it slowly turns) · provisional: a placeholder spot
-// Every spot is final: the color worlds' were picked by their rebuilds to match each script.
+// Every spot but the two provisional Solar ones is final: the color worlds' were picked by their rebuilds.
 const LOGS = [
   // THE PRISM ATRIUM (final): wonder, on the first visit
   { id: '01', world: 'hub', pos: [-4.3, 4, -105.6], yaw: Math.PI / 4 }, // just in from the red door, south-west of the walk in: the dais, the Prism and the reactor straight ahead
@@ -25,8 +25,15 @@ const LOGS = [
   // PRISM CORE (final; prism.js isn't being rebuilt): resolve, and the last note
   { id: '14', world: 'prism', pos: [-7.5, -48, -97.5], yaw: Math.PI / 4 }, // the antechamber, among the crystals, south-west corner
   { id: '15', world: 'prism', pos: [7, -48, -112], yaw: -Math.PI / 4 }, // the antechamber's north-east corner, by the way to the arena
+  // SOLAR, the two added with the pit rewrite (provisional: open floor beside 04 and 05 until the pit rebuild
+  // places them along the network). Story order comes from logdata.json, not from this table.
+  { id: '04b', world: 'solar', pos: [-55.5, 4, -117.5], yaw: 0, provisional: true }, // The Ring
+  { id: '05b', world: 'solar', pos: [-107.5, -19.6, -105], yaw: 0, provisional: true }, // Full
 ];
 
 export function placeLogs(B) {
   for (const { id, pos, yaw } of LOGS) B.audioLog(id, pos, yaw);
 }
+
+// (read-only: the spots, for tools and tests)
+export const LOG_SPOTS = LOGS;

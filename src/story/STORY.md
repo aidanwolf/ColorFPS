@@ -16,7 +16,7 @@ Every world is an **engine**, built to extract one kind of energy and themed by 
 | world | color | what it harvests |
 |---|---|---|
 | Crimson Foundry | red | **geothermal**: a tap driven into a planet's core; the heat is piped north |
-| Sunscorch Mesa (Solar) | yellow | **a captive sun**: a real star dragged in on a track; mirrors and panels drink it; the world is burned down and rerun (4,000+ summers layered in the glass) |
+| Sunscorch Mesa (Solar) | yellow | **a captive sun**: a real star dragged in on a track; mirrors and panels drink it; the world is burned down and rerun (4,000+ summers layered in the glass). Under the pit, an ancient-feeling buried network (glassy conduits, huge half-buried mirrors, capacitor banks brim-full of stored sunlight) runs to a giant stone ring that hums when the sun moves: turn the mirrors right and light runs node by node into the ring until it discharges |
 | Emerald Hollow (Verdant) | green | **biomass**: a valley-sized forest grown in a day, cut and fed in; no animals, nothing that wouldn't burn well |
 | The Cold Deep (Azure) | blue | **water**: moonless tides and the weight of a bottomless ocean, turned to power by a drowned station |
 
@@ -39,7 +39,9 @@ There is no malice in it at all, and that is the horror. Beneath the core is a d
 
 Late twenties, a physicist on the small team that found the Atrium's frequency and opened a breach "from
 home". She argued to go first because she wanted it to be her: ten minutes, just a look, and she'd be
-only a bit late for her sister Bea's birthday dinner. The breach closed behind her. She carries a
+only a bit late for her sister Bea's birthday dinner. The breach closed behind her, but for a while a thin
+link home still worked: the team (Priya loudest) follows along and argues with her over it, until it starts
+dropping out in Solar and, after her nine seconds, goes dead. She carries a
 handheld field recorder and a probe that can clip onto the conduits and speak to the worlds' frequencies.
 Warm, quick, funny, nosy, a bit of a show-off, lives on granola bars; talks to herself out loud. Her mum
 talks to her tomatoes. Her colleague Priya "is going to scream".
@@ -50,8 +52,12 @@ in the Prism Atrium; there are no logs in the cell block or the Foundry.
 
 **Her mistake.** In the Atrium she sips a trickle of power off a conduit to prove it can be tapped (the
 room blinks; "somewhere off to the south, a door went pfft": that is the moment the player's cell field
-fails). On the Solar overlook she finds the captive star's frequency and dims it for nine seconds, giddy.
-That is what the Lumen notices. She is the reason humanity became a threat, and so the reason it was
+fails). Under the Solar pit she and the team puzzle out the buried network: the conduits, the ring (a
+gate? a capacitor?), the mirrors that have to face the right way. Uneasy at how much sunlight is stored
+down there, and half-wondering whether the machine wanted it found, she charges the ring anyway: the plan
+is for the probe to talk to the captive star through it and turn it down, "just for a few seconds, just to
+prove we can". Her last Solar log is the countdown. She did it: the star went dim for nine seconds (we only
+learn that for certain in the Lumen's own records, in Azure). That is what the Lumen notices. She is the reason humanity became a threat, and so the reason it was
 taken.
 
 Her arc, in the order the player finds the logs:
@@ -59,7 +65,7 @@ Her arc, in the order the player finds the logs:
 | world | mood | what she learns |
 |---|---|---|
 | Atrium | giddy, wonder | standing in it; the reactor heart overhead beats and hums like a fridge; four rivers of power meet here; she taps a trickle (oops) and dreams of powering a city |
-| Solar | triumphant → uneasy | the sun is a real, captive star; she dims it for nine seconds; glass rings of 4,000 summers; the link home goes quiet; new-looking shadows on the summit she talks herself out of |
+| Solar | curious → uneasy → nervous | with the team on the link: glassy conduits under 4,000 summers of glass, leading down into a pit; a stone ring that hums when the sun moves (Priya: a capacitor; Wren: a gate); failed tries to bounce sunlight into it with her compact mirror, while the huge buried mirrors "have to face the right way"; capacitor banks full of more stored sunlight than she can bear to work out; the link keeps dropping; "what if the machine wanted someone to find this?"; the countdown before she talks to the star through the ring |
 | Verdant | lonely → frightened | a biomass farm, no birds (a wren and no other birds); roots through fresh bodies, a bus pass from her own city; something follows her "ever since the star" |
 | Azure | homesick → devastated | the last engine; ten minutes and Bea's birthday; in the flooded Bell she reads the Lumen's record of the anomaly (her nine seconds, classified threat); in the Cryo Lab the catalogue: everyone from home, taken the day after |
 | Prism Core | resolve → hope | the four rivers end at the heart: if they go dark, the loop lets go; "I broke it, so I fix it"; the guardian hunts her; she goes for the white door, recorder left on for the company |
@@ -81,17 +87,24 @@ Scripts, titles and caption chunks: `tools/audio/logs.json`, with inline acting 
 `[whispers]`...) that the TTS performs and the captions strip. Voiced with `tools/audio/tts.mjs`
 (`--captions` writes estimated timing without audio). Audio files: `public/audio/memo_XX.mp3`.
 Placement: one table in `src/levels/logs.js` (Atrium and Prism Core spots final; the color-world spots are
-provisional until those worlds are rebuilt). Fifteen logs: Atrium 3, Solar 3, Verdant 3, Azure 4 (one in the Flooded
-Depths), Prism Core 2. Found logs are kept under `chroma-logs-v2`.
+provisional until those worlds are rebuilt). Seventeen logs: Atrium 3, Solar 5 (04, 04b, 05, 05b, 06, along
+the pit's network), Verdant 3, Azure 4 (one in the Flooded Depths), Prism Core 2. Found logs are kept under
+`chroma-logs-v2`.
+
+Picking one up wakes a hologram of Wren (`src/story/ghost.js`): she materializes a few metres away and acts
+out the moment she recorded (one vignette per log, `src/story/vignettes.js`), her voice coming through a
+haunted, warbling, reverberant chain (`src/story/voice.js`).
 
 | id | title | where |
 |---|---|---|
 | 01 | Hello, Atrium | Atrium · beside the Prism dais |
 | 02 | Four Rivers | Atrium · the sunken plaza |
 | 03 | Borrowed Light | Atrium · the east gallery |
-| 04 | I Dimmed a Star | Solar · the Sunward Overlook |
-| 05 | Glass Rings | Solar · the array terrace |
-| 06 | Shadows | Solar · the Gnomon summit |
+| 04 | Under the Sand | Solar · the buried conduits |
+| 04b | The Ring | Solar · the edge of the pit |
+| 05 | Mirrors | Solar · the mirror gallery |
+| 05b | Full | Solar · the capacitor banks |
+| 06 | Here We Go | Solar · before the ring |
 | 07 | No Birds | Verdant · the Root Court |
 | 08 | Roots | Verdant · the rim of the Great Hollow |
 | 09 | Something Follows | Verdant · the root island |
