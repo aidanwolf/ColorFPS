@@ -38,7 +38,7 @@ function mulberry32(a) {
 }
 
 export function buildAzureFlooded(B) {
-  const { W, game, CH, room, corridorX, wallX, wallZ, plat, hint, zoneTitle, area, light, devStart, water } = B;
+  const { W, game, CH, room, corridorX, wallX, wallZ, plat, hint, zoneTitle, area, light, water } = B;
   const zone = 'blue';
   const rng = mulberry32(0xf100d);
   const V = (x, y, z) => new THREE.Vector3(x, y, z);

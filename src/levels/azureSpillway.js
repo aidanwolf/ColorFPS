@@ -1,6 +1,6 @@
 // AZURE, SECOND HALF — with the AZURE core in hand you climb back up on the water (called from azure.js):
 //   Core Sanctum (y -56, the Dynamo) → THE BLUE SPAN (platforming over the abyss in the rain: a long
-//   runway you hose down for a SLICK LEAP over a 9 m gap, then a timed blue switch for a phase bridge
+//   runway you hose down for a SLICK LEAP over an 8.8 m gap, then a timed blue switch for a phase bridge
 //   over a trapdoor) → through the east cliff → THE UNDERCROFT (a half-flooded cistern hall: an encounter
 //   fought above and below the surface, all blue machines under off-color shields; then the duct's
 //   gate winch, which only the hall's maintenance seal can reach: paint it a path of water along the
@@ -45,10 +45,10 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   for (let x = 82, k = 0; x < 92; x += 2, k++) W.deco(x, SY + 0.005, SZ - 0.6, x + 1, SY + 0.02, SZ + 0.6, k % 2 ? 'hazard' : 'glow3', zone);
   new Checkpoint(W, game, { pos: [83.5, SY, SZ], yaw: -Math.PI / 2, size: [3, 3, 4] });
   area([80.5, SY, SZ - 2.5], [84, SY + 3, SZ + 2.5], DEEP);
-  hint([80.5, SY, SZ - 2.5], [86, SY + 3, SZ + 2.5], 'A 9 m gap — too far dry. <b>Soak the runway</b> end to end, then <b>sprint</b> down it and jump at the very edge.', 6);
+  hint([80.5, SY, SZ - 2.5], [86, SY + 3, SZ + 2.5], 'A gap too far to jump dry. <b>Soak the runway</b> end to end, then <b>sprint</b> down it and jump at the very edge.', 6);
   // D1 (across the gap): the west half solid, the east half a trapdoor (keep moving), a timed blue switch
   // on a pylon for the phase bridge on to D2
-  plat(102, SZ - 2.5, 104.6, SZ + 2.5, SY, zone, 1);
+  plat(101.8, SZ - 2.5, 104.6, SZ + 2.5, SY, zone, 1);
   B.trapdoor({ min: [104.6, SY - 0.4, SZ - 2.5], max: [107, SY, SZ + 2.5], delay: 0.45, respawn: 3, zone });
   box(102.6, -80, -151.6, 104, SY + 4.5, -150.6, 'metal'); // the pylon (the switch faces the deck)
   deco(102.5, SY + 4.5, -151.7, 104.1, SY + 4.6, -150.5);
@@ -65,7 +65,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   new Drone(W, { pos: [98, SY + 4.5, -151], color: BLUE, shields: [RED], range: 22 });
   new Drone(W, { pos: [106, SY + 4.5, -141.5], color: BLUE, shields: [GREEN, YELLOW], range: 22 });
   // ice piers under the decks
-  for (const [x1, x2] of [[81.5, 92], [102.2, 104.4], [110.8, 112]]) deco(x1, -80, SZ - 1.8, x2, SY - 1, SZ + 1.8, 'rock');
+  for (const [x1, x2] of [[81.5, 92], [102, 104.4], [110.8, 112]]) deco(x1, -80, SZ - 1.8, x2, SY - 1, SZ + 1.8, 'rock');
   keepOut.push([[80, SY - 2, SZ - 3.5], [121, SY + 5, SZ + 3.5]]);
 
   // ---- through the cliff, then north to the Undercroft
@@ -161,7 +161,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
   deco(155.6, HT + 1.1, -168.8, 156.6, HT + 1.16, -168, 'glow1');
   const sealRoute = new Route([[153.2, HT, -186.6], [154.7, HT, -184.6], [154.7, HT, -170.4]]);
   const crawlRoute = new Route([[154.7, HT, -190.4], [154.7, HT, -184.6], [154.7, HT, -170.4]]);
-  for (let z = -184; z < -171; z += 1.6) deco(154.2, HT + 0.004, z, 155.2, HT + 0.02, z + 0.7, 'glow3'); // the seal's lane, marked
+  for (const x of [154.05, 155.3]) deco(x, HT + 0.004, -185.5, x + 0.05, HT + 0.02, -170.6, 'glow3'); // the seal's lane, marked
   const winchSeal = new RoboSeal(W, game, {
     water: [151.2, HW - 0.15, -186.6], route: sealRoute, carry: true,
     onArrive: () => {

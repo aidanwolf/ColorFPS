@@ -122,7 +122,7 @@ function dropTexture() {
 
 // ================================================================== WATER TANK
 export class WaterTank {
-  constructor(world, game, { pos, size = [1.6, 1.8, 1.6], capacity = 6, leak = 0, latch = true, face = '+z', onFull = null, onLevel = null, label = null }) {
+  constructor(world, game, { pos, size = [1.6, 1.8, 1.6], capacity = 6, leak = 0, latch = true, face = '+z', onFull = null, onLevel = null }) {
     this.world = world;
     this.game = game;
     const m = mats();
@@ -520,6 +520,7 @@ export class RoboSeal {
     this.icon.scale.setScalar(0.55);
     this.icon.position.set(0, 1.55, 0);
     g.add(this.icon);
+    g.scale.setScalar(1.25);
     noRay(g);
     g.position.copy(this.pos);
     this.world.scene.add(g);
@@ -1046,14 +1047,14 @@ const POOL_F = `
     float fres = pow(1.0 - clamp(V.y, 0.0, 1.0), 3.0);
     vec2 w = vW.xz;
     float rip = noise(w * 3.0 + vec2(uTime * 0.6, -uTime * 0.4)) * 0.5 + noise(w * 7.0 - uTime * 0.9) * 0.5;
-    vec3 col = vec3(0.02, 0.05, 0.08) + uSky * (0.15 + 0.8 * fres) + vec3(0.6, 0.8, 1.0) * pow(rip, 6.0) * 0.6;
-    float a = 0.6 + 0.3 * fres;
+    vec3 col = vec3(0.008, 0.02, 0.04) + uSky * (0.05 + 0.4 * fres) + vec3(0.5, 0.7, 1.0) * pow(rip, 6.0) * 0.35;
+    float a = 0.72 + 0.2 * fres;
     if (uLive > 0.0) {
       float n1 = abs(noise(w * 2.2 + vec2(uTime * 6.0, -uTime * 4.3)) - 0.5);
       float n2 = abs(noise(w * 3.7 + vec2(-uTime * 5.1, uTime * 7.7) + 3.0) - 0.5);
-      float bolt = (1.0 - smoothstep(0.0, 0.03, n1)) + 0.7 * (1.0 - smoothstep(0.0, 0.022, n2));
+      float bolt = (1.0 - smoothstep(0.0, 0.02, n1)) + 0.6 * (1.0 - smoothstep(0.0, 0.014, n2));
       float flick = 0.6 + 0.4 * step(0.3, hash(vec2(floor(uTime * 24.0), 1.0)));
-      col += vec3(0.15, 0.4, 1.0) * 0.5 * uLive + vec3(0.55, 0.8, 1.0) * bolt * 2.2 * flick * uLive;
+      col += vec3(0.05, 0.16, 0.45) * 0.35 * uLive + vec3(0.5, 0.75, 1.0) * bolt * 1.7 * flick * uLive;
       a = max(a, 0.6 + bolt * 0.4 * uLive);
     }
     gl_FragColor = vec4(col, a);

@@ -55,6 +55,7 @@ export class Dynamo {
     this.onStart = onStart;
     this.onDefeated = onDefeated;
     this.maxHp = PHASE_HP * PHASES;
+    this.color = BLUE; // (its body: what hurts the core once its shells are off)
     this.yaw = Math.PI;
     this.adds = [];
     this.portals = [];
@@ -111,6 +112,7 @@ export class Dynamo {
     torso.add(B(2.5, 1.5, 1.7, armor, 0, 0.95, 0));
     torso.add(B(2.1, 0.5, 1.5, armor, 0, 1.9, 0.15));
     torso.add(B(2.56, 0.08, 1.76, this.glowMat, 0, 0.35, 0));
+    for (const s of [-1, 1]) torso.add(B(0.06, 1.1, 1.2, this.glowMat, s * 1.27, 1.0, 0.05), B(0.5, 0.06, 1.52, this.glowMat, s * 0.7, 2.16, 0.15));
     this.coreMesh = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12), this.coreMat);
     this.coreMesh.position.set(0, 1.05, -0.62);
     this.coreMesh.userData.hit = this;
@@ -132,6 +134,7 @@ export class Dynamo {
       const tip = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), this.glowMat);
       tip.position.set(x, 2.95, 0.55);
       torso.add(tip);
+      (this.tips ??= []).push(tip);
     }
     // a head: a low sensor dome with a visor slit
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), dark);
@@ -177,13 +180,14 @@ export class Dynamo {
     this.ring.raycast = () => {};
     this.ring.userData.noCull = true;
     this.world.scene.add(this.ring);
+    root.scale.setScalar(1.2); // (hulking: the rig is built at 1/1.2)
     root.userData.hit = this;
     this.world.scene.add(root);
     this.world.addHittable(root);
   }
 
   get center() {
-    return _v.copy(this.pos).setY(this.floorY + 2.8);
+    return _v.copy(this.pos).setY(this.floorY + 3.3);
   }
 
   // ---------------------------------------------------------------- control
@@ -481,6 +485,12 @@ export class Dynamo {
         });
         this.portals.push(portal);
       }
+    }
+    // the power crackling over its back while it's live
+    if (this.state !== 'stunned' && this.state !== 'dying' && Math.random() < dt * 5) {
+      const a = this.tips[Math.floor(Math.random() * 3)].getWorldPosition(_v), b = this.tips[Math.floor(Math.random() * 3)].getWorldPosition(_w);
+      if (a.distanceTo(b) > 0.2) this.world.wet.arc(a, b);
+      else this.world.wet.arc(a, b.add(_b.set(rnd(-0.6, 0.6), rnd(0.2, 0.9), rnd(-0.6, 0.6))));
     }
     this.updateRing(dt, player);
     this.pose(dt);

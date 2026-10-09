@@ -361,22 +361,22 @@ export function buildAzure(B) {
   // ------------------------------------------------------------------ TURBINE DECK (y -21): THE AZURE CORE
   // The end of the descent: a wide deck jutting out over the abyss, its frozen turbine against the cliff,
   // and on its dais, in the rain, the AZURE core. The hatch into the cliff (the Flooded Depths) is frozen
-  // shut; the way on is the Storm Deck, 9 m out across the gap to the west: too far to jump dry. The water
+  // shut; the way on is the Storm Deck, 8.8 m out across the gap to the west: too far to jump dry. The water
   // cannon's first lesson: soak the deck, sprint across the slick and leap.
-  W.box(92, -22, -122, 108, -21, -113, 'floor', zone);
+  W.box(91.8, -22, -122, 108, -21, -113, 'floor', zone);
   W.deco(93, -27, -121, 107, -22, -114, 'metal', zone);
   W.deco(98, -80, -119.5, 102, -27, -115.5, 'rock', zone); // its pier
   icicles(92.5, -121.5, 107.5, -113.5, -22, 16);
-  glowEdge(92, -122, 108, -113, -21, 'glow3', zone);
+  glowEdge(91.8, -122, 108, -113, -21, 'glow3', zone);
   // the frozen turbine (north-east corner) and a rail along the north edge
   W.box(104.5, -21, -122, 108, -16, -119.2, 'metal', zone);
   W.deco(104.4, -18.8, -122.1, 108.1, -18.5, -119.1, 'glow3', zone);
   cluster(107, -16, -121, 2.4, 'ice', 0.2, -0.2);
-  W.box(92, -21, -122, 104.5, -20, -121.7, 'metal', zone);
-  W.deco(92, -20, -122, 104.5, -19.94, -121.7, 'glow3', zone);
-  blocker([92, -21, -122.3], [104.5, 0, -121.7]);
+  W.box(91.8, -21, -122, 104.5, -20, -121.7, 'metal', zone);
+  W.deco(91.8, -20, -122, 104.5, -19.94, -121.7, 'glow3', zone);
+  blocker([91.8, -21, -122.3], [104.5, 0, -121.7]);
   // the south edge: a rail either side of where the freight lift comes down
-  for (const [x1, x2] of [[92, 100], [104, 108]]) {
+  for (const [x1, x2] of [[91.8, 100], [104, 108]]) {
     W.box(x1, -21, -113.3, x2, -20, -113, 'metal', zone);
     W.deco(x1, -20, -113.3, x2, -19.94, -113, 'glow3', zone);
   }
@@ -392,7 +392,7 @@ export function buildAzure(B) {
   const hatch = B.seal([107.6, -21, -116.1], [108.2, -17.8, -113.1], { closed: true, zone });
   // a runway painted down the deck, and the gap: the dotted arcs show a dry sprint jump falling short
   for (let x = 93; x < 107; x += 2) W.deco(x, -20.995, -117.1, x + 1, -20.98, -115.9, 'hazard', zone);
-  const leapHint = new LeapHint(W, game, { from: [92.6, -21, -116.5], to: [82, -21, -116.5], short: [85.4, -21, -116.5] });
+  const leapHint = new LeapHint(W, game, { from: [92.4, -21, -116.5], to: [82, -21, -116.5], short: [85.2, -21, -116.5] });
   leapHint.on = false;
   let tutor = 0;
   W.add({
@@ -409,7 +409,7 @@ export function buildAzure(B) {
       }
     },
   });
-  W.trigger([92, -21, -122], [97, -18, -113], () => {
+  W.trigger([91.8, -21, -122], [97, -18, -113], () => {
     if (!game.blaster.unlocked[BLUE]) return;
     game.hud.message('Too far to jump dry. <b>Hose a long slick down the deck</b>, then <b>sprint</b> along it and leap at the edge: the water carries you farther.', 7);
   });
@@ -492,7 +492,7 @@ export function buildAzure(B) {
   });
   level.azure.stormDeck = stormDeck;
   // the gantry home (stowed under the turbine deck until the deck is clear)
-  const gantry = new Gantry(W, game, { min: [83, SY - 0.42, -117.75], max: [92, SY - 0.02, -115.25], from: [9, 0, 0], zone });
+  const gantry = new Gantry(W, game, { min: [83, SY - 0.42, -117.75], max: [91.8, SY - 0.02, -115.25], from: [8.8, 0, 0], zone });
   W.add({ update: () => stormDeck.state === 'cleared' && gantry.want === 0 && gantry.extend(true) }); // (a save that already won it)
   W.add({
     update() {

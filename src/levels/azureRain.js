@@ -9,6 +9,7 @@
 //   · Splashes: one instanced draw of expanding rings scattered round the camera on the roof map.
 //   · Sound: the hiss of rain out in the open, a muffled drumming under cover (a synth stand-in until
 //     the `amb_rain` loop exists), and thunder after each lightning flash.
+//   · Wet look: Azure's shared box materials are darkened and glossed once, at build.
 //   · Lightning: every 10-25 s a flicker that lights the sky, the hemisphere light and the rain, a
 //     jagged bolt far off over the abyss, and the thunder a moment later.
 // Off underwater and anywhere outside the storm's bounds; the whole thing costs two draws.
@@ -16,6 +17,7 @@
 import * as THREE from 'three';
 import { audio } from '../audio.js';
 import { SynthLoop, noiseVoice } from '../weapons/rays.js';
+import { mat } from '../materials.js';
 
 const CELL = 0.5; // m per roof-map texel
 const DROPS = 9000;
@@ -26,7 +28,6 @@ const FALL = 17; // m/s
 const NONE = -1e5; // roof-map value where nothing stands (the abyss): no splash
 const OUT = 1e5; // outside the storm: everything counts as covered
 audio.manifest?.then(() => audio.prefetch(['amb_rain', 'thunder', 'thunder_far']));
-const _c = new THREE.Color();
 
 const HM_GLSL = `
   uniform sampler2D uRoof;
@@ -123,6 +124,13 @@ const SPLASH_F = `
 export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = {}) {
   const { W, game } = B;
   const [bx1, bz1, bx2, bz2] = bounds;
+  // everything in the Cold Deep is wet: its shared box materials darken and gloss up (sharper highlights)
+  for (const k of ['floor', 'plat', 'metal', 'wall', 'grate']) {
+    const m = mat(k, 'blue');
+    m.roughness *= 0.6;
+    m.metalness = Math.min(1, m.metalness + 0.1);
+    m.color.multiplyScalar(0.88);
+  }
   const nx = Math.ceil((bx2 - bx1) / CELL), nz = Math.ceil((bz2 - bz1) / CELL);
   const roof = new Float32Array(nx * nz).fill(NONE);
   const wetMap = new Uint8Array(nx * nz);
@@ -227,7 +235,7 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
   bolt.visible = false;
   bolt.renderOrder = 1;
   W.scene.add(bolt);
-  const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
+  const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _s = new THREE.Vector3();
   function shapeBolt(cam) {
     // somewhere 120-180 m off, out over the chasm, from the clouds down into the dark
     const ang = Math.random() * Math.PI * 2, dist = 120 + Math.random() * 60;
@@ -319,8 +327,8 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
         rainLoop.setGain(gainOpen * 3.5);
       } else hiss.set(gainOpen, dt);
       drum.set(roofed, dt);
-      // lightning (only while you're out in the storm's air)
-      if (inStorm && !under) {
+      // lightning (only while you're out in the storm's air, or not far under cover from it)
+      if (inStorm && !under && (st.openness > 0.05 || cam.y > -28)) {
         nextStrike -= dt;
         if (nextStrike <= 0 && !strike) {
           nextStrike = 10 + Math.random() * 15;
@@ -342,7 +350,7 @@ export function buildRain(B, { bounds = [20, -236, 204, -36], intensity = 1 } = 
       // the flash: on the hemisphere light and the sky, undone exactly as the atmosphere eases (main.js
       // lerps toward its preset by ka a frame, so the base under last frame's add is cur - add * (1 - ka))
       const ka = 1 - Math.exp(-dt * 1.2);
-      const vis = inStorm ? 0.35 + 0.65 * st.openness : 0;
+      const vis = inStorm ? 0.15 * (cam.y > -28 ? 1 : 0) + 0.85 * st.openness : 0;
       const hemi = game.hemi;
       if (hemi) {
         const base = hemi.intensity - lastAdd.hemi * (1 - ka);
