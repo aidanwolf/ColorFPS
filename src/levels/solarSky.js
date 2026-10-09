@@ -13,8 +13,8 @@ export const inSolar = (p) => (p.x < -31.5 && p.x > -440 && p.z < -38 && p.z > -
 // the excavation under the mesa (no sun down there): the buried gate and its vaults, and the Sun Temple's
 // dark insides — but not the open sinkhole (above its floor) or the temple chasm round the temple
 const inBox = (p, x1, x2, z1, z2) => p.x > x1 && p.x < x2 && p.z > z1 && p.z < z2;
-export const underground = (p) => p.y < -10.5 && p.x < -60 && p.x > -164 && p.z < -40 && p.z > -156 &&
-  !(inBox(p, -96.5, -64, -130.5, -99.5) && p.y > -70) && !(inBox(p, -134.5, -89.5, -94.5, -40) && !(inBox(p, -130, -94, -64.5, -42) && p.y > -66));
+export const underground = (p) => p.y < -10.5 && p.x < -34 && p.x > -164 && p.z < -40 && p.z > -156 &&
+  !(inBox(p, -96.5, -64, -130.5, -99.5) && p.y > -70) && !(inBox(p, -138, -34, -96, -40) && p.y > -40 && !(inBox(p, -47, -36, -96, -79) && p.y < -30));
 // the glowing trims that run on sunlight (lance housings, collector rims): they go dark at the shutdown
 export const POWER_ZONE = 'sunpower';
 

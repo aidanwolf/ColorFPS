@@ -923,8 +923,8 @@ export function buildSolarDepths(B, K) {
   // up from the gallery: a piston in its south-east corner, then crumbling planks to the east balcony
   const piston = new MovingPlatform(W, { min: [-107.8, -64.4, -103.6], max: [-104.3, -64, -100.1], offset: [0, 16, 0], speed: 2.6, pause: 2.2, zone, kind: 'grate' });
   for (const z of [-103.9, -100.4]) M(-108.2, -64, z - 0.15, -107.9, HB - 1, z + 0.15);
-  B.crumble({ min: [-107.4, HB - 0.3, -112.6], max: [-105.2, HB, -111.4], delay: 0.45, respawn: 3, zone });
-  B.crumble({ min: [-104.8, HB - 0.3, -115.6], max: [-102.6, HB, -114.4], delay: 0.45, respawn: 3, zone });
+  B.crumble({ min: [-107.6, HB - 0.3, -113], max: [-105.2, HB, -111.2], delay: 0.5, respawn: 3, zone });
+  B.crumble({ min: [-105, HB - 0.3, -116], max: [-102.6, HB, -114.2], delay: 0.5, respawn: 3, zone });
   // 1: the obelisk's mirror (on its capital, under the roof lens)
   const mA = new RotMirror(W, { pos: [-110, YB, -108], yaw: 0, start: 6, tilt: Math.PI / 4, size: [2.6, 2], post: 1.8, color: RED });
   // 2: the shuttle and its mirror (it waits at the north-west balcony until the obelisk's beam runs)
@@ -937,7 +937,7 @@ export function buildSolarDepths(B, K) {
   // 3: the corner mirror and its switch in the north wall's sight-tube; the perches; a hanging stone screen
   // hides the switch from the south
   const mC = new RotMirror(W, { pos: [-136.6, YB, -126], yaw: Math.PI / 4, step: Math.PI / 2, count: 4, start: 0, size: [2.6, 2], post: 4.5, color: RED, armored: true });
-  R(-137.1, HB, -126.5, -136.1, HB + 0.5, -125.5);
+  R(-137.1, HB, -126.5, -136.1, HB + 0.35, -125.5);
   const swC = new ColorSwitch(W, { pos: [-131.2, -46.4, -133.3], color: RED, face: '+z', mode: 'pulse', size: 1, zone, links: [{ activate: () => mC.turn(1) }], light: false });
   D(-131.9, -47.4, -133.4, -130.5, -47.35, -130, 'metal');
   B.crumble({ min: [-127.6, HB - 0.3, -129.6], max: [-125.4, HB, -127.4], delay: 0.6, respawn: 4, zone });
@@ -945,9 +945,9 @@ export function buildSolarDepths(B, K) {
   R(-133.5, -50, -124.6, -129, ROOF, -124.2);
   glyphs('+z', -124.2, -131.2, -46, 2.2, 1.2);
   // 4: the dais mirror and the one hanging from the roof (both creep back)
-  const mD = new RotMirror(W, { pos: [-120, YB, -126], yaw: 0, start: 1, size: [2.6, 2], post: 4.5, color: RED, drift: 7, home: 1 });
-  R(-120.5, HB, -126.5, -119.5, HB + 0.5, -125.5);
-  const mE = new RotMirror(W, { pos: [-120, YB, -116], yaw: 0, start: 2, tilt: -Math.PI / 4, size: [2.6, 2], post: 13.5, color: RED, drift: 7, home: 2, hang: true });
+  const mD = new RotMirror(W, { pos: [-120, YB, -126], yaw: 0, start: 7, size: [2.6, 2], post: 4.5, color: RED, drift: 6, home: 7 });
+  R(-120.5, HB, -126.5, -119.5, HB + 0.35, -125.5);
+  const mE = new RotMirror(W, { pos: [-120, YB, -116], yaw: 0, start: 1, tilt: -Math.PI / 4, size: [2.6, 2], post: 13.5, color: RED, drift: 6, home: 1, hang: true });
   // 5: the last pylon's mirror (it creeps once the heart is drinking)
   const mF = new RotMirror(W, { pos: [-120, -65.5, -116], yaw: 0, start: 2, tilt: Math.PI / 4, size: [2.6, 2], post: 1.8, color: RED, home: 2 });
   lights.push(mA, mB, mC, mD, mE, mF);
@@ -1159,7 +1159,7 @@ export function buildSolarDepths(B, K) {
     plug.solid.enabled = false;
     plug.mesh.visible = false;
     plug.rubble.visible = true;
-    plug.shaft.k = 1;
+    plug.shaft.k = 0.25; // (a little light from the tunnel's lamps)
     mF.root.visible = false;
     W.removeHittable(mF.root);
     oculus.enabled = false;
@@ -1190,7 +1190,7 @@ export function buildSolarDepths(B, K) {
     audio.sample('mortar_blast', { gain: 1, rate: 0.6 });
     audio.sample('floor_collapse', { gain: 1, rate: 0.8 });
     setTimeout(() => audio.sample('shatter', { gain: 0.8, rate: 0.5 }), 120);
-    setTimeout(() => game.hud.message('The gate\'s blast tore the south wall open — <b>daylight</b> beyond.', 5), 1400);
+    setTimeout(() => game.hud.message('The gate\'s blast tore the south wall open — a <b>tunnel</b> beyond, and a breath of hot wind.', 5), 1400);
     setTimeout(() => game.setMusic('music_haunt'), 2600);
   };
   // the hole: its sill is the gallery's floor; a checkpoint just inside it
@@ -1217,7 +1217,7 @@ export function buildSolarDepths(B, K) {
       n.recv.keep = true;
       n.recv.setOn(true, null, true);
     });
-    const legs = Math.max(stage - 4, ...relay.map((r, i) => (ev(r.id) ? i + 1 : 0)));
+    const legs = Math.max(stage - 3, ...relay.map((r, i) => (ev(r.id) ? i + 1 : 0)));
     relay.forEach((r, i) => i < legs && solveLeg(i));
     if (ev('solar_gate') || stage >= 8) blow(true);
     restoring = false;

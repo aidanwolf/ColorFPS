@@ -1,4 +1,4 @@
-// Where Wren Ashby's seventeen audio logs wait (scripts: tools/audio/logs.json, story: src/story/STORY.md).
+// Where Wren Ashby's eighteen audio logs wait (scripts: tools/audio/logs.json, story: src/story/STORY.md).
 // One table, in story order: the Atrium first, then Solar, Verdant, Azure and the Prism Core. Her voice
 // is first heard in the Prism Atrium: no log goes in the cell block or the Crimson Foundry (or its annex).
 //   world: which area it belongs to · pos: the floor point the recorder hovers over (1.15 m up)
@@ -16,6 +16,10 @@ const LOGS = [
   { id: '05', world: 'solar', pos: [-105, -79.6, -108.5], yaw: Math.PI / 4 }, // Mirrors: the gate hall's entry gallery, the first full view of the dormant stargate and its mirrors
   { id: '05b', world: 'solar', pos: [-129.5, -78.8, -127.8], yaw: -Math.PI / 2 }, // Full: under the ring, beside the west capacitor bank, where the hard-light bridge lands
   { id: '06', world: 'solar', pos: [-105, -64, -125], yaw: Math.PI / 2 }, // Here We Go: the upper gallery off the annex lift, just before the stargate puzzle
+  // The Pillar: the Sun Temple's pilgrims' balcony beside the obelisk (L3), its 4 x 4 m patch clear for her ghost.
+  // The temple is placed by a transform, so its module sets the world spot (setLogSpot, from
+  // solarTempleInterior.js); this row's pos is the placement it had when written (temple-local 16.2, 29.2, 23.1)
+  { id: '06b', world: 'solar', pos: [-123.1, 3.2, -59.8], yaw: 0 },
   // VERDANT (final, the rebuilt world): lonely, then frightened
   { id: '07', world: 'verdant', pos: [-10, 4, -162.5], yaw: Math.PI }, // the Moss Landing, just inside the Verdant gate on the walking line: moss, drizzle, a shaft of gold light; the open paving ahead is the ghost's stage
   { id: '07b', world: 'verdant', pos: [-50, -8, -322.5], yaw: Math.PI }, // the algae reactors under the swamp: the aisle between the two rows of tanks, just in from the glyph stair
@@ -30,6 +34,15 @@ const LOGS = [
   { id: '14', world: 'prism', pos: [-7.5, -48, -97.5], yaw: Math.PI / 4 }, // the antechamber, among the crystals, south-west corner
   { id: '15', world: 'prism', pos: [7, -48, -112], yaw: -Math.PI / 4 }, // the antechamber's north-east corner, by the way to the arena
 ];
+
+// A world module that places itself by a transform can move its log's spot (call it before placeLogs, i.e.
+// while the world builds).
+export function setLogSpot(id, pos, yaw) {
+  const row = LOGS.find((l) => l.id === id);
+  if (!row) return;
+  row.pos = [...pos];
+  if (yaw !== undefined) row.yaw = yaw;
+}
 
 export function placeLogs(B) {
   for (const { id, pos, yaw } of LOGS) B.audioLog(id, pos, yaw);

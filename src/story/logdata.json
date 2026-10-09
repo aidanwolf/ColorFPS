@@ -288,6 +288,41 @@
   ]
  },
  {
+  "id": "06b",
+  "title": "The Pillar",
+  "where": "Solar · the Sun Temple, beside the obelisk",
+  "file": "memo_06b",
+  "text": "Still here. Nothing on the link but hiss since the countdown. Just me. There's a pillar hanging from the roof, point down, tall as a tower block. I know what it is. A battery. Same conduits as the pit, same sockets as the ring. It held sunlight for the gate. And someone's hung banners on it. Gold leaf. Offerings. Candles burned to nothing. Somebody built a beautiful machine, and somebody else forgot what it was and made it a god. It hummed when I touched it. I hope that was me.",
+  "dur": 38.27,
+  "est": true,
+  "lines": [
+   {
+    "t": 0,
+    "text": "Still here. Nothing on the link but hiss since the countdown. Just me."
+   },
+   {
+    "t": 5.67,
+    "text": "There's a pillar hanging from the roof, point down, tall as a tower block. I know what it is."
+   },
+   {
+    "t": 13.06,
+    "text": "A battery. Same conduits as the pit, same sockets as the ring. It held sunlight for the gate."
+   },
+   {
+    "t": 20.44,
+    "text": "And someone's hung banners on it. Gold leaf. Offerings. Candles burned to nothing."
+   },
+   {
+    "t": 27.01,
+    "text": "Somebody built a beautiful machine, and somebody else forgot what it was and made it a god."
+   },
+   {
+    "t": 34.24,
+    "text": "It hummed when I touched it. I hope that was me."
+   }
+  ]
+ },
+ {
   "id": "07",
   "title": "No Birds",
   "where": "Verdant · the Moss Landing",
