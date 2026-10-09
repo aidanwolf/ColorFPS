@@ -794,7 +794,7 @@ class Game {
     const liquid = p.deathCause === 'quicksand' ? 'sand' : p.deathCause === 'acid' ? { verdant: 'toxic', fin_verdant: 'toxic', azure: 'brine', solar: 'sand' }[where] || 'lava' : null;
     this.sink = liquid && { ...SINK[liquid], surface: this.deathPos.y };
     if (this.sink) audio.sample(this.sink.sound, { gain: 1, vary: 0.05 });
-    const banner = this.sink?.banner || { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED', impact: 'CRATERED', drown: 'DROWNED', slime: 'ENGULFED', spider: 'SKEWERED', fish: 'SHREDDED', squid: 'CRUSHED', 'acid spit': 'DISSOLVED', 'ink torpedo': 'TORPEDOED', blast: 'BLOWN APART', scarab: 'STUNG', crab: 'BLOWN APART', spores: 'POISONED' }[p.deathCause] || 'SHOT DOWN';
+    const banner = this.sink?.banner || { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED', impact: 'CRATERED', drown: 'DROWNED', slime: 'ENGULFED', spider: 'SKEWERED', fish: 'SHREDDED', squid: 'CRUSHED', 'acid spit': 'DISSOLVED', 'ink torpedo': 'TORPEDOED', blast: 'BLOWN APART', scarab: 'STUNG', crab: 'BLOWN APART', spores: 'POISONED', 'lava gob': 'SLAGGED' }[p.deathCause] || 'SHOT DOWN';
     // The rewarded revive is a helping hand for a section you're stuck on, not a way to skip every
     // challenge: it's offered from the 3rd death since your last checkpoint, once per checkpoint.
     this.deathsHere = (this.deathsHere || 0) + 1;

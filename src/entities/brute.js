@@ -2,27 +2,45 @@
 // itself, roars, opens the shutters over its glowing weak point and paints a danger lane on the floor,
 // then charges down that lane: strafe or jump aside. Slamming into a wall leaves it dazed with the weak
 // point still open. Body shots of its color hurt it; the open weak point takes triple damage.
+// Between charges, at mid range, it plants and heats the slag cannon on its back (the mouth glows white
+// hot, ~0.8 s), then lobs a spread of lava gobs at you (lavaGob.js): each marks where it will land and
+// leaves a little molten puddle there. Strafe out of the pattern.
 import * as THREE from 'three';
 import { audio } from '../audio.js';
-import { Enemy, Parts, Beam, MAT, moveSafe, floorBelow, falloff, hexOf, sfx, DANGER } from './enemyKit.js';
+import { Enemy, Parts, Beam, MAT, moveSafe, floorBelow, falloff, hexOf, sfx, converge, DANGER } from './enemyKit.js';
 import { Spring } from './groundKit.js';
 import { esfx } from './enemySfx.js';
 import { barks } from '../combat/barks.js';
+import { director } from '../combat/director.js';
+import { lobGob, moltenTint } from './lavaGob.js';
 
 const _v = new THREE.Vector3();
 const _d = new THREE.Vector3();
 const _a = new THREE.Vector3();
+const _m = new THREE.Vector3();
+const _c = new THREE.Color();
 const HOVER = 1.25; // body center above the floor
 const PAD = 1.0;
+const MUZZLE = new THREE.Vector3(0, 1.08, 0); // the slag cannon's mouth, in the cannon's frame
+const rnd = (a, b) => a + Math.random() * (b - a);
 
 export class Brute extends Enemy {
-  constructor(world, { pos, color = 0, hp = 9, range = 40, speed = 2.6, chargeSpeed = 22, windup = 1.15, cooldown = 2.6, stun = 1.8, aggro = false, onDeath = null }) {
+  constructor(world, { pos, color = 0, hp = 9, range = 40, speed = 2.6, chargeSpeed = 22, windup = 1.15, cooldown = 2.6, stun = 1.8, lob = true, gobs = 3, lobEvery = [3.5, 5], lobWindup = 0.8, aggro = false, onDeath = null }) {
     super(world, { pos, color, hp, range, aggro, onDeath });
     this.speed = speed;
     this.chargeSpeed = chargeSpeed;
     this.windupTime = windup;
     this.cooldown = cooldown;
     this.stunTime = stun;
+    // the lava-gob volley: `gobs` per volley, one volley every lobEvery[0..1] s after `lobWindup` s of heating up
+    this.lob = lob;
+    this.gobs = gobs;
+    this.lobEvery = lobEvery;
+    this.lobWindup = lobWindup;
+    this.lobT = 1.2 + Math.random() * 1.2;
+    this.heat = 0; // the cannon's glow: 0 cold, 1 white hot
+    this.recoil = 0;
+    this.tint = moltenTint(this.pos);
     this.state = 'stalk';
     this.timer = 1.5 + Math.random();
     this.yaw = Math.random() * 6.28;
@@ -54,6 +72,8 @@ export class Brute extends Enemy {
       .add(this.armor, new THREE.BoxGeometry(0.45, 0.9, 1.6), [1.25, -0.05, -0.1])
       .add(MAT.shell, new THREE.CylinderGeometry(0.32, 0.38, 0.5, 8), [-0.6, 0, -1.2], [Math.PI / 2, 0, 0])
       .add(MAT.shell, new THREE.CylinderGeometry(0.32, 0.38, 0.5, 8), [0.6, 0, -1.2], [Math.PI / 2, 0, 0])
+      // the slag cannon's mounting plate on the top hull
+      .add(MAT.dark, new THREE.BoxGeometry(0.9, 0.14, 0.8), [0, 0.98, -0.45])
       // color trims: brow slits, flank stripes
       .add(this.glow, new THREE.BoxGeometry(1.5, 0.08, 0.08), [0, 0.55, 0.62])
       .add(this.glow, new THREE.BoxGeometry(0.05, 0.16, 1.5), [-1.48, 0.1, -0.1])
@@ -63,6 +83,22 @@ export class Brute extends Enemy {
       .add(this.glow, new THREE.BoxGeometry(0.22, 0.1, 0.1), [-0.75, 0.72, 0.5])
       .add(this.glow, new THREE.BoxGeometry(0.22, 0.1, 0.1), [0.75, 0.72, 0.5]);
     p.build(this.body);
+    // the slag cannon: a stubby mortar on a ball mount, tipped forward to lob over the prow; its heat bands
+    // and mouth glow as it heats up for a volley
+    this.heatMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    this.mats.push(this.heatMat);
+    this.cannon = new THREE.Group();
+    this.cannon.position.set(0, 1.02, -0.45);
+    this.cannon.rotation.x = 0.5;
+    this.body.add(this.cannon);
+    new Parts()
+      .add(MAT.dark, new THREE.SphereGeometry(0.36, 10, 8), [0, 0, 0])
+      .add(this.armor, new THREE.CylinderGeometry(0.27, 0.34, 0.9, 10), [0, 0.45, 0])
+      .add(MAT.dark, new THREE.CylinderGeometry(0.34, 0.34, 0.16, 10), [0, 0.94, 0])
+      .add(this.heatMat, new THREE.TorusGeometry(0.31, 0.035, 4, 14), [0, 0.32, 0], [Math.PI / 2, 0, 0])
+      .add(this.heatMat, new THREE.TorusGeometry(0.29, 0.035, 4, 14), [0, 0.62, 0], [Math.PI / 2, 0, 0])
+      .add(this.heatMat, new THREE.CircleGeometry(0.25, 12), [0, 1.03, 0], [-Math.PI / 2, 0, 0])
+      .build(this.cannon);
     // rear thruster flames
     this.thrustMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false });
     this.mats.push(this.thrustMat);
@@ -125,6 +161,7 @@ export class Brute extends Enemy {
     if (!this.tick(dt, player)) return this.updateHum(0.4);
     const fx = this.world.fx;
     this.timer -= dt;
+    this.lobT -= dt;
     // keep hovering at a steady height over whatever floor is below
     this.floorT -= dt;
     if (this.floorT <= 0) {
@@ -150,7 +187,13 @@ export class Brute extends Enemy {
         this.timer = this.windupTime;
         const g = Math.max(0.4, falloff(this.dist, 6, 45));
         sfx('brute_roar', { gain: 0.8 * g }, 'boss_charge', { gain: 0.7 * g, rate: 1.3 });
+      } else if (this.lob && this.lobT <= 0 && this.aggro && this.sees && this.dist > 8 && this.dist < 30 && this.timer > 0.6) {
+        // mid range and not about to charge: a volley (once the director hands it an attack token)
+        if (director.request(this, this.lobWindup + this.gobs * 0.14 + 0.5)) this.startLob();
+        else this.lobT = rnd(0.3, 0.6);
       }
+    } else if (this.state === 'lob') {
+      this.updateLob(dt, player);
     } else if (this.state === 'windup') {
       // plant, open up, and paint the lane; the aim locks for the last 0.3 s
       wantOpen = 1;
@@ -203,6 +246,7 @@ export class Brute extends Enemy {
       if (this.timer <= 0) {
         this.state = 'stalk';
         this.timer = this.cooldown * (0.85 + Math.random() * 0.3);
+        this.lobT = Math.max(this.lobT, rnd(0.8, 1.4)); // (a beat to collect itself before a volley)
         this.wobble = 0;
       }
     }
@@ -230,9 +274,98 @@ export class Brute extends Enemy {
     if (this.flash > 0) this.weakMat.color.setRGB(3, 3, 3);
     else this.weakMat.color.set(hexOf(this.color)).multiplyScalar(0.5 + this.open * (1.4 + 0.7 * pulse));
     this.glowFlash();
+    // the cannon: heat glow (dull red at rest, flickering white hot about to fire) and recoil
+    if (this.state !== 'lob') this.heat = Math.max(0, this.heat - dt * 1.2);
+    this.recoil = Math.max(0, this.recoil - dt * 5);
+    const h = this.heat;
+    this.heatMat.color.set(this.tint).lerp(_c.set(0xffe2b0), h * h * 0.6).multiplyScalar(0.3 + h * (2.2 + 0.5 * Math.sin(this.t * 40)));
+    this.cannon.position.set(0, 1.02 - this.recoil * 0.12, -0.45 - this.recoil * 0.07);
     this.thrustMat.color.set(hexOf(this.color)).multiplyScalar(this.state === 'charge' ? 2.4 : 1.2);
     this.thrust.scale.set(1, 1, this.state === 'charge' ? 1.8 + Math.random() * 0.5 : 0.8 + Math.random() * 0.3);
-    this.updateHum(0.4 + (this.state === 'charge' ? 0.5 : this.state === 'windup' ? 0.25 : 0), 0.45, 4, 34);
+    this.updateHum(0.4 + (this.state === 'charge' ? 0.5 : this.state === 'windup' ? 0.25 : this.state === 'lob' ? 0.12 : 0), 0.45, 4, 34);
+  }
+
+  // ---- the lava-gob volley ----
+  startLob() {
+    this.state = 'lob';
+    this.lobTimer = this.lobWindup;
+    this.shots = 0;
+    this.lobT = rnd(this.lobEvery[0], this.lobEvery[1]); // (counted from the start of this volley)
+    // it plants with a vent of its hydraulics, and the cannon starts to rumble and boil
+    esfx('hydraulic_hiss', this.pos, 0.8, 0.85);
+    const g = Math.max(0.35, falloff(this.dist, 6, 45));
+    sfx('lava_surge', { gain: 0.75 * g, rate: 1.25, cut: this.lobWindup + 0.1 }, 'charge_up', { gain: 0.6 * g, rate: 0.7 });
+    this.pS.kick(-1.2);
+  }
+
+  muzzle(out) {
+    this.group.updateMatrixWorld();
+    return out.copy(MUZZLE).applyMatrix4(this.cannon.matrixWorld);
+  }
+
+  updateLob(dt, player) {
+    const fx = this.world.fx;
+    this.lobTimer -= dt;
+    this.face(dt, 2.5);
+    if (this.shots === 0) {
+      // the telegraph: the cannon heats from dull red to white hot, molten motes drawn into its mouth,
+      // slag spitting out of it, the hull shuddering
+      this.heat = Math.max(this.heat, 1 - Math.max(0, this.lobTimer) / this.lobWindup);
+      this.body.position.set((Math.random() - 0.5) * 0.04, 0, (Math.random() - 0.5) * 0.04);
+      if (Math.random() < dt * 30) converge(fx, this.muzzle(_m), this.tint, { count: 2, radius: 1.1, time: 0.3, size: 0.06 });
+      if (Math.random() < dt * 14 * this.heat) fx.ember(this.muzzle(_m), rnd(-1.2, 1.2), rnd(2, 4), rnd(-1.2, 1.2), this.tint, 0.6, 0.1);
+      if (this.heat > 0.6 && Math.random() < dt * 18) fx.flash(this.muzzle(_m), this.tint, { size: 0.7, life: 0.08 }); // (reads from any angle)
+      if (this.lobTimer > 0) return;
+      this.body.position.set(0, 0, 0);
+      this.aimVolley(player);
+    }
+    if (this.shots < this.gobs) {
+      if (this.lobTimer <= 0) {
+        this.fireGob(this.shots++);
+        this.lobTimer = 0.14;
+      }
+    } else if (this.lobTimer <= 0) {
+      this.state = 'stalk';
+      this.timer = Math.max(this.timer, 1.0); // (no charge straight out of a volley)
+      director.release(this);
+    }
+  }
+
+  // Where the volley goes: a line of gobs across your path, centred a little ahead of where you're
+  // heading. (The director pulls the first volley fired from off screen wide, as a warning.)
+  aimVolley(player) {
+    const from = this.muzzle(_m);
+    const tf = this.flightFor(Math.hypot(player.pos.x - from.x, player.pos.z - from.z));
+    const lead = _a.set(player.vel.x, 0, player.vel.z).multiplyScalar(tf * 0.4);
+    if (lead.length() > 3) lead.setLength(3);
+    this.aim = director.aim(this, from, _v.copy(player.pos).add(lead));
+    this.aim.y = player.pos.y;
+    this.aimFwd = new THREE.Vector3(this.aim.x - this.pos.x, 0, this.aim.z - this.pos.z).normalize();
+    this.aimSide = new THREE.Vector3(this.aimFwd.z, 0, -this.aimFwd.x).multiplyScalar(Math.random() < 0.5 ? -1 : 1);
+  }
+
+  // seconds a gob spends in the air over `flat` metres (a higher, slower arc further out)
+  flightFor(flat) {
+    return THREE.MathUtils.clamp(0.75 + flat * 0.02, 0.85, 1.35);
+  }
+
+  fireGob(i) {
+    const from = this.muzzle(new THREE.Vector3());
+    // the first dead on, the others either side of it (with a little scatter)
+    const across = i === 0 ? 0 : (i % 2 ? 1 : -1) * (2.2 + Math.random() * 0.5) * Math.ceil(i / 2);
+    const t = _v.copy(this.aim).addScaledVector(this.aimSide, across).addScaledVector(this.aimFwd, rnd(-0.7, 0.7));
+    const pl = this.game.player;
+    t.y = floorBelow(this.world, _a.set(t.x, pl.pos.y + 1.2, t.z), 8) ?? pl.pos.y;
+    lobGob(this.world, from, t, this.flightFor(Math.hypot(t.x - from.x, t.z - from.z)) + i * 0.05, this.tint);
+    this.recoil = 1;
+    this.heat = Math.max(0.55, this.heat - 0.15);
+    this.pS.kick(-1.6);
+    const fx = this.world.fx;
+    fx.flash(from, this.tint, { size: 1.1, life: 0.12 });
+    fx.sparks(from, _a.subVectors(t, from).setY(0).normalize().setY(1.6).normalize(), this.tint, { count: 10, speed: 9, spread: 0.5, life: 0.4, gravity: 12 });
+    fx.puff(from, 0, 2.5, 0, _c.set(0x8a7a74), 0.4, 1.0, 0.7, 3);
+    const g = Math.max(0.35, falloff(this.dist, 6, 50));
+    sfx('mortar_launch', { gain: (i ? 0.45 : 0.75) * g, rate: 0.75 + i * 0.08 }, 'enemy_shot', { gain: 0.6 * g, rate: 0.5 });
   }
 
   // The hull's weight: it leans into its stalk and banks into turns, rears back on its thrusters through
@@ -242,6 +375,7 @@ export class Brute extends Enemy {
     this.lastYaw = this.yaw;
     let pitchT = 0, rollT = THREE.MathUtils.clamp(-turn * 0.08, -0.18, 0.18);
     if (this.state === 'stalk' && this.aggro && this.dist > 5.5) pitchT = 0.06 + Math.sin(this.t * 2.2) * 0.02;
+    else if (this.state === 'lob') pitchT = -0.08; // it sits back on its thrusters, the cannon raised
     else if (this.state === 'windup') pitchT = -0.2 * Math.min(1, (this.windupTime - this.timer) / 0.35);
     else if (this.state === 'charge') pitchT = 0.16;
     else if (this.state === 'stunned') pitchT = 0.12;

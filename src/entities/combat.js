@@ -14,6 +14,7 @@ import { Swarm } from './swarmer.js';
 import { Warden } from './warden.js';
 import { Brute } from './brute.js';
 import { Mortar, clearBlastZones } from './mortar.js';
+import { clearLavaGobs } from './lavaGob.js';
 import { Checkpoint } from './misc.js';
 import { BlastCrab, Welder } from './foundryEnemies.js';
 import { Scarab, Mummy } from './solarEnemies.js';
@@ -471,6 +472,7 @@ export class Encounter {
     for (const e of this.live) despawn(e);
     for (const p of this.portals) p.cancel();
     clearBlastZones(this.world);
+    clearLavaGobs(this.world);
     this.live = [];
     this.portals = [];
     this.pending = [];
