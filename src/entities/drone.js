@@ -151,6 +151,7 @@ export class Drone {
     this.dead = false;
     this.crashing = false;
     this.onDeath = onDeath;
+    this.flier = true; // airborne: green globs' flak fuse airbursts beside it (weapons/globs.js)
     // per-drone pitch offset so a group of drones doesn't hum in unison
     this.humPitch = 0.92 + Math.random() * 0.16;
     this.barkPersona = 'lumen'; // combat/barks.js (sub-drones speak for the deep)

@@ -141,7 +141,7 @@ export class Blaster {
       if (input.hit('KeyQ')) this.cycle(-1);
       if (input.wheel) this.cycle(input.wheel > 0 ? 1 : -1);
       if (input.hit('KeyF') || input.hit('Tab')) this.setColor(this.lastColor);
-      if (this.modes[this.color]) held = input.mouseDown;
+      if (this.modes[this.color]) held = input.mouseDown || input.mousePressed; // (a click inside one frame still counts)
       else if (input.mouseDown && this.cooldown <= 0) this.fire();
     }
     for (let i = 1; i < 4; i++) this.modes[i].update(dt, held && i === this.color);
