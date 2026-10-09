@@ -331,16 +331,16 @@ export class Hovercraft {
           _v.y = gy;
           const out = rnd(2, 4) * near;
           this.right(_w).multiplyScalar(s * out);
-          fx.puff(_v, _w.x - this.vel.x * 0.25, rnd(0.3, 1.2) * near, _w.z - this.vel.z * 0.25, _c.set(DUST), 0.32 * near, rnd(0.8, 1.4), rnd(0.35, 0.6), 3.2);
+          fx.puff(_v, _w.x - this.vel.x * 0.25, rnd(0.3, 1.2) * near, _w.z - this.vel.z * 0.25, _c.set(DUST), 0.22 * near, rnd(0.8, 1.4), rnd(0.35, 0.6), 3.2);
         }
         if (speed > 4) {
           // the wake: a long trail of dust astern, and a spray of sand if it's skimming quicksand
           this.toWorld(rnd(-1, 1), 0, -3.6, _v);
           _v.y = gy;
           for (const sx of [-1.4, 1.4]) {
-            this.toWorld(sx + rnd(-0.4, 0.4), 0, -3.4, _v);
+            this.toWorld(sx + rnd(-0.4, 0.4), 0, -4.6, _v);
             _v.y = gy;
-            fx.puff(_v, -this.vel.x * 0.12 + rnd(-1.5, 1.5), rnd(0.8, 2.2), -this.vel.z * 0.12 + rnd(-1.5, 1.5), _c.set(WAKE), 0.5 * near, rnd(1.6, 2.6), rnd(0.8, 1.3), 3.8);
+            fx.puff(_v, -this.vel.x * 0.12 + rnd(-1.5, 1.5), rnd(0.8, 2.2), -this.vel.z * 0.12 + rnd(-1.5, 1.5), _c.set(WAKE), 0.2 * near, rnd(1.4, 2.2), rnd(0.6, 1.0), 3.4);
           }
           if (this.overSand) {
             for (let i = 0; i < 3; i++) {

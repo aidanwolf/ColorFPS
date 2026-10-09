@@ -1364,7 +1364,7 @@ class DuneRun {
     this.arriveT += dt;
     const k = smooth01(this.arriveT / 1.7);
     // a drift turn on the spot: it swings its stern round to the dock
-    const yaw = this.arriveYaw + wrapAngle(this.parkYawEnd - this.arriveYaw) * k;
+    const yaw = wrapAngle(this.arriveYaw + wrapAngle(this.parkYawEnd - this.arriveYaw) * k);
     const yb = this.parkY(this.end[1]);
     this.y += (yb - this.y) * Math.min(1, dt * 3);
     _a.set(this.endPark[0], this.y, this.endPark[1]);
