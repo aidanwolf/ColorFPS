@@ -9,7 +9,7 @@
 //   landing at (30, 18, -330).
 //   SECOND HALF (verdantGodTree.js): the god tree from that landing, the Thornmaw, the way home down to the
 //   aqueduct head at (10, 12, -239).
-//   THE AQUEDUCT (below, its own section): from there south over the swamp to the Hub's north balcony port
+//   THE AQUEDUCT (built in verdantGodTree.js): from there south over the swamp to the Hub's north balcony port
 //   (x 10, y 12), through the gates and the one-way door.
 // Shutting the Heart down (game.onPowerDown('verdant'), also on load) kills the forest: see aftermath().
 import * as THREE from 'three';
