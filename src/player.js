@@ -48,8 +48,9 @@ const SAND_TINT = 0xd9b46a;
 // and a jump off it at full speed is SLICK_LEAP times as strong: sprint jump ≈ 7.6 m, slick leap ≈ 9.3-9.8 m.
 const SLICK_GRIP = 0.12;
 const SLICK_TOP = 1.6;
-const SLICK_BUILD = 0.22;
+const SLICK_BUILD = 0.4;
 const SLICK_LEAP = 1.12;
+const DRY_GRACE = 0.35;
 const SLIDE_MAX = (SLICK_TOP * RUN_SPEED) / SPRINT_SPEED - 1; // the boost on top of a sprint
 export const AIR_MAX = 14; // seconds of breath
 const _down = new THREE.Vector3(0, -1, 0);
@@ -177,8 +178,11 @@ export class Player {
   // about half a second back on dry ground (or once you slow down). Spray kicks up from your feet.
   slide(slick, dt) {
     const b = this.slideBoost || 0;
-    if (slick > 0.3 && this.sprinting && this.speed2d > SPRINT_SPEED * 0.85) this.slideBoost = Math.min(SLIDE_MAX, b + dt * SLICK_BUILD * slick * (RUN_SPEED / SPRINT_SPEED));
-    else if (this.grounded && (slick < 0.3 || this.speed2d < RUN_SPEED)) this.slideBoost = Math.max(0, b - dt * 0.35);
+    // (a short dry patch between puddles, up to DRY_GRACE, doesn't bleed it: sprayed runways have gaps)
+    if (slick > 0.3) this.dryT = 0;
+    else if (this.grounded) this.dryT = (this.dryT || 0) + dt;
+    if (slick > 0.3 && this.sprinting && this.speed2d > SPRINT_SPEED * 0.8) this.slideBoost = Math.min(SLIDE_MAX, b + dt * SLICK_BUILD * slick * (RUN_SPEED / SPRINT_SPEED));
+    else if (this.grounded && ((slick < 0.3 && this.dryT > DRY_GRACE) || this.speed2d < RUN_SPEED)) this.slideBoost = Math.max(0, b - dt * 0.35);
     if (slick > 0.3 && this.speed2d > 3 && Math.random() < dt * (6 + this.speed2d)) {
       const fx = this.game.world.fx;
       fx.burst(_swimT.copy(this.pos).setY(this.pos.y + 0.05), 0xcfeeff, { count: 4, speed: 2.5, life: 0.4, size: 0.12, gravity: 9, dir: _swimF.set(this.vel.x * 0.15, 1.2, this.vel.z * 0.15) });
@@ -541,11 +545,12 @@ export class Player {
     this.updateCamera();
   }
 
-  launch(vy, push) {
+  launch(vy, push, carry = true) {
     this.vel.y = vy;
     if (push) {
       // a pad's throw plus the run you came in with (part of it, capped, so its landing stays in reach)
-      let cx = this.vel.x * PAD_CARRY, cz = this.vel.z * PAD_CARRY;
+      const k = carry ? PAD_CARRY : 0;
+      let cx = this.vel.x * k, cz = this.vel.z * k;
       const cl = Math.hypot(cx, cz);
       if (cl > PAD_CARRY_MAX) {
         cx *= PAD_CARRY_MAX / cl;

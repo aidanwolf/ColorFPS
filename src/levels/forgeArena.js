@@ -38,6 +38,7 @@ import { RED, COLORS } from '../colors.js';
 import { audio } from '../audio.js';
 import { mat } from '../materials.js';
 import { liquidMaterial } from '../liquid.js';
+import { conduitMaterial } from './reactor.js';
 import { JumpPad, Checkpoint } from '../entities/misc.js';
 import { ForgeTitan } from '../entities/forgeTitan.js';
 
@@ -371,7 +372,8 @@ export function buildForgeArena(B, opts = {}) {
   const fallCrust = new THREE.MeshStandardMaterial({ map: crustTexture(), color: 0x6a5a52, roughness: 1 });
   let smolder = null, reveal = 0;
   let heart = null, heartCrust = null, shield = null, shieldMat = null, coreLight = null, collar = null, coreGroup = null;
-  const rings = [], conduitSeams = [];
+  const rings = [], feedMats = [];
+  let feedBands = null, feedT = 0;
   if (powerSource) {
     coreGroup = new THREE.Group();
     coreGroup.position.copy(core.pos);
@@ -416,28 +418,54 @@ export function buildForgeArena(B, opts = {}) {
     collar.rotation.x = Math.PI / 2;
     collar.position.y = 2.0;
     coreGroup.add(collar);
-    // conduits drawing heat up out of the lava channel: up the exit wall, across the ceiling, into the core
-    const pipeSeg = (from, to) => {
-      const dir = to.clone().sub(from);
-      const len = dir.length();
-      const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, len, 12).translate(0, len / 2, 0), ironMat);
-      pipe.position.copy(from);
-      pipe.quaternion.setFromUnitVectors(UP, dir.clone().normalize());
-      W.scene.add(pipe);
-      const nBands = Math.max(2, Math.floor(len / 2.2));
-      for (let k = 1; k < nBands; k++) {
-        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.56, 0.3, 12), new THREE.MeshBasicMaterial({ color: 0xff6a1a }));
-        band.position.y = (k / nBands) * len;
-        pipe.add(band);
-        conduitSeams.push({ m: band.material, k: (conduitSeams.length % 40) / 40 });
-      }
-    };
+    // feed conduits: the core's heat pumped out across the ceiling and through the exit wall, on to the
+    // Atrium (the same glass-and-magma feeds you see arriving there): a crimson flow in a glass sleeve,
+    // dark collars banded in red, a flange where each one goes into the wall
     const ceilY = y + H - 1.4;
     const V3 = (a) => new THREE.Vector3(...a);
+    const sleeveGeo = new THREE.TorusGeometry(1, 0.1, 6, 16), bandGeo = new THREE.TorusGeometry(1, 0.035, 4, 24);
+    const bandMat = new THREE.MeshBasicMaterial({ color: 0xff3344 });
+    const m4 = new THREE.Matrix4(), q4 = new THREE.Quaternion(), Z = new THREE.Vector3(0, 0, 1);
     for (const su of [-1, 1]) {
-      pipeSeg(V3(pt(su * 3.5, chanY - 0.3, -half + 0.7)), V3(pt(su * 3.5, ceilY, -half + 0.7)));
-      pipeSeg(V3(pt(su * 3.5, ceilY, -half + 0.7)), V3(pt(su * 3.5, ceilY, 0)));
-      pipeSeg(V3(pt(su * 3.5, ceilY, 0)), V3(pt(su * 1.0, coreY + 1.6, 0)));
+      const pts = [
+        V3(pt(su * 1.0, coreY + 1.7, 0)),
+        V3(pt(su * 1.9, coreY + 3.2, -0.4)),
+        V3(pt(su * 3.0, ceilY - 0.2, -1.6)),
+        V3(pt(su * 3.5, ceilY, -3.6)),
+        V3(pt(su * 3.5, ceilY, -half * 0.5)),
+        V3(pt(su * 3.5, ceilY, -half + 2)),
+        V3(pt(su * 3.5, ceilY, -half - T * 0.8)), // into the wall
+      ];
+      const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+      const len = curve.getLength();
+      const fluidMat = conduitMaterial(0, len, {}, 0xff3344);
+      const glassMat = conduitMaterial(5, len, { transparent: true, depthWrite: false }, 0xff3344);
+      const fluid = new THREE.Mesh(new THREE.TubeGeometry(curve, 72, 0.36, 12, false), fluidMat);
+      const glass = new THREE.Mesh(new THREE.TubeGeometry(curve, 72, 0.55, 14, false), glassMat);
+      glass.renderOrder = 1;
+      W.scene.add(fluid, glass);
+      feedMats.push(fluidMat, glassMat);
+      const n = Math.floor(len / 1.7);
+      const sleeves = new THREE.InstancedMesh(sleeveGeo, ironMat, n - 1), bands = new THREE.InstancedMesh(bandGeo, bandMat, n - 1);
+      const R = 0.61;
+      for (let k = 1; k < n; k++) {
+        const u = k / n;
+        q4.setFromUnitVectors(Z, curve.getTangentAt(u));
+        const p = curve.getPointAt(u);
+        sleeves.setMatrixAt(k - 1, m4.compose(p, q4, new THREE.Vector3(R, R, R * 2.6)));
+        bands.setMatrixAt(k - 1, m4.compose(p, q4, new THREE.Vector3(R * 1.1 + 0.012, R * 1.1 + 0.012, R)));
+      }
+      for (const m of [sleeves, bands]) {
+        m.computeBoundingSphere();
+        W.scene.add(m);
+      }
+      // the wall flange
+      const wallP = V3(pt(su * 3.5, ceilY, -half + 0.12));
+      const flange = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.05, 0.5, 16), ironMat);
+      flange.position.copy(wallP);
+      flange.quaternion.setFromUnitVectors(UP, curve.getTangentAt(0.995));
+      W.scene.add(flange);
+      feedBands = bandMat;
     }
     // the shield: a shell of heat-shimmer that turns every shot aside while the Titan stands
     shieldMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff5a2a).multiplyScalar(1.2), transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
@@ -702,7 +730,16 @@ export function buildForgeArena(B, opts = {}) {
     }
     for (let i = 0; i < rings.length; i++) rings[i].rotation.z += dt * spin * (i ? -0.9 : 0.6);
     if (core.state !== 'overload') heart.scale.setScalar(1 + Math.sin(t * 2.2) * 0.03 + core.flash * 0.08);
-    for (const c of conduitSeams) c.m.color.setRGB(1, 0.4, 0.1).multiplyScalar((0.4 + 1.1 * Math.max(0, Math.sin(c.k * 25 - t * 4))) * (1 - crustMat.opacity) + 0.04);
+    // the feeds run hot while the core lives; once it's dead they cool to a slow smoulder (still red)
+    if (feedBands) {
+      const power = 1 - crustMat.opacity * 0.7;
+      feedT += dt * (0.25 + 0.75 * power);
+      for (const m of feedMats) {
+        m.uniforms.uTime.value = feedT;
+        m.uniforms.uPower.value = power;
+      }
+      feedBands.color.setRGB(1, 0.2, 0.27).multiplyScalar(0.35 + power * (0.8 + 0.3 * Math.sin(t * 3)));
+    }
     if (core.state === 'exposed') coreLight.intensity = 18 + Math.sin(t * 8) * 5 + core.flash * 20;
     if (smolder.visible) {
       reveal = Math.min(1, reveal + dt / 1.2);

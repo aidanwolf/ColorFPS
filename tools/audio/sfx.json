@@ -1313,5 +1313,85 @@
   "text": "Heavy industrial circuit breaker thunk with a sharp electrical pop and crackle",
   "dur": 1,
   "influence": 0.6
+ },
+ "death_welder": {
+  "text": "Deep distorted robot death scream: a hulking humanoid war robot's vocoder roar of agony that cracks and glitches, degrading into stuttering, failing servos and a long descending power-down whine, dramatic and satisfying, sci-fi video game enemy defeated, no gore",
+  "dur": 2.2,
+  "influence": 0.6
+ },
+ "death_brute": {
+  "text": "Huge mechanical beast's dying roar: a massive distorted engine-like bellow of rage and pain collapsing into grinding, buckling metal, stalling hydraulics and a heavy power-down groan, epic and satisfying, sci-fi video game enemy defeated",
+  "dur": 2.5,
+  "influence": 0.6
+ },
+ "death_stilt": {
+  "text": "Eerie metallic death shriek of a tall spindly stilt-walker robot: a high, warbling electronic wail with a ghostly resonant ring, then long metal stilts creaking, buckling and snapping as it collapses, sci-fi video game enemy defeated",
+  "dur": 2.0,
+  "influence": 0.6
+ },
+ "death_warden": {
+  "text": "Crystalline guardian robot's death cry: a layered distorted electronic howl with ringing glassy overtones, its energy core surging then failing with a falling power-down hum and crackling discharge, sci-fi video game enemy defeated",
+  "dur": 2.0,
+  "influence": 0.6
+ },
+ "death_turret": {
+  "text": "Robotic gun turret dying: a pained synthetic electronic groan dropping in pitch, sputtering motor and sparking electrics, ending in a long power-down whine and a final clunk, sci-fi video game enemy destroyed",
+  "dur": 1.8,
+  "influence": 0.6
+ },
+ "death_mortar": {
+  "text": "Heavy artillery robot dying: a low glitching mechanical moan, a stuttering failing loader servo and a hydraulic hiss, ending in a deep power-down drone, sci-fi video game enemy destroyed",
+  "dur": 1.8,
+  "influence": 0.6
+ },
+ "death_drone": {
+  "text": "Flying robot drone death squeal: a panicked rising electronic whine that glitches out and ends in a sharp metallic crunch, punchy and satisfying, sci-fi video game enemy destroyed",
+  "dur": 1.4,
+  "influence": 0.6
+ },
+ "death_swarmer": {
+  "text": "Tiny robot bug death chirp: a short shrill electronic squeak that cuts out with a small glassy crunch, punchy, sci-fi video game enemy destroyed",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "death_crab": {
+  "text": "Small robot crab's panicked electronic yelp: a quick high glitchy squeal of alarm right before a sharp bang, sci-fi video game enemy",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "death_scarab": {
+  "text": "Robotic scarab beetle death screech: an insectile electronic shriek with clicking mandibles, ending in a sharp ceramic carapace crack and a trickle of sand, sci-fi video game enemy defeated",
+  "dur": 1.4,
+  "influence": 0.6
+ },
+ "death_spider": {
+  "text": "Robot spider death squeal: a frantic chittering electric squeal with clicking legs and crackling sparks, fading into a twitching servo rattle, sci-fi video game enemy defeated",
+  "dur": 1.5,
+  "influence": 0.6
+ },
+ "death_slime": {
+  "text": "Wet robotic death gurgle: a bubbling slime creature's glitchy electronic wail drowning in goo, a squelching collapse and a final digital blip, sci-fi video game enemy defeated, not gory",
+  "dur": 1.6,
+  "influence": 0.6
+ },
+ "death_squid": {
+  "text": "Underwater robot squid death cry: a muffled, warbling electronic wail heard through water, bubbling and gurgling, failing motors winding down, deep and satisfying, sci-fi video game enemy defeated",
+  "dur": 2.0,
+  "influence": 0.6
+ },
+ "death_fish": {
+  "text": "Small robot piranha death squeak: a short muffled underwater electronic yelp with a burst of bubbles and a little metallic crunch, sci-fi video game enemy",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "death_crawler": {
+  "text": "Small scrap-metal robot crawler death screech: a raspy, glitching electronic squeal, loose metal parts rattling and a sputtering short circuit, sci-fi video game enemy defeated",
+  "dur": 1.3,
+  "influence": 0.6
+ },
+ "death_skiff": {
+  "text": "Desert raider hover-skiff shot down: a robotic gunner's distorted vocoder scream of panic over a fan engine sputtering and whining down, metal scraping, dramatic sci-fi video game enemy defeated",
+  "dur": 2.2,
+  "influence": 0.6
  }
 }

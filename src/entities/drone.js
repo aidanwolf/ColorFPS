@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { COLORS } from '../colors.js';
 import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
-import { esfx } from './enemySfx.js';
+import { esfx, edeath } from './enemySfx.js';
 import { barks } from '../combat/barks.js';
 import { ColorShield, parseShields } from './colorShield.js';
 import { Rage } from './rage.js';
@@ -509,6 +509,7 @@ export class Drone {
     this.world.fx.burst(this.pos, 0xffffff, { count: 18, speed: 7, life: 0.35, size: 0.4, gravity: 2 });
     this.world.fx.burst(this.pos, 0xff8a30, { count: 20, speed: 6, life: 0.6, size: 0.25, gravity: 8 });
     audio.droneCrash(Math.max(0.45, falloff(this.dist, 8, 50)));
+    edeath('death_drone', this.pos, 1, this.water ? 0.8 : 1);
     this.glowMat.color.setRGB(0.4, 0.1, 0.1);
     this.shellMat.emissive.setRGB(0.5, 0.15, 0.02); // overheating
   }

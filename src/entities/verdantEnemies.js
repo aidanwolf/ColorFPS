@@ -7,7 +7,7 @@ import {
   floorGlowTexture, Glob, Debris, blast, hitSparks, tint, shortRay,
 } from './critters.js';
 import { director } from '../combat/director.js';
-import { esfx } from './enemySfx.js';
+import { esfx, edeath, reach } from './enemySfx.js';
 import { barks } from '../combat/barks.js';
 import { ColorShield, parseShields } from './colorShield.js';
 import { Rage } from './rage.js';
@@ -234,7 +234,7 @@ export class Slime {
       this.sightTimer = 0.25;
       this.sees = this.dist < this.range && this.world.lineOfSight(this.pos, _eye);
       if (this.sees && !this.aggro) {
-        sfx('slime_squelch', 0.5 * falloff(this.dist, 4, 25));
+        sfx('slime_squelch', 0.5 * reach(this.dist, 4, 25));
         barks.say(this, 'spot');
       }
       if (this.sees) this.aggro = true;
@@ -310,7 +310,7 @@ export class Slime {
     this.state = 'windup';
     this.timer = time;
     this.windupTime = time;
-    sfx(this.stage === 'slime' ? 'slime_squelch' : 'core_chirp', 0.8 * falloff(this.dist, 4, 30), { rate: this.stage === 'slime' ? 1.25 : 1 });
+    sfx(this.stage === 'slime' ? 'slime_squelch' : 'core_chirp', 0.8 * reach(this.dist, 4, 30), { rate: this.stage === 'slime' ? 1.25 : 1 });
   }
 
   // spring at where the player stood a moment ago (no leading: step aside and it sails past)
@@ -522,6 +522,7 @@ export class Slime {
     blast(this.world, this.pos, this.coreColor, 0.55);
     barks.died(this);
     sfx('critter_die', 0.8 * falloff(this.dist, 6, 50));
+    edeath('death_slime', this.pos);
     this.group.updateMatrixWorld(true);
     this.coreGlow.color.setRGB(0.5, 0.15, 0.1);
     new Debris(this.world, this.coreParts, { from: this.pos, speed: 5, mats: [this.metalMat, this.coreGlow] });
@@ -908,7 +909,7 @@ export class SpiderBot {
       this.sightTimer = 0.25;
       this.sees = this.dist < this.range && this.world.lineOfSight(this.pos, _eye);
       if (this.sees && !this.aggro) {
-        sfx('spider_hiss', 0.6 * falloff(this.dist, 4, 30));
+        sfx('spider_hiss', 0.6 * reach(this.dist, 4, 30));
         barks.say(this, 'spot');
       }
       if (this.sees) this.lostSaid = false;
@@ -998,7 +999,7 @@ export class SpiderBot {
         else if (this.fireTimer <= 0) {
           this.state = 'windup';
           this.timer = SPIDER.windup;
-          sfx('spider_hiss', 0.7 * falloff(this.dist, 4, 30), { rate: 1.3 });
+          sfx('spider_hiss', 0.7 * reach(this.dist, 4, 30), { rate: 1.3 });
         }
       }
       // from a ceiling, drop on a thread when the player walks underneath
@@ -1051,7 +1052,7 @@ export class SpiderBot {
     const v = _s.subVectors(target, mouth).normalize().multiplyScalar(speed);
     v.y += 0.5 * SPIDER.spitGravity * t;
     new Glob(this.world, mouth, v, this.color, { radius: 0.2, gravity: SPIDER.spitGravity, cause: 'acid spit', life: 4 });
-    sfx('spider_spit', 0.8 * falloff(this.dist, 4, 40));
+    sfx('spider_spit', 0.8 * reach(this.dist, 4, 40));
     this.world.fx.burst(mouth, COLORS[this.color].hex, { count: 6, speed: 3, life: 0.3, size: 0.12, gravity: 6 });
   }
 
@@ -1181,7 +1182,7 @@ export class SpiderBot {
         if (this.fireTimer <= 0 && !director.request(this, SPIDER.windup + 0.4)) this.fireTimer = rnd(0.25, 0.5);
         else if (this.fireTimer <= 0) {
           this.windupT = SPIDER.windup;
-          sfx('spider_hiss', 0.7 * falloff(this.dist, 4, 30), { rate: 1.3 });
+          sfx('spider_hiss', 0.7 * reach(this.dist, 4, 30), { rate: 1.3 });
         }
       }
       if (this.dodgeCool <= 0 && aimedAt(this.world, this.pos, 0.996) && Math.random() < dt * 1.5) {
@@ -1263,6 +1264,7 @@ export class SpiderBot {
     this.world.removeHittable(this.group);
     blast(this.world, this.pos, this.color, 0.9);
     sfx('critter_die', Math.max(0.3, falloff(this.dist, 6, 60)));
+    edeath('death_spider', this.pos);
     const player = this.world.game.player;
     player.shake = Math.max(player.shake, 0.1 + 0.2 * falloff(this.dist, 4, 25));
     // fling the body and a few legs (built for the occasion from the shared leg geometry)

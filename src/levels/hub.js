@@ -5,10 +5,15 @@
 //   return ports (W z -136, N x 10, E z -136); hop its 1 m railing to drop down, or ride the two lifts up
 //   (x ±22.7, z -122.5). Windows above y 14 look out into each world; a tall banner of each world's color
 //   sits above its door (dim = locked, pulsing = open, bright = complete).
-//   The Prism dais (x 0, z -110, in from the red door) — four color locks; when all four are attuned the seal
-//   drops and the elevator descends 52.8 m to the Prism Core antechamber (prism.js). In the middle of the
-//   Atrium (z -124) a sunken compass plaza; over it floats the Prism the locks beam into, and above that, hung
-//   from the oculus, the reactor heart (reactor.js), fed by a glass feed from beside every world's door.
+//   One centrepiece, at the Atrium's true centre (x 0, z -124), stacked on one axis: hung from the oculus,
+//   the reactor heart (reactor.js), fed by a glass feed from beside every world's door; under it the floating
+//   Prism; under that the sunken Prism dais, its down-beam landing on the Prism lift in the dais's middle.
+//   Around the lift, four color locks, each on a compass channel of its world's color running out to the rim
+//   toward that world's door; each lock beams up into the Prism. With all four attuned the seal drops and the
+//   lift rides down to the Prism Core antechamber (prism.js): a 4 m drop, a 14 m run south under the floor,
+//   then the 46.8 m plunge.
+//   Round the edges (corners and under the gallery), what's left of the day-1 research station: glass rooms,
+//   a cubicle pod, papers, bones (hubOffices.js); the middle and every route to the doors stay open.
 import * as THREE from 'three';
 import { COLORS, RED, YELLOW, GREEN, BLUE } from '../colors.js';
 import { Barrier } from '../entities/barrier.js';
@@ -20,12 +25,20 @@ import { boxOverlap } from '../world.js';
 import { buildReactor } from './reactor.js';
 import { WorkerSwarm } from '../entities/workerDrone.js';
 import { regionOf } from './regions.js';
+import { buildOffices } from './hubOffices.js';
 
 const FLOOR = 4; // main floor top
 const GAL = 12; // gallery / balcony floor top
 const TOP = 30; // wall tops
-// The Prism elevator: a 4×4 m platform in the dais, riding from the Hub (top 4.8) to the antechamber floor.
-export const SHAFT = { x1: -2, x2: 2, z1: -112, z2: -108, top: 4.8, bottom: -48 };
+// The Atrium's one centrepiece sits at its true centre, under the reactor heart (reactor.js): the sunken
+// Prism dais (x -7..7, z -131..-117, floor 1.2 m down). Its heart is the Prism lift, a 4×4 m car resting
+// flush with the dais floor; with all four locks attuned it drops 4 m into a gallery under the Atrium,
+// runs 14 m south beneath the floor (clear of the Warden's arena roof), then plunges down the shaft into
+// the Prism Core antechamber (prism.js builds its foot at SHAFT).
+const PZ = -124; // the Atrium's centre (z)
+export const LIFT = { x1: -2, x2: 2, z1: PZ - 2, z2: PZ + 2, top: FLOOR - 1.2 };
+const RUN_Y = -1.2; // the car's top on the run south
+export const SHAFT = { x1: -2, x2: 2, z1: -112, z2: -108, top: RUN_Y, bottom: -48 };
 
 // The rectangle [u1,u2]×[v1,v2] minus holes ({ u1, u2, v1, v2 }), as a few rectangles [u1, v1, u2, v2]:
 // grid cells merged along u, then identical spans merged along v. Used for walls with ports and windows.
@@ -62,12 +75,21 @@ export function rectMinus(u1, v1, u2, v2, holes) {
 // A platform that rides between two stops (stop 0 = where it's built, stop 1 = `rise` meters above/below).
 // Stand on it for a moment and it carries you to the other stop; step onto a call zone and it comes to
 // you; with `home` set it drifts back there once nobody's riding. Riders are carried via solid.delta.
+// With `path` (waypoints relative to `min`, the first [0, 0, 0]) it rides that polyline instead, easing
+// through every corner (each leg takes at least `legMin` s); `cage` (m) walls its rider in while it moves.
 export class Lift {
-  constructor(W, { min, max, rise, speed = 4, zone = 'hub', home = null, homeDelay = 2.5, enabled = true, calls = [], glow = 0x9bf6ff }) {
+  constructor(W, { min, max, rise = 0, speed = 4, zone = 'hub', home = null, homeDelay = 2.5, enabled = true, calls = [], glow = 0x9bf6ff, path = null, legMin = 1.3, cage = 0, rideDelay = 0.45 }) {
     this.W = W;
     this.base = new THREE.Vector3(...min);
     this.size = new THREE.Vector3(max[0] - min[0], max[1] - min[1], max[2] - min[2]);
     this.rise = rise;
+    this.path = null;
+    if (path) {
+      // each leg gets a share of the ride's "time" (u runs 0..1 at speed / |rise|)
+      this.path = path.map((p) => new THREE.Vector3(...p));
+      this.legT = this.path.slice(1).map((p, i) => Math.max(legMin, p.distanceTo(this.path[i]) / speed));
+      this.rise = this.legT.reduce((a, b) => a + b, 0) * speed;
+    }
     this.speed = speed;
     this.home = home;
     this.homeDelay = homeDelay;
@@ -95,6 +117,12 @@ export class Lift {
     this.mesh.add(body, rim, chev, chev2);
     W.scene.add(this.mesh);
     this.solid = W.addSolid(this.base.clone(), this.base.clone().add(this.size), { delta: new THREE.Vector3(), moving: true, kind: 'metal' });
+    // the cage: four thin walls just inside the platform's edges, only up while it carries someone
+    this.cage = cage ? [0, 1, 2, 3].map(() => W.addSolid(new THREE.Vector3(), new THREE.Vector3(), { noShot: true })) : [];
+    this.cage.forEach((c) => (c.enabled = false));
+    this.cageH = cage;
+    this.rideDelay = rideDelay; // how long you stand on it before it sets off
+    this.prev = new THREE.Vector3();
     this.place(this.u);
     W.add(this);
   }
@@ -104,12 +132,41 @@ export class Lift {
   }
 
   place(u) {
-    const e = u * u * (3 - 2 * u); // eased so riders aren't jolted
     const p = this.base.clone();
-    p.y += this.rise * e;
-    this.solid.min.copy(p);
-    this.solid.max.copy(p).add(this.size);
-    this.mesh.position.copy(p);
+    if (this.path) {
+      // find the leg u falls in, then ease along it (so every corner is a gentle stop and start)
+      let t = u * this.legT.reduce((a, b) => a + b, 0), i = 0;
+      while (i < this.legT.length - 1 && t > this.legT[i]) t -= this.legT[i++];
+      const k = Math.min(1, Math.max(0, t / this.legT[i])), e = k * k * (3 - 2 * k);
+      p.add(this.path[i].clone().lerp(this.path[i + 1], e));
+    } else {
+      const e = u * u * (3 - 2 * u); // eased so riders aren't jolted
+      p.y += this.rise * e;
+    }
+    // the top stays on a 1/1024 m grid and riders are carried by its change (see update), so a rider's feet
+    // stay exactly on it: a hair below would count as inside the platform and shove them off its side
+    const top = Math.round((p.y + this.size.y) * 1024) / 1024;
+    this.solid.max.set(p.x + this.size.x, top, p.z + this.size.z);
+    this.solid.min.set(p.x, top - this.size.y, p.z);
+    this.mesh.position.copy(this.solid.min);
+    if (this.cage.length) {
+      const a = this.solid.min, b = this.solid.max, w = 0.1, y2 = b.y + this.cageH;
+      this.cage[0].min.set(a.x, b.y, a.z), this.cage[0].max.set(a.x + w, y2, b.z);
+      this.cage[1].min.set(b.x - w, b.y, a.z), this.cage[1].max.set(b.x, y2, b.z);
+      this.cage[2].min.set(a.x, b.y, a.z), this.cage[2].max.set(b.x, y2, a.z + w);
+      this.cage[3].min.set(a.x, b.y, b.z - w), this.cage[3].max.set(b.x, y2, b.z);
+    }
+  }
+
+  // raise the cage around a rider (nudged in off the edge first, so no wall starts inside them)
+  setCage(on, player) {
+    if (!this.cage.length || this.cage[0].enabled === on) return;
+    if (on) {
+      const m = 0.1 + 0.35 + 0.02, a = this.solid.min, b = this.solid.max; // wall + the player's half-width
+      player.pos.x = Math.min(b.x - m, Math.max(a.x + m, player.pos.x));
+      player.pos.z = Math.min(b.z - m, Math.max(a.z + m, player.pos.z));
+    }
+    this.cage.forEach((c) => (c.enabled = on));
   }
 
   go(stop) {
@@ -126,6 +183,7 @@ export class Lift {
     this.moving = false;
     this.place(this.u);
     this.solid.delta.set(0, 0, 0);
+    this.setCage(false);
     this.loop?.setGain(0);
   }
 
@@ -134,11 +192,12 @@ export class Lift {
     const riding = player.ground === this.solid;
     if (!this.loop && audio.available) this.loop = audio.createLoop('elevator_loop');
     if (this.moving) {
-      const prev = this.solid.min.y;
+      if (riding) this.setCage(true, player);
+      this.prev.copy(this.solid.max);
       const dir = this.target > this.at ? 1 : -1;
       this.u = Math.max(0, Math.min(1, this.u + (dir * this.speed * dt) / Math.abs(this.rise)));
       this.place(this.u);
-      delta.y = this.solid.min.y - prev;
+      delta.subVectors(this.solid.max, this.prev);
       const d = this.mesh.position.distanceTo(player.pos);
       this.loop?.setGain(0.45 * Math.max(0, 1 - d / 30));
       if (this.u === this.target) {
@@ -147,6 +206,7 @@ export class Lift {
         this.reboard = riding;
         this.idleT = 0;
         this.loop?.setGain(0);
+        this.setCage(false);
         audio.sample('elevator_stop', { gain: 0.6 * Math.max(0.2, 1 - d / 30) });
       }
       return;
@@ -155,7 +215,7 @@ export class Lift {
     if (!riding) this.reboard = false;
     if (riding && !this.reboard) {
       this.rideT += dt;
-      if (this.rideT > 0.45) {
+      if (this.rideT > this.rideDelay) {
         this.rideT = 0;
         return this.go(1 - this.at);
       }
@@ -215,36 +275,67 @@ export function buildHub(B) {
   const css = (c) => COLORS[c].css;
   const tag = (c, text) => `<b style="color:${css(c)}">${text}</b>`;
 
-  // ---------------------------------------------------------------- floor (holes: shaft, lifts, plaza)
+  // ---------------------------------------------------------------- floor (holes: lifts, the dais)
   const liftW = { x1: -24.4, x2: -21, z1: -124, z2: -121 };
   const liftE = { x1: 21, x2: 24.4, z1: -124, z2: -121 };
-  const plaza = { x1: -7, x2: 7, z1: -131, z2: -117 }; // right under the reactor heart (its beam lands in the compass)
-  const floorHoles = [SHAFT, liftW, liftE, plaza].map((h) => ({ u1: h.x1, u2: h.x2, v1: h.z1, v2: h.z2 }));
+  const plaza = { x1: -7, x2: 7, z1: PZ - 7, z2: PZ + 7 }; // the sunken Prism dais, right under the reactor heart
+  const floorHoles = [liftW, liftE, plaza].map((h) => ({ u1: h.x1, u2: h.x2, v1: h.z1, v2: h.z2 }));
   for (const [x1, z1, x2, z2] of rectMinus(-24.5, -148, 24.5, -100, floorHoles)) box(x1, FLOOR - 1, z1, x2, FLOOR, z2, 'floor');
   for (const L of [liftW, liftE]) box(L.x1, FLOOR - 1, L.z1, L.x2, FLOOR - 0.7, L.z2, 'grate'); // lift pits
-  // sunken plaza: two 0.4 m steps down to a quiet floor with a compass inlay pointing at each world
+  // the dais: two 0.4 m steps down on every side to a quiet floor; the Prism lift rests flush in its middle
+  const liftHole = { u1: LIFT.x1, u2: LIFT.x2, v1: LIFT.z1, v2: LIFT.z2 };
   for (const [inset, top] of [[0, FLOOR - 0.4], [1, FLOOR - 0.8], [2, FLOOR - 1.2]]) {
     const o = { x1: plaza.x1 + inset, x2: plaza.x2 - inset, z1: plaza.z1 + inset, z2: plaza.z2 - inset };
-    const inner = inset < 2 ? [{ u1: o.x1 + 1, u2: o.x2 - 1, v1: o.z1 + 1, v2: o.z2 - 1 }] : [];
+    const inner = inset < 2 ? [{ u1: o.x1 + 1, u2: o.x2 - 1, v1: o.z1 + 1, v2: o.z2 - 1 }] : [liftHole];
     for (const [x1, z1, x2, z2] of rectMinus(o.x1, o.z1, o.x2, o.z2, inner)) box(x1, FLOOR - 1.8, z1, x2, top, z2, inset === 2 ? 'plat' : 'floor');
     deco(o.x1, top, o.z1, o.x2, top + 0.03, o.z1 + 0.06);
     deco(o.x1, top, o.z2 - 0.06, o.x2, top + 0.03, o.z2);
     deco(o.x1, top, o.z1, o.x1 + 0.06, top + 0.03, o.z2);
     deco(o.x2 - 0.06, top, o.z1, o.x2, top + 0.03, o.z2);
   }
-  {
-    const y = FLOOR - 1.2, cz = (plaza.z1 + plaza.z2) / 2;
-    deco(-0.08, y, cz - 4.6, 0.08, y + 0.03, cz - 0.6, 'glow2'); // north: Verdant
-    deco(-0.08, y, cz + 0.6, 0.08, y + 0.03, cz + 4.6, 'glow0'); // south: the Foundry
-    deco(-4.6, y, cz - 0.08, -0.6, y + 0.03, cz + 0.08, 'glow1'); // west: Solar
-    deco(0.6, y, cz - 0.08, 4.6, y + 0.03, cz + 0.08, 'glow3'); // east: Azure
-    deco(-0.35, y, cz - 0.35, 0.35, y + 0.04, cz + 0.35);
-    // benches beside the top step, facing in
-    for (const s of [-1, 1]) {
-      box(s * 8.7 - 0.45, FLOOR, cz - 3, s * 8.7 + 0.45, FLOOR + 0.45, cz + 3, 'metal');
-      deco(s * 8.7 - 0.47, FLOOR + 0.45, cz - 3, s * 8.7 + 0.47, FLOOR + 0.48, cz + 3);
+  // A compass of light: from the lift, a channel in each world's color runs out through that world's lock,
+  // down the floor and up both steps to the rim, pointing at its door (south the Foundry, west Solar,
+  // north Verdant, east Azure)
+  const COMPASS = [
+    { d: [0, 1], color: RED, kind: 'glow0' },
+    { d: [-1, 0], color: YELLOW, kind: 'glow1' },
+    { d: [0, -1], color: GREEN, kind: 'glow2' },
+    { d: [1, 0], color: BLUE, kind: 'glow3' },
+  ];
+  // a box spanning r1..r2 out from the centre along d, -w..w across it
+  const radial = (d, r1, r2, w, y1, y2, kind = 'trimWhite') => {
+    const [dx, dz] = d;
+    const xa = dx ? dx * r1 : -w, xb = dx ? dx * r2 : w, za = dz ? PZ + dz * r1 : PZ - w, zb = dz ? PZ + dz * r2 : PZ + w;
+    return [Math.min(xa, xb), y1, Math.min(za, zb), Math.max(xa, xb), y2, Math.max(za, zb), kind];
+  };
+  const LOCK_R1 = 3.2, LOCK_R2 = 4.6, LOCK_W = 1.5; // each lock: a 3 m tile between the lift and the bottom step
+  const YD = FLOOR - 1.2; // the dais floor
+  for (const { d, kind } of COMPASS) {
+    const ch = 0.08;
+    deco(...radial(d, 2.05, LOCK_R1 - 0.08, ch, YD, YD + 0.035, kind)); // lift → lock
+    deco(...radial(d, LOCK_R2 + 0.08, 5, ch, YD, YD + 0.035, kind)); // lock → first riser
+    deco(...radial(d, 4.96, 5, ch, YD, YD + 0.4, kind)); // up the riser
+    deco(...radial(d, 5, 6, ch, YD + 0.4, YD + 0.435, kind)); // across the step
+    deco(...radial(d, 5.96, 6, ch, YD + 0.4, YD + 0.8, kind));
+    deco(...radial(d, 6, 7, ch, YD + 0.8, YD + 0.835, kind));
+    deco(...radial(d, 6.96, 7, ch, YD + 0.8, FLOOR, kind));
+    deco(...radial(d, 7, 8, ch, FLOOR, FLOOR + 0.035, kind)); // and a little way out onto the Atrium floor
+    // a white frame around the lock tile
+    deco(...radial(d, LOCK_R1 - 0.08, LOCK_R1, LOCK_W + 0.08, YD, YD + 0.03));
+    deco(...radial(d, LOCK_R2, LOCK_R2 + 0.08, LOCK_W + 0.08, YD, YD + 0.03));
+    for (const sgn of [-1, 1]) {
+      const [x1, y1, z1, x2, y2, z2] = radial(d, LOCK_R1, LOCK_R2, LOCK_W + 0.08, YD, YD + 0.03);
+      if (d[0]) deco(x1, y1, sgn < 0 ? z1 : z2 - 0.08, x2, y2, sgn < 0 ? z1 + 0.08 : z2);
+      else deco(sgn < 0 ? x1 : x2 - 0.08, y1, z1, sgn < 0 ? x1 + 0.08 : x2, y2, z2);
     }
   }
+  // low benches beside the top step, facing in: split either side of the yellow and blue channels, and low
+  // enough to step straight over (nothing on the Atrium floor stands in your way)
+  for (const s of [-1, 1])
+    for (const [z1, z2] of [[PZ - 3.6, PZ - 1.2], [PZ + 1.2, PZ + 3.6]]) {
+      box(s * 8.7 - 0.45, FLOOR, z1, s * 8.7 + 0.45, FLOOR + 0.4, z2, 'metal');
+      deco(s * 8.7 - 0.47, FLOOR + 0.4, z1, s * 8.7 + 0.47, FLOOR + 0.43, z2);
+    }
 
   // ---------------------------------------------------------------- walls: ports, windows, glass
   // holes are { u1, u2, v1, v2 } (u along the wall, v = y). Window holes get a glass pane and mullions.
@@ -427,49 +518,63 @@ export function buildHub(B) {
   banner(BLUE, GREEN, 'z', -112, 24.5, -1, bannerLight(20, -112));
   banners.forEach((b) => b.light?.color.set(COLORS[b.color].hex));
 
-  // ---------------------------------------------------------------- the Prism dais, locks and elevator
-  const DZ = (SHAFT.z1 + SHAFT.z2) / 2; // -110
-  const hole = [{ u1: SHAFT.x1, u2: SHAFT.x2, v1: SHAFT.z1, v2: SHAFT.z2 }];
-  for (const [x1, z1, x2, z2] of rectMinus(-5, DZ - 5, 5, DZ + 5, hole)) box(x1, FLOOR, z1, x2, FLOOR + 0.4, z2, 'metal');
-  for (const [x1, z1, x2, z2] of rectMinus(-3.5, DZ - 3.5, 3.5, DZ + 3.5, hole)) box(x1, FLOOR + 0.4, z1, x2, FLOOR + 0.8, z2, 'plat');
-  for (const [r, y] of [[5, FLOOR + 0.4], [3.5, FLOOR + 0.8]]) {
-    deco(-r, y, DZ - r, r, y + 0.03, DZ - r + 0.08);
-    deco(-r, y, DZ + r - 0.08, r, y + 0.03, DZ + r);
-    deco(-r, y, DZ - r, -r + 0.08, y + 0.03, DZ + r);
-    deco(r - 0.08, y, DZ - r, r, y + 0.03, DZ + r);
-  }
-  // shaft down to the antechamber ceiling (prism.js), ringed with lights that stream past on the ride
-  const S = SHAFT, sb = -30;
-  box(S.x1 - 0.5, sb, S.z1 - 0.5, S.x1, FLOOR - 1, S.z2 + 0.5, 'metal');
-  box(S.x2, sb, S.z1 - 0.5, S.x2 + 0.5, FLOOR - 1, S.z2 + 0.5, 'metal');
-  box(S.x1, sb, S.z1 - 0.5, S.x2, FLOOR - 1, S.z1, 'metal');
-  box(S.x1, sb, S.z2, S.x2, FLOOR - 1, S.z2 + 0.5, 'metal');
-  for (let y = sb + 2; y < FLOOR - 2; y += 4) {
+  // ---------------------------------------------------------------- the Prism lift, its seal, the Prism and the locks
+  // Under the dais: the car drops 4 m, runs south under the Atrium floor and plunges down the shaft into the
+  // antechamber ceiling (prism.js). Lights stream past the whole way.
+  const L = LIFT, S = SHAFT, sb = -30; // sb: the antechamber's ceiling
+  const RB = RUN_Y - 0.6, RC = RUN_Y + 3.2; // the car's underside on the run; the run's ceiling
+  box(L.x1 - 0.5, RB - 0.6, L.z1 - 0.5, L.x1, FLOOR - 1.8, S.z2 + 0.5, 'metal'); // the run's west wall
+  box(L.x2, RB - 0.6, L.z1 - 0.5, L.x2 + 0.5, FLOOR - 1.8, S.z2 + 0.5, 'metal'); // east wall
+  box(L.x1, RB - 0.6, L.z1 - 0.5, L.x2, FLOOR - 1.8, L.z1, 'metal'); // north end, under the dais
+  box(L.x1, RB - 0.6, L.z1, L.x2, RB, S.z1, 'metal'); // the run's floor (the car slides over it)
+  box(L.x1, RC, L.z2, L.x2, RC + 0.2, S.z2, 'metal'); // its ceiling, south of the drop
+  box(S.x1, sb, S.z2, S.x2, RC + 0.2, S.z2 + 0.5, 'metal'); // south end, all the way down
+  box(S.x1 - 0.5, sb, S.z1 - 0.5, S.x1, RB - 0.6, S.z2 + 0.5, 'metal'); // the plunge, under the run
+  box(S.x2, sb, S.z1 - 0.5, S.x2 + 0.5, RB - 0.6, S.z2 + 0.5, 'metal');
+  box(S.x1, sb, S.z1 - 0.5, S.x2, RB - 0.6, S.z1, 'metal');
+  for (let y = sb + 2; y < RB - 1; y += 4) {
     deco(S.x1, y, S.z1, S.x1 + 0.05, y + 0.12, S.z2);
     deco(S.x2 - 0.05, y, S.z1, S.x2, y + 0.12, S.z2);
     deco(S.x1, y, S.z1, S.x2, y + 0.12, S.z1 + 0.05);
     deco(S.x1, y, S.z2 - 0.05, S.x2, y + 0.12, S.z2);
   }
+  for (let z = L.z1 + 1; z < S.z2; z += 2) {
+    // ribs of light down both walls and across the ceiling of the run
+    deco(L.x1, RB, z - 0.06, L.x1 + 0.05, RC, z + 0.06);
+    deco(L.x2 - 0.05, RB, z - 0.06, L.x2, RC, z + 0.06);
+    if (z > L.z2) deco(L.x1, RC - 0.05, z - 0.06, L.x2, RC, z + 0.06);
+  }
+  deco(L.x1, RB + 1.4, L.z1, L.x1 + 0.05, RB + 1.5, S.z2); // and a rail along each wall
+  deco(L.x2 - 0.05, RB + 1.4, L.z1, L.x2, RB + 1.5, S.z2);
   const elevator = new Lift(W, {
-    min: [S.x1, S.top - 0.6, S.z1], max: [S.x2, S.top, S.z2], rise: S.bottom - S.top, speed: 7, enabled: false, glow: 0xd9a8ff,
+    min: [L.x1, L.top - 0.6, L.z1], max: [L.x2, L.top, L.z2], speed: 8, enabled: false, glow: 0xd9a8ff, cage: 3, rideDelay: 1.1, // (a beat longer: you can walk straight over it)
+    path: [[0, 0, 0], [0, RUN_Y - L.top, 0], [0, RUN_Y - L.top, S.z1 - L.z1], [0, S.bottom - L.top, S.z1 - L.z1]],
     calls: [
-      { stop: 0, min: [-3.5, FLOOR + 0.4, DZ - 3.5], max: [3.5, FLOOR + 3, DZ + 3.5] }, // standing on the dais
+      { stop: 0, min: [-5, L.top, PZ - 5], max: [5, L.top + 3, PZ + 5] }, // down on the dais floor
       { stop: 1, min: [-10, S.bottom, -115], max: [10, S.bottom + 3, -95] }, // anywhere in the antechamber
     ],
   });
   level.prismElevator = elevator;
-
-  // the seal: a hex-field cube over the platform until all four locks are attuned
+  // while the car is away, a hex-field iris closes over its well (so nobody walks into a 50 m drop)
   const sealMat = new THREE.ShaderMaterial({ ...sealShader, transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { uTime: { value: 0 }, uAlpha: { value: 1 } } });
+  const irisMat = new THREE.ShaderMaterial({ ...sealShader, transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { uTime: sealMat.uniforms.uTime, uAlpha: { value: 0.8 } } });
+  const iris = new THREE.Mesh(new THREE.PlaneGeometry(L.x2 - L.x1, L.z2 - L.z1).rotateX(-Math.PI / 2), irisMat);
+  iris.position.set((L.x1 + L.x2) / 2, L.top + 0.02, PZ);
+  iris.visible = false;
+  W.scene.add(iris);
+  const irisSolid = W.addSolid(new THREE.Vector3(L.x1, L.top - 0.6, L.z1), new THREE.Vector3(L.x2, L.top, L.z2), { kind: 'metal' });
+  irisSolid.enabled = false;
+
+  // the seal: a hex-field cube over the car until all four locks are attuned
   const seal = new THREE.Mesh(boxGeo(4, 3.5, 4, 1), sealMat);
-  seal.position.set(0, S.top + 1.75, DZ);
+  seal.position.set(0, L.top + 1.75, PZ);
   W.scene.add(seal);
-  const sealSolid = W.addSolid(new THREE.Vector3(S.x1, S.top, S.z1), new THREE.Vector3(S.x2, S.top + 3.5, S.z2), {});
+  const sealSolid = W.addSolid(new THREE.Vector3(L.x1, L.top, L.z1), new THREE.Vector3(L.x2, L.top + 3.5, L.z2), {});
   let sealT = -1; // -1 sealed; 0..1 dissolving
 
-  // the Prism: a floating crystal over the compass plaza, under the reactor heart's tip (its down-beam runs
-  // through it), one orbiting shard per color, beams up to it from the locks on the dais
-  const PRISM_Y = 11.5, PZ = (plaza.z1 + plaza.z2) / 2; // -124
+  // the Prism: a floating crystal over the lift, under the reactor heart's tip (its down-beam runs through
+  // it into the lift), one orbiting shard per color, beams up to it from the four locks around the lift
+  const PRISM_Y = 11.5;
   const prismMat = new THREE.MeshStandardMaterial({ color: 0xdfeaff, emissive: 0x7a8cff, emissiveIntensity: 0.35, metalness: 0.25, roughness: 0.08, flatShading: true });
   const prism = new THREE.Mesh(new THREE.OctahedronGeometry(1.7, 0), prismMat);
   prism.scale.y = 1.7;
@@ -481,20 +586,31 @@ export function buildHub(B) {
   halo.rotation.x = Math.PI / 2;
   halo.position.copy(prism.position);
   W.scene.add(prism, cage, halo);
+  // the dais's own halo, hung over its rim: one more ring on the axis (the dais's, the Prism's, the
+  // reactor's gimbals), with a node over each lock's channel that wakes in its color once it's attuned
+  const DAIS_Y = FLOOR + 3.2, DAIS_R = 6.6;
+  const daisRing = new THREE.Mesh(new THREE.TorusGeometry(DAIS_R, 0.05, 6, 120), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xdfe6ff).multiplyScalar(0.85) }));
+  daisRing.rotation.x = Math.PI / 2;
+  daisRing.position.set(0, DAIS_Y, PZ);
+  W.scene.add(daisRing);
+  const nodeGeo = new THREE.OctahedronGeometry(0.3, 0);
   const shardGeo = new THREE.TetrahedronGeometry(0.45, 0);
-  const locks = [
-    { color: RED, min: [-3, FLOOR + 0.4, DZ + 3.6], max: [3, FLOOR + 0.52, DZ + 4.8] },
-    { color: YELLOW, min: [-4.8, FLOOR + 0.4, DZ - 3], max: [-3.6, FLOOR + 0.52, DZ + 3] },
-    { color: GREEN, min: [-3, FLOOR + 0.4, DZ - 4.8], max: [3, FLOOR + 0.52, DZ - 3.6] },
-    { color: BLUE, min: [3.6, FLOOR + 0.4, DZ - 3], max: [4.8, FLOOR + 0.52, DZ + 3] },
-  ];
+  const locks = COMPASS.map(({ d, color }) => {
+    const [x1, , z1, x2, , z2] = radial(d, LOCK_R1, LOCK_R2, LOCK_W, YD, YD + 0.12);
+    return { color, d, min: [x1, YD, z1], max: [x2, YD + 0.12, z2] };
+  });
   const up = new THREE.Vector3(0, 1, 0);
   for (const L of locks) {
     const c = new THREE.Color(COLORS[L.color].hex);
+    L.nodeMat = new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(0.3) });
+    L.node = new THREE.Mesh(nodeGeo, L.nodeMat);
+    L.node.scale.y = 1.7;
+    L.node.position.set(L.d[0] * DAIS_R, DAIS_Y, PZ + L.d[1] * DAIS_R);
+    W.scene.add(L.node);
     L.shardMat = new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(0.25) });
     L.shard = new THREE.Mesh(shardGeo, L.shardMat);
     W.scene.add(L.shard);
-    const from = new THREE.Vector3((L.min[0] + L.max[0]) / 2, FLOOR + 0.55, (L.min[2] + L.max[2]) / 2);
+    const from = new THREE.Vector3((L.min[0] + L.max[0]) / 2, YD + 0.15, (L.min[2] + L.max[2]) / 2);
     const to = prism.position.clone();
     const len = from.distanceTo(to);
     L.beamMat = new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(2), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -530,7 +646,9 @@ export function buildHub(B) {
     W.fx.burst(prism.position.clone(), 0xffffff, { count: 160, speed: 9, life: 1.4, size: 0.4, gravity: 0 });
     game.hud.message('All four frequencies attuned. <b>The Prism Core is open</b> — step onto the lift.', 6);
   }
-  const centreLight = light(0, 9, (DZ + PZ) / 2, 0xcfe4ff, 12, 32); // between the dais and the Prism
+  const centreLight = light(0, 8, PZ, 0xcfe4ff, 12, 32); // over the dais, under the Prism
+  // the research station the team set up round the edges on day 1, as they left it (hubOffices.js)
+  buildOffices(B);
   // the reactor heart hanging over the middle of it all, fed from every world (reactor.js)
   level.reactor = buildReactor(B);
   // its maintenance crew: white worker drones flying service routes from four wall bays (workerDrone.js)
@@ -581,16 +699,22 @@ export function buildHub(B) {
         L.shard.rotation.y += dt;
         if (L.lit) {
           L.shardMat.color.set(COLORS[L.color].hex).multiplyScalar(2.6);
+          L.nodeMat.color.set(COLORS[L.color].hex).multiplyScalar(2.2 + Math.sin(t * 3 + i) * 0.4);
           L.beamMat.opacity += (0.55 + Math.sin(t * 5 + i) * 0.15 - L.beamMat.opacity) * Math.min(1, dt * 4);
         }
       });
       centreLight.intensity = 12 + n * 3;
       sealMat.uniforms.uTime.value += dt;
+      // the iris over the lift's well: shut once the car (and anyone on it) is well below the dais floor,
+      // open again as soon as the car comes back up under the well
+      const e = elevator, under = e.solid.min.z < L.z1 + 0.1;
+      const shut = e.y < L.top - 2.8 && !(e.moving && e.target === 0 && under);
+      irisSolid.enabled = iris.visible = shut;
       if (sealT >= 0 && sealT < 1) {
         sealT = Math.min(1, sealT + dt / 1.2);
         sealMat.uniforms.uAlpha.value = 1 - sealT;
         seal.scale.set(1 + sealT * 0.3, 1 - sealT, 1 + sealT * 0.3);
-        seal.position.y = S.top + 1.75 * (1 - sealT);
+        seal.position.y = L.top + 1.75 * (1 - sealT);
         if (sealT >= 1) seal.visible = false;
       }
     },
@@ -608,7 +732,7 @@ export function buildHub(B) {
   hint([-4, FLOOR, -105], [4, FLOOR + 3, -103.6],
     `Three chroma signatures detected beyond the Nexus. ${tag(YELLOW, 'SOLAR')} lies west — its way is open.`, 6);
   let daisHintAt = -99;
-  W.trigger([-5.5, FLOOR, DZ - 5.5], [5.5, FLOOR + 3, DZ + 5.5], () => {
+  W.trigger([plaza.x1, FLOOR - 1.2, plaza.z1], [plaza.x2, FLOOR + 3, plaza.z2], () => {
     if (sealT >= 0 || W.time - daisHintAt < 25) return;
     daisHintAt = W.time;
     const n = locks.filter((k) => k.lit).length;
@@ -621,7 +745,7 @@ export function buildHub(B) {
   back([8.5, GAL, -148], [11.5, GAL + 3, -145], GREEN,
     `Verdant frequency restored. The ${tag(BLUE, 'AZURE')} gate (east) answers to ${tag(GREEN, 'green')}.`);
   back([21.5, GAL, -137.5], [24.5, GAL + 3, -134.5], BLUE,
-    'Every signature restored. Attune the four locks on the dais — <b>the Prism Core awaits.</b>');
+    'Every signature restored. Attune the four locks on the dais under the reactor — <b>the Prism Core awaits.</b>');
   // a mood volume just inside every doorway (and on the elevator, for the ride back up)
   const mood = { music: 'music_hub', ambient: 'amb_hub', atmosphere: 'hub' };
   area([-1.5, FLOOR, -103], [1.5, FLOOR + 3.2, -100], mood); // red entry
@@ -631,7 +755,7 @@ export function buildHub(B) {
   area([8.5, GAL, -148], [11.5, GAL + 3.2, -145], mood); // Verdant return
   area([21.5, FLOOR, -113.5], [24.5, FLOOR + 3.2, -110.5], mood); // Azure entry
   area([21.5, GAL, -137.5], [24.5, GAL + 3.2, -134.5], mood); // Azure return
-  area([S.x1, S.top, S.z1], [S.x2, S.top + 2.5, S.z2], mood); // the Prism elevator, arriving back up
+  area([L.x1, L.top, L.z1], [L.x2, L.top + 2.5, L.z2], mood); // the Prism lift, arriving back up
 
   // calm twilight: teal horizon, indigo zenith, a slow aurora over the open roof
   level.atmospheres.hub = {

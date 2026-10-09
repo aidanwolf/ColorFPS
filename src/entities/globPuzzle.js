@@ -555,7 +555,9 @@ export class SwingRoot {
     }
     if (this.pendingDown) {
       const s = this.solids[1];
-      if (!overlapsPlayer(player, s.min, s.max, 0.02)) {
+      // (feet level with its top, on the column's edge it swung to: it can firm up under you; waiting until
+      // you'd stepped clear left it ghostly, and walking straight out onto it dropped you into the Hollow)
+      if (!overlapsPlayer(player, s.min, s.max, 0.02) || player.bounds().min.y > s.max.y - 0.06) {
         s.enabled = true;
         this.pendingDown = false;
       }

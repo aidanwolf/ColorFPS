@@ -550,7 +550,7 @@ export function buildSolar(B) {
     if (pad9) return;
     pad9 = new JumpPad(W, { pos: [-147, S, -128], power: 16, push: [0, 0, -8], color: 0xffd23a });
     deadPad9.visible = false;
-    game.hud.message('Jump pad online! Up onto the <b>chasm rim</b>.', 3.5);
+    if (!game.isWorldDown?.('solar')) game.hud.message('Jump pad online! Up onto the <b>chasm rim</b>.', 3.5);
   } });
   beams.push(lens9);
   lights.push(glass9, p9a, p9b, recv9);
@@ -1026,7 +1026,7 @@ export function buildSolar(B) {
     p10a, recv10a, bridge10a, p10b, recv10b, bridge10b, sweep, dialA, dialB, dock, quay, court,
     duneStart: DUNE_START, duneEnd: DUNE_END,
     get duneDone() {
-      return duneDone;
+      return duneDone || !!duneRun?.done; // (a reloaded save past the run: onDone doesn't run again)
     },
     objective(p) {
       if (game.isWorldDown?.('solar')) {
@@ -1035,6 +1035,8 @@ export function buildSolar(B) {
       }
       const here = depths.objective(p) || temple.objective(p);
       if (here) return here;
+      // (in from the Hub's west balcony: the causeway is Solar's way home, barred by a yellow gate)
+      if (!has(YELLOW) && inBox(p, -152, -25, -171, -134, 10)) return 'The <b>Sunset Causeway</b> is Solar\'s way home, and its gate takes yellow. Back to the Nexus: in by the <b>west door</b> below.';
       if (!has(YELLOW)) return `Find the ${Y}yellow core${E}: out along the <b>broken bridge</b>, and down.`;
       if (inBox(p, -160, -134, -80, -50, -12)) return recv8.on ? 'The gate is open: <b>north</b> into the canyon.' : 'Turn the panels: carry the lens beam <b>west</b>, <b>north</b>, then <b>east</b> into the gate\'s sun-catcher.';
       if (inBox(p, -158, -144, -132, -80, -12)) {
@@ -1044,7 +1046,7 @@ export function buildSolar(B) {
       if (inBox(p, -200, -144, -152, -132, -30)) return 'Cross the chasm: turn each pillar\'s panel <b>west</b> onto its catcher to raise the next <b>bridge</b>.';
       if (inBox(p, -206, -184, -132, -92, -30)) return p.y > -8 ? 'Drop into the <b>quicksand</b> — it breaks the fall.' : '<b>Mash JUMP</b> and wade to the <b>lip</b> at the south end, then up the stairs.';
       if (inBox(p, -212, -160, -92, -40, -12)) return dock.state === 'cleared' ? 'Board the <b>hovercraft</b> at the dock, west.' : 'Hold the dock yard. <b>Turn the heliostat</b> to sweep its sunbeam through them; break <b style="color:#ff3344">red</b> shields with red.';
-      if (p.x < -212) return 'Ride the dune sea to the <b>Sun Quay</b>.';
+      if (p.x < -212) return duneDone || duneRun?.done ? 'Step off the dock <b>east</b>, onto the Sun Quay.' : 'Ride the dune sea to the <b>Sun Quay</b>.';
       if (inBox(p, -212, -179, -212, -188, -8)) return dialA.orientation !== 0 || dialB.orientation !== 0 ? `Turn both ${Y}sun discs${E} (two yellow hits turn one a quarter turn) until their notches sit on the bridge.` : 'Cross the bridge and ride the <b>lift</b> up to the Sun Court.';
       if (inBox(p, -180, -126, -178, -222, 10)) return court.defeated ? `Shoot the ${Y}sun-lens${E} over the court with yellow to shut the engine down.` : 'Defeat <b>the Sphinx</b>: dodge its pounces from the pads, ride its back, blast its gems.';
       return `${Y}Yellow${E} in hand: head for the <b>Sun Court</b> on its mesa, north-west.`;

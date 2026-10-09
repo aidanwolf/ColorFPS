@@ -16,7 +16,7 @@
 import * as THREE from 'three';
 import { audio } from '../audio.js';
 import { barks } from '../combat/barks.js';
-import { esfx } from './enemySfx.js';
+import { esfx, GRUNT_FLOOR } from './enemySfx.js';
 import { marks } from '../rageMarks.js';
 
 export const RAGE = { hits: 3, window: 4, time: 7, warp: 1.25, cool: 0.75, shot: 1.25, press: 0.6 };
@@ -148,7 +148,7 @@ export class Rage {
     }
     barks.say(o, 'enraged');
     esfx('robot_pain_heavy', o.pos, 1.4, (o.voicePitch ?? 1) * 0.62);
-    esfx('hydraulic_hiss', o.pos, 0.9, 0.8, 0.12); // vents blowing
+    esfx('hydraulic_hiss', o.pos, 0.9, 0.8, 0.12, GRUNT_FLOOR); // vents blowing
     marks.enrage(o);
     if (!this.aura) {
       const { geo, mat } = aura();

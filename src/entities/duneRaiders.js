@@ -13,7 +13,7 @@ import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
 import { Orb } from './drone.js';
 import { Enemy, Parts, Beam, Blast, MAT, GEO, glowMat, additive, converge, falloff, sfx } from './enemyKit.js';
-import { esfx } from './enemySfx.js';
+import { esfx, edeath, reach } from './enemySfx.js';
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
@@ -281,7 +281,7 @@ export class RaiderSkiff extends Pooled {
         if (director.request(this, AIM_T + BURST * BURST_GAP + 0.3)) {
           this.state = 'aim';
           this.timer = AIM_T;
-          sfx('turret_charge', { gain: 0.5 * falloff(this.dist, 6, 50), rate: 1.2, vary: 0.08 }, 'charge_up', { gain: 0.3, rate: 1.6 });
+          sfx('turret_charge', { gain: 0.5 * reach(this.dist, 6, 50), rate: 1.2, vary: 0.08 }, 'charge_up', { gain: 0.3, rate: 1.6 });
         } else this.timer = rnd(0.3, 0.6);
       }
     } else if (this.state === 'aim') {
@@ -330,7 +330,7 @@ export class RaiderSkiff extends Pooled {
     this.crashVel = this.run.craft.vel.clone().multiplyScalar(0.85).addScaledVector(dir || UP, 4).add(_v.set(0, 5, 0));
     this.spin = new THREE.Vector3(rnd(-3, 3), rnd(-2, 2), this.side * rnd(5, 8));
     new Blast(this.world, this.pos, YELLOW, { scale: 0.6, chunks: 4, shake: 0.12 });
-    esfx('robot_pain_heavy', this.pos, 1, 1.1);
+    if (!edeath('death_skiff', this.pos)) esfx('robot_pain_heavy', this.pos, 1, 1.1);
   }
 
   updateCrash(dt) {
@@ -547,6 +547,7 @@ export class DuneScarab extends Pooled {
     this.dead = true;
     director.release(this);
     sfx('scarab_crunch', { gain: 0.9, vary: 0.1 }, 'crab_explode', { gain: 0.7 });
+    edeath('death_scarab', this.pos, 1, 1.1);
     new Blast(this.world, this.pos, YELLOW, { scale: 0.55, chunks: 4, vel: dir ? _v.copy(dir).multiplyScalar(4) : null, shake: 0.1 });
     this.onDeath?.(this);
     this.remove();

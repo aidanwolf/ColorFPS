@@ -496,8 +496,11 @@ export function buildVerdant(B) {
   W.trigger([-30, 4, -214], [30, 9, -203], () => !game.blaster.unlocked[GREEN] && game.hud.zoneTitle('A CRADLE OF ROOTS', 'THE SEED SHRINE', '#3dff7a', 2.6));
   // the shrine: a raised dais, four broken columns, the core on its pedestal
   W.box(13, 4.5, -212.5, 21, 5.7, -204.5, 'wall', zone);
-  W.box(21, 4.5, -210, 22, 5.1, -207, 'wall', zone); // steps east and west
-  W.box(12, 4.5, -210, 13, 5.1, -207, 'wall', zone);
+  // steps east and west (two 0.4 m treads each: walkable without a jump)
+  W.box(21, 4.5, -210, 21.6, 5.3, -207, 'wall', zone);
+  W.box(21.6, 4.5, -210, 22.2, 4.9, -207, 'wall', zone);
+  W.box(12.4, 4.5, -210, 13, 5.3, -207, 'wall', zone);
+  W.box(11.8, 4.5, -210, 12.4, 4.9, -207, 'wall', zone);
   glowEdge(13, -212.5, 21, -204.5, 5.7, GLOW[zone], zone, 0.06);
   for (const [x, z, h] of [[13.6, -211.9, 3.6], [20.4, -211.9, 2.3], [13.6, -205.1, 1.5], [20.4, -205.1, 4.4]]) column(x, z, 5.7, h, 0.9);
   const core = pedestal(17, 5.7, -208.5, GREEN, zone);

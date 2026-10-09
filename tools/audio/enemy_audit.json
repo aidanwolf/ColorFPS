@@ -1,0 +1,1801 @@
+[
+ {
+  "enemy": "Drone",
+  "world": "all (Foundry, Hub ranges, Solar, boss adds)",
+  "file": "src/entities/drone.js",
+  "sounds": [
+   {
+    "event": "idle / move hum (loop)",
+    "sample": "drone_hum",
+    "fallback": null,
+    "real": true,
+    "note": "[Drone constructor] createLoop, pitch 0.92-1.08, falloff 4-28 m; winds up then dies away while crashing"
+   },
+   {
+    "event": "dodge servo",
+    "sample": "drone_servo",
+    "fallback": "rotor_turn",
+    "real": true,
+    "note": "[Drone.startDodge esfx] fins snapping over"
+   },
+   {
+    "event": "alert",
+    "sample": "drone_alert",
+    "fallback": null,
+    "real": true,
+    "note": "[Drone.update audio.droneAlert] on spotting you"
+   },
+   {
+    "event": "attack (shot)",
+    "sample": "enemy_shot",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.enemyShoot] colored orb fired"
+   },
+   {
+    "event": "orb shot down",
+    "sample": "orb_pop",
+    "fallback": null,
+    "real": true,
+    "note": "[Orb audio.orbPop]"
+   },
+   {
+    "event": "hurt (correct-color hit)",
+    "sample": "drone_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.droneHit] metal clang + synth sub thump, flat (not positional), level = max(0.5, distance falloff 6-40 m)"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[enemySfx esfx] positional; GRUNT_FLOOR 0.35 within 80 m. Drone.onHit / onShieldBreak, pitched by humPitch"
+   },
+   {
+    "event": "death: spin-out",
+    "sample": "drone_crash",
+    "fallback": null,
+    "real": true,
+    "note": "[Drone.die audio.droneCrash] flat, level max(0.45, falloff 8-50 m)"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_drone",
+    "fallback": "robot_pain_light",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. Drone.die, as it loses power"
+   },
+   {
+    "event": "death explosion",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[Drone.explode audio.droneExplode] on impact, max(0.2, falloff 8-60 m)"
+   },
+   {
+    "event": "color shield hit",
+    "sample": "warden_shield_hit",
+    "fallback": "glass_hit",
+    "real": true,
+    "note": "[colorShield.js hit] flat; any enemy spawned with `shields`"
+   },
+   {
+    "event": "color shield break",
+    "sample": "warden_shield_break",
+    "fallback": "shield_break",
+    "real": true,
+    "note": "[colorShield.js shatter] flat + shatter layer (rate 1.5)"
+   },
+   {
+    "event": "color shield break (layer)",
+    "sample": "shatter",
+    "fallback": null,
+    "real": true,
+    "note": "[colorShield.js shatter] glassy layer under the break"
+   }
+  ]
+ },
+ {
+  "enemy": "SubDrone",
+  "world": "Azure",
+  "file": "src/entities/subdrone.js",
+  "sounds": [
+   {
+    "event": "idle / move hum (loop)",
+    "sample": "drone_hum",
+    "fallback": null,
+    "real": true,
+    "note": "[Drone constructor] pitch 0.5-0.6 (sub)"
+   },
+   {
+    "event": "alert",
+    "sample": "drone_alert",
+    "fallback": null,
+    "real": true,
+    "note": "[SubDrone.update audio.droneAlert]"
+   },
+   {
+    "event": "attack (torpedo)",
+    "sample": "enemy_shot",
+    "fallback": null,
+    "real": true,
+    "note": "[SubDrone audio.enemyShoot]"
+   },
+   {
+    "event": "hurt (correct-color hit)",
+    "sample": "drone_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.droneHit] metal clang + synth sub thump, flat (not positional), level = max(0.5, distance falloff 6-40 m)"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[enemySfx esfx] positional; GRUNT_FLOOR 0.35 within 80 m. inherited from Drone"
+   },
+   {
+    "event": "death: spin-out",
+    "sample": "drone_crash",
+    "fallback": null,
+    "real": true,
+    "note": "[Drone.die] inherited"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_drone",
+    "fallback": "robot_pain_light",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. inherited Drone.die, played at rate 0.8 underwater"
+   },
+   {
+    "event": "death explosion",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[Drone.explode] inherited"
+   }
+  ]
+ },
+ {
+  "enemy": "Turret",
+  "world": "Foundry / Hub ranges / combat arenas",
+  "file": "src/entities/turret.js",
+  "sounds": [
+   {
+    "event": "idle hum (loop)",
+    "sample": "drone_hum",
+    "fallback": null,
+    "real": true,
+    "note": "[Turret constructor] createLoop rate 0.55"
+   },
+   {
+    "event": "tracking servo",
+    "sample": "turret_servo",
+    "fallback": "rotor_turn",
+    "real": true,
+    "note": "[Turret.update esfx] head swivel"
+   },
+   {
+    "event": "attack telegraph (charge)",
+    "sample": "turret_charge",
+    "fallback": "charge_up",
+    "real": true,
+    "note": "[Turret.update] flat, level 0.55 x max(0.35, falloff 6-40 m)"
+   },
+   {
+    "event": "attack (shot)",
+    "sample": "turret_shot",
+    "fallback": "enemy_shot",
+    "real": true,
+    "note": "[Turret.fire] flat, max(0.3, falloff 6-45 m)"
+   },
+   {
+    "event": "hurt (correct-color hit)",
+    "sample": "drone_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.droneHit] metal clang + synth sub thump, flat (not positional), level = max(0.5, distance falloff 6-40 m)"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[enemySfx esfx] positional; GRUNT_FLOOR 0.35 within 80 m. Enemy default painSound"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_turret",
+    "fallback": "reactor_powerdown",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. Turret.die, from the flung head"
+   },
+   {
+    "event": "death explosion",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[enemyKit Blast -> audio.droneExplode] flat, level = max(0.15..0.3, falloff 8-55/70 m) + synth sub boom"
+   },
+   {
+    "event": "color shield hit",
+    "sample": "warden_shield_hit",
+    "fallback": "glass_hit",
+    "real": true,
+    "note": "[colorShield.js hit] flat; any enemy spawned with `shields`"
+   },
+   {
+    "event": "color shield break",
+    "sample": "warden_shield_break",
+    "fallback": "shield_break",
+    "real": true,
+    "note": "[colorShield.js shatter] flat + shatter layer (rate 1.5)"
+   },
+   {
+    "event": "color shield break (layer)",
+    "sample": "shatter",
+    "fallback": null,
+    "real": true,
+    "note": "[colorShield.js shatter] glassy layer under the break"
+   }
+  ]
+ },
+ {
+  "enemy": "Swarmer (Swarm pack)",
+  "world": "combat arenas",
+  "file": "src/entities/swarmer.js",
+  "sounds": [
+   {
+    "event": "pack buzz (loop)",
+    "sample": "swarm_buzz",
+    "fallback": "drone_hum",
+    "real": true,
+    "note": "[Swarm constructor loopFor] one loop per pack, rate ~2"
+   },
+   {
+    "event": "attack telegraph (dive wind-up)",
+    "sample": "swarm_dive",
+    "fallback": null,
+    "real": true,
+    "note": "[Swarmer.update] flat, 0.6 x max(0.35, falloff 5-35 m); synth fallback"
+   },
+   {
+    "event": "death pop",
+    "sample": "swarm_pop",
+    "fallback": "orb_pop",
+    "real": true,
+    "note": "[Swarmer.die] flat, max(0.3, falloff 5-40 m)"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_swarmer",
+    "fallback": "robot_pain_light",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. Swarmer.die (rate-limited to one per 0.12 s, so a whole pack popping stays clean)"
+   },
+   {
+    "event": "kamikaze pop on a wall",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[Swarmer.burst -> Blast] no scream (not a kill)"
+   }
+  ]
+ },
+ {
+  "enemy": "Warden",
+  "world": "combat arenas / Prism",
+  "file": "src/entities/warden.js",
+  "sounds": [
+   {
+    "event": "idle hum (loop)",
+    "sample": "drone_hum",
+    "fallback": null,
+    "real": true,
+    "note": "[Warden constructor] rate 0.7"
+   },
+   {
+    "event": "shield up",
+    "sample": "warden_shield_up",
+    "fallback": "barrier_reform",
+    "real": true,
+    "note": "[Warden.update]"
+   },
+   {
+    "event": "attack telegraph (charge)",
+    "sample": "turret_charge",
+    "fallback": "charge_up",
+    "real": true,
+    "note": "[Warden.update] flat, full level"
+   },
+   {
+    "event": "attack (shot)",
+    "sample": "enemy_shot",
+    "fallback": null,
+    "real": true,
+    "note": "[Warden.fire audio.enemyShoot]"
+   },
+   {
+    "event": "crystal shield hit",
+    "sample": "warden_shield_hit",
+    "fallback": "glass_hit",
+    "real": true,
+    "note": "[Warden.onHit] flat, max(0.5, falloff 6-40 m)"
+   },
+   {
+    "event": "crystal shield break",
+    "sample": "warden_shield_break",
+    "fallback": "shield_break",
+    "real": true,
+    "note": "[Warden.breakShield] flat"
+   },
+   {
+    "event": "pain grunt (shield breaks)",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[Warden.breakShield esfx] rate 0.7; GRUNT_FLOOR"
+   },
+   {
+    "event": "hurt (correct-color hit)",
+    "sample": "drone_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.droneHit] metal clang + synth sub thump, flat (not positional), level = max(0.5, distance falloff 6-40 m)"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[enemySfx esfx] positional; GRUNT_FLOOR 0.35 within 80 m. Enemy default painSound (core hits)"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_warden",
+    "fallback": "warden_pain_big",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. Warden.die"
+   },
+   {
+    "event": "death explosion",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[enemyKit Blast -> audio.droneExplode] flat, level = max(0.15..0.3, falloff 8-55/70 m) + synth sub boom"
+   }
+  ]
+ },
+ {
+  "enemy": "Brute",
+  "world": "Foundry (and combat arenas)",
+  "file": "src/entities/brute.js",
+  "sounds": [
+   {
+    "event": "engine hum (loop)",
+    "sample": "drone_hum",
+    "fallback": null,
+    "real": true,
+    "note": "[Brute constructor] rate 0.4"
+   },
+   {
+    "event": "turning servo",
+    "sample": "servo_heavy",
+    "fallback": "crouch",
+    "real": true,
+    "note": "[Brute.poseBody esfx] rate 0.6"
+   },
+   {
+    "event": "charge telegraph: plants itself",
+    "sample": "hydraulic_hiss",
+    "fallback": "gate_open",
+    "real": true,
+    "note": "[Brute.update esfx] rate 0.7; now floored at GRUNT_FLOOR (telegraph)"
+   },
+   {
+    "event": "charge telegraph: roar",
+    "sample": "brute_roar",
+    "fallback": "boss_charge",
+    "real": true,
+    "note": "[Brute.update] flat, 0.8 x max(0.4, falloff 6-45 m)"
+   },
+   {
+    "event": "charge effort grunt",
+    "sample": "robot_effort",
+    "fallback": "mover_step",
+    "real": true,
+    "note": "[Brute.update esfx] rate 0.6; GRUNT_FLOOR"
+   },
+   {
+    "event": "lava lob telegraph: vents",
+    "sample": "hydraulic_hiss",
+    "fallback": "gate_open",
+    "real": true,
+    "note": "[Brute.startLob esfx] rate 0.85"
+   },
+   {
+    "event": "lava lob telegraph: surge",
+    "sample": "lava_surge",
+    "fallback": "charge_up",
+    "real": true,
+    "note": "[Brute.startLob] flat, 0.75 x max(0.35, falloff 6-45 m), cut to the wind-up"
+   },
+   {
+    "event": "attack (lava lob)",
+    "sample": "mortar_launch",
+    "fallback": "enemy_shot",
+    "real": true,
+    "note": "[Brute.fireGob] flat, max(0.35, falloff 6-50 m)"
+   },
+   {
+    "event": "wall slam (stunned)",
+    "sample": "brute_slam",
+    "fallback": "boss_slam",
+    "real": true,
+    "note": "[Brute.slam] flat, max(0.3, falloff 6-50 m)"
+   },
+   {
+    "event": "pain: slam / shock / spin-out",
+    "sample": "robot_pain_heavy",
+    "fallback": "rotor_jam",
+    "real": true,
+    "note": "[Brute.slam / onShock / spinOut esfx] GRUNT_FLOOR"
+   },
+   {
+    "event": "spin-out splash",
+    "sample": "slime_splat",
+    "fallback": "land",
+    "real": true,
+    "note": "[Brute.spinOut] flat"
+   },
+   {
+    "event": "hurt (correct-color hit)",
+    "sample": "drone_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.droneHit] metal clang + synth sub thump, flat (not positional), level = max(0.5, distance falloff 6-40 m)"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_heavy",
+    "fallback": "rotor_jam",
+    "real": true,
+    "note": "[Brute.onDamage esfx] rate 0.6-0.7 (painSound null: plays its own); GRUNT_FLOOR"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_brute",
+    "fallback": "titan_groan",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. Brute.die"
+   },
+   {
+    "event": "death explosion",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[Blast scale 2 -> audio.droneExplode] max(0.3, falloff 10-70 m)"
+   },
+   {
+    "event": "color shield hit",
+    "sample": "warden_shield_hit",
+    "fallback": "glass_hit",
+    "real": true,
+    "note": "[colorShield.js hit] flat; any enemy spawned with `shields`"
+   },
+   {
+    "event": "color shield break",
+    "sample": "warden_shield_break",
+    "fallback": "shield_break",
+    "real": true,
+    "note": "[colorShield.js shatter] flat + shatter layer (rate 1.5)"
+   },
+   {
+    "event": "color shield break (layer)",
+    "sample": "shatter",
+    "fallback": null,
+    "real": true,
+    "note": "[colorShield.js shatter] glassy layer under the break"
+   }
+  ]
+ },
+ {
+  "enemy": "Mortar",
+  "world": "combat arenas",
+  "file": "src/entities/mortar.js",
+  "sounds": [
+   {
+    "event": "tube elevation servo",
+    "sample": "turret_servo",
+    "fallback": "rotor_turn",
+    "real": true,
+    "note": "[Mortar.update esfx] rate 0.7"
+   },
+   {
+    "event": "attack (launch)",
+    "sample": "mortar_launch",
+    "fallback": "enemy_shot",
+    "real": true,
+    "note": "[Mortar.fire] flat, 0.8 x max(0.35, falloff 6-50 m)"
+   },
+   {
+    "event": "shell blast (zone)",
+    "sample": "mortar_blast",
+    "fallback": "drone_explode",
+    "real": true,
+    "note": "[BlastZone.detonate] flat, max(0.3, falloff 6-55 m)"
+   },
+   {
+    "event": "hurt (correct-color hit)",
+    "sample": "drone_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.droneHit] metal clang + synth sub thump, flat (not positional), level = max(0.5, distance falloff 6-40 m)"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[enemySfx esfx] positional; GRUNT_FLOOR 0.35 within 80 m. Enemy default painSound"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_mortar",
+    "fallback": "servo_stutter",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. Mortar.die"
+   },
+   {
+    "event": "death explosion",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[enemyKit Blast -> audio.droneExplode] flat, level = max(0.15..0.3, falloff 8-55/70 m) + synth sub boom"
+   }
+  ]
+ },
+ {
+  "enemy": "Blast Crab",
+  "world": "Foundry",
+  "file": "src/entities/foundryEnemies.js",
+  "sounds": [
+   {
+    "event": "alert chirp",
+    "sample": "crab_chirp",
+    "fallback": "drone_alert",
+    "real": true,
+    "note": "[BlastCrab.onAlert] flat, now 0.5 x reach(4-30 m) (floor 0.35)"
+   },
+   {
+    "event": "idle chirp-click",
+    "sample": "robot_idle_click",
+    "fallback": "switch_off",
+    "real": true,
+    "note": "[BlastCrab.patrolStep esfx] rate 1.7, close only"
+   },
+   {
+    "event": "legs (skitter)",
+    "sample": "crab_skitter",
+    "fallback": null,
+    "real": true,
+    "note": "[BlastCrab.animate] flat, within 12 m"
+   },
+   {
+    "event": "attack telegraph: arming beeps",
+    "sample": "crab_beep",
+    "fallback": null,
+    "real": true,
+    "note": "[BlastCrab.think arm] flat, speeding up; now 0.35 x reach(3-26 m)"
+   },
+   {
+    "event": "attack telegraph: warhead whine",
+    "sample": "crab_arm_whine",
+    "fallback": "charge_up",
+    "real": true,
+    "note": "[BlastCrab.think esfx] GRUNT_FLOOR"
+   },
+   {
+    "event": "leap effort grunt",
+    "sample": "robot_effort",
+    "fallback": "mover_step",
+    "real": true,
+    "note": "[BlastCrab.leap esfx] rate 1.7; GRUNT_FLOOR"
+   },
+   {
+    "event": "attack (leap)",
+    "sample": "crab_leap",
+    "fallback": null,
+    "real": true,
+    "note": "[BlastCrab.leap] flat, now 0.5 x reach(3-24 m)"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_crab",
+    "fallback": "seal_alarm",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. BlastCrab.detonate: a quick robotic yelp layered on the blast (shot, touched you, or chain-blasted)"
+   },
+   {
+    "event": "death explosion",
+    "sample": "crab_explode",
+    "fallback": "drone_explode",
+    "real": true,
+    "note": "[BlastCrab.detonate] flat, 0.9 x max(0.25, falloff 6-55 m) + synth sine thump"
+   }
+  ]
+ },
+ {
+  "enemy": "Welder (the Foundry grunt)",
+  "world": "Foundry",
+  "file": "src/entities/foundryEnemies.js",
+  "sounds": [
+   {
+    "event": "alert",
+    "sample": "welder_alert",
+    "fallback": "drone_alert",
+    "real": true,
+    "note": "[Welder.onAlert] flat, now 0.6 x reach(5-35 m)"
+   },
+   {
+    "event": "footstep",
+    "sample": "welder_step",
+    "fallback": "boss_step",
+    "real": true,
+    "note": "[Welder.onStep] flat, 0.3 x falloff 3-26 m"
+   },
+   {
+    "event": "stride servo",
+    "sample": "servo_heavy",
+    "fallback": "crouch",
+    "real": true,
+    "note": "[Welder.onStep esfx]"
+   },
+   {
+    "event": "gun arm swing servo",
+    "sample": "servo_heavy",
+    "fallback": "crouch",
+    "real": true,
+    "note": "[Welder.animate esfx]"
+   },
+   {
+    "event": "roll",
+    "sample": "welder_roll",
+    "fallback": null,
+    "real": true,
+    "note": "[Welder.onRoll] flat; synth fallback"
+   },
+   {
+    "event": "roll effort grunt",
+    "sample": "robot_effort",
+    "fallback": "mover_step",
+    "real": true,
+    "note": "[Trooper.tryRoll esfx] GRUNT_FLOOR"
+   },
+   {
+    "event": "roll recovery / landing",
+    "sample": "hydraulic_land",
+    "fallback": "land_hard",
+    "real": true,
+    "note": "[Trooper.doRoll / onLand esfx]"
+   },
+   {
+    "event": "idle click / hum",
+    "sample": "robot_idle_click",
+    "fallback": "switch_off",
+    "real": true,
+    "note": "[Trooper.idleSounds esfx] within 16 m, unaware"
+   },
+   {
+    "event": "idle hum",
+    "sample": "robot_idle_hum",
+    "fallback": "barrier_reform",
+    "real": true,
+    "note": "[Trooper.idleSounds esfx]"
+   },
+   {
+    "event": "charge stomp effort",
+    "sample": "robot_effort",
+    "fallback": "mover_step",
+    "real": true,
+    "note": "[Welder.think charge esfx] rate 0.85; GRUNT_FLOOR"
+   },
+   {
+    "event": "flamethrower telegraph: ignite",
+    "sample": "welder_ignite",
+    "fallback": null,
+    "real": true,
+    "note": "[Welder.think ignite] flat, now 0.45 x reach(3-30 m)"
+   },
+   {
+    "event": "flamethrower: burst",
+    "sample": "welder_ignite_burst",
+    "fallback": "incinerator_ignite",
+    "real": true,
+    "note": "[Welder.think] flat, now 0.8 x reach(3-34 m)"
+   },
+   {
+    "event": "flamethrower roar (loop)",
+    "sample": "incinerator_roar",
+    "fallback": null,
+    "real": true,
+    "note": "[Welder constructor createLoop]"
+   },
+   {
+    "event": "torch vent (overheat)",
+    "sample": "welder_vent",
+    "fallback": "elevator_stop",
+    "real": true,
+    "note": "[Welder.think vent esfx]"
+   },
+   {
+    "event": "attack (rivet gun)",
+    "sample": "welder_rivet",
+    "fallback": "enemy_shot",
+    "real": true,
+    "note": "[Welder.fireRivet] flat, 0.55 x falloff 4-40 m"
+   },
+   {
+    "event": "slip on a puddle",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[GroundEnemy.slip esfx] + slime_splat"
+   },
+   {
+    "event": "electrocuted",
+    "sample": "joint_sparks",
+    "fallback": "energy_crackle",
+    "real": true,
+    "note": "[GroundEnemy.onShock] flat"
+   },
+   {
+    "event": "hurt (correct-color hit)",
+    "sample": "drone_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.droneHit] metal clang + synth sub thump, flat (not positional), level = max(0.5, distance falloff 6-40 m)"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_heavy",
+    "fallback": "rotor_jam",
+    "real": true,
+    "note": "[enemySfx esfx] positional; GRUNT_FLOOR 0.35 within 80 m. Trooper.takeHit, voicePitch 0.9"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_welder",
+    "fallback": "warden_pain",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. Trooper.die (as the knees go), replaces the old pitched-down pain whimper; the deep robot scream the designer asked for"
+   },
+   {
+    "event": "death: failing servos + gas leak",
+    "sample": "welder_death",
+    "fallback": "drone_crash",
+    "real": true,
+    "note": "[Welder.onDie] flat, 0.7 x max(0.3, falloff 6-50 m); kept under the scream"
+   },
+   {
+    "event": "death explosion",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[Welder.finishDeath audio.droneExplode] after the 0.7 s topple"
+   },
+   {
+    "event": "color shield hit",
+    "sample": "warden_shield_hit",
+    "fallback": "glass_hit",
+    "real": true,
+    "note": "[colorShield.js hit] flat; any enemy spawned with `shields`"
+   },
+   {
+    "event": "color shield break",
+    "sample": "warden_shield_break",
+    "fallback": "shield_break",
+    "real": true,
+    "note": "[colorShield.js shatter] flat + shatter layer (rate 1.5)"
+   },
+   {
+    "event": "color shield break (layer)",
+    "sample": "shatter",
+    "fallback": null,
+    "real": true,
+    "note": "[colorShield.js shatter] glassy layer under the break"
+   }
+  ]
+ },
+ {
+  "enemy": "Scarab",
+  "world": "Solar",
+  "file": "src/entities/solarEnemies.js",
+  "sounds": [
+   {
+    "event": "digging (tunnelling)",
+    "sample": "scarab_dig",
+    "fallback": null,
+    "real": true,
+    "note": "[Scarab.think tunnel] flat, within 25 m"
+   },
+   {
+    "event": "alert / pounce telegraph chitter",
+    "sample": "scarab_chitter",
+    "fallback": null,
+    "real": true,
+    "note": "[Scarab.chitter] flat, now 0.4 x reach(3-24 m)"
+   },
+   {
+    "event": "emerge from the sand",
+    "sample": "scarab_emerge",
+    "fallback": null,
+    "real": true,
+    "note": "[Scarab.startEmerge] flat"
+   },
+   {
+    "event": "attack (pounce)",
+    "sample": "scarab_pounce",
+    "fallback": "crab_leap",
+    "real": true,
+    "note": "[Scarab.pounce] flat, now 0.45 x reach(3-24 m)"
+   },
+   {
+    "event": "legs (servo tick)",
+    "sample": "servo_tick",
+    "fallback": "timer_tick",
+    "real": true,
+    "note": "[Scarab.animate esfx] within 14 m"
+   },
+   {
+    "event": "hurt (correct-color hit)",
+    "sample": "drone_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.droneHit] metal clang + synth sub thump, flat (not positional), level = max(0.5, distance falloff 6-40 m)"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[Scarab.onHit esfx] rate 1.6; GRUNT_FLOOR"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_scarab",
+    "fallback": "sphinx_pain",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. Scarab.die"
+   },
+   {
+    "event": "death: carapace crunch",
+    "sample": "scarab_crunch",
+    "fallback": "shatter",
+    "real": true,
+    "note": "[Scarab.die] flat, 0.7 x max(0.3, falloff 5-45 m)"
+   },
+   {
+    "event": "color shield hit",
+    "sample": "warden_shield_hit",
+    "fallback": "glass_hit",
+    "real": true,
+    "note": "[colorShield.js hit] flat; any enemy spawned with `shields`"
+   },
+   {
+    "event": "color shield break",
+    "sample": "warden_shield_break",
+    "fallback": "shield_break",
+    "real": true,
+    "note": "[colorShield.js shatter] flat + shatter layer (rate 1.5)"
+   },
+   {
+    "event": "color shield break (layer)",
+    "sample": "shatter",
+    "fallback": null,
+    "real": true,
+    "note": "[colorShield.js shatter] glassy layer under the break"
+   }
+  ]
+ },
+ {
+  "enemy": "Mummy (stilt-walker)",
+  "world": "Solar",
+  "file": "src/entities/solarEnemies.js",
+  "sounds": [
+   {
+    "event": "alert",
+    "sample": "mummy_alert",
+    "fallback": null,
+    "real": true,
+    "note": "[Mummy.onAlert] flat, now 0.6 x reach(5-35 m); synth fallback"
+   },
+   {
+    "event": "stilt creak",
+    "sample": "mummy_creak",
+    "fallback": "rotor_turn",
+    "real": true,
+    "note": "[Mummy.onStep esfx]"
+   },
+   {
+    "event": "stride servo",
+    "sample": "servo_light",
+    "fallback": "crouch",
+    "real": true,
+    "note": "[Mummy.onStep esfx]"
+   },
+   {
+    "event": "dodge",
+    "sample": "mummy_dodge",
+    "fallback": null,
+    "real": true,
+    "note": "[Mummy.onRoll] flat"
+   },
+   {
+    "event": "dodge hydraulics",
+    "sample": "hydraulic_hiss",
+    "fallback": "gate_open",
+    "real": true,
+    "note": "[Mummy.onRoll esfx]"
+   },
+   {
+    "event": "attack telegraph (cast)",
+    "sample": "mummy_cast",
+    "fallback": "charge_up",
+    "real": true,
+    "note": "[Mummy.act] flat, now 0.5 x reach(4-34 m)"
+   },
+   {
+    "event": "ward (shield up)",
+    "sample": "mummy_shield",
+    "fallback": "barrier_reform",
+    "real": true,
+    "note": "[Mummy.act] flat + servo_light"
+   },
+   {
+    "event": "attack (bolt)",
+    "sample": "mummy_bolt",
+    "fallback": "enemy_shot",
+    "real": true,
+    "note": "[Mummy.castVolley] flat + servo_light"
+   },
+   {
+    "event": "ward shield break",
+    "sample": "mummy_shield_break",
+    "fallback": "shield_break",
+    "real": true,
+    "note": "[Mummy.dropShield] flat"
+   },
+   {
+    "event": "roll effort / landing / idle",
+    "sample": "robot_effort",
+    "fallback": "mover_step",
+    "real": true,
+    "note": "[Trooper] as the Welder (also hydraulic_land, robot_idle_click/hum)"
+   },
+   {
+    "event": "electrocuted",
+    "sample": "joint_sparks",
+    "fallback": "energy_crackle",
+    "real": true,
+    "note": "[GroundEnemy.onShock]"
+   },
+   {
+    "event": "hurt (correct-color hit)",
+    "sample": "drone_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.droneHit] metal clang + synth sub thump, flat (not positional), level = max(0.5, distance falloff 6-40 m)"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[enemySfx esfx] positional; GRUNT_FLOOR 0.35 within 80 m. Trooper.takeHit, voicePitch 0.8"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_stilt",
+    "fallback": "warden_pain",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. Trooper.die as the stilts buckle; replaces the pitched-down pain grunt"
+   },
+   {
+    "event": "death: sand cascade + groan",
+    "sample": "mummy_death",
+    "fallback": null,
+    "real": true,
+    "note": "[Mummy.onDie] flat, 0.7 x max(0.3, falloff 5-45 m)"
+   },
+   {
+    "event": "death: comes apart",
+    "sample": null,
+    "fallback": null,
+    "real": false,
+    "note": "[Mummy.finishDeath] no sound of its own (fx only)"
+   },
+   {
+    "event": "color shield hit",
+    "sample": "warden_shield_hit",
+    "fallback": "glass_hit",
+    "real": true,
+    "note": "[colorShield.js hit] flat; any enemy spawned with `shields`"
+   },
+   {
+    "event": "color shield break",
+    "sample": "warden_shield_break",
+    "fallback": "shield_break",
+    "real": true,
+    "note": "[colorShield.js shatter] flat + shatter layer (rate 1.5)"
+   },
+   {
+    "event": "color shield break (layer)",
+    "sample": "shatter",
+    "fallback": null,
+    "real": true,
+    "note": "[colorShield.js shatter] glassy layer under the break"
+   }
+  ]
+ },
+ {
+  "enemy": "Slime",
+  "world": "Verdant",
+  "file": "src/entities/verdantEnemies.js",
+  "sounds": [
+   {
+    "event": "alert",
+    "sample": "slime_squelch",
+    "fallback": null,
+    "real": true,
+    "note": "[Slime.update] flat, now 0.5 x reach(4-25 m)"
+   },
+   {
+    "event": "attack telegraph (wind-up)",
+    "sample": "slime_squelch",
+    "fallback": null,
+    "real": true,
+    "note": "[Slime.startWindup] flat, rate 1.25, now 0.8 x reach(4-30 m) (bare core: core_chirp)"
+   },
+   {
+    "event": "attack (leap)",
+    "sample": "slime_leap",
+    "fallback": null,
+    "real": true,
+    "note": "[Slime.launch] flat (bare core: core_chirp)"
+   },
+   {
+    "event": "land",
+    "sample": "slime_splat",
+    "fallback": null,
+    "real": true,
+    "note": "[Slime.fly] flat"
+   },
+   {
+    "event": "slime blown off (hurt)",
+    "sample": "slime_splat",
+    "fallback": null,
+    "real": true,
+    "note": "[Slime.blowOff] flat rate 0.85"
+   },
+   {
+    "event": "bare core shriek (pain)",
+    "sample": "core_squeal",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[Slime.blowOff esfx] GRUNT_FLOOR"
+   },
+   {
+    "event": "slime regrows",
+    "sample": "slime_regrow",
+    "fallback": null,
+    "real": true,
+    "note": "[Slime.updateCore] flat"
+   },
+   {
+    "event": "bare core chirps (fleeing)",
+    "sample": "core_chirp",
+    "fallback": null,
+    "real": true,
+    "note": "[Slime.updateCore] flat"
+   },
+   {
+    "event": "slime hit",
+    "sample": "slime_splat",
+    "fallback": null,
+    "real": true,
+    "note": "[Slime.onHit] flat rate 1.3"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_slime",
+    "fallback": "core_squeal",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. Slime.die (the core shot)"
+   },
+   {
+    "event": "death explosion",
+    "sample": "critter_die",
+    "fallback": null,
+    "real": true,
+    "note": "[Slime.die] flat, 0.8 x falloff 6-50 m (synth fallback: droneExplode)"
+   }
+  ]
+ },
+ {
+  "enemy": "SpiderBot",
+  "world": "Verdant",
+  "file": "src/entities/verdantEnemies.js",
+  "sounds": [
+   {
+    "event": "alert hiss",
+    "sample": "spider_hiss",
+    "fallback": null,
+    "real": true,
+    "note": "[SpiderBot.update] flat, now 0.6 x reach(4-30 m)"
+   },
+   {
+    "event": "attack telegraph (spit wind-up hiss)",
+    "sample": "spider_hiss",
+    "fallback": null,
+    "real": true,
+    "note": "[SpiderBot.update] flat rate 1.3, now 0.7 x reach(4-30 m)"
+   },
+   {
+    "event": "attack (spit)",
+    "sample": "spider_spit",
+    "fallback": null,
+    "real": true,
+    "note": "[SpiderBot.spit] flat, now 0.8 x reach(4-40 m)"
+   },
+   {
+    "event": "leap",
+    "sample": "spider_leap",
+    "fallback": null,
+    "real": true,
+    "note": "[SpiderBot.startRoll] flat + hydraulic_hiss + robot_effort (esfx)"
+   },
+   {
+    "event": "land",
+    "sample": "spider_land",
+    "fallback": null,
+    "real": true,
+    "note": "[SpiderBot.endRoll] flat + hydraulic_land (esfx)"
+   },
+   {
+    "event": "legs (servo tick)",
+    "sample": "servo_tick",
+    "fallback": "timer_tick",
+    "real": true,
+    "note": "[SpiderBot.animate esfx]"
+   },
+   {
+    "event": "hurt (hit clang)",
+    "sample": "critter_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[SpiderBot.onHit] flat, max(0.5, falloff 6-40 m)"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[SpiderBot.onHit / onShieldBreak esfx] rate 1.25-1.4; GRUNT_FLOOR"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_spider",
+    "fallback": "seal_alarm",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. SpiderBot.die"
+   },
+   {
+    "event": "death explosion",
+    "sample": "critter_die",
+    "fallback": null,
+    "real": true,
+    "note": "[SpiderBot.die] flat, max(0.3, falloff 6-60 m)"
+   },
+   {
+    "event": "color shield hit",
+    "sample": "warden_shield_hit",
+    "fallback": "glass_hit",
+    "real": true,
+    "note": "[colorShield.js hit] flat; any enemy spawned with `shields`"
+   },
+   {
+    "event": "color shield break",
+    "sample": "warden_shield_break",
+    "fallback": "shield_break",
+    "real": true,
+    "note": "[colorShield.js shatter] flat + shatter layer (rate 1.5)"
+   },
+   {
+    "event": "color shield break (layer)",
+    "sample": "shatter",
+    "fallback": null,
+    "real": true,
+    "note": "[colorShield.js shatter] glassy layer under the break"
+   }
+  ]
+ },
+ {
+  "enemy": "Fish (FishSchool)",
+  "world": "Azure",
+  "file": "src/entities/azureEnemies.js",
+  "sounds": [
+   {
+    "event": "alert ping",
+    "sample": "fish_alert",
+    "fallback": null,
+    "real": true,
+    "note": "[FishSchool.update] flat, 0.6 x falloff 4-30 m"
+   },
+   {
+    "event": "dart",
+    "sample": "fish_dart",
+    "fallback": null,
+    "real": true,
+    "note": "[FishSchool.updateFish] flat"
+   },
+   {
+    "event": "attack telegraph (leap aim)",
+    "sample": "fish_alert",
+    "fallback": null,
+    "real": true,
+    "note": "[FishSchool.updateFish leapAim] flat rate 1.3, now 0.8 x reach(3-25 m)"
+   },
+   {
+    "event": "attack (leap)",
+    "sample": "fish_leap",
+    "fallback": null,
+    "real": true,
+    "note": "[FishSchool.updateFish] flat"
+   },
+   {
+    "event": "death: shot",
+    "sample": "critter_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[Fish.die] flat, 0.8 x falloff 5-40 m"
+   },
+   {
+    "event": "death: beached / fell",
+    "sample": "glob_pop",
+    "fallback": null,
+    "real": true,
+    "note": "[Fish.die(false)] flat"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_fish",
+    "fallback": "leviathan_hurt",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. Fish.die (each fish)"
+   }
+  ]
+ },
+ {
+  "enemy": "RoboSquid",
+  "world": "Azure",
+  "file": "src/entities/azureEnemies.js",
+  "sounds": [
+   {
+    "event": "hum (loop)",
+    "sample": "squid_hum",
+    "fallback": null,
+    "real": true,
+    "note": "[RoboSquid constructor Voice] falloff 3-24 m"
+   },
+   {
+    "event": "alert pulse",
+    "sample": "squid_pulse",
+    "fallback": null,
+    "real": true,
+    "note": "[RoboSquid.update] flat, now 0.7 x reach(4-30 m)"
+   },
+   {
+    "event": "arm servos (swimming)",
+    "sample": "squid_servo",
+    "fallback": "rotor_turn",
+    "real": true,
+    "note": "[RoboSquid.update esfx] within 20 m"
+   },
+   {
+    "event": "attack telegraph (charge)",
+    "sample": "squid_charge",
+    "fallback": null,
+    "real": true,
+    "note": "[RoboSquid.update] flat, now 0.7 x reach(4-30 m)"
+   },
+   {
+    "event": "attack (torpedo)",
+    "sample": "squid_torpedo",
+    "fallback": null,
+    "real": true,
+    "note": "[RoboSquid.fire] flat, now 0.9 x reach(4-40 m)"
+   },
+   {
+    "event": "jet away",
+    "sample": "squid_jet",
+    "fallback": null,
+    "real": true,
+    "note": "[RoboSquid.startJet] flat + hydraulic_hiss (esfx)"
+   },
+   {
+    "event": "hurt (hit clang)",
+    "sample": "critter_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[RoboSquid.onHit] flat"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[RoboSquid.onHit esfx] rate 0.7; GRUNT_FLOOR"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_squid",
+    "fallback": "leviathan_hurt",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. RoboSquid.die, rate 0.92 underwater"
+   },
+   {
+    "event": "death explosion",
+    "sample": "critter_die",
+    "fallback": null,
+    "real": true,
+    "note": "[RoboSquid.die] flat, max(0.3, falloff 6-60 m)"
+   }
+  ]
+ },
+ {
+  "enemy": "Scrap Crawler",
+  "world": "Azure (water puzzles)",
+  "file": "src/entities/waterPuzzle.js",
+  "sounds": [
+   {
+    "event": "attack (bite lunge)",
+    "sample": "crab_skitter",
+    "fallback": null,
+    "real": true,
+    "note": "[ScrapCrawler.update] flat rate 1.6"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_crawler",
+    "fallback": "core_squeal",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. ScrapCrawler.die (rate 1.15 when fried)"
+   },
+   {
+    "event": "death: shot",
+    "sample": "crab_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[ScrapCrawler.die] flat rate 1.5"
+   },
+   {
+    "event": "death: electrocuted",
+    "sample": "joint_sparks",
+    "fallback": null,
+    "real": true,
+    "note": "[ScrapCrawler.die(true)] flat rate 1.2"
+   },
+   {
+    "event": "color shield hit",
+    "sample": "warden_shield_hit",
+    "fallback": "glass_hit",
+    "real": true,
+    "note": "[colorShield.js hit] flat; any enemy spawned with `shields`"
+   },
+   {
+    "event": "color shield break",
+    "sample": "warden_shield_break",
+    "fallback": "shield_break",
+    "real": true,
+    "note": "[colorShield.js shatter] flat + shatter layer (rate 1.5)"
+   },
+   {
+    "event": "color shield break (layer)",
+    "sample": "shatter",
+    "fallback": null,
+    "real": true,
+    "note": "[colorShield.js shatter] glassy layer under the break"
+   }
+  ]
+ },
+ {
+  "enemy": "Raider Skiff",
+  "world": "Solar dunes (sled run)",
+  "file": "src/entities/duneRaiders.js",
+  "sounds": [
+   {
+    "event": "energy bubble hit",
+    "sample": "warden_shield_hit",
+    "fallback": "glass_hit",
+    "real": true,
+    "note": "[RaiderSkiff.onHit] flat"
+   },
+   {
+    "event": "energy bubble break",
+    "sample": "warden_shield_break",
+    "fallback": "shield_break",
+    "real": true,
+    "note": "[RaiderSkiff.onHit] flat"
+   },
+   {
+    "event": "attack telegraph (laser paint)",
+    "sample": "turret_charge",
+    "fallback": "charge_up",
+    "real": true,
+    "note": "[RaiderSkiff.update] flat rate 1.2, now 0.5 x reach(6-50 m)"
+   },
+   {
+    "event": "attack (burst)",
+    "sample": "turret_shot",
+    "fallback": "enemy_shot",
+    "real": true,
+    "note": "[RaiderSkiff.update] flat, max(0.3, falloff 6-50 m)"
+   },
+   {
+    "event": "hurt (correct-color hit)",
+    "sample": "drone_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.droneHit] metal clang + synth sub thump, flat (not positional), level = max(0.5, distance falloff 6-40 m)"
+   },
+   {
+    "event": "pain grunt",
+    "sample": "robot_pain_light",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[enemySfx esfx] positional; GRUNT_FLOOR 0.35 within 80 m. Enemy default painSound"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_skiff",
+    "fallback": "warden_pain",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. RaiderSkiff.die (the old robot_pain_heavy grunt only plays if the scream cannot)"
+   },
+   {
+    "event": "death: hit blast + crash blast",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[RaiderSkiff.die / updateCrash Blast x2]"
+   }
+  ]
+ },
+ {
+  "enemy": "Dune Scarab",
+  "world": "Solar dunes (sled run)",
+  "file": "src/entities/duneRaiders.js",
+  "sounds": [
+   {
+    "event": "surface",
+    "sample": "scarab_emerge",
+    "fallback": "sand_sink",
+    "real": true,
+    "note": "[DuneScarab.spawn] flat, 0.8 x max(0.35, falloff 5-45 m)"
+   },
+   {
+    "event": "leap onto the sled",
+    "sample": "scarab_pounce",
+    "fallback": "crab_leap",
+    "real": true,
+    "note": "[DuneScarab.update] flat, max(0.4, falloff)"
+   },
+   {
+    "event": "lands on the deck",
+    "sample": "hydraulic_land",
+    "fallback": "land_hard",
+    "real": true,
+    "note": "[DuneScarab.update esfx] + scarab_chitter"
+   },
+   {
+    "event": "attack telegraph (rear up)",
+    "sample": "scarab_chitter",
+    "fallback": "crab_chirp",
+    "real": true,
+    "note": "[DuneScarab.update] flat, full level"
+   },
+   {
+    "event": "attack (lunge)",
+    "sample": "scarab_pounce",
+    "fallback": "crab_leap",
+    "real": true,
+    "note": "[DuneScarab.update] flat, full level"
+   },
+   {
+    "event": "bite",
+    "sample": "scarab_crunch",
+    "fallback": "hit",
+    "real": true,
+    "note": "[DuneScarab.update] flat"
+   },
+   {
+    "event": "hurt (correct-color hit)",
+    "sample": "drone_hit",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.droneHit] metal clang + synth sub thump, flat (not positional), level = max(0.5, distance falloff 6-40 m)"
+   },
+   {
+    "event": "death scream (NEW)",
+    "sample": "death_scarab",
+    "fallback": "sphinx_pain",
+    "real": false,
+    "note": "[enemySfx edeath] positional priority voice (past the voice cap, one per 0.12 s per name), loudness-levelled, DEATH_FLOOR 0.6 within 80 m, dips music to 0.7 for 0.55 s; stand-in until the mp3 exists. DuneScarab.die, rate 1.1 (painSound null: no pain grunt)"
+   },
+   {
+    "event": "death: crunch",
+    "sample": "scarab_crunch",
+    "fallback": "crab_explode",
+    "real": true,
+    "note": "[DuneScarab.die] flat"
+   },
+   {
+    "event": "death explosion",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[Blast scale 0.55]"
+   }
+  ]
+ },
+ {
+  "enemy": "Worker Drone (harmless)",
+  "world": "Reactor / Hub",
+  "file": "src/entities/workerDrone.js",
+  "sounds": [
+   {
+    "event": "hum (loop)",
+    "sample": "drone_hum",
+    "fallback": null,
+    "real": true,
+    "note": "[WorkerSwarm createLoop] rate 1.55"
+   },
+   {
+    "event": "welding torch crackle",
+    "sample": null,
+    "fallback": null,
+    "real": false,
+    "note": "[WorkerSwarm] synth noise blips"
+   },
+   {
+    "event": "chatter",
+    "sample": null,
+    "fallback": null,
+    "real": false,
+    "note": "[WorkerSwarm] synth sine chirps"
+   },
+   {
+    "event": "death: sad chirp",
+    "sample": null,
+    "fallback": null,
+    "real": false,
+    "note": "[WorkerDrone.die] synth square 1500->260 Hz"
+   },
+   {
+    "event": "death: spin-out",
+    "sample": "drone_crash",
+    "fallback": null,
+    "real": true,
+    "note": "[WorkerDrone.die audio.droneCrash] x0.6"
+   },
+   {
+    "event": "death explosion",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[WorkerDrone.explode] x0.75"
+   },
+   {
+    "event": "death scream",
+    "sample": null,
+    "fallback": null,
+    "real": false,
+    "note": "intentionally none: harmless workers, not enemies (no reward cry)"
+   }
+  ]
+ },
+ {
+  "enemy": "Enraged (any enemy with Rage)",
+  "world": "all",
+  "file": "src/entities/rage.js",
+  "sounds": [
+   {
+    "event": "rage building (wrong-color hits)",
+    "sample": "aggro_warn",
+    "fallback": "combo_tick",
+    "real": true,
+    "note": "[Rage.wrong] flat, full level"
+   },
+   {
+    "event": "enraged sting",
+    "sample": "aggro_sting",
+    "fallback": "combo_fail",
+    "real": true,
+    "note": "[Rage.enrage] flat, full level"
+   },
+   {
+    "event": "enraged roar",
+    "sample": "robot_pain_heavy",
+    "fallback": "rotor_jam",
+    "real": true,
+    "note": "[Rage.enrage esfx] x1.4, pitched 0.62 x voice; GRUNT_FLOOR"
+   },
+   {
+    "event": "enraged vents",
+    "sample": "hydraulic_hiss",
+    "fallback": "gate_open",
+    "real": true,
+    "note": "[Rage.enrage esfx] now floored at GRUNT_FLOOR"
+   }
+  ]
+ },
+ {
+  "enemy": "Enemy radio barks (click only)",
+  "world": "all",
+  "file": "src/combat/barks.js",
+  "sounds": [
+   {
+    "event": "radio click (open/close a voice line)",
+    "sample": "radio_squelch",
+    "fallback": "switch_off",
+    "real": true,
+    "note": "[barks esfx] unchanged; the voice lines themselves are barkpack_* (not audited here)"
+   }
+  ]
+ },
+ {
+  "enemy": "Forge Titan (mini-boss)",
+  "world": "Foundry",
+  "file": "src/entities/forgeTitan.js",
+  "sounds": [
+   {
+    "event": "death",
+    "sample": "titan_death",
+    "fallback": null,
+    "real": true,
+    "note": "[ForgeTitan.updateDeath] flat, gain 1; synth fallback audio.explode(true)"
+   },
+   {
+    "event": "death (slag collapse)",
+    "sample": "titan_death",
+    "fallback": null,
+    "real": true,
+    "note": "[ForgeTitan.collapseIntoSlag] gain 0.6 rate 1.2; fallback audio.bossLimbBreak"
+   },
+   {
+    "event": "death explosions",
+    "sample": "boss_death",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.explode(true)]"
+   }
+  ]
+ },
+ {
+  "enemy": "Sphinx (mini-boss)",
+  "world": "Solar",
+  "file": "src/entities/sphinx.js",
+  "sounds": [
+   {
+    "event": "death",
+    "sample": "sphinx_death",
+    "fallback": "boss_death",
+    "real": true,
+    "note": "[Sphinx.explode] flat gain 1 (fallback via audio.explode(true))"
+   }
+  ]
+ },
+ {
+  "enemy": "Thornmaw (mini-boss)",
+  "world": "Verdant",
+  "file": "src/entities/verdantBoss.js",
+  "sounds": [
+   {
+    "event": "death",
+    "sample": "hydra_death",
+    "fallback": "boss_death",
+    "real": true,
+    "note": "[Thornmaw.die] flat gain 1"
+   }
+  ]
+ },
+ {
+  "enemy": "Leviathan (mini-boss)",
+  "world": "Azure",
+  "file": "src/entities/leviathan.js",
+  "sounds": [
+   {
+    "event": "death",
+    "sample": "leviathan_death",
+    "fallback": "boss_death",
+    "real": true,
+    "note": "[Leviathan.die] gain 1.2"
+   },
+   {
+    "event": "piranha minion death",
+    "sample": null,
+    "fallback": null,
+    "real": false,
+    "note": "[Piranha.die] silent (fx only; boss file left unchanged)"
+   }
+  ]
+ },
+ {
+  "enemy": "Dynamo (mini-boss)",
+  "world": "Hub / Prism",
+  "file": "src/entities/dynamo.js",
+  "sounds": [
+   {
+    "event": "death",
+    "sample": "titan_death",
+    "fallback": "boss_death",
+    "real": true,
+    "note": "[Dynamo.update dying] gain 1.1 rate 1.25"
+   }
+  ]
+ },
+ {
+  "enemy": "Lumen Excavator (mini-boss)",
+  "world": "Solar dunes",
+  "file": "src/entities/duneRaiders.js",
+  "sounds": [
+   {
+    "event": "vent blown (each)",
+    "sample": "titan_groan_big",
+    "fallback": "leviathan_roar",
+    "real": true,
+    "note": "[Excavator.onHit] flat rate 1.1"
+   },
+   {
+    "event": "death",
+    "sample": "boss_death",
+    "fallback": "leviathan_death",
+    "real": true,
+    "note": "[Excavator.onHit last vent] flat rate 0.9"
+   }
+  ]
+ },
+ {
+  "enemy": "The Prism Warden (final boss)",
+  "world": "Prism",
+  "file": "src/boss.js",
+  "sounds": [
+   {
+    "event": "death roar",
+    "sample": "boss_roar",
+    "fallback": null,
+    "real": true,
+    "note": "[Boss.die audio.bossRoar]"
+   },
+   {
+    "event": "death explosions",
+    "sample": "drone_explode",
+    "fallback": null,
+    "real": true,
+    "note": "[Boss death sequence audio.explode()] then boss_death via audio.explode(true)"
+   },
+   {
+    "event": "final blast",
+    "sample": "boss_death",
+    "fallback": null,
+    "real": true,
+    "note": "[audio.explode(true)]"
+   }
+  ]
+ }
+]

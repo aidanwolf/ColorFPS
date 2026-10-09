@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { audio } from '../audio.js';
 import { Enemy, Parts, Beam, Blast, MAT, GEO, moveSafe, falloff, hexOf, sfx, DANGER, loopFor } from './enemyKit.js';
+import { edeath } from './enemySfx.js';
 
 const _v = new THREE.Vector3();
 const _d = new THREE.Vector3();
@@ -157,6 +158,7 @@ export class Swarmer extends Enemy {
     this.swarm.releaseDive(this);
     const g = Math.max(0.3, falloff(this.dist, 5, 40));
     sfx('swarm_pop', { gain: 0.7 * g, vary: 0.12 }, 'orb_pop', { gain: 0.6 * g, rate: 0.8, vary: 0.12 });
+    edeath('death_swarmer', this.pos);
     new Blast(this.world, this.pos, this.color, { scale: 0.4, chunks: 2, vel: dir ? dir.clone().multiplyScalar(5) : null, shake: 0.05, sound: false });
     this.onDeath?.(this);
     this.remove();

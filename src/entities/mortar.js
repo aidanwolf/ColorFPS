@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { Orb } from './drone.js';
 import { Enemy, Parts, MAT, GEO, glowMat, additive, floorBelow, converge, falloff, hexOf, sfx, Blast } from './enemyKit.js';
-import { esfx } from './enemySfx.js';
+import { esfx, edeath } from './enemySfx.js';
 import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
@@ -259,6 +259,7 @@ export class Mortar extends Enemy {
     this.dead = true;
     this.zone?.cancel();
     this.zone = null;
+    edeath('death_mortar', this.pos);
     this.explode({ scale: 1.2, chunks: 7, vel: dir ? dir.clone().multiplyScalar(4) : null });
   }
 

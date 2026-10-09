@@ -105,97 +105,181 @@
  },
  {
   "id": "04",
-  "title": "I Dimmed a Star",
-  "where": "Solar · the Sunward Overlook",
+  "title": "Under the Sand",
+  "where": "Solar · the buried conduits",
   "file": "memo_04",
-  "text": "I need to say this out loud so I believe it. The sun out here is real. A real star, on a track, caught like a fish on a line. And the probe can talk to it. I found its frequency, and I turned it down. Just for nine seconds. The whole mesa went blue, and quiet, and... I dimmed a star! Then it came back brighter. Like it was cross with me.",
-  "spoken": "[breathless] I need to say this out loud so I believe it. The sun out here is real. A real star, on a track, caught like a fish on a line. And the probe can talk to it. I found its frequency, and I turned it down. Just for nine seconds. The whole mesa went blue, and quiet, and... [laughs] I dimmed a star! [beat] Then it came back brighter. Like it was cross with me.",
+  "text": "Okay. The team's on the link, and Priya will not stop asking what I'm looking at. So, for the record. There's something under the sand. Like a cable, but glassy, and warm, and as thick as my arm. I brushed it off and followed it with my fingers, and it just... keeps going. Down, under the mesa. And there are more. Dozens of them, all running the same way, under layer after layer of old glass. Somebody buried a power line, and then let a whole desert happen on top of it. Priya says don't lick it. I was not going to lick it.",
+  "spoken": "[excited, out of breath] Okay. The team's on the link, and Priya will not stop asking what I'm looking at. So, for the record. There's something under the sand. Like a cable, but glassy, and warm, and as thick as my arm. I brushed it off and followed it with my fingers, and it just... keeps going. Down, under the mesa. And there are more. Dozens of them, all running the same way, under layer after layer of old glass. Somebody buried a power line, and then let a whole desert happen on top of it. [laughs] Priya says don't lick it. I was not going to lick it.",
   "profile": "expressive",
-  "dur": 31.95,
+  "dur": 45.17,
   "lines": [
    {
-    "t": 0.15,
-    "text": "I need to say this out loud so I believe it."
+    "t": 0.3,
+    "text": "Okay. The team's on the link, and Priya will not stop asking what I'm looking at. So, for the record."
    },
    {
-    "t": 2.92,
-    "text": "The sun out here is real. A real star, on a track, caught like a fish on a line."
+    "t": 7.83,
+    "text": "There's something under the sand. Like a cable, but glassy, and warm, and as thick as my arm."
    },
    {
-    "t": 12,
-    "text": "And the probe can talk to it. I found its frequency, and I turned it down. Just for nine seconds."
+    "t": 17.12,
+    "text": "I brushed it off and followed it with my fingers, and it just... keeps going. Down, under the mesa."
    },
    {
-    "t": 19.98,
-    "text": "The whole mesa went blue, and quiet, and... I dimmed a star!"
+    "t": 25.32,
+    "text": "And there are more. Dozens of them, all running the same way, under layer after layer of old glass."
    },
    {
-    "t": 28.78,
-    "text": "Then it came back brighter. Like it was cross with me."
+    "t": 33.28,
+    "text": "Somebody buried a power line, and then let a whole desert happen on top of it."
+   },
+   {
+    "t": 40.46,
+    "text": "Priya says don't lick it. I was not going to lick it."
+   }
+  ]
+ },
+ {
+  "id": "04b",
+  "title": "The Ring",
+  "where": "Solar · the edge of the pit",
+  "file": "memo_04b",
+  "text": "Found where the conduits go. There's a pit, and at the bottom of it, a ring. A stone ring, standing on its edge, taller than a house. Nothing in the middle but more wall. Priya says it's a capacitor. A giant battery. I say it's a gate. Nobody's winning. I held my hand up to it. Nothing. Cold. And then the sun moved on its track, just a little... and the ring hummed. I felt it in my teeth. It knows when the sun moves. I don't know what that means yet. I really, really want to.",
+  "spoken": "[hushed] Found where the conduits go. There's a pit, and at the bottom of it, a ring. A stone ring, standing on its edge, taller than a house. Nothing in the middle but more wall. Priya says it's a capacitor. A giant battery. I say it's a gate. [laughs] Nobody's winning. I held my hand up to it. Nothing. Cold. And then the sun moved on its track, just a little... [whispers] and the ring hummed. I felt it in my teeth. It knows when the sun moves. I don't know what that means yet. I really, really want to.",
+  "profile": "expressive",
+  "dur": 47.23,
+  "lines": [
+   {
+    "t": 0.37,
+    "text": "Found where the conduits go. There's a pit, and at the bottom of it, a ring."
+   },
+   {
+    "t": 6.4,
+    "text": "A stone ring, standing on its edge, taller than a house. Nothing in the middle but more wall."
+   },
+   {
+    "t": 15,
+    "text": "Priya says it's a capacitor. A giant battery. I say it's a gate. Nobody's winning."
+   },
+   {
+    "t": 24.12,
+    "text": "I held my hand up to it. Nothing. Cold. And then the sun moved on its track, just a little..."
+   },
+   {
+    "t": 34.06,
+    "text": "and the ring hummed. I felt it in my teeth."
+   },
+   {
+    "t": 38.8,
+    "text": "It knows when the sun moves. I don't know what that means yet. I really, really want to."
    }
   ]
  },
  {
   "id": "05",
-  "title": "Glass Rings",
-  "where": "Solar · the array terrace",
+  "title": "Mirrors",
+  "where": "Solar · the mirror gallery",
   "file": "memo_05",
-  "text": "Found glass in the sand, layered like tree rings. Every layer is one summer. This whole world gets burned down and poured out again. Over, and over. I counted four thousand before I made myself stop. Also, the link home has gone quiet. Probably interference. Probably. Note to self: stop saying probably.",
-  "spoken": "Found glass in the sand, layered like tree rings. Every layer is one summer. This whole world gets burned down and poured out again. Over, and over. [uneasy] I counted four thousand before I made myself stop. Also, the link home has gone quiet. Probably interference. Probably. [sighs] Note to self: stop saying probably.",
+  "text": "Attempt number six. Six! The theory is simple: get light into the ring, and something happens. So I've been catching the sun in my compact mirror and bouncing it down there. I get a tiny dot on the stone. That's it. The ring doesn't even notice. But there are mirrors down here too. Huge ones, half buried, all along the conduits, all pointing the wrong way. Priya thinks they're decoration. Nothing down here is decoration. I think the mirrors matter. I think they have to face the right way, one after another, all the way down.",
+  "spoken": "[frustrated sigh] Attempt number six. Six! The theory is simple: get light into the ring, and something happens. So I've been catching the sun in my compact mirror and bouncing it down there. I get a tiny dot on the stone. That's it. The ring doesn't even notice. But there are mirrors down here too. Huge ones, half buried, all along the conduits, all pointing the wrong way. Priya thinks they're decoration. [laughs] Nothing down here is decoration. I think the mirrors matter. I think they have to face the right way, one after another, all the way down.",
   "profile": "expressive",
-  "dur": 27.95,
+  "dur": 41.17,
   "lines": [
    {
-    "t": 0,
-    "text": "Found glass in the sand, layered like tree rings. Every layer is one summer."
+    "t": 0.48,
+    "text": "Attempt number six. Six!"
    },
    {
-    "t": 6.3,
-    "text": "This whole world gets burned down and poured out again. Over, and over."
+    "t": 4.04,
+    "text": "The theory is simple: get light into the ring, and something happens. So I've been catching the sun in my compact mirror and bouncing it down there."
    },
    {
-    "t": 13.02,
-    "text": "I counted four thousand before I made myself stop."
+    "t": 13.04,
+    "text": "I get a tiny dot on the stone. That's it. The ring doesn't even notice."
    },
    {
-    "t": 16.1,
-    "text": "Also, the link home has gone quiet. Probably interference. Probably."
+    "t": 19.16,
+    "text": "But there are mirrors down here too. Huge ones, half buried, all along the conduits, all pointing the wrong way."
    },
    {
-    "t": 25.02,
-    "text": "Note to self: stop saying probably."
+    "t": 28.18,
+    "text": "Priya thinks they're decoration. Nothing down here is decoration."
+   },
+   {
+    "t": 33.72,
+    "text": "I think the mirrors matter. I think they have to face the right way, one after another, all the way down."
+   }
+  ]
+ },
+ {
+  "id": "05b",
+  "title": "Full",
+  "where": "Solar · the capacitor banks",
+  "file": "memo_05b",
+  "text": "I clipped the probe onto one of the big glass banks by the conduits. Just to listen. It's full. They're all full. There's more sunlight stored down here than... I tried to work it out, and the number made me feel sick. Why keep that much? Why bury it? And why was it all so easy to find? The link keeps dropping out. Priya says it's the sand. It isn't the sand. What if the machine wanted someone to find this? What if it's waiting to see what we do?",
+  "spoken": "[quietly] I clipped the probe onto one of the big glass banks by the conduits. Just to listen. It's full. They're all full. There's more sunlight stored down here than... I tried to work it out, and the number made me feel sick. Why keep that much? Why bury it? And why was it all so easy to find? The link keeps dropping out. Priya says it's the sand. [pause] It isn't the sand. What if the machine wanted someone to find this? [whispers] What if it's waiting to see what we do?",
+  "profile": "expressive",
+  "dur": 37.64,
+  "lines": [
+   {
+    "t": 0.14,
+    "text": "I clipped the probe onto one of the big glass banks by the conduits. Just to listen."
+   },
+   {
+    "t": 5.6,
+    "text": "It's full. They're all full. There's more sunlight stored down here than... I tried to work it out, and the number made me feel sick."
+   },
+   {
+    "t": 15.96,
+    "text": "Why keep that much? Why bury it? And why was it all so easy to find?"
+   },
+   {
+    "t": 23.1,
+    "text": "The link keeps dropping out. Priya says it's the sand. It isn't the sand."
+   },
+   {
+    "t": 30.42,
+    "text": "What if the machine wanted someone to find this? What if it's waiting to see what we do?"
    }
   ]
  },
  {
   "id": "06",
-  "title": "Shadows",
-  "where": "Solar · the Gnomon summit",
+  "title": "Here We Go",
+  "where": "Solar · before the ring",
   "file": "memo_06",
-  "text": "There are shapes on the summit stones. Burned in. People-shaped. Some of them look... new. The edges are still sharp. No. They're old. Thousands of summers old. I literally just counted them. I'm a physicist, not an archaeologist. I wouldn't know what new looks like. Moving on. North. Somewhere green, please.",
-  "spoken": "[quietly] There are shapes on the summit stones. Burned in. People-shaped. Some of them look... new. The edges are still sharp. No. They're old. Thousands of summers old. I literally just counted them. [shaky laugh] I'm a physicist, not an archaeologist. I wouldn't know what new looks like. Moving on. North. Somewhere green, please.",
+  "text": "Okay. This is the plan, such as it is. The mirrors are turned. The light's running down the conduits, and the ring is drinking it. When it's full, the probe should be able to talk to the sun through it. Find its frequency. Turn it down. Just a little. Just for a few seconds. Just to prove we can. My hands are shaking. The ring's humming so loud I can feel it in my chest. Priya's counting down. Mum, if this goes wrong, it was Priya's idea. It wasn't. It was mine. Nine seconds. That's all. Here we go.",
+  "spoken": "[nervous laugh] Okay. This is the plan, such as it is. The mirrors are turned. The light's running down the conduits, and the ring is drinking it. When it's full, the probe should be able to talk to the sun through it. Find its frequency. Turn it down. Just a little. Just for a few seconds. Just to prove we can. [shaky breath] My hands are shaking. The ring's humming so loud I can feel it in my chest. Priya's counting down. Mum, if this goes wrong, it was Priya's idea. [laughs] It wasn't. It was mine. Nine seconds. That's all. Here we go.",
   "profile": "expressive",
-  "dur": 34.04,
+  "dur": 44.59,
   "lines": [
    {
-    "t": 0.2,
-    "text": "There are shapes on the summit stones. Burned in. People-shaped."
+    "t": 0.61,
+    "text": "Okay. This is the plan, such as it is."
    },
    {
-    "t": 6.64,
-    "text": "Some of them look... new. The edges are still sharp."
+    "t": 4.5,
+    "text": "The mirrors are turned. The light's running down the conduits, and the ring is drinking it."
    },
    {
-    "t": 13.39,
-    "text": "No. They're old. Thousands of summers old. I literally just counted them."
+    "t": 10.74,
+    "text": "When it's full, the probe should be able to talk to the sun through it. Find its frequency. Turn it down."
    },
    {
-    "t": 22.71,
-    "text": "I'm a physicist, not an archaeologist. I wouldn't know what new looks like."
+    "t": 17.87,
+    "text": "Just a little. Just for a few seconds. Just to prove we can."
    },
    {
-    "t": 28.22,
-    "text": "Moving on. North. Somewhere green, please."
+    "t": 24.99,
+    "text": "My hands are shaking. The ring's humming so loud I can feel it in my chest."
+   },
+   {
+    "t": 29.96,
+    "text": "Priya's counting down. Mum, if this goes wrong, it was Priya's idea. It wasn't. It was mine."
+   },
+   {
+    "t": 39.5,
+    "text": "Nine seconds. That's all. Here we go."
    }
   ]
  },

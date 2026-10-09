@@ -53,33 +53,58 @@
    ]
   },
   {
-   "id": "04", "title": "I Dimmed a Star", "where": "Solar · the Sunward Overlook",
+   "id": "04", "title": "Under the Sand", "where": "Solar · the buried conduits",
    "chunks": [
-    "[breathless] I need to say this out loud so I believe it.",
-    "The sun out here is real. A real star, on a track, caught like a fish on a line.",
-    "And the probe can talk to it. I found its frequency, and I turned it down. Just for nine seconds.",
-    "The whole mesa went blue, and quiet, and... [laughs] I dimmed a star!",
-    "[beat] Then it came back brighter. Like it was cross with me."
+    "[excited, out of breath] Okay. The team's on the link, and Priya will not stop asking what I'm looking at. So, for the record.",
+    "There's something under the sand. Like a cable, but glassy, and warm, and as thick as my arm.",
+    "I brushed it off and followed it with my fingers, and it just... keeps going. Down, under the mesa.",
+    "And there are more. Dozens of them, all running the same way, under layer after layer of old glass.",
+    "Somebody buried a power line, and then let a whole desert happen on top of it.",
+    "[laughs] Priya says don't lick it. I was not going to lick it."
    ]
   },
   {
-   "id": "05", "title": "Glass Rings", "where": "Solar · the array terrace",
+   "id": "04b", "title": "The Ring", "where": "Solar · the edge of the pit",
    "chunks": [
-    "Found glass in the sand, layered like tree rings. Every layer is one summer.",
-    "This whole world gets burned down and poured out again. Over, and over.",
-    "[uneasy] I counted four thousand before I made myself stop.",
-    "Also, the link home has gone quiet. Probably interference. Probably.",
-    "[sighs] Note to self: stop saying probably."
+    "[hushed] Found where the conduits go. There's a pit, and at the bottom of it, a ring.",
+    "A stone ring, standing on its edge, taller than a house. Nothing in the middle but more wall.",
+    "Priya says it's a capacitor. A giant battery. I say it's a gate. [laughs] Nobody's winning.",
+    "I held my hand up to it. Nothing. Cold. And then the sun moved on its track, just a little...",
+    "[whispers] and the ring hummed. I felt it in my teeth.",
+    "It knows when the sun moves. I don't know what that means yet. I really, really want to."
    ]
   },
   {
-   "id": "06", "title": "Shadows", "where": "Solar · the Gnomon summit",
+   "id": "05", "title": "Mirrors", "where": "Solar · the mirror gallery",
    "chunks": [
-    "[quietly] There are shapes on the summit stones. Burned in. People-shaped.",
-    "Some of them look... new. The edges are still sharp.",
-    "No. They're old. Thousands of summers old. I literally just counted them.",
-    "[shaky laugh] I'm a physicist, not an archaeologist. I wouldn't know what new looks like.",
-    "Moving on. North. Somewhere green, please."
+    "[frustrated sigh] Attempt number six. Six!",
+    "The theory is simple: get light into the ring, and something happens. So I've been catching the sun in my compact mirror and bouncing it down there.",
+    "I get a tiny dot on the stone. That's it. The ring doesn't even notice.",
+    "But there are mirrors down here too. Huge ones, half buried, all along the conduits, all pointing the wrong way.",
+    "Priya thinks they're decoration. [laughs] Nothing down here is decoration.",
+    "I think the mirrors matter. I think they have to face the right way, one after another, all the way down."
+   ]
+  },
+  {
+   "id": "05b", "title": "Full", "where": "Solar · the capacitor banks",
+   "chunks": [
+    "[quietly] I clipped the probe onto one of the big glass banks by the conduits. Just to listen.",
+    "It's full. They're all full. There's more sunlight stored down here than... I tried to work it out, and the number made me feel sick.",
+    "Why keep that much? Why bury it? And why was it all so easy to find?",
+    "The link keeps dropping out. Priya says it's the sand. [pause] It isn't the sand.",
+    "What if the machine wanted someone to find this? [whispers] What if it's waiting to see what we do?"
+   ]
+  },
+  {
+   "id": "06", "title": "Here We Go", "where": "Solar · before the ring",
+   "chunks": [
+    "[nervous laugh] Okay. This is the plan, such as it is.",
+    "The mirrors are turned. The light's running down the conduits, and the ring is drinking it.",
+    "When it's full, the probe should be able to talk to the sun through it. Find its frequency. Turn it down.",
+    "Just a little. Just for a few seconds. Just to prove we can.",
+    "[shaky breath] My hands are shaking. The ring's humming so loud I can feel it in my chest.",
+    "Priya's counting down. Mum, if this goes wrong, it was Priya's idea. [laughs] It wasn't. It was mine.",
+    "Nine seconds. That's all. Here we go."
    ]
   },
   {

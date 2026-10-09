@@ -586,6 +586,7 @@ export function buildAzureFlooded(B) {
   deco(VX2 - 0.4, VY, VZ2 + 0.15, VX2 - 0.1, VY + 0.3, -141.2, 'metal'); // feed pipe to the shaft's intake
   for (let z = VZ1 + 0.4; z < VZ2; z += 0.7) beacon(VX2 + 0.25, -50.35, z, 0, color(0x5dff7a), 0.08); // the gap's mouth
   let flooding = false, rush = null, rushGain = 0;
+  B.level.azure.ballast = { get flooding() { return flooding; } }; // (guide.js)
   new TargetPanel(W, {
     min: [VX1 + 0.1, VY, VZ1 + 0.1], max: [VX2, VY + 0.12, VZ2 - 0.1], color: GREEN, face: 'up',
     onActivate: () => {

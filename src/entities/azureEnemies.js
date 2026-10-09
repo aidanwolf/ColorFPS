@@ -8,7 +8,7 @@ import {
   Glob, InkCloud, Debris, blast, hitSparks, tint,
 } from './critters.js';
 import { director } from '../combat/director.js';
-import { esfx } from './enemySfx.js';
+import { esfx, edeath, reach } from './enemySfx.js';
 import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
@@ -168,6 +168,7 @@ class Fish {
     blast(W, this.pos, this.color, 0.4);
     if (s.water && waterAt(W, this.pos)) W.fx.bubbles(this.pos, 10);
     sfx(shot ? 'critter_hit' : 'glob_pop', 0.8 * falloff(this.pos.distanceTo(W.game.camera.position), 5, 40));
+    edeath('death_fish', this.pos);
     this.glowMat.color.setRGB(0.4, 0.1, 0.08);
     // (the last fish's debris frees the school's shared materials once it's gone)
     const mats = last ? [this.glowMat, s.metalMat, s.finMat, s.toothMat] : [this.glowMat];
@@ -359,7 +360,7 @@ export class FishSchool {
         else if (l < 0.8 && f.wait <= 0) {
           f.state = 'leapAim';
           f.timer = FISH.leapAim;
-          sfx('fish_alert', 0.8 * falloff(f.pos.distanceTo(player.pos), 3, 25), { rate: 1.3 });
+          sfx('fish_alert', 0.8 * reach(f.pos.distanceTo(player.pos), 3, 25), { rate: 1.3 });
         } else if (f.timer <= 0) f.state = 'return';
         break;
       }
@@ -647,7 +648,7 @@ export class RoboSquid {
       this.sightTimer = 0.25;
       this.sees = this.dist < this.range && this.world.lineOfSight(this.pos, _eye);
       if (this.sees && !this.aggro) {
-        sfx('squid_pulse', 0.7 * falloff(this.dist, 4, 30));
+        sfx('squid_pulse', 0.7 * reach(this.dist, 4, 30));
         barks.say(this, 'spot');
       }
       if (this.sees) this.lostSaid = false;
@@ -710,7 +711,7 @@ export class RoboSquid {
         else if (this.fireTimer <= 0) {
           this.state = 'charge';
           this.timer = SQUID.charge;
-          sfx('squid_charge', 0.7 * falloff(this.dist, 4, 30));
+          sfx('squid_charge', 0.7 * reach(this.dist, 4, 30));
         }
       }
     }
@@ -738,7 +739,7 @@ export class RoboSquid {
     const dir = _b.copy(director.aim(this, from, _b)).sub(from).normalize(); // (first shot from off screen goes wide)
     new Glob(this.world, from, dir.multiplyScalar(SQUID.torpedo), this.color, { radius: 0.26, life: 6, style: 'ink', cause: 'ink torpedo', bubbles: !!this.water });
     this.vel.addScaledVector(dir.normalize(), -2.5); // recoil
-    sfx('squid_torpedo', 0.9 * falloff(this.dist, 4, 40));
+    sfx('squid_torpedo', 0.9 * reach(this.dist, 4, 40));
   }
 
   // the dodge: an ink cloud where it was and a hard jet away, sideways to the player's aim
@@ -804,6 +805,7 @@ export class RoboSquid {
     new InkCloud(this.world, this.pos, { size: 2.2, life: 3.5 });
     if (this.water) this.world.fx.bubbles(this.pos, 16);
     sfx('critter_die', Math.max(0.3, falloff(this.dist, 6, 60)));
+    edeath('death_squid', this.pos, 1, this.water ? 0.92 : 1);
     const player = this.world.game.player;
     player.shake = Math.max(player.shake, 0.1 + 0.2 * falloff(this.dist, 4, 25));
     this.group.updateMatrixWorld(true);

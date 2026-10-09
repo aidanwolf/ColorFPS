@@ -6,6 +6,7 @@ import { COLORS, RED } from '../colors.js';
 import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
 import { GroundEnemy, Trooper, RigDef, Bolt, blast, explosionFx, sfx, falloff, rnd, esfx, barks } from './groundKit.js';
+import { reach, edeath } from './enemySfx.js';
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
@@ -107,7 +108,7 @@ export class BlastCrab extends GroundEnemy {
 
   onAlert() {
     this.setState('hunt');
-    sfx('crab_chirp', 0.5 * falloff(this.dist, 4, 30), { alt: 'drone_alert', altRate: 1.6, altGain: 0.6 });
+    sfx('crab_chirp', 0.5 * reach(this.dist, 4, 30), { alt: 'drone_alert', altRate: 1.6, altGain: 0.6 });
   }
 
   think(dt, player) {
@@ -134,7 +135,7 @@ export class BlastCrab extends GroundEnemy {
         const k = this.stateT / CRAB_ARM;
         this.beepT = 0.15 - 0.1 * k;
         this.pulse = 1;
-        const g = 0.35 * falloff(this.dist, 3, 26);
+        const g = 0.35 * reach(this.dist, 3, 26);
         sfx('crab_beep', g, { rate: 1 + k * 0.5, vary: 0, synth: (gg) => audio.tone({ type: 'square', f: 1700 + k * 900, dur: 0.045, gain: 0.07 * gg / 0.35 }) });
       }
       if (this.stateT >= CRAB_ARM) {
@@ -214,7 +215,7 @@ export class BlastCrab extends GroundEnemy {
     const fx = this.world.fx;
     fx.burst(this.pos, 0x5a4a40, { count: 10, speed: 2.5, life: 0.5, size: 0.3, gravity: 3 });
     fx.sparks(this.center(_w), UP, COLORS[this.color].hex, { count: 8, speed: 5, spread: 1.2 });
-    sfx('crab_leap', 0.5 * falloff(this.dist, 3, 24), { synth: (g) => audio.noise({ dur: 0.25, gain: 0.25 * g, freq: 1800, f2: 4000, q: 1.2 }) });
+    sfx('crab_leap', 0.5 * reach(this.dist, 3, 24), { synth: (g) => audio.noise({ dur: 0.25, gain: 0.25 * g, freq: 1800, f2: 4000, q: 1.2 }) });
   }
 
   onLand() {
@@ -300,6 +301,7 @@ export class BlastCrab extends GroundEnemy {
     explosionFx(this.world.fx, c, hex, 0.75);
     const g = Math.max(0.25, falloff(this.dist, 6, 55));
     sfx('crab_explode', 0.9 * g, { alt: 'drone_explode', altRate: 1.35, synth: (gg) => audio.explode(false) });
+    edeath('death_crab', c);
     audio.tone({ type: 'sine', f: 120, f2: 35, dur: 0.4, gain: 0.35 * g });
     blast(this.world, c, this.blastRadius, this);
     barks.died(this); // a welder nearby reacts ("Crab blew! Stay back!")
@@ -429,6 +431,7 @@ export class Welder extends Trooper {
     this.rollRadius = 0.62; // hip height when tucked into a roll (the curled body's reach)
     this.barkPersona = 'foundry'; // combat/barks.js
     this.painSound = 'robot_pain_heavy';
+    this.deathSound = 'death_welder'; // (enemySfx.js DEATH_SFX: the deep robot scream as it topples)
     this.voicePitch = 0.9;
     this.m = {
       armor: this.mat(new THREE.MeshStandardMaterial({ color: 0x8a1c24, metalness: 0.55, roughness: 0.4, flatShading: true })),
@@ -460,7 +463,7 @@ export class Welder extends Trooper {
 
   onAlert() {
     this.setState('engage');
-    sfx('welder_alert', 0.6 * falloff(this.dist, 5, 35), { alt: 'drone_alert', altRate: 0.55, synth: (g) => audio.tone({ type: 'sawtooth', f: 90, f2: 60, dur: 0.5, gain: 0.12 * g }) });
+    sfx('welder_alert', 0.6 * reach(this.dist, 5, 35), { alt: 'drone_alert', altRate: 0.55, synth: (g) => audio.tone({ type: 'sawtooth', f: 90, f2: 60, dur: 0.5, gain: 0.12 * g }) });
   }
 
   onStep(amp = 1) {
@@ -532,11 +535,11 @@ export class Welder extends Trooper {
     } else if (s === 'ignite') {
       this.wantCrouch = 0.35;
       if (this.stateT === dt || this.stateT < dt * 1.5) {
-        sfx('welder_ignite', 0.45 * falloff(this.dist, 3, 30), { synth: (g) => audio.noise({ dur: 0.6, gain: 0.18 * g, freq: 3000, f2: 7000, q: 0.8 }) });
+        sfx('welder_ignite', 0.45 * reach(this.dist, 3, 30), { synth: (g) => audio.noise({ dur: 0.6, gain: 0.18 * g, freq: 3000, f2: 7000, q: 0.8 }) });
       }
       if (this.stateT >= IGNITE_T) {
         this.setState('flame');
-        sfx('welder_ignite_burst', 0.8 * falloff(this.dist, 3, 34), { alt: 'incinerator_ignite', altRate: 1.15, synth: (g) => audio.noise({ dur: 0.4, gain: 0.35 * g, freq: 700, q: 0.6, type: 'lowpass' }) });
+        sfx('welder_ignite_burst', 0.8 * reach(this.dist, 3, 34), { alt: 'incinerator_ignite', altRate: 1.15, synth: (g) => audio.noise({ dur: 0.4, gain: 0.35 * g, freq: 700, q: 0.6, type: 'lowpass' }) });
       }
     } else if (s === 'flame') {
       this.wantCrouch = 0.25;
