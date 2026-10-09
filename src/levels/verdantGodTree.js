@@ -1147,7 +1147,7 @@ export function buildGodTree(B, ctx = {}) {
       ],
       [
         { type: 'swarm', pos: [B2.x - 3, B2.y + 7, B2.z - 2], color: [GREEN, YELLOW], count: 7 },
-        { type: 'rotflies', pos: [B2.x + 4, B2.y + 1, B2.z + 3], color: GREEN, count: 4, respawn: 0, hive: false },
+        { type: 'rotflies', pos: [B2.x + 4, B2.y + 1, B2.z + 3], color: GREEN, count: 4, respawn: 0, hive: false, stuckTime: 4, stuckEnd: 'die' },
         { type: 'spider', pos: [B2.x + 3, B2.y, B2.z - 5], color: YELLOW, shields: [GREEN] },
       ],
     ],
@@ -1158,13 +1158,13 @@ export function buildGodTree(B, ctx = {}) {
   lamp(B2.x, B2.y + 6, B2.z, 0xb8ff9a, 18, 22);
   say([98, 45, -382], [104, 49, -376], `Swarms: a ${G_('glob')} bursting in the air catches the lot.`, 5);
 
-  // ================================================================ THE CUT FACE and THE SEED PODS (46 → 53.4)
+  // ================================================================ THE CUT FACE and THE SEED PODS (46 → 50.6)
   // Where the second bough meets the trunk the harvesters stripped the bark off a whole face of it: flat,
   // raw heartwood weeping sap, too sheer to climb, and a hive nest built over its foot. Burst the nest, goo
   // the face, and the rotflies that hang round the bough fly into the goo and stick: climb them to the
   // catwalk above. It runs north to a gap where seed pods swing on long stems: goo one still when it swings
   // into line and hop across to a bloom pad that throws you up onto the third bough.
-  const FACE = { x: TREE.x + trunkR(90, 50) + 0.15, z1: -390.6, z2: -379.6, y1: B2.y, y2: 53.4 };
+  const FACE = { x: TREE.x + trunkR(90, 49) + 0.15, z1: -390.6, z2: -379.6, y1: B2.y, y2: 51.2, cap: 50.6 };
   solid(FACE.x - 5, FACE.y1, FACE.z1, FACE.x, FACE.y2 - 0.01, FACE.z2, 'rock');
   {
     // the raw heartwood: a pale panel, growth rings, sap weeping down it, curled lips of bark round it
@@ -1202,40 +1202,46 @@ export function buildGodTree(B, ctx = {}) {
   const faceNest = new Thicket(W, { min: [FACE.x, FACE.y1, FACE.z1 + 1.5], max: [FACE.x + 1.6, FACE.y1 + 3.2, FACE.z2 - 1.5], style: 'nest', health: 2, seed: 7 });
   const faceFlies = C.rotflies([B2.x - 6.5, B2.y, B2.z - 5.2], { count: 6, aggro: false, attract: 22, stuckTime: 10, respawn: 3, perPatch: 1 });
   say([FACE.x + 0.5, 45, FACE.z1], [FACE.x + 5, 50, FACE.z2], `Raw heartwood: too sheer to climb. Burst the nest, then ${G_('goo the face')} in steps — the rotflies stick to goo.`, 7);
-  // the catwalk above the cut, round to the seed pods
-  const CWb = [66, 56, 46, 37.5];
-  const CW = CWb.map((b) => [...P(b, trunkR(b, 53.4) + 2.1, 0)].filter((_, i) => i !== 1));
-  const cwStart = P(76, trunkR(76, 53.4) + 1.6, 53.4);
-  solid(cwStart[0] - 1.8, 52.2, cwStart[2] - 1.8, cwStart[0] + 1.8, 53.4, cwStart[2] + 1.8, 'grass');
-  ledge(76, 53.4, { d: 3.4, w: 3.6, solidBox: false });
-  K.catwalk([[cwStart[0], cwStart[2]], ...CW], 53.4, { w: 2.2 });
+  // the cut's curled upper lip over its north end: a shelf you reach from the flies, the catwalk off its end
+  solid(FACE.x - 0.6, FACE.cap - 0.8, FACE.z1, FACE.x + 2.4, FACE.cap, -386, 'grass');
+  {
+    const g = new THREE.BoxGeometry(3.0, 0.8, 4.6).toNonIndexed();
+    tint(g, barkShade);
+    put(limbMat, g, FACE.x + 0.9, FACE.cap - 0.4, (FACE.z1 - 386) / 2);
+    put(mossMat, new THREE.BoxGeometry(2.8, 0.06, 4.4), FACE.x + 0.9, FACE.cap + 0.01, (FACE.z1 - 386) / 2);
+    limb(curveOf([[FACE.x + 2.2, FACE.cap - 0.5, -386.2], [FACE.x + 2.6, FACE.cap - 0.4, -388.3], [FACE.x + 2.2, FACE.cap - 0.5, FACE.z1 - 0.2]]), 0.5, 0.5, { seg: 7, knob: 0.2 });
+  }
+  const CWb = [70, 58];
+  const CW = CWb.map((b) => [...P(b, trunkR(b, FACE.cap) + 2.1, 0)].filter((_, i) => i !== 1));
+  const cwStart = [FACE.x + 0.9, FACE.cap, FACE.z1 + 0.3];
+  K.catwalk([[cwStart[0], cwStart[2]], ...CW], FACE.cap, { w: 2.2 });
   for (const [x, z] of CW) {
     const b = bearingOf(x, z);
-    K.rod(KM.pipeDark, [x, 53.2, z], P(b, trunkR(b, 51) - 0.3, 51), 0.1, 0.1, 5);
+    K.rod(KM.pipeDark, [x, FACE.cap - 0.2, z], P(b, trunkR(b, FACE.cap - 2.4) - 0.3, FACE.cap - 2.4), 0.1, 0.1, 5);
   }
-  cp([cwStart[0], 53.4, cwStart[2]], -2.4, [3, 3, 3], 'THE CUT FACE');
+  cp([FACE.x + 0.9, FACE.cap, -388.3], -2.4, [2.6, 3, 3], 'THE CUT FACE');
   // the seed pods: from the catwalk's end across to the bloom pad's stub
-  const podA = [CW[CW.length - 1][0], 53.4, CW[CW.length - 1][1]];
-  const BLOOM = [80.6, 53.4, -411.2];
-  solid(BLOOM[0] - 1.9, 51, BLOOM[2] - 1.9, BLOOM[0] + 1.9, 53.4, BLOOM[2] + 1.9, 'grass');
-  limb(curveOf([P(12, trunkR(12, 51) - 2, 51), [BLOOM[0] - 0.4, 52, BLOOM[2] + 0.4], [BLOOM[0] + 1.2, 52.2, BLOOM[2] - 1.4]]), 2.2, 1.6, { seg: 12, flat: 3.4 });
-  put(mossMat, new THREE.IcosahedronGeometry(2.0, 1).scale(1, 0.12, 1), BLOOM[0], 53.38, BLOOM[2]);
+  const podA = [CW[CW.length - 1][0], FACE.cap, CW[CW.length - 1][1]];
+  const BLOOM = P(20, trunkR(20, FACE.cap) + 4.0, FACE.cap);
+  solid(BLOOM[0] - 1.9, FACE.cap - 2.4, BLOOM[2] - 1.9, BLOOM[0] + 1.9, FACE.cap, BLOOM[2] + 1.9, 'grass');
+  limb(curveOf([P(20, trunkR(20, FACE.cap) - 2, FACE.cap - 2.4), P(20, trunkR(20, FACE.cap) + 2.4, FACE.cap - 1.4), P(22, trunkR(22, FACE.cap) + 5.8, FACE.cap - 1.3)]), 2.2, 1.6, { seg: 12, flat: 3.4 });
+  put(mossMat, new THREE.IcosahedronGeometry(2.0, 1).scale(1, 0.12, 1), BLOOM[0], FACE.cap - 0.02, BLOOM[2]);
   const pods = [];
   for (let i = 1; i <= 3; i++) {
     const t = i / 4;
     const x = podA[0] + (BLOOM[0] - podA[0]) * t, z = podA[2] + (BLOOM[2] - podA[2]) * t;
     // they swing across the line between the catwalk and the stub
     const dx = BLOOM[0] - podA[0], dz = BLOOM[2] - podA[2], l = Math.hypot(dx, dz);
-    const pod = new SeedPod(W, game, { pivot: [x, 66, z], length: 12.6, dir: [-dz / l, dx / l], amp: 0.4, period: 3.1 + i * 0.4, phase: i * 1.9, top: 53.4 });
+    const pod = new SeedPod(W, game, { pivot: [x, 63.2, z], length: 12.6, dir: [-dz / l, dx / l], amp: 0.3, period: 3.1 + i * 0.4, phase: i * 1.9, top: FACE.cap });
     W.goo.registerStickable(pod, { duration: 7 });
     pods.push(pod);
   }
-  limb(curveOf([P(34, 14, 62), P(22, 22, 66.6), P(8, 30, 66.2)]), 1.8, 0.8, { seg: 10 });
-  say([podA[0] - 2, 52.5, podA[2] - 2], [podA[0] + 2, 56, podA[2] + 2], `Swinging seed pods. ${G_('Goo one')} as it swings into line and it hangs there.`, 6);
+  limb(curveOf([P(34, 14, 60), P(22, 22, 63.8), P(8, 30, 63.4)]), 1.8, 0.8, { seg: 10 });
+  say([podA[0] - 2, FACE.cap - 0.5, podA[2] - 2], [podA[0] + 2, FACE.cap + 3, podA[2] + 2], `Swinging seed pods. ${G_('Goo one')} as it swings into line and it hangs there.`, 6);
   // the bloom pad on the stub: lob a glob into it, stand on it as it blooms
-  const bloom1 = new GooPad(W, { pos: BLOOM, power: 24, push: [-2.2, 0, 0.4], carry: false, window: 0.8 });
+  const bloom1 = new GooPad(W, { pos: BLOOM, power: 26, push: [-2.1, 0, 0.3], carry: false, window: 0.8 });
   B.onRespawn(() => bloom1.reset());
-  say([BLOOM[0] - 2, 52.9, BLOOM[2] - 2], [BLOOM[0] + 2, 56, BLOOM[2] + 2], `A ${G_('bloom pad')}: lob a ${G_('glob')} into it, stand on it, and ride the bloom.`, 6);
+  say([BLOOM[0] - 2, FACE.cap - 0.5, BLOOM[2] - 2], [BLOOM[0] + 2, FACE.cap + 3, BLOOM[2] + 2], `A ${G_('bloom pad')}: lob a ${G_('glob')} into it, stand on it, and ride the bloom.`, 6);
   overgrow(5, 95, 46, 64, 50);
 
   // ================================================================ BOUGH 3 · THE MOSS POND (y 62, north)
@@ -1304,7 +1310,7 @@ export function buildGodTree(B, ctx = {}) {
   // through over a spore vent: goo the hole and walk the membrane (it chokes the vent). Beyond, the hive's
   // sap pistons shove bark slabs out of the trunk and draw them back: goo one while it's out and it jams.
   // Then a vine from the last ledge swings you onto the fourth bough.
-  const trapPad = C.snapPad([73.6, B3.y, -403.4], { power: 20, push: [-3.9, 3.9], carry: false, yaw: PI * 0.75 });
+  const trapPad = C.snapPad([B3.x - 6.8, B3.y, B3.z + 7.2], { power: 20, push: [1.3, 7.3], carry: false, yaw: PI, size: 1.1 });
   const ledgeRun = (b0, b1, y, step = 3.2) => {
     const pts = [];
     for (let b = b0; b0 > b1 ? b >= b1 - 0.01 : b <= b1 + 0.01; b += b0 > b1 ? -step : step) pts.push(P(b, trunkR(b, y) + 1.7, y));
@@ -1323,15 +1329,22 @@ export function buildGodTree(B, ctx = {}) {
   limb(curveOf([P(333, trunkR(333, 66.5) + 1.4, 67.2), P(328, trunkR(328, 65) + 2.6, 64.5), P(323, trunkR(323, 66.5) + 1.4, 67.2)]), 1.1, 1.1, { seg: 8, knob: 0.25, cap: false });
   say([LD1[0][0] - 2, 67.4, LD1[0][2] - 2], [LD1[0][0] + 2, 71, LD1[0][2] + 2], `The ledge has rotted through over a spore vent. ${G_('Goo the hole')}: the membrane holds you and chokes the vent.`, 7);
   const pistons = [];
-  [[306, 69.5, 0], [297.5, 70.6, 1.4], [289, 71.7, 2.8]].forEach(([b, y, ph]) => {
+  [[303, 69.4, 0], [287, 70.4, 2.1]].forEach(([b, y, ph]) => {
     const pis = new SapPiston(W, game, { bearing: b, top: y, phase: ph });
     W.goo.registerStickable(pis, { duration: 8 });
     pistons.push(pis);
   });
   say([LD1b[0][0] - 2, 67.4, LD1b[0][2] - 2], [LD1b[0][0] + 2, 71, LD1b[0][2] + 2], `The pistons won't wait for you. ${G_('Goo a slab')} while it's out and it jams.`, 6);
-  const LD2 = ledgeRun(282.5, 279, 72.9, 3.5);
-  // the vine to the fourth bough
-  const V4 = vine({ anchor: [56.2, 86.6, -394.2], length: 13, sway: [-0.7, 0.7] });
+  // a stub of a branch north of the fourth bough, a bloom pad at its tip to throw you onto the bough
+  const LD2 = [];
+  for (let r = 15.2; r <= 19.6; r += 1.1) LD2.push(P(296, r, 71.6));
+  strip(LD2, 2.6);
+  limb(curveOf([P(296, trunkR(296, 70) - 3, 69.6), P(296, 16, 70.5), P(297, 20.6, 70.7)]), 1.8, 1.4, { seg: 10, flat: 3.4, squash: 0.9 });
+  for (const [x, y, z] of LD2) put(mossMat, new THREE.IcosahedronGeometry(1.2, 1).scale(1, 0.12, 1), x, y - 0.03, z);
+  const BLOOM2 = P(296, 19.4, 71.6);
+  const bloom2 = new GooPad(W, { pos: BLOOM2, power: 20, push: [0.8, 0, 5.6], carry: false, window: 0.8 });
+  B.onRespawn(() => bloom2.reset());
+  say([LD2[0][0] - 2, 70.6, LD2[0][2] - 2], [LD2[0][0] + 2, 74, LD2[0][2] + 2], `Another ${G_('bloom pad')}: the bough is right above it.`, 5);
   overgrow(278, 345, 62, 80, 46);
 
   // ================================================================ BOUGH 4 · THE FUNGUS GROVE (y 77, west)
@@ -1648,14 +1661,14 @@ export function buildGodTree(B, ctx = {}) {
     if (p.y > 66 && p.y < 75) {
       const b = bearingOf(p.x, p.z);
       if (b > 322) return `${G_('Goo the rotted hole')}: walk the membrane over the vent.`;
-      if (b > 285) return `${G_('Goo a piston\'s slab')} while it's out, and climb.`;
-      return 'Jump into the vine and swing onto the fourth bough.';
+      if (b > 291 && Math.hypot(p.x - BLOOM2[0], p.z - BLOOM2[2]) > 4.5) return `${G_('Goo a piston\'s slab')} while it's out, and climb.`;
+      return `Lob a ${G_('glob')} into the bloom pad and ride it up onto the fourth bough.`;
     }
     if (p.y > 75 && p.y < 82 && p.x < 64) return fight4.state === 'cleared' || fight4.state === 'armed' ? 'Out to the bough\'s tip: <b>jump onto the giant fly</b>.' : 'Clear the grove.';
     return 'Climb the god tree.';
   }
 
-  return { objective, arena, homeDoor, fly, zip, vines, pods, pistons, membrane, vent, borer1, faceFlies, faceNest, FACE, BLOOM, bloom1, trapPad, seal1, fights: [fight1, fight2, fight3, fight4], pockets: [p1, p2, p3, p4], trunkR, TREE };
+  return { objective, arena, homeDoor, fly, zip, vines, pods, pistons, membrane, vent, borer1, faceFlies, faceNest, FACE, BLOOM, bloom1, BLOOM2, bloom2, trapPad, seal1, fights: [fight1, fight2, fight3, fight4], pockets: [p1, p2, p3, p4], trunkR, TREE };
 }
 
 // ================================================================================================
@@ -1729,7 +1742,7 @@ class SeedPod {
 // A bark slab on a sap piston: it shoves out of the trunk, waits a moment and draws back in (standing on it
 // as it goes in, the bark shoves you off). Goo it while it's out and it jams there.
 class SapPiston {
-  constructor(world, game, { bearing, top, phase = 0, out = 3.2, size = 2.4, cycle = 4.2, stay = 1.3 }) {
+  constructor(world, game, { bearing, top, phase = 0, out = 4.4, size = 2.4, cycle = 4.2, stay = 1.3 }) {
     this.world = world;
     this.game = game;
     this.b = bearing;
