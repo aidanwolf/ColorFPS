@@ -343,6 +343,8 @@ export function buildVerdantRuin(B, { K, F, trap }) {
   F.fireflies([[S.cx, top + 2, S.cz, 5, 30], [-62, S.floor + 2, -366, 4, 12], [-38, S.floor + 2, -396, 4, 12]], 0x9dffb0, 0.1);
   say([-52, S.floor, -360], [-48, S.floor + 4, -353], `There: held in the cradle's grip over the pyramid, a ${G_('chroma core')}. Up the stair.`, 6);
   cp([-50, S.floor, -357], NORTH, [4, 3, 3]);
+  cp([S.cx, top, S.cz + 3.2], NORTH, [5, 3, 1.4]); // (the top of the stair: a death in the guard fight brings you back up here)
+  B.armor([S.cx - 18, top, S.cz]);
   B.armor([-71, S.floor, -403]);
   // SECRET — the Builders' Archive: a ledge high on the north wall, reached by a bloom pad in the floor below it
   // (goo it, stand on it, and it throws you up)

@@ -393,32 +393,31 @@
  {
   "id": "09",
   "title": "Something Follows",
-  "where": "Verdant · the root island",
+  "where": "Verdant · the top of the sanctum's pyramid",
   "file": "memo_09",
-  "text": "Recording quietly. Something has been following me since the lake. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. Right. Count to three, then run for the cold door, east. One. Two...",
-  "spoken": "[whispers] Recording quietly. Something has been following me since the lake. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. [nervous] Right. Count to three, then run for the cold door, east. One. Two...",
-  "profile": "expressive",
-  "dur": 28.84,
+  "text": "Recording quietly. Something has been following me since the swamp. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. Right. Count to three, then run for the high door, east. One. Two...",
+  "dur": 23.56,
+  "est": true,
   "lines": [
    {
-    "t": 0.58,
+    "t": 0,
     "text": "Recording quietly."
    },
    {
-    "t": 2.44,
-    "text": "Something has been following me since the lake. It stops when I stop."
+    "t": 1.81,
+    "text": "Something has been following me since the swamp. It stops when I stop."
    },
    {
-    "t": 7.73,
+    "t": 7.53,
     "text": "When I turn around, it's only light, bending, like heat over a road."
    },
    {
-    "t": 14.72,
+    "t": 13.1,
     "text": "I think the machine knows my name now. Ever since the star."
    },
    {
-    "t": 21.05,
-    "text": "Right. Count to three, then run for the cold door, east. One. Two..."
+    "t": 17.99,
+    "text": "Right. Count to three, then run for the high door, east. One. Two..."
    }
   ]
  },

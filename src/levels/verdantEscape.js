@@ -177,6 +177,7 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
 
   // ---------------------------------------------------------------- traps and obstacles along the passages
   const resets = [];
+  const flameStates = []; // (the flame jets' clocks: flameClock() for tests)
   const trapS = []; // where the timed traps are (the boulder eases off while you wait out one just ahead)
   const hazards = []; // functions (player) → death cause or null, checked every frame of the run
   // A breakable obstacle: only a green glob's burst clears it (other colors glance off). styles: planks, rubble,
@@ -474,6 +475,7 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
     W.scene.add(sheet);
     const st = { t: phase * period };
     trapS.push(s);
+    flameStates.push({ st, period });
     resets.push(() => (st.t = phase * period));
     W.add({
       update(dt, player) {
@@ -540,7 +542,7 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
   darts(S3 + 12);
   closingDoor(S3 + 18);
   flames(S4 + 5, 0);
-  flames(S4 + 10, 0.45);
+  flames(S4 + 10, 0); // (in step: both burn together, then a clear window to run both)
   new Breakable(...across(S5 + 4.5, 0.8), 'cracked');
   const notSwamp = (p) => !(p.y > -2 && p.z > -301.5);
   F.groupVisible(K.flush(), notSwamp); // (the ruin so far and the passages)
@@ -737,6 +739,7 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
     },
     run,
     obstacles,
+    flameClock: () => (flameStates[0] ? flameStates[0].st.t % flameStates[0].period : null),
     path: { at, project, total, segs },
     done() {
       if (!game.clearedEncounters?.has(ESCAPE_ID)) game.clearedEncounters?.add(ESCAPE_ID);
