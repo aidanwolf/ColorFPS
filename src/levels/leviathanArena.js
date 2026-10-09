@@ -595,6 +595,7 @@ export function placeLeviathan(B, { center, half = 25, depth = 22, pillars = [],
       game.setMusic(music);
       onKilled?.();
       if (engine) {
+        game.guardianBeaten?.(world);
         engine.unshield();
         game.hud.message(`Its guardian is dead and the engine's shield is down — shoot its core with <b>${COLORS[engineColor].name}</b>!`, 6);
       } else finish();

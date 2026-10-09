@@ -99,6 +99,7 @@ class Game {
     // World modules call shutDownWorld(name) and listen with onPowerDown(fn) to show the aftermath.
     this.powerDown = { red: false, solar: false, verdant: false, azure: false };
     this.clearedEncounters = new Set(); // arena fights already won (persisted in the save)
+    this.beaten = new Set(); // worlds whose guardian is dead (saved at once, before its power source goes down)
     this.powerDownListeners = [];
 
     // ---- renderer / scene ----
@@ -417,6 +418,13 @@ class Game {
 
   // The player shut a world's power source down: remember it, tell every listener (the world's own
   // aftermath, the Atrium reactor), save. fn(name, { restored }) also runs for worlds restored from a save.
+  // A world's guardian is down: saved straight away, so quitting before the shutdown can't bring it back.
+  guardianBeaten(name) {
+    if (!name || this.beaten.has(name)) return;
+    this.beaten.add(name);
+    this.save();
+  }
+
   shutDownWorld(name) {
     if (this.powerDown[name]) return;
     this.powerDown[name] = true;
@@ -440,6 +448,7 @@ class Game {
       secrets: this.level.secrets.filter((s) => s.trigger.fired).map((s) => s.label),
       powerDown: Object.keys(this.powerDown).filter((k) => this.powerDown[k]),
       cleared: [...this.clearedEncounters],
+      beaten: [...this.beaten],
       won: !!this.won,
       time: Math.floor(this.stats.time),
       deaths: this.stats.deaths,
@@ -467,7 +476,8 @@ class Game {
       this.secretsFound++;
     }
     this.hud.setSecrets(this.secretsFound, this.level.secretsTotal);
-    for (const name of s.powerDown || []) {
+    // (a guardian beaten but its power source not yet shot counts as shut down: its fight never comes back)
+    for (const name of [...(s.powerDown || []), ...(s.beaten || [])]) {
       if (name in this.powerDown && !this.powerDown[name]) {
         this.powerDown[name] = true;
         for (const fn of this.powerDownListeners) fn(name, { restored: true });

@@ -536,6 +536,7 @@ export function buildVerdantArena(B, { center, size = 44, entry = 's', exit = 'n
       // the guardian has fallen: its charge's shield drops and the Heart is open to the shutdown
       game.setMusic('music_green');
       game.hud.zoneTitle('THE THORNMAW', 'WITHERED', '#3dff7a');
+      game.guardianBeaten?.(worldName);
       entryGate.set(false); // the way back stays open; the exit waits for the Heart
       heart.dropIn = 1.8; // (game time) then the shield shatters
     },

@@ -491,6 +491,7 @@ export function buildForgeArena(B, opts = {}) {
       setSeals(entrySeals, true);
       game.setMusic(areaMusic);
       if (!powerSource) return finish();
+      game.guardianBeaten?.(worldName);
       // its guard is down: the core's shield fails
       core.state = 'exposed';
       shield.visible = false;

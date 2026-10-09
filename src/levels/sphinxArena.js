@@ -661,6 +661,7 @@ export function placeSphinx(B, opts) {
         reopen();
         return finish();
       }
+      game.guardianBeaten?.(world);
       // its guardian gone, the power source's shield drops (the exit opens once it's shut down)
       for (const g of sealGates) g.set(true);
       lens.exposeT = 1.8;
