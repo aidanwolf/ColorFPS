@@ -39,7 +39,7 @@ import { spawnEnemy } from './combat.js';
 import { Checkpoint } from './misc.js';
 import { loopFor } from './enemyKit.js';
 import { esfx } from './enemySfx.js';
-import { flyGeometry, organic, wingMaterial, glow, gnarl, paint, merge, Snapjaw, Borer, FlySwarm, ICHOR } from './verdantCreatures.js';
+import { flyGeometry, organic, wingMaterial, gnarl, paint, merge, Snapjaw, Borer, FlySwarm, ICHOR } from './verdantCreatures.js';
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
@@ -120,7 +120,7 @@ export class GiantFly {
     const body = (this.body = new THREE.Group());
     body.position.y = -0.27 * SCALE; // (the thorax's top is the origin: where you stand)
     body.scale.setScalar(SCALE);
-    body.add(new THREE.Mesh(G.body, organic('chitin', color)), new THREE.Mesh(G.glow, glow(color, 0.75)), new THREE.Mesh(SG.moss, organic('leaf', color)), new THREE.Mesh(SG.ant, organic('chitin', color)));
+    body.add(new THREE.Mesh(G.body, organic('chitin', color)), new THREE.Mesh(G.glow, organic('eye', color)), new THREE.Mesh(SG.moss, organic('leaf', color)), new THREE.Mesh(SG.ant, organic('chitin', color)));
     this.wings = [-1, 1].map((s) => {
       const p = new THREE.Group();
       p.position.set(s * 0.1, 0.15, 0.02); // (lower and further back than a rotfly's: out of the rider's face)
@@ -484,6 +484,7 @@ export class GiantFlyRide {
     F.throttle = clamp(0.4 + this.speed / 18 + Math.max(0, this.tan.y) * 0.6, 0, 1);
     this.carryEscorts(dt);
     this.inherit();
+    this.boostShots();
     // the schedule
     while (this.fired < this.spawns.length && this.spawns[this.fired].at <= this.s) this.spawn(this.spawns[this.fired++]);
     // touchdown
@@ -602,6 +603,23 @@ export class GiantFlyRide {
       if (p._flyRide) continue;
       p._flyRide = true;
       if (!p.noInherit && p.vel && p.pos && p.pos.distanceToSquared(this.pos) < 80 * 80) p.vel.add(this.vel);
+    }
+  }
+
+  // your own green globs leave the gun with the fly's speed too (fired from a moving mount they'd lag
+  // behind and miss whatever rides alongside): a glob seen fresh (just fired) gets the fly's velocity
+  boostShots() {
+    const L = this.game.blaster?.modes?.[2];
+    if (!this.rider || !L?.globs) return;
+    this.seenShots ??= new Map();
+    for (const g of L.globs) {
+      if (!g.alive) {
+        this.seenShots.delete(g);
+        continue;
+      }
+      const last = this.seenShots.get(g);
+      if ((last === undefined || g.life < last) && g.life < 0.1) g.vel.add(this.vel);
+      this.seenShots.set(g, g.life);
     }
   }
 

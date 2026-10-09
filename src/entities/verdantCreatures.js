@@ -175,6 +175,7 @@ const KINDS = {
   goo: { rough: 0.06, amp: 0.05, rate: 2, freq: 3, rimK: 1.1, veinK: 0, veinF: 1, base: GOO_HEX, vc: false, transparent: true, opacity: 0.8, emissive: 0x041a03 },
   bark: { rough: 0.95, amp: 0, rate: 0, freq: 0, rimK: 0, veinK: 0.25, veinF: 3, flat: true },
   hive: { rough: 0.45, amp: 0.04, rate: 1.2, freq: 1.8, rimK: 0.4, veinK: 0.9, veinF: 4 },
+  eye: { rough: 0.12, metal: 0.45, amp: 0, rate: 0, freq: 0, rimK: 0.7, veinK: 0, veinF: 1, base: 0x3a0e0a, vc: false, flat: true, emissive: 0x120202 },
   tooth: { rough: 0.45, amp: 0, rate: 0, freq: 0, rimK: 0.04, veinK: 0, veinF: 1, base: 0xc8b88a, vc: false, emissive: 0x0c0a06 },
 };
 const matCache = new Map();
