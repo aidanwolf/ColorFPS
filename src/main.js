@@ -1291,7 +1291,12 @@ class Game {
     this.slickRush.setGain(this.slideFx * 0.85);
     this.slickRush.setRate(0.9 + this.slideFx * 0.45);
     this.speedLines ??= document.getElementById('speedlines');
-    if (this.speedLines) this.speedLines.style.opacity = (this.slideFx > 0.02 ? this.slideFx * 0.9 : 0).toFixed(3);
+    if (this.speedLines) {
+      this.speedLines.style.opacity = (this.slideFx > 0.02 ? this.slideFx * 0.9 : 0).toFixed(3);
+      // (animated only while they show: a running animation, even on an invisible layer, keeps the
+      // compositor redrawing the page every step, which took GPU time from everything else)
+      this.speedLines.classList.toggle('on', this.slideFx > 0.02);
+    }
     if (this.slideFx > 0.5) this.player.shake = Math.max(this.player.shake, (this.slideFx - 0.5) * 0.05);
     const fovTarget = verticalFov(this.settings.fov) + (this.player.sprinting && this.player.speed2d > 8 ? 4 : 0) + fall * 22 + this.slideFx * 18;
     if (Math.abs(this.camera.fov - fovTarget) > 0.01) {
