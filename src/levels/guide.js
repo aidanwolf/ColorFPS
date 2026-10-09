@@ -197,7 +197,7 @@ function verdantObjective(game) {
     if (next === 2) return `Land one ${G('glob')} between the two bulbs: one burst has to catch both.`;
     return 'Over the last root arm to the ledge beyond.';
   }
-  const hollow = p.x > -60 && p.z < -244 && p.z > -292; // the descent down the Hollow's west side
+  const hollow = p.x > -60 && p.x < -18 && p.z < -244 && p.z > -292; // the descent down the Hollow's west side (not the crown deck above the tree)
   if (hollow && p.y > 2) return 'Down the stones <b>west</b>, onto the old walkway.';
   if (hollow && p.y > -1 && p.x > -50) return 'Cross the walkway west. <b>Sprint</b> over its sagging middle.';
   if (hollow && p.y > -11) return v.stoneLock?.on ? 'Down the stones while they hold!' : `Splash all three bulbs on the wall shelf with <b>one</b> ${G('glob')}, then hop down the stones while they hold.`;
