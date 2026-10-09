@@ -8,6 +8,7 @@
 //   sc.turbine([x, y, z], { height, blade, yaw, speed })                  a giant solar windmill
 //   sc.ground(x1, z1, x2, z2, y)                                          the far desert floor
 //   sc.mesa(x1, z1, x2, z2, top)                                          a distant mesa silhouette
+//   sc.dunes(x1, z1, x2, z2, y, height)                                   soft dunes (decor) on the desert floor
 //   new PVArray(W, { x1, z1, x2, z2, y, rows, cols, w, h, tilt, yaw, post, hittable })  a near array on gantries
 //   sc.finish()                                                            builds the instanced farm meshes
 import * as THREE from 'three';
@@ -26,6 +27,7 @@ function mats() {
     steel: new THREE.MeshStandardMaterial({ color: 0x8a8478, metalness: 0.75, roughness: 0.4 }),
     tower: new THREE.MeshStandardMaterial({ color: 0xd8d0c0, metalness: 0.35, roughness: 0.55 }),
     sand: new THREE.MeshStandardMaterial({ color: 0xb08a58, roughness: 1, metalness: 0 }),
+    dune: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 }),
     mesa: new THREE.MeshStandardMaterial({ color: 0x8a6440, roughness: 1, flatShading: true }),
     beacon: new THREE.MeshBasicMaterial({ color: new THREE.Color(1.0, 0.25, 0.15).multiplyScalar(2.2) }),
     glow: new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffc650).multiplyScalar(1.8) }),
@@ -125,6 +127,32 @@ export function solarScenery(W, game, { visible }) {
     return m;
   }
 
+  // soft dunes over a stretch of desert floor (decor: no collision), sinking to the floor at their edges
+  function dunes(x1, z1, x2, z2, y, height = 1.6, seed = 1) {
+    const w = Math.abs(x2 - x1), d = Math.abs(z2 - z1);
+    const g = new THREE.PlaneGeometry(w, d, Math.max(4, Math.round(w / 2)), Math.max(4, Math.round(d / 2))).rotateX(-Math.PI / 2);
+    const pos = g.attributes.position, col = [];
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const u = pos.getX(i), v = pos.getZ(i);
+      const ex = 1 - Math.abs(u) / (w / 2), ez = 1 - Math.abs(v) / (d / 2);
+      const edge = Math.min(1, Math.min(ex, ez) * 5);
+      const wx = u + (x1 + x2) / 2, wz = v + (z1 + z2) / 2;
+      let h = Math.sin(wx * 0.11 + seed) * Math.cos(wz * 0.07 + seed * 2) * 0.6 + Math.sin(wx * 0.05 - wz * 0.09 + seed * 3) * 0.5 + 0.55;
+      h = Math.max(0, h) * height * edge;
+      pos.setY(i, h - 0.05);
+      const k = 0.82 + 0.18 * Math.sin(wx * 1.3 + wz * 0.4) * Math.sin(wz * 1.1);
+      c.setRGB(0.78 * k, 0.6 * k, 0.4 * k);
+      col.push(c.r, c.g, c.b);
+    }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, M.dune);
+    m.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
+    add(m);
+    return m;
+  }
+
   function mesa(x1, z1, x2, z2, top, base = -12) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(x2 - x1), top - base, Math.abs(z2 - z1)), M.mesa);
     m.position.set((x1 + x2) / 2, (top + base) / 2, (z1 + z2) / 2);
@@ -151,7 +179,7 @@ export function solarScenery(W, game, { visible }) {
     },
   });
 
-  return { farm, turbine, ground, mesa, finish, mats: M };
+  return { farm, turbine, ground, mesa, dunes, finish, mats: M };
 }
 
 // A big photovoltaic array on steel gantries, close enough to shoot: rows × cols of glossy panels tilted

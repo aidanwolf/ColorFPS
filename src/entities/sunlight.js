@@ -681,22 +681,25 @@ export class BurnWall {
 
 // ------------------------------------------------------------------ SunBeam
 const BEAM_VS = `
-  varying vec3 vN; varying vec3 vV; varying float vY;
+  varying vec3 vN; varying vec3 vV; varying float vY; varying float vD;
   void main(){
     vec4 w = modelMatrix * vec4(position, 1.0);
     vN = normalize(mat3(modelMatrix) * normal);
     vV = normalize(cameraPosition - w.xyz);
+    vD = distance(cameraPosition, w.xyz);
     vY = position.y + 0.5;
     gl_Position = projectionMatrix * viewMatrix * w;
   }`;
 const BEAM_FS = `
-  uniform float uI, uTime, uLen, uCore; varying vec3 vN; varying vec3 vV; varying float vY;
+  uniform float uI, uTime, uLen, uCore; varying vec3 vN; varying vec3 vV; varying float vY; varying float vD;
   void main(){
+    // (it thins out right in front of your eyes, so walking through it doesn't white the screen out)
+    float near = smoothstep(0.4, 2.5, vD);
     float rim = abs(dot(normalize(vN), normalize(vV)));
     float core = pow(rim, uCore);
     float flow = 0.75 + 0.25 * sin(vY * uLen * 1.7 - uTime * 14.0) * sin(vY * uLen * 0.6 - uTime * 5.0 + 1.3);
     vec3 col = mix(vec3(1.0, 0.42, 0.08), vec3(1.5, 1.25, 0.85), core);
-    gl_FragColor = vec4(min(col * core * flow * uI, vec3(2.6)), 1.0);
+    gl_FragColor = vec4(min(col * core * flow * uI * near, vec3(2.6)), 1.0);
   }`;
 const beamGeo = new THREE.CylinderGeometry(1, 1, 1, 10, 1, true);
 
@@ -957,7 +960,7 @@ export class SunEmitter {
 // A shaft of daylight through a crack in a roof: a soft, dusty column (just light — it burns nothing) with
 // a glowing slit where it gets in and a pool where it lands. down(): it fades out (the sun's eclipsed).
 const SHAFT_FS = `
-  uniform float uI, uTime; varying vec3 vN; varying vec3 vV; varying float vY;
+  uniform float uI, uTime; varying vec3 vN; varying vec3 vV; varying float vY; varying float vD;
   void main(){
     float rim = abs(dot(normalize(vN), normalize(vV)));
     float body = pow(rim, 1.6);

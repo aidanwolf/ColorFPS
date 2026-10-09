@@ -11,7 +11,7 @@ export const SUN_DIR = [-0.85, 0.5, -0.12];
 // far scenery only show from here
 export const inSolar = (p) => (p.x < -31.5 && p.x > -440 && p.z < -38 && p.z > -240 && p.y > -32) || (p.x < 25 && p.z < -99.5 && p.z > -148.5 && p.y > 2);
 // the excavation under the mesa (no sun down there)
-export const underground = (p) => p.y < -10.5 && p.x < -62 && p.x > -150 && p.z < -44 && p.z > -134;
+export const underground = (p) => p.y < -10.5 && p.x < -62 && p.x > -150 && p.z < -44 && p.z > -134 && !(p.x > -80 && p.z < -104 && p.z > -120);
 // the glowing trims that run on sunlight (lance housings, collector rims): they go dark at the shutdown
 export const POWER_ZONE = 'sunpower';
 
