@@ -50,6 +50,8 @@ const LABELS = {
   hub: 'The Prism Atrium',
   boss: 'The Prism Warden (final boss)',
   solar: 'The Solar door',
+  dunes: 'The Dune Sea (hover-sled run)',
+  dunesEnd: 'The Dune Sea: arrival dock',
   verdant: 'The Verdant gate',
   azure: 'The Azure door',
   azurewell: 'The Azure well',
