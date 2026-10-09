@@ -9,6 +9,8 @@ import {
 import { director } from '../combat/director.js';
 import { esfx } from './enemySfx.js';
 import { barks } from '../combat/barks.js';
+import { ColorShield, parseShields } from './colorShield.js';
+import { Rage } from './rage.js';
 
 const _v = new THREE.Vector3();
 const _a = new THREE.Vector3();
@@ -645,7 +647,10 @@ class Puddle {
 // A moss-grown robot spider. It skitters over floors, up walls and across ceilings (it follows the surfaces
 // of the boxes around it), keeps its distance and spits acid globs (shootable with its color) after a
 // hiss and a glow in its abdomen. Line up a shot and it rolls aside; from a ceiling it drops on a thread to
-// shoot from above. Correct hits stagger it (and can knock it off a wall); its color shifts on a cycle.
+// shoot from above. Correct hits stagger it (and can knock it off a wall). Shielded (colorShield.js), a shell
+// of hard-light hex tiles wraps its body, 3 hits a layer: { color, shields: [outer, ...] }, or the legacy
+// palette `color: [body, ..., outer]` (the default [GREEN, RED] is a green spider under a red shell).
+// Wrong colors build its rage (rage.js).
 // ======================================================================================================
 const SPIDER = {
   S: 1.6, // model scale
@@ -693,13 +698,14 @@ for (const s of [-1, 1]) for (const [z, a] of [[-0.22, 0.75], [-0.08, 0.25], [0.
 
 export class SpiderBot {
   constructor(world, opts) {
-    const { pos, color = [GREEN, RED], hp = 5, range = 30, fireInterval = 1.8, cycle = 3.5, leash = 14, ceiling = false, onDeath = null } = opts;
+    const { pos, color = [GREEN, RED], shields = null, shieldHp = 3, shieldRegen = 0, hp = 5, range = 30, fireInterval = 1.8, leash = 14, ceiling = false, onDeath = null } = opts;
     this.spawnOpts = opts;
     this.critter = true;
     this.barkPersona = 'verdant'; // combat/barks.js
     this.world = world;
-    this.palette = Array.isArray(color) ? color : [color];
-    this.cycle = cycle;
+    const spec = parseShields(color, shields);
+    this.color = spec.body;
+    this.rage = new Rage(this);
     this.maxHp = hp;
     this.range = range;
     this.fireInterval = fireInterval;
@@ -755,15 +761,26 @@ export class SpiderBot {
     world.addHittable(this.group);
     world.add(this);
     this.voice = new Voice('spider_skitter', { gain: 0.3, near: 3, far: 20, rate: rnd(0.9, 1.1) });
+    // the shield: a shell round its body (it rolls and tumbles with it)
+    if (spec.shields.length) this.shield = new ColorShield(this, { shields: spec.shields, hp: shieldHp, regen: shieldRegen }, { parent: this.body, center: [0, 0.1, 0.24], size: [0.46, 0.4, 0.8], detail: 2, spin: 0 });
     this.reset();
+  }
+
+  // the heat rim while it's enraged (rage.js)
+  get rageAura() {
+    return { center: [0, 0.1, 0.3], radius: 1.05 };
+  }
+
+  // the HUD's rage mark floats off its back, whichever way up it is
+  markAnchor(out) {
+    return out.copy(this.pos).addScaledVector(this.n, 1.1);
   }
 
   reset() {
     if (this.dead) return;
     this.hp = this.maxHp;
-    this.colorIdx = 0;
-    this.color = this.palette[0];
-    this.cycleTimer = this.cycle;
+    if (this.shield && !this.shield.intact) this.shield.restore();
+    if (this.rage.on) this.rage.calm();
     this.state = 'patrol';
     this.timer = 0;
     this.aggro = false;
@@ -883,16 +900,9 @@ export class SpiderBot {
       this.voice.update(this.dist);
       return;
     }
+    dt = this.rage.update(dt); // (enraged: everything a beat faster)
     this.t += dt;
-    // color cycle (with a flicker just before it shifts)
-    if (this.palette.length > 1) {
-      this.cycleTimer -= dt;
-      if (this.cycleTimer <= 0) {
-        this.cycleTimer = this.cycle;
-        this.colorIdx = (this.colorIdx + 1) % this.palette.length;
-        this.color = this.palette[this.colorIdx];
-      }
-    }
+    this.shield?.update(dt);
     this.sightTimer -= dt;
     if (this.sightTimer <= 0) {
       this.sightTimer = 0.25;
@@ -1031,13 +1041,14 @@ export class SpiderBot {
 
   spit(player) {
     this.state = 'engage';
-    this.fireTimer = this.fireInterval * rnd(0.8, 1.2);
+    this.fireTimer = this.fireInterval * rnd(0.8, 1.2) * this.rage.cool;
     // from the mouth, aimed (with gravity compensation, no lead) at the player's chest
     const mouth = _a.copy(this.face).multiplyScalar(0.7).add(this.pos);
     _b.copy(player.pos).y += player.eye - 0.35;
     const target = _b.copy(director.aim(this, mouth, _b)); // (first spit from off screen goes wide)
-    const t = mouth.distanceTo(target) / SPIDER.spitSpeed;
-    const v = _s.subVectors(target, mouth).normalize().multiplyScalar(SPIDER.spitSpeed);
+    const speed = SPIDER.spitSpeed * this.rage.shot;
+    const t = mouth.distanceTo(target) / speed;
+    const v = _s.subVectors(target, mouth).normalize().multiplyScalar(speed);
     v.y += 0.5 * SPIDER.spitGravity * t;
     new Glob(this.world, mouth, v, this.color, { radius: 0.2, gravity: SPIDER.spitGravity, cause: 'acid spit', life: 4 });
     sfx('spider_spit', 0.8 * falloff(this.dist, 4, 40));
@@ -1197,18 +1208,18 @@ export class SpiderBot {
   onHit(color, hit) {
     if (this.dead) return undefined;
     this.aggro = true;
-    if (color !== this.color) {
+    // shielded: only the outer layer's color does anything (and the body can't be touched)
+    const r = this.shield?.up ? this.shield.hit(color, hit) : color !== this.color ? 'immune' : null;
+    if (r === 'immune') {
       this.immuneFlash = 1;
       if (this.state === 'engage' || this.state === 'patrol') this.startRoll(this.world.game.player);
+      this.rage.wrong(hit);
       return 'immune';
     }
+    if (r) return r;
     this.hp--;
     this.flash = 1;
-    this.stagger = SPIDER.stagger;
-    this.fireTimer = Math.max(this.fireTimer, 0.6);
-    if (this.state === 'windup' || this.windupT > 0) director.release(this);
-    if (this.state === 'windup') this.state = 'engage';
-    this.windupT = 0;
+    this.reel(SPIDER.stagger);
     const p = hit?.point ?? this.pos;
     hitSparks(this.world, hit, p, this.color);
     sfx('critter_hit', Math.max(0.5, falloff(this.dist, 6, 40)));
@@ -1224,8 +1235,31 @@ export class SpiderBot {
     return 'hit';
   }
 
+  // staggered: the spit is called off
+  reel(t) {
+    this.stagger = Math.max(this.stagger, t);
+    this.fireTimer = Math.max(this.fireTimer, 0.6);
+    if (this.state === 'windup' || this.windupT > 0) director.release(this);
+    if (this.state === 'windup') this.state = 'engage';
+    this.windupT = 0;
+  }
+
+  // a shell cracked (a flicker) or shattered (a stagger, and it may lose its grip) (colorShield.js)
+  onShieldHit() {
+    this.flash = Math.max(this.flash, 0.35);
+  }
+
+  onShieldBreak() {
+    this.flash = 1;
+    this.reel(0.75);
+    esfx('robot_pain_light', this.pos, 0.8, 1.25);
+    if (this.state === 'hang' || this.state === 'drop' || this.state === 'climbUp' || (!this.onFloor && this.state !== 'fall' && Math.random() < 0.6)) this.startFall();
+  }
+
   die() {
     this.dead = true;
+    if (this.rage.on) this.rage.calm();
+    this.shield?.dispose(); // (a shell still flying apart goes with it)
     this.world.removeHittable(this.group);
     blast(this.world, this.pos, this.color, 0.9);
     sfx('critter_die', Math.max(0.3, falloff(this.dist, 6, 60)));
@@ -1316,8 +1350,7 @@ export class SpiderBot {
     // abdomen sac swells and glows while it gathers a spit
     const wind = this.state === 'windup' ? 1 - Math.max(0, this.timer) / SPIDER.windup : this.windupT > 0 ? 1 - this.windupT / SPIDER.windup : 0;
     this.sac.scale.setScalar(1 + wind * 0.45 + Math.sin(this.t * 3) * 0.04);
-    const shifting = this.palette.length > 1 && this.cycleTimer < 0.45 && Math.sin(this.t * 45) > 0;
-    const col = shifting ? this.palette[(this.colorIdx + 1) % this.palette.length] : this.color;
+    const col = this.color;
     tint(this.sacMat, col, 0.8 + wind * 2.2);
     if (this.flash > 0) this.glowMat.color.setRGB(3, 3, 3);
     else if (this.immuneFlash > 0) this.glowMat.color.setRGB(0.7, 0.7, 0.8);
@@ -1325,6 +1358,7 @@ export class SpiderBot {
       tint(this.glowMat, col, 2.4);
       this.metalMat.emissive.copy(_c.set(COLORS[col].hex)).multiplyScalar(0.06 + wind * 0.1);
     }
+    this.rage.paint(this.glowMat);
   }
 
   setSeg(i, a, b) {
@@ -1343,6 +1377,8 @@ export class SpiderBot {
     this.world.remove(this);
     this.world.scene.remove(this.group);
     this.world.scene.remove(this.thread);
+    this.shield?.dispose();
+    this.rage.dispose();
     this.legs.dispose();
     this.sacMat.dispose();
     this.threadMat.dispose();

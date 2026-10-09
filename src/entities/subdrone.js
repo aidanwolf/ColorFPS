@@ -44,10 +44,11 @@ class Torpedo extends Orb {
 export class SubDrone extends Drone {
   // water: the volume it lives in (found from pos when omitted). orbit: patrol circle radius around its
   // post; leash: how far it will chase from it; standoff: the distance it strafes around you at.
-  constructor(world, { pos, color, water = null, hp = 2, range = 20, fireInterval = 3.2, orbit = 3.5, leash = 9, standoff = 6.5, torpedoSpeed = 5.5, onDeath = null }) {
-    super(world, { pos, color, hp, range, fireInterval, orbit, onDeath });
+  // Shields work as the Drone's (colorShield.js).
+  constructor(world, { pos, color, shields = null, shieldHp = 2, shieldRegen = 0, water = null, hp = 2, range = 20, fireInterval = 3.2, orbit = 3.5, leash = 9, standoff = 6.5, torpedoSpeed = 5.5, onDeath = null }) {
+    super(world, { pos, color, shields, shieldHp, shieldRegen, hp, range, fireInterval, orbit, onDeath });
     // restock.js rebuilds a destroyed drone from spawnOpts with its own class: keep every sub option
-    this.spawnOpts = { pos, color, water, hp, range, fireInterval, orbit, leash, standoff, torpedoSpeed, onDeath };
+    this.spawnOpts = { pos, color, shields, shieldHp, shieldRegen, water, hp, range, fireInterval, orbit, leash, standoff, torpedoSpeed, onDeath };
     this.water = water || (world.waters || []).find((w) => pos[0] > w.min.x && pos[0] < w.max.x && pos[1] > w.min.y && pos[1] < w.max.y && pos[2] > w.min.z && pos[2] < w.max.z) || null;
     this.leash = leash;
     this.standoff = standoff;
@@ -176,15 +177,8 @@ export class SubDrone extends Drone {
       this.updateHum(this.humPitch);
       return;
     }
-    if (this.shifter) {
-      this.cycleTimer -= dt;
-      if (this.cycleTimer <= 0) {
-        this.cycleTimer = this.cycle;
-        this.colorIdx = (this.colorIdx + 1) % this.palette.length;
-        this.color = this.palette[this.colorIdx];
-        this.applyColor();
-      }
-    }
+    dt = this.rage.update(dt); // (enraged: everything a beat faster)
+    this.shield?.update(dt);
     this.sightTimer -= dt;
     if (this.sightTimer <= 0) {
       this.sightTimer = 0.25;
@@ -286,10 +280,10 @@ export class SubDrone extends Drone {
       // is aimed wide, as a warning)
       if (this.fireTimer <= 0 && !director.request(this, 0.7)) this.fireTimer = 0.25 + Math.random() * 0.3;
       if (this.fireTimer <= 0) {
-        this.fireTimer = this.fireInterval * (0.8 + Math.random() * 0.4);
+        this.fireTimer = this.fireInterval * (0.8 + Math.random() * 0.4) * this.rage.cool;
         this.eye.getWorldPosition(_v);
         const dir = _a.subVectors(director.aim(this, _v, _eye), _v).normalize();
-        new Torpedo(this.world, _v.addScaledVector(dir, 0.5), dir.multiplyScalar(this.torpedoSpeed), this.color);
+        new Torpedo(this.world, _v.addScaledVector(dir, 0.5), dir.multiplyScalar(this.torpedoSpeed * this.rage.shot), this.color);
         this.world.fx.bubbles(_v, 5);
         audio.enemyShoot();
       }
@@ -300,6 +294,7 @@ export class SubDrone extends Drone {
     if (this.flash > 0) this.glowMat.color.setRGB(3, 3, 3);
     else if (this.immuneFlash > 0) this.glowMat.color.setRGB(0.7, 0.7, 0.8);
     else this.applyColor();
+    this.rage.paint(this.glowMat);
     this.body.scale.setScalar(1 + this.flash * 0.12);
     this.updateHum(this.humPitch * (1 + Math.min(this.speed, 10) * 0.04 + (this.aggro ? 0.05 : 0) + this.stagger * 0.5));
   }

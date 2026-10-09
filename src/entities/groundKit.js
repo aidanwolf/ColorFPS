@@ -5,6 +5,8 @@
 // first (combat/director.js) and aims through director.aim, so the first shot from off screen misses.
 // Every enemy built on GroundEnemy is restockable: it keeps `spawnOpts` and `home`, sets `dead`, and
 // carries `restockable = true`, so restock.js rebuilds it with `new e.constructor(world, e.spawnOpts)`.
+// Every one can wear layered color shields (colorShield.js: { color, shields: [outer, ...], shieldHp }, or a
+// legacy palette `color: [body, ..., outer]`) and enrages after a few wrong-color hits (rage.js).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { COLORS } from '../colors.js';
@@ -12,6 +14,8 @@ import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
 import { barks } from '../combat/barks.js';
 import { esfx } from './enemySfx.js';
+import { ColorShield, parseShields } from './colorShield.js';
+import { Rage } from './rage.js';
 
 export { esfx, barks };
 
@@ -294,10 +298,10 @@ export class GroundEnemy {
     this.restockable = true;
     this.radius = cfg.radius;
     this.height = cfg.height;
-    const color = opts.color ?? cfg.color;
-    this.palette = Array.isArray(color) ? color : [color];
-    this.colorIdx = 0;
-    this.color = this.palette[0];
+    const spec = parseShields(opts.color ?? cfg.color, opts.shields);
+    this.color = spec.body;
+    this.shieldSpec = { shields: spec.shields, hp: opts.shieldHp ?? cfg.shieldHp ?? 3, regen: opts.shieldRegen ?? 0 };
+    this.rage = new Rage(this);
     this.hp = this.maxHp = opts.hp ?? cfg.hp;
     this.range = opts.range ?? cfg.range;
     this.patrol = opts.patrol ?? cfg.patrol ?? 4;
@@ -339,6 +343,46 @@ export class GroundEnemy {
     this.world.scene.add(this.group);
     this.world.addHittable(hitRoot);
     this.world.add(this);
+    if (this.shieldSpec.shields.length) {
+      this.shield = new ColorShield(this, this.shieldSpec, this.shieldView());
+      // while a shell is up it takes every hit, before the subclass's own onHit sees it
+      const onHit = this.onHit;
+      this.onHit = (color, hit) => (this.shield.up && !this.dead ? this.shieldHit(color, hit) : onHit.call(this, color, hit));
+    }
+  }
+
+  // where the shield shells go: a ball round its middle (subclasses shape their own)
+  shieldView() {
+    const r = Math.max(this.radius, this.height * 0.5) * 1.15;
+    return { parent: this.hitRoot, center: [0, this.height * 0.55, 0], size: [r, Math.max(r, this.height * 0.62), r] };
+  }
+
+  shieldHit(color, hit) {
+    if (!this.aggro) {
+      this.aggro = true;
+      this.onAlert?.(this.world.game.player);
+    }
+    const r = this.shield.hit(color, hit);
+    return r === 'immune' ? this.immune(hit) : r;
+  }
+
+  // a shell cracked (a flinch) or shattered (a stagger, its attack called off) (colorShield.js)
+  onShieldHit(hit) {
+    this.flash = Math.max(this.flash, 0.4);
+    this.flinch?.(this.shotDir(hit), 0.4);
+  }
+
+  onShieldBreak(color, hit) {
+    this.flash = 1;
+    const dir = this.shotDir(hit);
+    this.flinch?.(dir, 1.3);
+    if (this.knock) this.knock.add(_l.copy(dir).setY(0).normalize().multiplyScalar(2.5));
+    if (this.stagger !== undefined) this.stagger = Math.max(this.stagger, 0.7);
+    if (director.holders.has(this)) {
+      director.release(this);
+      this.interrupt?.();
+    }
+    this.onShieldStagger?.(dir);
   }
 
   mat(m) {
@@ -362,12 +406,6 @@ export class GroundEnemy {
   // where to aim at `target` from `from` (the director pulls the first off-screen shot wide)
   aimAt(from, target) {
     return director.aim(this, from, target);
-  }
-
-  setColorIdx(i) {
-    this.colorIdx = i % this.palette.length;
-    this.color = this.palette[this.colorIdx];
-    this.applyColor?.();
   }
 
   snapToGround(from) {
@@ -614,6 +652,7 @@ export class GroundEnemy {
   // ---- update skeleton: subclasses fill in think() (AI) and animate() (pose) ----
   update(dt, player) {
     if (this.debris) return this.updateDebris(dt);
+    dt = this.rage.update(dt); // (enraged: the whole AI a beat faster)
     _eye.copy(player.pos).y += player.eye;
     this.dist = this.center(_c).distanceTo(_eye);
     if (this.dying) return this.updateDying(dt, player);
@@ -641,6 +680,8 @@ export class GroundEnemy {
     if (this.dead) return;
     this.sync();
     this.animate(dt, player);
+    this.rage.paint(this.m?.glow);
+    this.shield?.update(dt);
     this.flash = Math.max(0, this.flash - dt * 6);
     this.immuneFlash = Math.max(0, this.immuneFlash - dt * 5);
     this.updateLoops();
@@ -669,10 +710,11 @@ export class GroundEnemy {
     this.world.fx.burst(p, hex, { count: 8 * n, speed: 5, life: 0.35, size: 0.22, gravity: 4 });
   }
 
-  // a wrong-color hit: it glints and the shot ricochets
-  immune() {
+  // a wrong-color hit: it glints, the shot ricochets, and its rage builds
+  immune(hit) {
     this.immuneFlash = 1;
     this.aggro = true;
+    this.rage.wrong(hit);
     return 'immune';
   }
 
@@ -713,6 +755,8 @@ export class GroundEnemy {
     this.vel.set(0, 0, 0);
     this.move.set(0, 0, 0);
     this.hp = this.maxHp;
+    this.shield?.restore();
+    if (this.rage.on) this.rage.calm();
     this.aggro = false;
     this.sees = false;
     this.lostT = 0;
@@ -780,6 +824,8 @@ export class GroundEnemy {
     this.world.scene.remove(this.group);
     for (const d of this.debris || []) this.world.scene.remove(d.obj);
     this.debris = null;
+    this.shield?.dispose();
+    this.rage.dispose();
     for (const m of this.mats) m.dispose();
     for (const g of this.ownGeos || []) g.dispose();
     this.disposeExtra?.();
@@ -952,8 +998,9 @@ export class Trooper extends GroundEnemy {
       if (this.blockedBy?.ledge || len <= 1) this.move.set(-to.z * this.strafeDir, 0, to.x * this.strafeDir).multiplyScalar(this.speed * 0.6);
     } else {
       let fwd = 0;
-      if (d > this.prefer[1]) fwd = 1;
-      else if (d < this.prefer[0]) fwd = -0.7;
+      const press = this.rage.on ? 0.6 : 1; // enraged, it closes in
+      if (d > this.prefer[1] * press) fwd = 1;
+      else if (d < this.prefer[0] * press) fwd = -0.7;
       this.strafeT -= dt;
       if (this.strafeT <= 0 || this.blockedBy?.x || this.blockedBy?.z) {
         this.strafeDir *= -1;
@@ -1210,6 +1257,7 @@ export class Trooper extends GroundEnemy {
   die(dir) {
     this.dead = true;
     this.dying = true;
+    this.shield?.dispose(); // (a shell still flying apart goes with it)
     director.release(this);
     this.dyingT = 0;
     this.deathDir = dir.clone().setY(0).normalize();

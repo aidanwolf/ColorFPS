@@ -67,7 +67,9 @@ function rod(r, a, b, mat, node, R, sides = 6) {
 // On the surface it scuttles in, rears up (0.5 s: mandibles spread, drill spinning up, seams flaring) and
 // pounces again, then drills back in under a spray from its jets. A wrong-color hit while it's on the
 // ground flips it onto its back for a moment. 1 hp.
-// A palette (e.g. [YELLOW, RED]) changes its color each time it surfaces.
+// Shielded (colorShield.js), energy plating of hard-light hex tiles arches over its carapace, 2 hits a
+// layer, and breaking a layer flips it: { color: YELLOW, shields: [RED] }, or the legacy palette
+// `color: [YELLOW, RED]` (the body first, the last color the outer shell).
 const EMERGE_T = 0.6;
 const SCARAB_SCALE = 1.3;
 const CROUCH_T = 0.5;
@@ -174,7 +176,7 @@ let proxyMat = null;
 
 export class Scarab extends GroundEnemy {
   constructor(world, opts) {
-    super(world, opts, { radius: 0.6, height: 0.7, hp: 1, range: 18, color: YELLOW, patrol: 4, accel: 35 });
+    super(world, opts, { radius: 0.6, height: 0.7, hp: 1, range: 18, color: YELLOW, patrol: 4, accel: 35, shieldHp: 2 });
     this.burrows = opts.burrow ?? true;
     this.legPhase = Math.random() * 10;
     this.pounces = 0;
@@ -219,6 +221,11 @@ export class Scarab extends GroundEnemy {
   applyColor() {
     this.m.glow.color.copy(glowHex(this.color));
     this.m.wing.color.copy(glowHex(this.color, 1.2));
+  }
+
+  // the energy plating: a dome over the carapace that rides (and flips) with the body
+  shieldView() {
+    return { parent: this.n.body, center: [0, -0.07, 0.06], size: [0.42, 0.36, 0.66], dome: -0.12, detail: 2, spin: 0 };
   }
 
   showBuried(buried) {
@@ -364,8 +371,6 @@ export class Scarab extends GroundEnemy {
   }
 
   startEmerge() {
-    // a palette scarab shows its new color as it breaks the surface
-    if (this.palette.length > 1) this.setColorIdx(this.colorIdx + 1);
     this.setState('emerge');
     this.beetle.visible = true;
     this.scope.visible = false;
@@ -386,7 +391,7 @@ export class Scarab extends GroundEnemy {
     this.grounded = false;
     this.ground = null;
     this.pounces++;
-    this.leapCool = rnd(1, 1.6);
+    this.leapCool = rnd(1, 1.6) * this.rage.cool;
     this.showBuried(false);
     this.setState('leap');
     const fx = this.world.fx;
@@ -497,13 +502,8 @@ export class Scarab extends GroundEnemy {
       this.onAlert();
     }
     if (color !== this.color) {
-      // knocked onto its back while it's on the ground
-      if (this.grounded && ['scuttle', 'crouch', 'land', 'surface'].includes(this.state)) {
-        if (this.state === 'crouch') director.release(this);
-        this.setState('flipped');
-        this.world.fx.burst(this.pos, DUST, { count: 8, speed: 3, life: 0.4, size: 0.3, gravity: 4 });
-      }
-      return this.immune();
+      this.knockOver();
+      return this.immune(hit);
     }
     this.hp--;
     this.hitSparks(hit);
@@ -518,9 +518,29 @@ export class Scarab extends GroundEnemy {
     return 'kill';
   }
 
+  // a wrong color on its plating knocks it over just the same; a broken layer always does
+  shieldHit(color, hit) {
+    const r = super.shieldHit(color, hit);
+    if (r === 'immune') this.knockOver();
+    return r;
+  }
+
+  onShieldStagger() {
+    this.knockOver();
+  }
+
+  // knocked onto its back while it's on the ground
+  knockOver() {
+    if (!this.grounded || !['scuttle', 'crouch', 'land', 'surface'].includes(this.state)) return;
+    if (this.state === 'crouch') director.release(this);
+    this.setState('flipped');
+    this.world.fx.burst(this.pos, DUST, { count: 8, speed: 3, life: 0.4, size: 0.3, gravity: 4 });
+  }
+
   // burst apart: the carapace and legs fly, ceramic shards, sparks and a puff of sand
   die(hit) {
     this.dead = true;
+    this.shield?.dispose(); // (a shell still flying apart goes with it)
     director.release(this);
     const c = this.center(new THREE.Vector3());
     const fx = this.world.fx;
@@ -553,7 +573,6 @@ export class Scarab extends GroundEnemy {
       this.showBuried(false);
       this.setState('surface');
     }
-    if (this.palette.length > 1) this.setColorIdx(0);
   }
 
   idleFar() {}

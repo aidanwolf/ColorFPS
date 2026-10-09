@@ -1,7 +1,9 @@
 // Turret: a mounted gun (floor, ceiling or wall) whose head swivels to track you. It locks on, charges
 // (the lens swells, a laser sight paints your position, a rising whine) and fires a 3-shot burst of colored
 // orbs along the sight line, still turning slowly so strafing beats it. The back of the head is armored.
-// Shot down, the head blows off and the base is left smoking.
+// Shot down, the head blows off and the base is left smoking. Shielded (colorShield.js), a deflector dome
+// of hard-light hex tiles covers it: `colors: [body, ..., outer]` (the last color is the outer shell) or
+// { color, shields: [outer, ...] }, 3 hits a layer.
 import * as THREE from 'three';
 import { Orb } from './drone.js';
 import { audio } from '../audio.js';
@@ -18,9 +20,10 @@ const MOUNTS = { floor: [0, 1, 0], ceiling: [0, -1, 0] };
 const HEAD_Y = 0.95; // head pivot height above the mount
 
 export class Turret extends Enemy {
-  // mount: 'floor' | 'ceiling' | a wall's outward normal ([1,0,0] etc). colors: a list cycles between bursts.
-  constructor(world, { pos, color = 0, colors = null, mount = 'floor', hp = 4, range = 36, burst = 3, burstGap = 0.2, charge = 0.95, cooldown = 2.2, speed = 13, turn = 2.4, armored = true, cycle = 1, aggro = false, onDeath = null }) {
-    super(world, { pos, color: colors || color, hp, range, aggro, onDeath, cycle });
+  // mount: 'floor' | 'ceiling' | a wall's outward normal ([1,0,0] etc). colors: a legacy palette (the body
+  // first, the outermost shield last); shields: [outer, ...] over `color`.
+  constructor(world, { pos, color = 0, colors = null, shields = null, shieldHp = 3, shieldRegen = 0, mount = 'floor', hp = 4, range = 36, burst = 3, burstGap = 0.2, charge = 0.95, cooldown = 2.2, speed = 13, turn = 2.4, armored = true, aggro = false, onDeath = null }) {
+    super(world, { pos, color: colors || color, shields, shieldHp, shieldRegen, hp, range, aggro, onDeath });
     this.burst = burst;
     this.burstGap = burstGap;
     this.chargeTime = charge;
@@ -100,6 +103,32 @@ export class Turret extends Enemy {
     if (this.baseMeshes) this.baseMeshes[this.baseMeshes.length - 1].material = glowMat(this.color, 2);
   }
 
+  // the deflector dome over the head and swivel
+  shieldView() {
+    return { parent: this.group, center: [0, 0.12, 0], size: [1.2, 1.38, 1.2], dome: -0.08, detail: 2, spin: 0.25 };
+  }
+
+  // the heat rim while it's enraged (rage.js): round the head
+  get rageAura() {
+    return { center: [0, 0.8, 0], radius: 0.95 };
+  }
+
+  // the HUD's rage mark floats off its mount, over the head
+  markAnchor(out) {
+    return out.copy(this.pos).addScaledVector(this.normal, 2.1);
+  }
+
+  onStagger(t) {
+    this.kickV -= 12;
+    if (this.state === 'charge' || this.state === 'burst') {
+      this.state = 'track';
+      this.sight.hide();
+      this.chargeMat.opacity = 0;
+      this.orb.scale.setScalar(0.01);
+    }
+    this.timer = Math.max(this.timer, t);
+  }
+
   // where the head's muzzle is, and which way it points (world space)
   muzzle(out) {
     return this.orb.getWorldPosition(out);
@@ -163,8 +192,6 @@ export class Turret extends Enemy {
         this.servoT = 0.45;
         esfx('turret_servo', this.pos, Math.min(1, off), 0.9 + Math.min(0.4, off * 0.3));
       }
-      // colors only change while it's not winding up a burst
-      if (this.cycleColor(dt)) this.sight.mat.color.set(hexOf(this.color)).multiplyScalar(2);
       if (!this.sees) {
         if (this.timer < -2.5) this.state = 'idle';
       } else if (this.timer <= 0 && off < 0.35) {
@@ -201,7 +228,7 @@ export class Turret extends Enemy {
         this.timer = this.burstGap;
         if (this.shots <= 0) {
           this.state = 'track';
-          this.timer = this.cooldown * (0.85 + Math.random() * 0.3);
+          this.timer = this.cooldown * (0.85 + Math.random() * 0.3) * this.rage.cool;
           barks.say(this, 'reload'); // "Capacitor recharging."
           this.sight.hide();
           this.chargeMat.opacity = 0;
@@ -229,7 +256,7 @@ export class Turret extends Enemy {
   fire() {
     const m = this.muzzle(_v).clone();
     const dir = this.forward(_f).clone();
-    new Orb(this.world, m, dir.multiplyScalar(this.shotSpeed), this.color, { radius: 0.26, life: 5 });
+    new Orb(this.world, m, dir.multiplyScalar(this.shotSpeed * this.rage.shot), this.color, { radius: 0.26, life: 5 });
     this.world.fx.muzzle(m, _f, hexOf(this.color));
     this.world.fx.flash(m, hexOf(this.color), { size: 0.6, life: 0.08, k: 1.6 });
     this.kickV -= 9;
@@ -259,6 +286,7 @@ export class Turret extends Enemy {
     this.dead = true;
     this.state = 'wreck';
     this.wreckT = 0;
+    this.shield?.dispose(); // (a shell still flying apart goes with it)
     this.sight.hide();
     this.hum?.stop();
     this.hum = null;

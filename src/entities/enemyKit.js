@@ -7,6 +7,8 @@ import { COLORS } from '../colors.js';
 import { audio } from '../audio.js';
 import { barks } from '../combat/barks.js';
 import { esfx } from './enemySfx.js';
+import { ColorShield, parseShields } from './colorShield.js';
+import { Rage } from './rage.js';
 
 const _v = new THREE.Vector3();
 const _a = new THREE.Vector3();
@@ -323,19 +325,19 @@ export function disposeTree(root, keep = null) {
 }
 
 // ---- base class ----
-// Every combat enemy: colored (a list of colors cycles), only hurt by its current color (others ricochet),
-// flashes white when hit and grey when immune, keeps a loop sound faded by distance, and goes dormant
-// (no AI, no collision work) when the player is far off. Subclasses build `this.group` and call register().
+// Every combat enemy: a body color, only hurt by that color (others ricochet), optionally under layered
+// color shields (`shields: [outer, ...]`, or a legacy palette `color: [body, ..., outer]`: colorShield.js),
+// flashes white when hit and grey when immune, keeps a loop sound faded by distance, goes dormant (no AI,
+// no collision work) when the player is far off, and enrages after a few wrong-color hits (rage.js).
+// Subclasses build `this.group` and call register(); shieldView() places the shells.
 export class Enemy {
-  constructor(world, { pos, color = 0, hp = 3, cycle = 2.6, range = 34, wake = 70, aggro = false, onDeath = null }) {
+  constructor(world, { pos, color = 0, shields = null, shieldHp = 3, shieldRegen = 0, hp = 3, range = 34, wake = 70, aggro = false, onDeath = null }) {
     this.world = world;
     this.game = world.game;
-    this.palette = Array.isArray(color) ? color : [color];
-    this.colorIdx = 0;
-    this.color = this.palette[0];
-    this.shifter = this.palette.length > 1;
-    this.cycle = cycle;
-    this.cycleTimer = cycle;
+    const spec = parseShields(color, shields);
+    this.color = spec.body;
+    this.shieldSpec = { shields: spec.shields, hp: shieldHp, regen: shieldRegen };
+    this.rage = new Rage(this);
     this.hp = this.maxHp = hp;
     this.pos = new THREE.Vector3(...pos);
     this.home = this.pos.clone();
@@ -371,6 +373,17 @@ export class Enemy {
     this.world.addHittable(this.group);
     this.world.add(this);
     this.applyColor();
+    if (this.shieldSpec.shields.length) this.shield = new ColorShield(this, this.shieldSpec, this.shieldView());
+    // enraged, the whole AI runs a beat faster (rage.js): every subclass's update gets the warped dt
+    const update = this.update;
+    this.update = (dt, player) => update.call(this, this.rage.update(dt), player);
+  }
+
+  // where the shield shells go: a ball round the model (subclasses shape their own)
+  shieldView() {
+    const box = new THREE.Box3().setFromObject(this.group);
+    const s = box.getBoundingSphere(new THREE.Sphere());
+    return { parent: this.group, center: this.group.worldToLocal(s.center).toArray(), size: s.radius * 1.05 + 0.15 };
   }
 
   // materialize: scale up from nothing (spawn portals call this)
@@ -400,6 +413,7 @@ export class Enemy {
       this.group.scale.setScalar(Math.max(0.01, e * (1 + 0.25 * Math.sin(this.appear * Math.PI))));
     }
     if (this.dist > this.wake) return false;
+    this.shield?.update(dt);
     this.flash = Math.max(0, this.flash - dt * 6);
     this.immuneFlash = Math.max(0, this.immuneFlash - dt * 5);
     this.sightTimer -= dt;
@@ -426,24 +440,13 @@ export class Enemy {
     audio.droneAlert();
   }
 
-  // advance a color cycle (call only when it's fair to switch, e.g. not mid-charge)
-  cycleColor(dt) {
-    if (!this.shifter) return false;
-    this.cycleTimer -= dt;
-    if (this.cycleTimer > 0) return false;
-    this.cycleTimer = this.cycle;
-    this.colorIdx = (this.colorIdx + 1) % this.palette.length;
-    this.color = this.palette[this.colorIdx];
-    this.applyColor();
-    this.world.fx.ring(this.pos, null, hexOf(this.color), { size: 0.5, end: 2.2, life: 0.3, thick: 0.12, k: 1.4 });
-    return true;
-  }
-
-  // glow color for this frame: white on a hit, grey when a wrong color bounced off, else `base`
+  // glow color for this frame: white on a hit, grey when a wrong color bounced off, else `base` (flaring
+  // hot while enraged)
   glowFlash(k = 2.4) {
     if (this.flash > 0) this.glow.color.setRGB(3, 3, 3);
     else if (this.immuneFlash > 0) this.glow.color.setRGB(0.7, 0.7, 0.8);
     else this.applyColor(k);
+    this.rage.paint(this.glow);
   }
 
   // direction the shot that hit us was travelling
@@ -458,12 +461,26 @@ export class Enemy {
   onHit(color, hit) {
     if (this.dead || this.gone) return undefined;
     this.aggro = true;
-    if (color !== this.color || this.deflects(hit)) {
+    // shielded: only the outer layer's color does anything (and the body can't be touched)
+    const r = this.shield?.up ? this.shield.hit(color, hit) : color !== this.color || this.deflects(hit) ? 'immune' : null;
+    if (r === 'immune') {
       this.immuneFlash = 1;
       this.onImmune(hit);
+      this.rage.wrong(hit);
       return 'immune';
     }
-    return this.damage(hit, this.hitDamage(hit));
+    return r ?? this.damage(hit, this.hitDamage(hit));
+  }
+
+  // a shell cracked / shattered (colorShield.js): a jolt, and on a break a real stagger
+  onShieldHit() {
+    this.flash = Math.max(this.flash, 0.4);
+  }
+
+  onShieldBreak(color, hit) {
+    this.flash = 1;
+    this.onDamage(hit, this.shotDir(hit), 0);
+    this.onStagger?.(0.7);
   }
 
   // armored spots: return true to bounce a right-color shot anyway
@@ -534,6 +551,8 @@ export class Enemy {
     this.world.remove(this);
     this.world.removeHittable(this.group);
     this.world.scene.remove(this.group);
+    this.shield?.dispose(); // (shared shell / aura geometry and materials: off the model before it's freed)
+    this.rage.dispose();
     disposeTree(this.group);
     for (const m of this.mats) m.dispose();
     this.cleanup?.();

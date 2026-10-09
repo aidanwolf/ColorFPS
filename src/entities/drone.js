@@ -1,11 +1,13 @@
-// Chroma drones (only hurt by their own color; "shifters" cycle colors) and the colored orbs
-// that drones and the boss fire. Orbs can be shot down with the matching color.
+// Chroma drones (only hurt by their own color, optionally inside layered color shields) and the colored
+// orbs that drones and the boss fire. Orbs can be shot down with the matching color.
 import * as THREE from 'three';
 import { COLORS } from '../colors.js';
 import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
 import { esfx } from './enemySfx.js';
 import { barks } from '../combat/barks.js';
+import { ColorShield, parseShields } from './colorShield.js';
+import { Rage } from './rage.js';
 
 const _v = new THREE.Vector3();
 const _eye = new THREE.Vector3();
@@ -113,16 +115,16 @@ export class Drone {
   // An armored hunter drone: blade fins and eye glow in its color. It weaves in a figure-8 and jinks aside
   // when you aim at it. Correct-color hits slam it back along the shot and stagger it (no firing or dodging),
   // so you can charge it down while firing. Killed, it spins out, crashes and explodes into debris.
+  // Shielded (colorShield.js): a ball of hard-light hex tiles per layer round it, 2 hits each:
+  // { color, shields: [outer, ...] }, or a legacy palette `color: [body, ..., outer]` (the last color is
+  // the outer shell). Wrong colors build its rage (rage.js).
   constructor(world, opts) {
-    const { pos, color, hp = 2, range = 26, fireInterval = 1.9, cycle = 2.4, orbit = 2, knock = KNOCK, onDeath = null } = opts;
+    const { pos, color, shields = null, shieldHp = 2, shieldRegen = 0, hp = 2, range = 26, fireInterval = 1.9, orbit = 2, knock = KNOCK, onDeath = null } = opts;
     this.spawnOpts = opts; // so the area can restock it when you come back (see restock.js)
     this.world = world;
-    this.palette = Array.isArray(color) ? color : [color];
-    this.colorIdx = 0;
-    this.color = this.palette[0];
-    this.shifter = this.palette.length > 1;
-    this.cycle = cycle;
-    this.cycleTimer = cycle;
+    const spec = parseShields(color, shields);
+    this.color = spec.body;
+    this.rage = new Rage(this);
     this.hp = hp;
     this.range = range;
     this.fireInterval = fireInterval;
@@ -221,6 +223,17 @@ export class Drone {
     world.addHittable(this.group);
     world.add(this);
     this.applyColor();
+    if (spec.shields.length) this.shield = new ColorShield(this, { shields: spec.shields, hp: shieldHp, regen: shieldRegen }, this.shieldView());
+  }
+
+  // the heat rim while it's enraged (rage.js)
+  get rageAura() {
+    return { center: [0, 0, 0], radius: 1.2 };
+  }
+
+  // the shield shells: a ball round the blades
+  shieldView() {
+    return { parent: this.group, size: 1.42, detail: 2, spin: 0.4 };
   }
 
   applyColor() {
@@ -284,16 +297,9 @@ export class Drone {
       this.updateHum(this.humPitch);
       return;
     }
+    dt = this.rage.update(dt); // (enraged: everything a beat faster)
     this.t += dt;
-    if (this.shifter) {
-      this.cycleTimer -= dt;
-      if (this.cycleTimer <= 0) {
-        this.cycleTimer = this.cycle;
-        this.colorIdx = (this.colorIdx + 1) % this.palette.length;
-        this.color = this.palette[this.colorIdx];
-        this.applyColor();
-      }
-    }
+    this.shield?.update(dt);
     const dist = this.dist;
     this.sightTimer -= dt;
     if (this.sightTimer <= 0) {
@@ -328,6 +334,8 @@ export class Drone {
       this.home.y + Math.sin(this.t * 1.8) * 0.45 + Math.sin(this.t * 3.1) * 0.12,
       this.home.z + Math.sin(this.t * 1.8) * o * 0.5,
     );
+    // enraged, it presses in: its weave slides toward you (no closer than 5 m, at most 4 m off its post)
+    if (this.rage.on && this.sees) target.addScaledVector(_a.subVectors(_eye, target).setY(0).normalize(), THREE.MathUtils.clamp(dist - 5, 0, 4));
     const farOut = this.pos.distanceTo(this.home) > o + 6;
     if (farOut) {
       // knocked too far from its post: drop the momentum and haul back
@@ -368,7 +376,7 @@ export class Drone {
       this.body.quaternion.copy(_q).slerp(_q2, Math.min(1, dt * (this.stagger > 0 ? 2.5 : 12)));
     }
     this.fins.rotation.y += dt * (this.aggro ? 7 : 3) * (1 + this.stagger * 2);
-    this.ring.rotation.y -= dt * (this.shifter ? 5 : 2);
+    this.ring.rotation.y -= dt * (this.rage.on ? 6 : 2);
     this.thruster.scale.y = 0.8 + Math.random() * 0.5;
     // the thruster sputters while it's reeling
     this.thruster.visible = this.stagger <= 0 || Math.random() < 0.5;
@@ -378,10 +386,10 @@ export class Drone {
       // (only fires while it holds one of the director's attack tokens; first shot from off screen misses)
       if (this.fireTimer <= 0 && !director.request(this, 0.7)) this.fireTimer = 0.25 + Math.random() * 0.3;
       else if (this.fireTimer <= 0) {
-        this.fireTimer = this.fireInterval * (0.8 + Math.random() * 0.4);
+        this.fireTimer = this.fireInterval * (0.8 + Math.random() * 0.4) * this.rage.cool;
         const dir = _v.subVectors(director.aim(this, this.pos, _eye), this.pos).normalize();
         const start = this.pos.clone().addScaledVector(dir, 1.0);
-        new Orb(this.world, start, dir.multiplyScalar(11), this.color, { damage: 10 });
+        new Orb(this.world, start, dir.multiplyScalar(11 * this.rage.shot), this.color, { damage: 10 });
         audio.enemyShoot();
       }
     }
@@ -391,6 +399,7 @@ export class Drone {
     if (this.flash > 0) this.glowMat.color.setRGB(3, 3, 3);
     else if (this.immuneFlash > 0) this.glowMat.color.setRGB(0.7, 0.7, 0.8);
     else this.applyColor();
+    this.rage.paint(this.glowMat);
     this.body.scale.setScalar(1 + this.flash * 0.12);
     this.updateHum(this.humPitch * (1 + Math.min(this.speed, 16) * 0.025 + (this.aggro ? 0.05 : 0) + this.stagger * 0.6));
   }
@@ -430,26 +439,18 @@ export class Drone {
   onHit(color, hit) {
     if (this.dead) return undefined;
     this.aggro = true;
-    if (color !== this.color) {
+    // shielded: only the outer layer's color does anything (and the body can't be touched)
+    const r = this.shield?.up ? this.shield.hit(color, hit) : color !== this.color ? 'immune' : null;
+    if (r === 'immune') {
       this.immuneFlash = 1;
       this.startDodge(this.world.game.player, 6);
+      this.rage.wrong(hit);
       return 'immune';
     }
+    if (r) return r;
     this.hp--;
     this.flash = 1;
-    // knockback along the shot, a stagger, and a tumble that springs back
-    const dir = this.shotDir(hit, new THREE.Vector3());
-    this.knock.addScaledVector(dir, this.knockPower);
-    if (this.knock.length() > KNOCK_MAX) this.knock.setLength(KNOCK_MAX);
-    this.dodge.multiplyScalar(0.25);
-    this.stagger = STAGGER;
-    this.recover = 0;
-    this.fireTimer = Math.max(this.fireTimer, 0.5);
-    const spin = 6 + Math.random() * 3;
-    this.tiltV.x += dir.z * spin;
-    this.tiltV.y -= dir.x * spin;
-    _a.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
-    this.body.quaternion.premultiply(_q.setFromAxisAngle(_a, 0.5 + Math.random() * 0.3));
+    const dir = this.reel(hit, 1);
     const p = hit?.point ?? this.pos;
     // hit sparks, sprayed out of the impact along the shot
     this.world.fx.burst(p, 0xffd9a0, { count: 22, speed: 9, life: 0.45, size: 0.17, gravity: 10, dir: _a.copy(dir).multiplyScalar(0.4) });
@@ -465,9 +466,39 @@ export class Drone {
     return 'hit';
   }
 
+  // knockback along the shot, a stagger, and a tumble that springs back (k: how hard)
+  reel(hit, k) {
+    const dir = this.shotDir(hit, new THREE.Vector3());
+    this.knock.addScaledVector(dir, this.knockPower * k);
+    if (this.knock.length() > KNOCK_MAX) this.knock.setLength(KNOCK_MAX);
+    this.dodge.multiplyScalar(0.25);
+    this.stagger = Math.max(this.stagger, STAGGER * Math.min(1.8, k));
+    this.recover = 0;
+    this.fireTimer = Math.max(this.fireTimer, 0.5 * k);
+    const spin = (6 + Math.random() * 3) * k;
+    this.tiltV.x += dir.z * spin;
+    this.tiltV.y -= dir.x * spin;
+    _a.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+    this.body.quaternion.premultiply(_q.setFromAxisAngle(_a, (0.5 + Math.random() * 0.3) * Math.min(1, k)));
+    return dir;
+  }
+
+  // a shell cracked (a nudge) or shattered (a full stagger: it reels and stops firing a moment) (colorShield.js)
+  onShieldHit(hit) {
+    this.reel(hit, 0.35);
+  }
+
+  onShieldBreak(color, hit) {
+    this.flash = 1;
+    this.reel(hit, 1.6);
+    esfx('robot_pain_light', this.pos, 0.8, this.humPitch * 1.05);
+  }
+
   // shot down: lose power, spin out trailing sparks and smoke, then explode on impact
   die() {
     this.dead = true;
+    if (this.rage.on) this.rage.calm();
+    this.shield?.dispose(); // (a shell still flying apart goes with it)
     this.crashing = true;
     this.crashT = 0;
     this.world.removeHittable(this.group);
@@ -604,6 +635,8 @@ export class Drone {
   dispose() {
     this.stopHum();
     this.dead = true;
+    this.shield?.dispose(); // (shared shell / aura geometry: off the model before it's freed)
+    this.rage.dispose();
     this.world.removeHittable(this.group);
     this.world.remove(this);
     this.world.scene.remove(this.group);

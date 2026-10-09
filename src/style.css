@@ -415,3 +415,33 @@ body.log-on #bark { display: none; }
 body.touch #bark { bottom: 132px; max-width: 64vw; }
 body.touch #bark .bk-text { font-size: 12px; }
 @media (max-height: 480px) { #bark { bottom: 96px; } #bark .bk-text { font-size: 12px; } }
+
+/* ---- rage marks (rageMarks.js): a wrong-color warning over an enemy, popping into an aggro badge ---- */
+#rage-marks { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+#hud.cinematic #rage-marks { visibility: hidden; }
+.rmark { position: absolute; left: 0; top: 0; width: 46px; height: 46px; opacity: 0; transform-origin: 50% 100%; will-change: transform, opacity; --need: #fff; }
+.rmark svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9)); }
+.rmark .rm-back { fill: rgba(8, 10, 16, 0.55); stroke: none; }
+.rmark .rm-seg { fill: none; stroke: rgba(255, 255, 255, 0.28); stroke-width: 4.5; stroke-linecap: round; transition: stroke 0.12s; }
+.rmark .rm-seg.on { stroke: #ff8a2a; filter: drop-shadow(0 0 3px #ff5a10); }
+.rmark .rm-tri { fill: var(--need); stroke: #10131c; stroke-width: 2.4; stroke-linejoin: round; filter: drop-shadow(0 0 4px var(--need)); }
+.rmark .rm-bang { fill: #10131c; }
+.rmark.tick svg { animation: rm-tick 0.22s ease-out; }
+@keyframes rm-tick { 0% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.rmark .rm-rage { display: none; }
+.rmark.rage .rm-warn { display: none; }
+.rmark.rage .rm-rage { display: inline; }
+.rmark .rm-burst { fill: #ff4a12; stroke: #ffd060; stroke-width: 1.6; stroke-linejoin: round; filter: drop-shadow(0 0 6px #ff3a00); animation: rm-throb 0.5s ease-in-out infinite alternate; transform-origin: 0 0; }
+.rmark .rm-face { fill: #1a0400; }
+.rmark .rm-mouth { fill: none; stroke: #1a0400; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+.rmark .rm-bangs { fill: #fff2c0; font: 900 11px/1 system-ui, sans-serif; text-anchor: middle; dominant-baseline: middle; stroke: #5a1000; stroke-width: 0.8; paint-order: stroke; }
+.rmark .rm-timer { fill: none; stroke: #ff9a3a; stroke-width: 3; transform: rotate(-90deg); opacity: 0.9; }
+.rmark.ending .rm-rage { animation: rm-blink 0.18s steps(2) infinite; }
+.rmark.pop svg { animation: rm-pop 0.48s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes rm-throb { 0% { transform: scale(1); } 100% { transform: scale(1.08); } }
+@keyframes rm-blink { 50% { opacity: 0.35; } }
+@keyframes rm-pop {
+  0% { transform: scale(0.6); filter: brightness(4) drop-shadow(0 0 10px #fff); }
+  30% { transform: scale(1.7); filter: brightness(2) drop-shadow(0 0 12px #ff7a20); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9)); }
+}
