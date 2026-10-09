@@ -12,7 +12,10 @@
 // Maw (a quicksand whirlpool it circles while the Lumen Excavator rises out of it: shoot out its vents),
 // then snakes back across the north and lands you at the end dock. Waves come at it all the way: drones
 // swooping in from the flanks and astern, swarms, turrets on the rock spires, scarabs leaping out of the
-// quicksand onto the deck, raider skiffs racing alongside. 60-90 s. All of it yellow.
+// quicksand onto the deck, raider skiffs racing alongside. 60-90 s. Yellow at heart, with red worked in so
+// you keep switching mid-fight (you have red and yellow by now): red drones and scarabs in the mix, skiffs
+// in red shield bubbles, turrets whose lens flips red/yellow between bursts, and the Excavator's vents
+// bolted under red armor plates you blast off before the yellow vents can be hit.
 // Dying mid-run puts you back on the start dock (its checkpoint is taken as you board) with the run reset;
 // landing takes the end dock's checkpoint and the run is saved as done (the sled waits at the end dock).
 //
@@ -100,11 +103,11 @@ function rawDunes(x, z) {
   const warp = fbm(x * 0.018, z * 0.018, 2) * 5 + Math.sin(z * 0.017 + region * 4) * 2.6;
   const ph = x * 0.04 + warp;
   const f = ph - Math.floor(ph), C = 0.72;
-  const ridge = f < C ? Math.pow(f / C, 1.5) : Math.pow(1 - (f - C) / (1 - C), 1.7);
+  const ridge = f < C ? Math.pow(f / C, 1.3) : Math.pow(1 - (f - C) / (1 - C), 1.45);
   let h = ridge * (1.4 + 6.8 * smoothstep(0.32, 0.72, region));
   const ph2 = (x * 0.55 + z * 0.83) * 0.075 + fbm(x * 0.03 + 9, z * 0.03, 2) * 3;
   const f2 = ph2 - Math.floor(ph2);
-  h += (f2 < 0.75 ? Math.pow(f2 / 0.75, 1.4) : Math.pow(1 - (f2 - 0.75) / 0.25, 1.6)) * 1.3 * (1.1 - region);
+  h += (f2 < 0.75 ? Math.pow(f2 / 0.75, 1.3) : Math.pow(1 - (f2 - 0.75) / 0.25, 1.4)) * 1.0 * (1.1 - region);
   h += (fbm(x * 0.07, z * 0.07, 2) - 0.5) * 0.7;
   const basin = smoothstep(0.37, 0.25, fbm(x * 0.011 + 20, z * 0.011 - 7, 3));
   return h * (1 - basin) - 2.6 * basin;
@@ -595,7 +598,9 @@ export function buildDuneRun(B, { start, startYaw = Math.PI / 2, end, endYaw = -
   const spires = new THREE.InstancedMesh(spireGeometry(), spireMat, spireSpots.length);
   const capCount = spireSpots.filter((s) => s.cap || s.flat).length;
   const caps = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1.1, 1, 7), spireMat, capCount);
-  caps.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(caps.geometry.attributes.position.count * 3).fill(0.45), 3));
+  const capCol = new Float32Array(caps.geometry.attributes.position.count * 3);
+  for (let i = 0; i < capCol.length; i += 3) capCol.set([0.42, 0.2, 0.09], i); // (the darker caprock)
+  caps.geometry.setAttribute('color', new THREE.BufferAttribute(capCol, 3));
   let ci = 0;
   spireSpots.forEach((s, i) => {
     const gy = Math.min(terrain.heightAt(s.x, s.z), dockY) - 2;
@@ -796,7 +801,13 @@ class DuneRun {
     this.escorts = []; // drones and swarms riding along: { e, kind, from, to, t0, life, ph, retireAt }
     this.turrets = [];
     this.streamT = 0;
+    this.doomed = []; // escorts to despawn (by the sweeper)
+    this.clearPending = false;
     this.W.add(this);
+    // (World.update walks its entities from the last to the first, and an entity that removes others
+    // mid-walk would shift it: the run only marks them, and this one, first in the list and so updated
+    // last, takes them out)
+    this.W.entities.unshift({ update: () => this.sweep() });
     this.events = this.script();
   }
 
@@ -804,6 +815,7 @@ class DuneRun {
   // [leg, s, fn]: fired once per run as the sled passes s on that leg (leg 1 is the Maw, handled apart).
   script() {
     const L = (x, y, z) => [x, y, z];
+    const Y = YELLOW, R = RED;
     return [
       // ---- A: out across the south of the sea
       [0, 8, () => this.game.enterZone('SOLAR · HOLD ON', 'THE DUNE SEA', '#ffd23a', 'music_combat')],
@@ -812,39 +824,40 @@ class DuneRun {
         this.drone(L(26, 14, 30), L(10, 6, 7));
       }],
       [0, 70, () => this.message('Lumen drones! <b>Shoot</b> — the sled does the driving.', 3)],
+      [0, 100, () => this.drone(L(-24, 12, -30), L(-11, 6, 2), R)],
       [0, 128, () => this.scarab(24, -8)],
-      [0, 142, () => this.scarab(22, 8)],
+      [0, 142, () => this.scarab(22, 8, R)],
       [0, 156, () => this.scarab(26, -7)],
       [0, 180, () => {
-        this.swarm(L(-6, 7, -32), 6);
+        this.swarm(L(-6, 7, -32), 6, [Y, Y, R]);
         this.drone(L(18, 9, -30), L(11, 5, -2));
       }],
       [0, 228, () => {
-        this.skiff(-1);
+        this.skiff(-1, true);
         this.skiff(1);
       }],
       [0, 300, () => {
-        this.drone(L(-20, 12, -34), L(-10, 6, -4));
+        this.drone(L(-20, 12, -34), L(-10, 6, -4), R);
         this.drone(L(20, 12, -36), L(9, 5, 3));
-        this.swarm(L(4, 9, 40), 5);
+        this.swarm(L(4, 9, 40), 5, [Y, R]);
       }],
       [0, 350, () => this.retireAll()],
       // ---- B: out of the Maw and home across the north
       [2, 30, () => {
-        this.scarab(22, 8);
-        this.skiff(1);
+        this.scarab(22, 8, R);
+        this.skiff(1, true);
       }],
       [2, 46, () => this.scarab(22, -8)],
-      [2, 62, () => this.scarab(24, 7)],
+      [2, 62, () => this.scarab(24, 7, R)],
       [2, 100, () => {
-        this.swarm(L(0, 8, -30), 6);
-        this.drone(L(-24, 12, 20), L(-10, 5, 6));
+        this.swarm(L(0, 8, -30), 6, [Y, R]);
+        this.drone(L(-24, 12, 20), L(-10, 5, 6), R);
       }],
       [2, 150, () => this.skiff(-1)],
       [2, 210, () => {
-        this.drone(L(22, 12, 30), L(9, 6, 8));
+        this.drone(L(22, 12, 30), L(9, 6, 8), R);
         this.drone(L(-22, 12, 30), L(-9, 5, 5));
-        this.swarm(L(-5, 7, -35), 5);
+        this.swarm(L(-5, 7, -35), 5, [Y, Y, R]);
       }],
       [2, 300, () => this.retireAll()],
     ].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -858,37 +871,41 @@ class DuneRun {
     this.reorder = true;
   }
 
-  drone(from, to, life = 32) {
+  drone(from, to, color = YELLOW, life = 32) {
     this.toWorld(from[0], from[1], from[2], _a);
-    const e = spawnEnemy(this.W, { type: 'drone', pos: [_a.x, _a.y, _a.z], color: YELLOW, range: 70, fireInterval: 2.3, orbit: 1.4, aggro: true });
+    const e = spawnEnemy(this.W, { type: 'drone', pos: [_a.x, _a.y, _a.z], color, range: 70, fireInterval: 2.3, orbit: 1.4, aggro: true });
     e.aggro = true;
     this.escorts.push({ e, kind: 'drone', from, to, t0: this.t, life, ph: Math.random() * 6.3, retireAt: 0 });
     this.spawned();
     return e;
   }
 
-  swarm(from, count, life = 28) {
+  swarm(from, count, colors = [YELLOW], life = 28) {
     this.toWorld(from[0], from[1], from[2], _a);
-    const e = spawnEnemy(this.W, { type: 'swarm', pos: [_a.x, _a.y, _a.z], color: YELLOW, count, divers: 1 });
+    const e = spawnEnemy(this.W, { type: 'swarm', pos: [_a.x, _a.y, _a.z], colors, count, divers: 1 });
     this.escorts.push({ e, kind: 'swarm', from, to: from, t0: this.t, life, ph: 0, retireAt: 0 });
     this.spawned();
     return e;
   }
 
-  skiff(side) {
+  skiff(side, shielded = false) {
     const s = this.skiffs.find((k) => k.gone);
     if (!s) return;
-    s.spawn(side, -38);
+    s.spawn(side, -38, shielded);
+    if (shielded && !this.warnedShield) {
+      this.warnedShield = true;
+      this.message('<b style="color:#ff3344">RED SHIELD</b> on that skiff — switch to <b style="color:#ff3344">red</b> to break it, then <b style="color:#ffd23a">yellow</b>.', 4);
+    }
     this.spawned();
   }
 
   // a scarab bursting out `ahead` m up the rails and `lat` m to the side
-  scarab(ahead, lat) {
+  scarab(ahead, lat, color = YELLOW) {
     const k = this.scarabs.find((e) => e.gone);
     if (!k) return;
     this.rails.point(this.leg, Math.min(this.s + ahead, this.legLen() - 1), _a);
     this.rails.tangent(this.leg, Math.min(this.s + ahead, this.legLen() - 1), _t);
-    k.spawn(_a.x - _t.z * lat, _a.z + _t.x * lat);
+    k.spawn(_a.x - _t.z * lat, _a.z + _t.x * lat, color);
     if (!this.warnedScarab) {
       this.warnedScarab = true;
       k.onLatch = () => this.message('<b style="color:#ffd23a">SCARAB ON DECK</b> — shoot it off before it lunges!', 2.5);
@@ -899,7 +916,7 @@ class DuneRun {
   // send everything still riding along away (drones peel off, swarms scatter)
   retireAll() {
     for (const r of this.escorts) if (!r.retireAt) r.retireAt = this.t;
-    for (const s of this.skiffs) if (!s.gone && s.state !== 'crash') s.die(null, _a.set(0, 1, 0));
+    for (const s of this.skiffs) if (!s.gone && s.state !== 'crash') s.retreat();
   }
 
   // craft-local x right, y up (over the deck), z forward -> world (level: the hull's tilt left out)
@@ -948,14 +965,34 @@ class DuneRun {
     this.mawWon = false;
     this.pos.copy(this.craft.pos);
     this.prev.copy(this.pos);
-    for (const t of this.perches) {
-      const e = spawnEnemy(this.W, { type: 'turret', pos: t.pos, color: YELLOW, range: 58, cooldown: 2.4, charge: 1.0, aggro: false });
+    this.perches.forEach((t, i) => {
+      // (every other one switches between red and yellow from burst to burst: watch its lens)
+      const colors = i % 2 ? [RED, YELLOW] : [YELLOW];
+      const e = spawnEnemy(this.W, { type: 'turret', pos: t.pos, colors, range: 58, cooldown: 2.4, charge: 1.0, cycle: 1, aggro: false });
+      e.perch = t;
       this.turrets.push(e);
-    }
+    });
     this.spawned();
     director.setIntensity(2);
     audio.sample('warp_whoosh', { gain: 0.6, rate: 0.7 }) || audio.sample('jump_pad', { gain: 0.6, rate: 0.7 });
     this.message('<b>HOLD ON.</b> Look around and shoot — the sled does the driving.', 3.5);
+  }
+
+  sweep() {
+    for (const r of this.doomed) this.despawn(r);
+    this.doomed.length = 0;
+    // turrets the sled has left behind for good (those of the leg it just finished)
+    for (let i = this.turrets.length - 1; i >= 0; i--) {
+      const t = this.turrets[i];
+      if (t.perch.leg < this.leg && this.state === 'ride') {
+        t.despawn();
+        this.turrets.splice(i, 1);
+      }
+    }
+    if (this.clearPending) {
+      this.clearPending = false;
+      this.clearEnemies();
+    }
   }
 
   // clear every enemy of the run out of the world (quietly)
@@ -1006,7 +1043,7 @@ class DuneRun {
     this.state = 'done';
     this.game.clearedEncounters?.add(RUN_ID);
     if (instant) {
-      this.clearEnemies();
+      this.clearPending = true;
       this.excavator.reset();
       this.craft.setPose(_a.set(this.endPark[0], this.parkY(this.end[1]), this.endPark[1]), this.parkYawEnd, 0, 0);
     }
@@ -1018,7 +1055,7 @@ class DuneRun {
     this.game.hud.bossShow(false);
     director.setIntensity();
     if (instant) return;
-    this.clearEnemies();
+    this.clearPending = true;
     const cp = this.endCp;
     if (this.game.checkpoint?.ref !== cp) {
       this.game.checkpoint?.ref?.setActive(false);
@@ -1039,7 +1076,10 @@ class DuneRun {
     const game = this.game, craft = this.craft;
     // a reloaded save past the run: the sled is waiting at the end dock
     if (this.state === 'parked' && !this.done && (game.clearedEncounters?.has(RUN_ID) || game.checkpoint?.ref === this.endCp)) this.finish(true);
-    if (player.pos.x < -205 && player.pos.z < -40 && player.pos.z > -240) this.streamers(dt, player);
+    if (player.pos.x < -205 && player.pos.z < -40 && player.pos.z > -240) {
+      this.streamers(dt, player);
+      this.smoulder(dt);
+    }
     if (this.state === 'spool') this.spool(dt);
     else if (this.state === 'ride') this.ride(dt, player);
     else if (this.state === 'arrive') this.arrive(dt);
@@ -1139,7 +1179,7 @@ class DuneRun {
     const dy = wrapAngle(heading - this.yaw);
     this.yaw = wrapAngle(this.yaw + dy * Math.min(1, dt * 7));
     const yawRate = dy * 7;
-    const bankWant = THREE.MathUtils.clamp(-yawRate * this.speed * 0.035, -0.42, 0.42);
+    const bankWant = THREE.MathUtils.clamp(-yawRate * this.speed * 0.03, -0.32, 0.32);
     this.bank += (bankWant - this.bank) * Math.min(1, dt * 4);
     // ---- height: an air cushion (spring) over the sand; off a crest it flies
     const ground = this.surfaceAt(_p.x, _p.z);
@@ -1190,8 +1230,6 @@ class DuneRun {
       const dx = a.pos.x - player.pos.x, dz = a.pos.z - player.pos.z, dyy = a.pos.y + 1.15 - (player.pos.y + 1.1);
       if (dx * dx + dz * dz + dyy * dyy < 7) a.take(player);
     }
-    // ---- turrets left far behind stand down
-    for (const tu of this.turrets) if (!tu.dead && tu.pos.distanceTo(this.pos) > 90 && tu.aggro) tu.aggro = false;
   }
 
   land(speed) {
@@ -1229,7 +1267,7 @@ class DuneRun {
           y += rk * 26;
           z -= rk * 45;
           if (rk >= 1) {
-            e.dispose();
+            this.doomed.push(r);
             this.escorts.splice(i, 1);
             continue;
           }
@@ -1243,7 +1281,7 @@ class DuneRun {
         for (const m of e.members) if (!m.dead) m.pos.add(D);
         if (!r.retireAt && this.t - r.t0 > r.life) r.retireAt = this.t;
         if (r.retireAt) {
-          e.despawn();
+          this.doomed.push(r);
           this.escorts.splice(i, 1);
         }
       }
@@ -1275,16 +1313,20 @@ class DuneRun {
       if (name) name.textContent = 'LUMEN EXCAVATOR';
       this.game.hud.bossShow(true);
       this.game.hud.bossBar(1);
-      this.message('Shoot out its glowing <b style="color:#ffd23a">VENTS</b>! Pop the globs it spits.', 3.5);
+      this.message('Blast its <b style="color:#ff3344">RED plates</b> off, pop the globs it spits, and hit the <b style="color:#ffd23a">VENTS</b> while they blow open!', 5);
+      this.game.hud.bossHint?.('RED plates first — then YELLOW vents when they open');
     };
     ex.onDamage = () => {
       this.game.hud.bossBar(ex.hpFrac());
       if (ex.ventsLeft === 2 && !this.mawSwarm) {
         this.mawSwarm = true;
-        this.swarm([0, 9, -30], 4, 18);
+        this.swarm([0, 9, -30], 4, [YELLOW, RED], 18);
       }
     };
     ex.onDead = () => {};
+    ex.onPlate = () => {
+      if (!ex.platesLeft) this.game.hud.bossHint?.('Plates gone — YELLOW on the vents when they blow open!', true);
+    };
     this.mawSwarm = false;
   }
 
@@ -1292,6 +1334,7 @@ class DuneRun {
     const ex = this.excavator;
     this.mawT += dt;
     if (this.mawT > 1.4 && ex.state === 'buried') ex.emerge();
+    if (ex.state === 'fight') this.game.hud.bossBar(ex.hpFrac());
     if (ex.state === 'dying' && !this.mawWon) {
       this.mawWon = true;
       this.game.hud.bossShow(false);
@@ -1338,6 +1381,17 @@ class DuneRun {
   }
 
   // ---------------------------------------------------------------- ambience
+  // the first skiff wreck still smokes
+  smoulder(dt) {
+    this.smokeT = (this.smokeT || 0) - dt;
+    const w = this.wrecks[0];
+    if (this.smokeT > 0 || w.distanceToSquared(this.game.camera.position) > 160 * 160) return;
+    this.smokeT = 0.12;
+    _a.copy(w).y += 0.8;
+    this.W.fx.burst(_a, 0x2e2a28, { count: 2, speed: 1, life: 3.2, size: 1.6, gravity: -2.2, drag: 0.8 });
+    if (Math.random() < 0.3) this.W.fx.ember(_a, (Math.random() - 0.5) * 2, 2 + Math.random() * 2, (Math.random() - 0.5) * 2, 0xff7a20, 0.8, 0.12);
+  }
+
   // sand streaming off the dune crests round you on the wind
   streamers(dt, player) {
     this.streamT -= dt;

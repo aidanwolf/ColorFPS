@@ -25,6 +25,7 @@ const EYE = 1.61; // (player STAND_H - EYE_DROP)
 const TILT_VIEW = 0.65; // how much of the hull's bank/pitch the view takes
 const TRIM = 0x9bf6ff; // the sled's own trim (cyan-white: not an enemy's color)
 const DUST = 0xc9a26a;
+const WAKE = 0xf0dcb8; // (the wake astern: paler than the sand so it reads against it)
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -42,7 +43,7 @@ function parts() {
     trim: new THREE.MeshBasicMaterial({ color: new THREE.Color(TRIM).multiplyScalar(2.2) }),
     screen: new THREE.MeshBasicMaterial({ color: new THREE.Color(0x7ff0ff).multiplyScalar(1.4) }),
     glass: new THREE.MeshStandardMaterial({ color: 0x9fc8d8, metalness: 0.9, roughness: 0.08, transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false }),
-    glow: new THREE.MeshBasicMaterial({ color: new THREE.Color(TRIM).multiplyScalar(1.6), transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
+    glow: new THREE.MeshBasicMaterial({ color: new THREE.Color(TRIM).multiplyScalar(0.9), transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
     pad: new THREE.MeshBasicMaterial({ color: new THREE.Color(TRIM).multiplyScalar(1.2), transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
   };
   return sledParts;
@@ -153,12 +154,15 @@ export class Hovercraft {
     add(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.85, 0.32), P.dark), 0, 0.42, -1.75, 0.12, 0, 0);
     add(new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.32, 0.03), P.screen), 0, 0.78, -1.57, -0.55, 0, 0);
     for (const s of [-1, 1]) add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.32, 6), P.plate), s * 0.42, 0.9, -1.7, 0, 0, Math.PI / 2);
-    // twin ducted turbines astern on pylons: duct ring, spinning fan, glowing core and exhaust
+    // twin ducted turbines outboard of the stern on stub wings (the stern between them stays open: you
+    // walk aboard there): duct ring, spinning fan, glowing core and exhaust, a fin on top
     this.fans = [];
     this.exhaust = [];
     for (const s of [-1, 1]) {
-      const x = s * 1.12, y = 0.62, z = 3.35;
-      add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.75, 0.9), P.plate), s * 1.05, 0.12, 3.0);
+      const x = s * 2.15, y = 0.35, z = 2.75;
+      add(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.16, 1.1), P.plate), s * 1.65, -0.08, 2.7, 0, 0, s * -0.12);
+      add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.55, 0.8), P.hull), x, y + 0.95, z + 0.05, 0.3, 0, 0);
+      add(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, 0.6), P.trim), x, y + 1.2, z + 0.1, 0.3, 0, 0);
       add(new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.7, 0.75, 20, 1, true), P.duct), x, y, z, Math.PI / 2, 0, 0);
       add(new THREE.Mesh(new THREE.TorusGeometry(0.76, 0.07, 6, 24), P.dark), x, y, z - 0.38);
       add(new THREE.Mesh(new THREE.TorusGeometry(0.71, 0.04, 6, 24), P.trim), x, y, z + 0.38);
@@ -180,9 +184,6 @@ export class Hovercraft {
       const ex = add(new THREE.Mesh(new THREE.CircleGeometry(0.66, 24), P.glow), x, y, z + 0.2);
       this.exhaust.push(ex);
     }
-    // a stubby tail fin between the turbines
-    add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 0.9), P.hull), 0, 0.3, 2.9, 0.25, 0, 0);
-    add(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, 0.7), P.trim), 0, 0.62, 3.0, 0.25, 0, 0);
     this.world.scene.add(g);
   }
 
@@ -312,7 +313,7 @@ export class Hovercraft {
     for (const fan of this.fans) fan.rotation.z += dt * (6 + thr * 40);
     const P = parts();
     const pulse = 0.75 + 0.25 * Math.sin(this.t * 9);
-    P.glow.opacity = (0.35 + thr * 0.6) * (0.85 + Math.random() * 0.15);
+    P.glow.opacity = (0.18 + thr * 0.42) * (0.85 + Math.random() * 0.15);
     P.pad.opacity = (0.35 + 0.3 * thr) * pulse;
     for (const ex of this.exhaust) ex.scale.setScalar(0.9 + thr * 0.15 + Math.random() * 0.05);
     this.rumble = Math.max(0, this.rumble - dt * 1.5);
@@ -336,7 +337,11 @@ export class Hovercraft {
           // the wake: a long trail of dust astern, and a spray of sand if it's skimming quicksand
           this.toWorld(rnd(-1, 1), 0, -3.6, _v);
           _v.y = gy;
-          fx.puff(_v, -this.vel.x * 0.15 + rnd(-1, 1), rnd(0.5, 1.6), -this.vel.z * 0.15 + rnd(-1, 1), _c.set(DUST), 0.4 * near, rnd(1.4, 2.4), rnd(0.6, 1.0), 3.5);
+          for (const sx of [-1.4, 1.4]) {
+            this.toWorld(sx + rnd(-0.4, 0.4), 0, -3.4, _v);
+            _v.y = gy;
+            fx.puff(_v, -this.vel.x * 0.12 + rnd(-1.5, 1.5), rnd(0.8, 2.2), -this.vel.z * 0.12 + rnd(-1.5, 1.5), _c.set(WAKE), 0.5 * near, rnd(1.6, 2.6), rnd(0.8, 1.3), 3.8);
+          }
           if (this.overSand) {
             for (let i = 0; i < 3; i++) {
               this.toWorld(rnd(-1.5, 1.5), 0, rnd(-3.4, -2.6), _v);

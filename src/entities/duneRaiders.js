@@ -8,7 +8,7 @@
 // startup, and reused every run): spawn() wakes one, death puts it back.
 // `run` is the run controller: { craft, surfaceAt(x, z) } (the sand's height, quicksand included).
 import * as THREE from 'three';
-import { COLORS, YELLOW } from '../colors.js';
+import { COLORS, YELLOW, RED } from '../colors.js';
 import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
 import { Orb } from './drone.js';
@@ -26,6 +26,7 @@ const _x = new THREE.Vector3();
 const _z = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
 const HEX = COLORS[YELLOW].hex;
+const RED_HEX = COLORS[RED].hex;
 const DUST = 0xa88758;
 const SAND = 0xd9b46a;
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -34,7 +35,7 @@ const smooth01 = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 audio.manifest?.then(() => audio.prefetch([
   'scarab_emerge', 'scarab_pounce', 'scarab_chitter', 'scarab_crunch', 'scarab_dig', 'turret_charge', 'turret_shot', 'enemy_shot',
   'leviathan_roar', 'titan_roar', 'root_rumble', 'floor_collapse', 'boss_charge', 'charge_up', 'glob_pop', 'leviathan_spit',
-  'titan_groan_big', 'drone_explode', 'boss_death', 'ring_wave', 'warp_whoosh',
+  'titan_groan_big', 'drone_explode', 'boss_death', 'ring_wave', 'warp_whoosh', 'warden_shield_hit', 'warden_shield_break', 'shield_break',
 ]));
 
 const sandPuff = (fx, p, spread = 1, up = 1, size = 0.5, life = 1) =>
@@ -83,7 +84,10 @@ class Pooled extends Enemy {
 // races up from behind to a station off the sled's flank and weaves there; every few seconds (holding a
 // director token) it paints you with a laser sight (the aim freezes for the last moment) and fires a
 // 3-shot burst. 4 hp. Shot down, it flips and ploughs into the sand.
+// A shielded skiff rides inside a RED energy bubble: yellow glances off it, red breaks it (SHIELD_HP hits),
+// then it's yellow like the rest.
 const SKIFF_HP = 4;
+const SHIELD_HP = 3;
 const AIM_T = 0.75, LOCK_T = 0.22, BURST = 3, BURST_GAP = 0.16, SHOT_SPEED = 15;
 
 export function skiffModel(owner, glow, armor) {
@@ -146,12 +150,26 @@ export class RaiderSkiff extends Pooled {
     this.muzzle.add(this.charge);
     this.mats.push(this.charge.material);
     this.aimAt = new THREE.Vector3();
+    // the red shield: a bubble round the whole skiff (it takes the shots while it's up) and its emitter ring
+    this.shieldMat = additive(new THREE.Color(RED_HEX).multiplyScalar(1.3), 0.3, { side: THREE.DoubleSide });
+    this.shield = new THREE.Mesh(GEO.sphere, this.shieldMat);
+    this.shield.scale.set(2.1, 1.5, 2.6);
+    this.shield.position.y = 0.4;
+    this.emitter = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.06, 4, 18), glowMat(RED));
+    this.emitter.rotation.x = Math.PI / 2;
+    this.emitter.position.set(0, 0.33, 1.05);
+    this.group.add(this.shield, this.emitter);
+    this.mats.push(this.shieldMat);
     this.gone = this.dead = true;
     world.scene.add(this.group);
   }
 
-  // side: -1 left, 1 right; it comes in from `fromZ` m astern
-  spawn(side, fromZ = -40) {
+  // side: -1 left, 1 right; it comes in from `fromZ` m astern; shielded: inside a red bubble
+  spawn(side, fromZ = -40, shielded = false) {
+    this.shieldHp = shielded ? SHIELD_HP : 0;
+    this.leaving = 0;
+    this.shieldFlash = 0;
+    this.shield.visible = this.emitter.visible = shielded;
     const c = this.run.craft;
     this.side = side;
     this.local.set(side * rnd(16, 22), 0, fromZ);
@@ -184,13 +202,54 @@ export class RaiderSkiff extends Pooled {
     this.lastY = this.pos.y;
   }
 
+  // peel away astern and out of the fight (gone a few seconds later)
+  retreat() {
+    if (!this.leaving) this.leaving = 0.001;
+    director.release(this);
+    this.state = 'cool';
+    this.timer = 99;
+    this.beam.hide();
+  }
+
+  // a red shield takes every shot while it's up: red cracks it, anything else glances off
+  onHit(color, hit) {
+    if (this.dead || this.gone) return undefined;
+    if (this.shieldHp <= 0) return super.onHit(color, hit);
+    const fx = this.world.fx, p = hit?.point ?? this.pos;
+    if (color !== RED) {
+      this.shieldFlash = 0.5;
+      return 'immune';
+    }
+    this.shieldHp--;
+    this.shieldFlash = 1;
+    fx.burst(p, RED_HEX, { count: 16, speed: 6, life: 0.4, size: 0.25, gravity: 2 });
+    sfx('warden_shield_hit', { gain: 0.7, vary: 0.1 }, 'glass_hit', { gain: 0.6 });
+    if (this.shieldHp <= 0) {
+      this.shield.visible = this.emitter.visible = false;
+      fx.burst(this.pos, RED_HEX, { count: 60, speed: 9, life: 0.7, size: 0.3, gravity: 3, mode: 'shard' });
+      fx.ring(this.pos, null, RED_HEX, { size: 1, end: 4, life: 0.4, thick: 0.2, k: 1.5 });
+      sfx('warden_shield_break', { gain: 0.9, vary: 0.05 }, 'shield_break', { gain: 0.8 });
+      this.onShieldDown?.(this);
+    }
+    return 'hit';
+  }
+
   update(dt, player) {
     if (this.state === 'crash') return this.updateCrash(dt);
     this.tick(dt, player);
+    if (this.shieldHp > 0) {
+      this.shieldFlash = Math.max(0, this.shieldFlash - dt * 4);
+      this.shieldMat.opacity = 0.22 + 0.06 * Math.sin(this.t * 5) + this.shieldFlash * 0.5;
+    }
     const c = this.run.craft;
     // weave about a station off the flank (racing up from astern at first)
     const t = this.t + this.phase;
     this.station.set(this.side * (9 + Math.sin(t * 0.55) * 2), 0, 2 + Math.sin(t * 0.37) * 7);
+    if (this.leaving) {
+      this.leaving += dt;
+      this.station.set(this.side * 30, 0, -70);
+      if (this.leaving > 3.5) return this.remove();
+    }
     const px = this.local.x, pz = this.local.z;
     this.local.x += (this.station.x - this.local.x) * Math.min(1, dt * 1.1);
     this.local.z += (this.station.z - this.local.z) * Math.min(1, dt * 0.7);
@@ -262,6 +321,7 @@ export class RaiderSkiff extends Pooled {
   die(hit, dir) {
     this.dead = true;
     this.state = 'crash';
+    this.shield.visible = this.emitter.visible = false;
     this.crashT = 0;
     director.release(this);
     this.beam.hide();
@@ -355,8 +415,10 @@ export class DuneScarab extends Pooled {
     world.scene.add(this.group);
   }
 
-  // burst out of the sand at world point (x, z), then leap at the deck
-  spawn(x, z) {
+  // burst out of the sand at world point (x, z), then leap at the deck (color: yellow or red)
+  spawn(x, z, color = YELLOW) {
+    this.palette = [color];
+    this.color = color;
     const y = this.run.surfaceAt(x, z);
     this.pos.set(x, y - 0.6, z);
     this.from.copy(this.pos);
@@ -571,15 +633,19 @@ export class SandGlob {
 // counter-rotating tooth rings round a glowing core. It erupts from the middle of the Maw (a quicksand
 // whirlpool the sled circles), sways to keep its maw on you, and every few seconds charges (the jaws
 // open, the core blazes and the air pulls in toward it) and spits a fan of sand globs. Its only weak spots
-// are the four yellow vents along its neck (VENT_HP each); the armor bounces shots. With every vent out
+// are the four yellow vents along its neck (VENT_HP each), and only while they blow open after a spit
+// (shuttered, like the armor, they bounce shots). Each vent starts behind a RED armor plate: red blasts it
+// off (PLATE_HP), yellow bounces off it. With every vent out
 // it convulses, bursts along its length and sinks back into the sand.
 const SEGMENTS = 13;
 const SEG_LEN = 2.6;
-const VENT_HP = 5;
+const VENT_HP = 6;
+const PLATE_HP = 3; // the red armor plate bolted over each vent: blast it off with red first
+const VENT_OPEN = 2.4; // seconds its vents stand open (blowing off heat) after each spit; shuttered otherwise
 const VENT_SEGS = [2, 2, 4, 4]; // which segment (from the head) each vent sits on (on its belly, facing the sled)
 const SPIT_EVERY = 3.4, SPIT_CHARGE = 1.3;
-const HEAD_H = 13; // how high the maw rears over the sand
-const LEAN = 13; // how far the neck arcs out over the sand toward the sled
+const HEAD_H = 19; // how high the maw rears over the sand
+const LEAN = 10; // how far the neck arcs out over the sand toward the sled
 const SEG_R = (i) => 3.5 - i * 0.12;
 export class Excavator {
   constructor(world, run, { center }) {
@@ -599,14 +665,17 @@ export class Excavator {
     this.group = new THREE.Group();
     this.group.visible = false;
     this.group.userData.hit = this;
-    this.armorMat = new THREE.MeshStandardMaterial({ color: 0x5b4c3a, metalness: 0.5, roughness: 0.55, flatShading: true, emissive: 0x000000 });
+    this.armorMat = new THREE.MeshStandardMaterial({ color: 0x3e342a, metalness: 0.45, roughness: 0.6, flatShading: true, emissive: 0x000000 });
+    this.ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(HEX).multiplyScalar(0.55) }); // (dim: the vents are what glows)
     this.plateMat = new THREE.MeshStandardMaterial({ color: 0x24201b, metalness: 0.6, roughness: 0.6, flatShading: true });
     this.toothMat = new THREE.MeshStandardMaterial({ color: 0xb8b0a0, metalness: 0.9, roughness: 0.25, flatShading: true });
     this.glowMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(HEX).multiplyScalar(2.4) });
     this.coreMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(HEX).multiplyScalar(2) });
     this.deadVent = new THREE.MeshBasicMaterial({ color: 0x3a1408 });
+    this.plateRedMat = new THREE.MeshStandardMaterial({ color: 0x5a1a14, metalness: 0.6, roughness: 0.45, flatShading: true, emissive: 0x200404 });
+    this.redGlow = new THREE.MeshBasicMaterial({ color: new THREE.Color(RED_HEX).multiplyScalar(2.2) });
     // (every part moves on its own every frame: drawn as it is, not through batch.js)
-    for (const m of [this.armorMat, this.plateMat, this.toothMat, this.glowMat, this.coreMat]) m.userData.noBatch = true;
+    for (const m of [this.armorMat, this.plateMat, this.toothMat, this.glowMat, this.coreMat, this.ringMat, this.plateRedMat, this.redGlow]) m.userData.noBatch = true;
     // segments: drums tapering toward the tail, armor bands and a dorsal fin each
     this.segs = [];
     for (let i = 0; i < SEGMENTS; i++) {
@@ -619,7 +688,7 @@ export class Excavator {
       // a dorsal ridge of blades and two flank plates per drum
       p.add(this.plateMat, new THREE.ConeGeometry(0.5, 1.8, 4), [0, 0.1, -r - 0.6], [-Math.PI / 2 + 0.4, 0, 0]);
       for (const sx of [-1, 1]) p.add(this.armorMat, new THREE.BoxGeometry(0.35, SEG_LEN * 0.6, r * 0.9), [sx * r * 0.98, 0, r * 0.15], [0, 0, 0]);
-      if (i % 2 === 0) p.add(this.glowMat, new THREE.TorusGeometry(r * 1.1, 0.06, 4, 28), [0, SEG_LEN * 0.42 + 0.2, 0], [Math.PI / 2, 0, 0]);
+      if (i % 2 === 0) p.add(this.ringMat, new THREE.TorusGeometry(r * 1.1, 0.045, 4, 28), [0, SEG_LEN * 0.42 + 0.2, 0], [Math.PI / 2, 0, 0]);
       p.build(seg);
       this.group.add(seg);
       this.segs.push(seg);
@@ -627,10 +696,10 @@ export class Excavator {
     // the head: a heavy drum, four jaw plates that open, three counter-rotating tooth rings, the core
     const head = (this.headObj = new THREE.Group());
     new Parts()
-      .add(this.armorMat, new THREE.CylinderGeometry(3.3, 3.0, 3.2, 14), [0, 0, 0])
-      .add(this.plateMat, new THREE.CylinderGeometry(3.55, 3.55, 0.5, 14), [0, -1.2, 0])
-      .add(this.plateMat, new THREE.CylinderGeometry(3.45, 3.45, 0.4, 14), [0, 1.1, 0])
-      .add(this.glowMat, new THREE.TorusGeometry(3.5, 0.08, 4, 28), [0, 1.35, 0], [Math.PI / 2, 0, 0])
+      .add(this.armorMat, new THREE.CylinderGeometry(3.5, 3.3, 3.6, 14), [0, 0, 0])
+      .add(this.plateMat, new THREE.CylinderGeometry(3.75, 3.75, 0.6, 14), [0, -1.4, 0])
+      .add(this.plateMat, new THREE.CylinderGeometry(3.6, 3.6, 0.4, 14), [0, 1.25, 0])
+      .add(this.ringMat, new THREE.TorusGeometry(3.62, 0.06, 4, 28), [0, 1.5, 0], [Math.PI / 2, 0, 0])
       .add(this.plateMat, new THREE.CylinderGeometry(1.4, 1.4, 0.6, 12), [0, 1.0, 0])
       .build(head);
     this.core = new THREE.Mesh(GEO.sphere, this.coreMat);
@@ -679,9 +748,11 @@ export class Excavator {
       v.rotation.set(Math.PI / 2, phi, 0, 'YXZ'); // (its face, +y, turned out from the drum)
       const frame = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.35, 2.0), this.plateMat);
       const grille = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.4, 1.6), this.glowMat.clone());
+      const slats = [];
       for (let s = 0; s < 4; s++) {
-        // (the slats over the grille count as the vent too, so they never soak up a good shot)
+        // shutter slats over the grille (they count as the vent too, so open they never soak up a good shot)
         const slat = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.12, 0.09), this.plateMat);
+        slats.push(slat);
         slat.position.set(0, 0.3, -0.6 + s * 0.4);
         slat.userData.hit = this;
         slat.userData.part = i;
@@ -690,9 +761,19 @@ export class Excavator {
       grille.position.y = 0.05;
       grille.userData.hit = this;
       grille.userData.part = i;
-      v.add(frame, grille);
+      // the red plate over it: a thick slab with glowing red seams, on a hinge it's blown off of
+      const plate = new THREE.Group();
+      plate.position.y = 0.55;
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.4, 2.3), this.plateRedMat);
+      slab.userData.hit = this;
+      slab.userData.part = 'plate' + i;
+      const seams = new Parts();
+      for (const [w, d, x, z] of [[2.5, 0.08, 0, 1.1], [2.5, 0.08, 0, -1.1], [0.08, 2.3, 1.22, 0], [0.08, 2.3, -1.22, 0], [1.8, 0.1, 0, 0], [0.1, 1.6, 0, 0]]) seams.add(this.redGlow, new THREE.BoxGeometry(w, 0.45, d), [x, 0, z]);
+      seams.build(plate);
+      plate.add(slab);
+      v.add(frame, grille, plate);
       seg.add(v);
-      this.vents.push({ group: v, grille, hp: VENT_HP, alive: true, flash: 0, smokeT: 0 });
+      this.vents.push({ group: v, grille, slats, plate, plateHp: PLATE_HP, plateFlash: 0, hp: VENT_HP, alive: true, flash: 0, smokeT: 0, shut: 1 });
     }
     world.scene.add(this.group);
     world.addHittable(this.group);
@@ -716,6 +797,7 @@ export class Excavator {
     this.t = 0;
     this.rise = 0;
     this.spitT = 2.4;
+    this.spitAt = -99;
     this.charging = 0;
     this.deathT = 0;
     this.group.visible = true;
@@ -723,6 +805,8 @@ export class Excavator {
     for (const v of this.vents) {
       v.alive = true;
       v.hp = VENT_HP;
+      v.plateHp = PLATE_HP;
+      v.plate.visible = true;
       v.grille.material.color.copy(this.glowMat.color);
       v.grille.visible = true;
     }
@@ -783,11 +867,12 @@ export class Excavator {
     const rise = smooth01(this.rise);
     const swayX = Math.sin(this.t * 0.7) * 2.2 * sway + (this.state === 'dying' ? Math.sin(this.t * 9) * 0.8 : 0);
     const swayZ = Math.cos(this.t * 0.53) * 1.6 * sway;
-    this.head.set(this.center.x + toward.x * lean + swayX, this.center.y - 14 + (HEAD_H + 14) * rise + Math.sin(this.t * 1.1) * 0.6, this.center.z + toward.z * lean + swayZ);
+    const side = Math.sin(this.t * 0.45) * 7 * sway; // (it weaves across your view, so you see the neck's arch)
+    this.head.set(this.center.x + toward.x * lean - toward.z * side + swayX, this.center.y - 18 + (HEAD_H + 18) * rise + Math.sin(this.t * 1.1) * 0.6, this.center.z + toward.z * lean + toward.x * side + swayZ);
     // the body: a curve from deep under the sand up through the surface to the head
     // (rising straight out of the throat, then arching over toward the sled like a rearing cobra)
-    const p0x = this.center.x - toward.x * 3, p0y = this.center.y - 22, p0z = this.center.z - toward.z * 3;
-    const p1x = this.center.x - toward.x * 2, p1y = this.center.y - 8 + (HEAD_H + 16) * rise, p1z = this.center.z - toward.z * 2;
+    const p0x = this.center.x - toward.x * 2, p0y = this.center.y - 12, p0z = this.center.z - toward.z * 2;
+    const p1x = this.center.x - toward.x * 3, p1y = this.center.y - 10 + (HEAD_H + 16) * rise, p1z = this.center.z - toward.z * 3;
     for (let i = 0; i < SEGMENTS; i++) {
       const u = 1 - (i + 0.9) / (SEGMENTS + 1);
       bez(p0x, p0y, p0z, p1x, p1y, p1z, this.head, u, _u);
@@ -835,14 +920,23 @@ export class Excavator {
       }
     }
     for (const j of this.jaws) j.rotation.z = -open;
-    // vents: glow, flash when hit, smoke when broken
+    // vents: shuttered, or open and blazing (blowing off heat) for a while after each spit; flash when
+    // hit, smoke once broken
+    this.ventOpen = this.state === 'fight' && this.t - this.spitAt < VENT_OPEN;
     for (const v of this.vents) {
       if (v.alive) {
+        v.shut += ((this.ventOpen ? 0 : 1) - v.shut) * Math.min(1, dt * 10);
+        if (v.plateHp > 0) {
+          v.plateFlash = Math.max(0, v.plateFlash - dt * 6);
+          v.plate.position.y = 0.55 + v.plateFlash * 0.12;
+        }
+        for (const sl of v.slats) sl.scale.z = 1 + v.shut * 3.6;
         v.flash = Math.max(0, v.flash - dt * 6);
         if (v.flash > 0) v.grille.material.color.setRGB(3, 3, 3);
-        else v.grille.material.color.copy(this.glowMat.color).multiplyScalar(0.8 + 0.3 * Math.sin(this.t * 6));
-        if (Math.random() < dt * 8) {
+        else v.grille.material.color.copy(this.glowMat.color).multiplyScalar((0.85 + 0.35 * Math.sin(this.t * 9)) * (1 - v.shut * 0.8));
+        if (Math.random() < dt * (this.ventOpen ? 30 : 4)) {
           v.grille.getWorldPosition(_u);
+          if (this.ventOpen) fx.puff(_u, rnd(-1.5, 1.5), rnd(2, 4), rnd(-1.5, 1.5), _c.set(0xfff0c8), 0.35, 0.9, 0.7, 3);
           fx.ember(_u, rnd(-1, 1), rnd(1, 3), rnd(-1, 1), HEX, 0.7, 0.16);
         }
       } else if ((v.smokeT -= dt) <= 0) {
@@ -863,6 +957,8 @@ export class Excavator {
 
   spit(player) {
     director.release(this);
+    this.spitAt = this.t;
+    audio.sample('hydraulic_hiss', { gain: 0.9, rate: 0.7 }); // (the vents blow open)
     this.spitT = SPIT_EVERY * (this.ventsLeft <= 2 ? 0.75 : 1);
     this.core.getWorldPosition(_u);
     const n = this.ventsLeft <= 2 ? 4 : 3;
@@ -882,9 +978,29 @@ export class Excavator {
   onHit(color, hit) {
     if (this.state !== 'fight' && this.state !== 'emerge') return undefined;
     const i = hit?.object?.userData.part;
-    const v = typeof i === 'number' ? this.vents[i] : null;
     const fx = this.world.fx, p = hit?.point;
-    if (!v || !v.alive || color !== YELLOW) {
+    // a red armor plate: red knocks it loose, and off; anything else glances off it
+    if (typeof i === 'string') {
+      const pv = this.vents[+i.slice(5)];
+      if (!pv || pv.plateHp <= 0) return 'immune';
+      if (color !== RED) {
+        this.flash = Math.max(this.flash, 0.3);
+        return 'immune';
+      }
+      pv.plateHp--;
+      pv.plateFlash = 1;
+      if (p) fx.burst(p, RED_HEX, { count: 16, speed: 8, life: 0.4, size: 0.22, gravity: 8 });
+      audio.droneHit(1);
+      if (pv.plateHp > 0) return 'hit';
+      pv.plate.visible = false;
+      pv.plate.getWorldPosition(_u);
+      new Blast(this.world, _u, RED, { scale: 1.1, chunks: 6, shake: 0.25 });
+      audio.sample('shield_break', { gain: 1, rate: 0.8 });
+      this.onPlate?.(this);
+      return 'kill';
+    }
+    const v = typeof i === 'number' ? this.vents[i] : null;
+    if (!v || !v.alive || color !== YELLOW || !this.ventOpen || v.plateHp > 0) {
       this.flash = Math.max(this.flash, 0.3);
       return 'immune';
     }
@@ -921,8 +1037,14 @@ export class Excavator {
 
   hpFrac() {
     let hp = 0;
-    for (const v of this.vents) hp += Math.max(0, v.hp);
-    return hp / (VENT_HP * this.vents.length);
+    for (const v of this.vents) hp += Math.max(0, v.hp) + Math.max(0, v.plateHp);
+    return hp / ((VENT_HP + PLATE_HP) * this.vents.length);
+  }
+
+  get platesLeft() {
+    let n = 0;
+    for (const v of this.vents) if (v.plateHp > 0) n++;
+    return n;
   }
 }
 
