@@ -1571,3 +1571,13 @@ export class Mummy extends Trooper {
     this.cables.dispose(this.world.scene);
   }
 }
+
+// The robot scarab's body on its own (no AI): for the dune run's deck-leapers (duneRaiders.js), so both
+// kinds read as the same machine. glow: the owner's glow material (its color, its flashes).
+export function scarabRig(glow) {
+  const S = sharedMats();
+  const wing = new THREE.MeshBasicMaterial({ color: glow.color, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const rig = SCARAB.build({ armor: S.armor, frame: S.frame, steel: S.steel, glow, wing });
+  rig.root.scale.setScalar(SCARAB_SCALE);
+  return { root: rig.root, n: rig.n, legs: SCARAB_LEGS.map((_, i) => rig.n['leg' + i]), wing };
+}

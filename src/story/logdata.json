@@ -1,41 +1,45 @@
 [
  {
   "id": "01",
-  "title": "Hello, Atrium",
-  "where": "Atrium · beside the Prism dais",
+  "title": "Day One",
+  "where": "Atrium · the day-1 station, by the party table",
   "file": "memo_01",
-  "text": "Okay. Okay okay okay. Recorder on. Field note one. Doctor Wren Ashby, and I am... standing in it. I am actually standing in it. There's a heart hanging from the ceiling. A machine heart, the size of a bus, and it's beating. And humming. Like a fridge. A gorgeous, enormous, alien fridge. That is not going in the paper. Ten minutes, I promised. Just a look.",
-  "spoken": "[excited] Okay. Okay okay okay. Recorder on. Field note one. Doctor Wren Ashby, and I am... standing in it. [whispers] I am actually standing in it. There's a heart hanging from the ceiling. A machine heart, the size of a bus, and it's beating. And humming. Like a fridge. A gorgeous, enormous, alien fridge. [laughs] That is not going in the paper. Ten minutes, I promised. Just a look.",
+  "text": "Recorder on! Field note one, day one. Doctor Wren Ashby, and we're in. We are actually in. Priya, put the camera down. Tomas has found a socket for the kettle. Priorities. Look at it. A heart, hanging from the ceiling, beating. Four rivers of light in, four times as much out. A generative power source. That's not supposed to exist. Maja's put Big Fridge on the board. We are not calling it Big Fridge. Somebody cut the cake! Bea, I'll be home by seven. Promise.",
+  "spoken": "[excited] Recorder on! Field note one, day one. Doctor Wren Ashby, and we're in. [whispers] We are actually in. [laughs] Priya, put the camera down. Tomas has found a socket for the kettle. Priorities. Look at it. A heart, hanging from the ceiling, beating. Four rivers of light in, four times as much out. A generative power source. [whispers] That's not supposed to exist. [excited] Maja's put Big Fridge on the board. We are not calling it Big Fridge. Somebody cut the cake! Bea, I'll be home by seven. Promise.",
   "profile": "expressive",
-  "dur": 37.64,
+  "dur": 41.17,
   "lines": [
    {
     "t": 0.4,
-    "text": "Okay. Okay okay okay. Recorder on."
+    "text": "Recorder on! Field note one, day one. Doctor Wren Ashby, and we're in."
    },
    {
-    "t": 3.87,
-    "text": "Field note one. Doctor Wren Ashby, and I am... standing in it."
+    "t": 8.07,
+    "text": "We are actually in."
    },
    {
-    "t": 12.86,
-    "text": "I am actually standing in it."
+    "t": 10.6,
+    "text": "Priya, put the camera down. Tomas has found a socket for the kettle. Priorities."
    },
    {
-    "t": 15.79,
-    "text": "There's a heart hanging from the ceiling. A machine heart, the size of a bus, and it's beating."
+    "t": 15.55,
+    "text": "Look at it. A heart, hanging from the ceiling, beating."
    },
    {
-    "t": 23.3,
-    "text": "And humming. Like a fridge. A gorgeous, enormous, alien fridge."
+    "t": 20.96,
+    "text": "Four rivers of light in, four times as much out. A generative power source."
    },
    {
-    "t": 31.41,
-    "text": "That is not going in the paper."
+    "t": 28.91,
+    "text": "That's not supposed to exist."
    },
    {
-    "t": 34.24,
-    "text": "Ten minutes, I promised. Just a look."
+    "t": 31.67,
+    "text": "Maja's put Big Fridge on the board. We are not calling it Big Fridge."
+   },
+   {
+    "t": 36.62,
+    "text": "Somebody cut the cake! Bea, I'll be home by seven. Promise."
    }
   ]
  },
@@ -288,21 +292,21 @@
   "title": "No Birds",
   "where": "Verdant · the Root Court",
   "file": "memo_07",
-  "text": "Oh, it's lovely. Moss, and rain, and that gold light through the leaves. Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls. But there's no birdsong. No bees. Nothing here that wouldn't burn well. The whole valley is just... fuel, growing. A wren, and no other birds. That's me, then.",
-  "spoken": "[softly] Oh, it's lovely. Moss, and rain, and that gold light through the leaves. Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls. But there's no birdsong. No bees. Nothing here that wouldn't burn well. The whole valley is just... fuel, growing. [small laugh] A wren, and no other birds. That's me, then.",
+  "text": "Oh, it's lovely. Moss, and rain, and that gold light through the leaves. Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls. But there's no birdsong. No bees. Nothing here that wouldn't burn well. The whole valley is just... fuel, growing. The link's been silent since the countdown. I keep talking to Priya anyway. A wren, and no other birds. That's me, then.",
+  "spoken": "[softly] Oh, it's lovely. Moss, and rain, and that gold light through the leaves. Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls. But there's no birdsong. No bees. Nothing here that wouldn't burn well. The whole valley is just... fuel, growing. The link's been silent since the countdown. I keep talking to Priya anyway. [small laugh] A wren, and no other birds. That's me, then.",
   "profile": "expressive",
-  "dur": 29.39,
+  "dur": 34.85,
   "lines": [
    {
-    "t": 0.28,
+    "t": 0.21,
     "text": "Oh, it's lovely. Moss, and rain, and that gold light through the leaves."
    },
    {
-    "t": 6.24,
+    "t": 6.36,
     "text": "Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls."
    },
    {
-    "t": 13.08,
+    "t": 12.52,
     "text": "But there's no birdsong. No bees. Nothing here that wouldn't burn well."
    },
    {
@@ -310,7 +314,11 @@
     "text": "The whole valley is just... fuel, growing."
    },
    {
-    "t": 25.08,
+    "t": 24.18,
+    "text": "The link's been silent since the countdown. I keep talking to Priya anyway."
+   },
+   {
+    "t": 30.52,
     "text": "A wren, and no other birds. That's me, then."
    }
   ]
@@ -320,29 +328,29 @@
   "title": "Roots",
   "where": "Verdant · the rim of the Great Hollow",
   "file": "memo_08",
-  "text": "The roots down by the water are growing through... people. Not old ones. There's a jacket. A trainer, with the laces still done up. And a bus pass. From home. From my city. That's not possible. Nobody else came through. The breach only ever opened for me. Why is it here?",
-  "spoken": "[trembling] The roots down by the water are growing through... people. Not old ones. There's a jacket. A trainer, with the laces still done up. And a bus pass. From home. From my city. That's not possible. Nobody else came through. The breach only ever opened for me. [crying quietly] Why is it here?",
+  "text": "The roots down by the water are growing through... people. Not old ones. There's a jacket. A trainer, with the laces still done up. And a bus pass. From home. From my city. That's not possible. Only the team came through, and they never left the station. Why is it here?",
+  "spoken": "[trembling] The roots down by the water are growing through... people. Not old ones. There's a jacket. A trainer, with the laces still done up. And a bus pass. From home. From my city. That's not possible. Only the team came through, and they never left the station. [crying quietly] Why is it here?",
   "profile": "expressive",
-  "dur": 30.04,
+  "dur": 25.97,
   "lines": [
    {
     "t": 0.14,
     "text": "The roots down by the water are growing through... people."
    },
    {
-    "t": 5.74,
+    "t": 5.14,
     "text": "Not old ones. There's a jacket. A trainer, with the laces still done up."
    },
    {
-    "t": 13.4,
+    "t": 11.48,
     "text": "And a bus pass. From home. From my city."
    },
    {
-    "t": 19.5,
-    "text": "That's not possible. Nobody else came through. The breach only ever opened for me."
+    "t": 17.26,
+    "text": "That's not possible. Only the team came through, and they never left the station."
    },
    {
-    "t": 28.69,
+    "t": 24.77,
     "text": "Why is it here?"
    }
   ]
@@ -416,29 +424,29 @@
   "title": "Ten Minutes",
   "where": "Azure · inside the pump hut",
   "file": "memo_11",
-  "text": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the lab and argued to go first, because I wanted it to be me. It was my sister's birthday dinner that night. I told her I'd only be a bit late. Ten minutes, I said. Sorry, Bea. Save me some cake.",
-  "spoken": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the lab and argued to go first, because I wanted it to be me. It was my sister's birthday dinner that night. I told her I'd only be a bit late. [softly] Ten minutes, I said. [sniffles] Sorry, Bea. Save me some cake.",
+  "text": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me. It was my sister's birthday dinner that night. I promised her I'd be home by seven. Ten minutes, I said. Sorry, Bea. Save me some cake.",
+  "spoken": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat. I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me. It was my sister's birthday dinner that night. I promised her I'd be home by seven. [softly] Ten minutes, I said. [sniffles] Sorry, Bea. Save me some cake.",
   "profile": "expressive",
-  "dur": 25.08,
+  "dur": 25.16,
   "lines": [
    {
     "t": 0,
     "text": "Holed up in the pump hut. It's warm, and it hums, and I can pretend it's my flat."
    },
    {
-    "t": 6.3,
-    "text": "I was so sure. I stood in the lab and argued to go first, because I wanted it to be me."
+    "t": 5.76,
+    "text": "I was so sure. I stood in the station and argued to be the one who went out, because I wanted it to be me."
    },
    {
-    "t": 13.25,
-    "text": "It was my sister's birthday dinner that night. I told her I'd only be a bit late."
+    "t": 13.41,
+    "text": "It was my sister's birthday dinner that night. I promised her I'd be home by seven."
    },
    {
-    "t": 19.97,
+    "t": 19.63,
     "text": "Ten minutes, I said."
    },
    {
-    "t": 22.48,
+    "t": 22.5,
     "text": "Sorry, Bea. Save me some cake."
    }
   ]
@@ -484,29 +492,29 @@
   "title": "The Catalogue",
   "where": "Azure · the Cryo Lab",
   "file": "memo_13",
-  "text": "I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used. Everyone from home is in here. All entered on the same day. The day after my nine seconds. Mum's name. Bea's. Priya's. It never even noticed us. We were too small to bother with. Until I showed it we could switch it off. It wasn't an invitation. It was me.",
-  "spoken": "[crying] I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used. Everyone from home is in here. All entered on the same day. The day after my nine seconds. Mum's name. Bea's. Priya's. It never even noticed us. We were too small to bother with. Until I showed it we could switch it off. [sobbing] It wasn't an invitation. It was me.",
+  "text": "I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used. Everyone from home is in here. All entered on the same day. The day after my nine seconds. Mum's name. Bea's. Not Priya's. Not Tomas, or Maja. It didn't keep them. It never even noticed us. We were too small to bother with. Until I showed it we could switch it off. It wasn't an invitation. It was me.",
+  "spoken": "[crying] I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used. Everyone from home is in here. All entered on the same day. The day after my nine seconds. Mum's name. Bea's. [pause] Not Priya's. Not Tomas, or Maja. [whispers] It didn't keep them. It never even noticed us. We were too small to bother with. Until I showed it we could switch it off. [sobbing] It wasn't an invitation. It was me.",
   "profile": "expressive",
-  "dur": 34.69,
+  "dur": 46.92,
   "lines": [
    {
-    "t": 0.68,
+    "t": 0.64,
     "text": "I found the index. Every person it keeps. Asleep, inside the loop, waiting to be used."
    },
    {
-    "t": 9.53,
+    "t": 9.29,
     "text": "Everyone from home is in here. All entered on the same day. The day after my nine seconds."
    },
    {
-    "t": 17.02,
-    "text": "Mum's name. Bea's. Priya's."
+    "t": 17.96,
+    "text": "Mum's name. Bea's. Not Priya's. Not Tomas, or Maja. It didn't keep them."
    },
    {
-    "t": 20.69,
+    "t": 31.07,
     "text": "It never even noticed us. We were too small to bother with. Until I showed it we could switch it off."
    },
    {
-    "t": 30.13,
+    "t": 42.75,
     "text": "It wasn't an invitation. It was me."
    }
   ]

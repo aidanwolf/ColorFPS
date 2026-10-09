@@ -36,6 +36,9 @@ const SHRUG = { lClav: [18, 0], rClav: [18, 0], lArm: [22, 55, 0], rArm: [22, 55
 const LOOK_UP = { head: [-34, 0, 0], neck: [-14, 0, 0], chest: [-8, 0, 0] };
 const LEVEL = { head: [0, 0, 0], neck: [0, 0, 0], chest: [0, 0, 0], spine: [0, 0, 0] };
 const HIPS_HANDS = { lIK: [0.19, 0.97, -0.01, 1], rIK: [-0.19, 0.97, -0.01, 1] };
+// sitting in the swivel chair (the 'chair' set piece), and lifting her feet off the floor in it
+const CHAIR_SIT = { hips: [0, 0.56, -0.02], hipsR: [-6, 0, 0], spine: [4, 0, 0], lFoot: [0.13, 0.075, 0.36, 8, 4], rFoot: [-0.13, 0.075, 0.36, -8, 4], knees: [10, 10], gait: 0 };
+const FEET_UP = { lFoot: [0.12, 0.3, 0.5, 8, 10], rFoot: [-0.12, 0.32, 0.5, -8, 10] };
 const p = (...o) => Object.assign({}, ...o);
 
 export const DEFAULT_VIGNETTE = {
@@ -45,43 +48,85 @@ export const DEFAULT_VIGNETTE = {
 
 export const VIGNETTES = {
   // ------------------------------------------------------------------ THE ATRIUM
-  // 01 Hello, Atrium: recording herself, giddy; gazing up at the beating heart; "ten minutes, just a look"
+  // 01 Day One (the field station, by the party table): giddy in a swivel chair, a spin; calling over her
+  //    shoulder to Priya; up, gazing at the beating heart; the recorder's a mug for a toast to it; jabbing the
+  //    mug at the Big Fridge board; "cut the cake!"; a tap on her watch for Bea; a small fist pump
   '01': {
-    props: ['recorder'], dist: 3.4, view: 18,
+    props: ['recorder'], dist: 3.6, view: 22, set: { chair: [0, 0, 0, 0], board: [-1.35, 0, -0.55, 35] }, ride: ['chair'],
     keys: [
-      [0, { rArm: [12, 60, 0], rFore: [45, 0] }],
-      [0.5, { hips: [null, 0.97], head: [-6, 0, 0] }],
-      [0.8, { hips: [null, 0.93] }],
-      [1.1, { hips: [null, 0.97] }],
-      [1.4, { hips: [null, 0.95] }],
-      [2.2, p(REC_MOUTH, { head: [6, 0, 0] })],
-      [2.9, { rHand: [16, 0, 0] }],
-      [3.2, { rHand: [0, 0, 0] }],
-      [4.4, { chest: [-6, 0, 0], head: [-6, 0, 0], lIK: [0.19, 0.97, -0.01, 1] }],
-      [7.2, {}],
-      [8.6, { head: [-8, 42, 4], chest: [-6, 12, 0] }],
-      [10.6, { head: [-10, -40, -4], chest: [-6, -12, 0] }],
-      [12.2, { head: [0, 0, 0], chest: [0, 0, 0] }],
-      [13.2, { rClav: [12, 0], lClav: [12, 0], lIK: [null, null, null, 0], lArm: [20, 60, 0], lFore: [60, 0] }],
-      [13.7, { hips: [null, 0.99], lFoot: [null, 0.12, null, null, -28], rFoot: [null, 0.12, null, null, -28] }],
-      [14.6, { hips: [null, 0.95], lFoot: [null, 0.075, null, null, 0], rFoot: [null, 0.075, null, null, 0], rClav: [0, 0], lClav: [0, 0] }],
-      [16.3, p(LOOK_UP, { rArm: [30, 10, 0], rFore: [105, 0] })],
-      [17.6, { lArm: [150, 25, 0], lFore: [8, 0], head: [-40, 8, 0] }],
-      [19.4, { lArm: [140, 30, 0] }],
-      [20.0, { at: [0, 0, 0, -20] }],
-      [22.6, { at: [0.9, 0, 0.5, 40], lArm: [8, 80, 0], lFore: [14, 0], head: [-36, 10, 0] }],
-      [23.6, { at: [0.9, 0, 0.5, 30], head: [-18, 0, 16], neck: [-6, 0, 0] }],
-      [24.4, { lArm: [78, 62, 0], lFore: [128, 0], lHand: [-12, 0, 0] }],
-      [26.6, { lArm: [72, 92, 0], lFore: [18, 0], lHand: [0, 0, 0], rArm: [72, 82, 0], rFore: [24, 0], chest: [-10, 0, 0], head: [-30, 0, 0] }],
-      [29.8, {}],
-      [31.6, p(REC_MOUTH, { lArm: [10, 70, 0], lFore: [20, 0], chest: [12, 0, 0], head: [12, 0, 0], neck: [0, 0, 0] })],
-      [32.0, { head: [10, 16, 0] }],
-      [32.4, { head: [10, -16, 0] }],
-      [32.8, { head: [10, 10, 0] }],
-      [33.4, { head: [0, 0, 0], chest: [0, 0, 0] }],
-      [34.8, { lArm: [46, 28, 0], lFore: [104, 0], lHand: [0, 75, 0], head: [26, 14, 0], rArm: [20, 30, 0], rFore: [70, 0] }],
-      [36.0, { head: [22, 14, 0] }],
-      [36.8, { lArm: [8, 80, 0], lFore: [14, 0], lHand: [0, 0, 0], head: [-10, -6, 0], at: [0.9, 0, 0.5, 0] }],
+      // "Recorder on! Field note one, day one...": in the chair, the recorder at her lips, bouncing
+      [0.4, p(CHAIR_SIT, REC_MOUTH, { lArm: [20, 40, 0], lFore: [70, 0], head: [-4, 0, 0], at: [0, 0, 0, 0] })],
+      [1.26, { hips: [null, 0.6], head: [-8, 0, 6] }],
+      [1.69, { hips: [null, 0.56] }],
+      [2.12, { hips: [null, 0.6] }],
+      [2.55, { hips: [null, 0.56], head: [-4, 0, 0] }],
+      [5.28, {}],
+      // "...and we're in": feet up, a whole spin, her free arm flung out
+      [6, p(FEET_UP, { lArm: [90, 88, 0], lFore: [14, 0], head: [-14, 0, 8], chest: [-6, 0, 0] })],
+      [7.4, { at: [0, 0, 0, 360] }],
+      // "We are actually in" (whispered): stopped, hunched in over the recorder
+      [8.07, p(CHAIR_SIT, { lArm: [30, 20, 0], lFore: [100, 0], spine: [18, 0, 0], chest: [10, 0, 0], head: [10, 0, 0] })],
+      [9.76, {}],
+      // "Priya, put the camera down": calling over her shoulder, a wave
+      [10.6, { spine: [4, 0, 0], chest: [0, 26, 0], neck: [0, 20, 0], head: [-6, 44, 0], lArm: [118, 70, 0], lFore: [40, 0], lHand: [0, 0, -20] }],
+      [10.92, { lHand: [0, 0, 20] }],
+      [11.17, { lHand: [0, 0, -20] }],
+      [11.43, { lHand: [0, 0, 10], ride: 0 }],
+      // "Tomas has found a socket for the kettle": up out of the chair, a nod off the other way at it
+      [11.87, p(STAND, { at: [0, 0, 0.3, 360], chest: [0, 0, 0], neck: [0, 0, 0], head: [0, -30, 0], lArm: [40, 60, 0], lFore: [60, 0], lHand: [0, 0, 0] })],
+      [12.63, { lArm: [60, 70, 0], lFore: [30, 0], lHand: [-20, 0, 0], head: [0, -40, 0] }],
+      [13.52, {}],
+      // "Priorities.": a shrug and a laugh
+      [13.84, { lClav: [18, 0], rClav: [12, 0], lArm: [22, 55, 0], lFore: [75, -70], lHand: [0, 0, 0], head: [-4, 0, 10] }],
+      [14.09, { hips: [null, 0.97] }],
+      [14.34, { hips: [null, 0.94], lClav: [0, 0], rClav: [0, 0] }],
+      // "Look at it. A heart, hanging from the ceiling...": a step out, turning, gazing up, a hand raised to it
+      [14.66, { lArm: [7, 80, 0], lFore: [14, 0], head: [-10, 0, 0], hips: [null, 0.95] }],
+      [15.55, p(LOOK_UP, { at: [0.5, 0, 0.6, 330], lArm: [150, 25, 0], lFore: [8, 0], head: [-40, 8, 0] })],
+      [17.71, { lArm: [140, 30, 0] }],
+      // "...beating": a hand on her own heart, beating with it
+      [18.64, { lArm: [7, 80, 0], lFore: [12, 0], lIK: [0.07, 1.3, 0.17, 1], head: [-30, 8, 0] }],
+      [19.18, { lIK: [0.07, 1.3, 0.2, 1] }],
+      [19.57, { lIK: [0.07, 1.3, 0.17, 1] }],
+      [20.11, { lIK: [0.07, 1.3, 0.2, 1] }],
+      // "Four rivers of light in...": the recorder's a mug now; a hand drawing the rivers in
+      [20.96, p(LEVEL, { props: ['mug'], lIK: [null, null, null, 0], rArm: [30, 20, 0], rFore: [100, 0], lArm: [70, 100, 0], lFore: [20, 0], head: [-14, 20, 0] })],
+      [22.29, { lArm: [60, 20, 0], lFore: [90, 0], head: [-10, 0, 0] }],
+      // "...four times as much out": flung wide
+      [23.35, { lArm: [95, 95, 0], lFore: [8, 0], chest: [-8, 0, 0] }],
+      // "A generative power source": the mug raised to the reactor, a toast
+      [25.07, p(LOOK_UP, { rArm: [132, 18, 0], rFore: [20, 0], lArm: [30, 60, 0], lFore: [40, 0] })],
+      [27.72, {}],
+      // "That's not supposed to exist." (whispered): the mug down, leaning in, a glance round
+      [28.91, p(LEVEL, { rArm: [30, 20, 0], rFore: [104, 0], lArm: [30, 10, 0], lFore: [96, 0], spine: [12, 0, 0], head: [10, 0, 10] })],
+      [29.71, { head: [10, 24, 6] }],
+      [30.33, { head: [10, -20, 6] }],
+      [30.87, { head: [6, 0, 0], spine: [0, 0, 0], lArm: [7, 80, 0], lFore: [14, 0] }],
+      // "Maja's put Big Fridge on the board": turned to the board, jabbing the mug at it
+      [31.67, { at: [0.5, 0, 0.6, 270], head: [0, -20, 0] }],
+      [32.42, { rArm: [95, 34, 0], rFore: [10, 0], head: [-4, -30, 0] }],
+      [32.79, { rArm: [92, 34, 0], rFore: [22, 0] }],
+      [33.16, { rArm: [95, 34, 0], rFore: [10, 0] }],
+      [33.54, {}],
+      // "We are not calling it Big Fridge.": back round, a wagging finger, her head shaking
+      [34.1, { at: [0.5, 0, 0.6, 350], rArm: [30, 20, 0], rFore: [100, 0], lArm: [40, 20, 0], lFore: [120, 0], lHand: [0, 0, -18], head: [0, 12, 0] }],
+      [34.47, { lHand: [0, 0, 18], head: [0, -12, 0] }],
+      [34.85, { lHand: [0, 0, -18], head: [0, 12, 0] }],
+      [35.22, { lHand: [0, 0, 18], head: [0, -12, 0] }],
+      [35.59, { lHand: [0, 0, 0], head: [0, 0, 0] }],
+      // "Somebody cut the cake!": calling out, pointing off at the party table
+      [36.62, { lArm: [92, 60, 0], lFore: [6, 0], lHand: [-10, 0, 0], head: [-6, 50, 0], chest: [0, 16, 0] }],
+      [37.84, {}],
+      // "Bea, I'll be home by seven.": the mug's gone; a tap on her watch
+      [38.4, { props: [], chest: [0, 0, 0], head: [18, 0, 0], lArm: [7, 80, 0], lFore: [12, 0], lHand: [0, 0, 0], rArm: [7, 80, 0], rFore: [12, 0], lIK: [0.1, 1.2, 0.32, 1], rIK: [0.06, 1.27, 0.32, 1] }],
+      [38.83, { rIK: [0.06, 1.23, 0.32, 1] }],
+      [39.09, { rIK: [0.06, 1.27, 0.32, 1] }],
+      [39.35, { rIK: [0.06, 1.23, 0.32, 1] }],
+      [39.78, { ...NOIK, lArm: [7, 80, 0], rArm: [40, 30, 0], rFore: [118, 0], head: [0, 0, 0] }],
+      // "Promise.": a small fist pump
+      [40.3, { rArm: [22, 30, 0], rFore: [100, 0], hips: [null, 0.92], head: [6, 0, 0] }],
+      [40.7, { rArm: [36, 30, 0], rFore: [116, 0], hips: [null, 0.95] }],
+      [41.2, { rArm: [7, 80, 0], rFore: [12, 0], head: [-4, 0, 0] }],
     ],
   },
 
@@ -326,7 +371,8 @@ export const VIGNETTES = {
   },
 
   // ------------------------------------------------------------------ VERDANT
-  // 07 No Birds: wandering in the rain, a palm up; mum's tomatoes; a hand cupped to the silence; hugging herself
+  // 07 No Birds: wandering in the rain, a palm up; mum's tomatoes; a hand cupped to the silence; fingers to her
+  //    earpiece for the dead link; hugging herself
   '07': {
     props: [], dist: 3.6, view: 24,
     keys: [
@@ -343,11 +389,18 @@ export const VIGNETTES = {
       [18.2, { head: [0, 0, 0] }],
       [19.4, { rArm: [40, 20, 0], rFore: [100, -70], lArm: [40, 20, 0], lFore: [100, -70], rHand: [0, 0, 0], head: [28, 0, 0] }],
       [21.6, { at: [0.3, 0, 0.2, -340] }],
-      [22.4, { at: [0.3, 0, 0.2, -250], lArm: [7, 80, 0], rArm: [7, 80, 0], lFore: [12, 0], rFore: [12, 0], head: [10, 0, 0], swing: 0.4 }],
-      [24.8, { at: [1.0, 0, -0.1, -250] }],
-      [25.6, p(HUG, { at: [1.0, 0, -0.1, -330], head: [18, 0, 10] })],
-      [27.6, { lClav: [22, 6], rClav: [22, 6] }],
-      [28.2, { lClav: [10, 6], rClav: [10, 6], head: [22, 0, 6] }],
+      [22.6, { lArm: [7, 80, 0], rArm: [7, 80, 0], lFore: [12, 0], rFore: [12, 0], head: [16, 0, 0] }],
+      // "The link's been silent since the countdown": two fingers to the earpiece, listening to nothing
+      [23.6, p(HAND_EAR_L, { head: [10, 16, 8] })],
+      [25.2, {}],
+      // "I keep talking to Priya anyway.": the hand drops, a small helpless palm
+      [26.0, { lArm: [30, 30, 0], lFore: [80, -70], lHand: [0, 0, 0], head: [4, -10, 0] }],
+      [27.4, { lArm: [7, 80, 0], lFore: [12, 0] }],
+      [28.6, { at: [0.3, 0, 0.2, -250], head: [10, 0, 0], swing: 0.4 }],
+      [31.0, { at: [1.0, 0, -0.1, -250] }],
+      [31.8, p(HUG, { at: [1.0, 0, -0.1, -330], head: [18, 0, 10] })],
+      [33.8, { lClav: [22, 6], rClav: [22, 6] }],
+      [34.4, { lClav: [10, 6], rClav: [10, 6], head: [22, 0, 6] }],
     ],
   },
 
@@ -452,17 +505,17 @@ export const VIGNETTES = {
       [5.2, { head: [-20, -6, 0] }],
       [6.8, { spine: [24, 0, 0], head: [18, 0, 0], neck: [0, 0, 0], lArm: [52, -16, 0], lFore: [150, 0], lHand: [-10, 0, 0] }],
       [9.2, {}],
-      [9.8, { lArm: [48, 20, 0], lFore: [92, -62], lHand: [0, 0, 0], head: [6, 10, 0] }],
-      [11.4, { lArm: [50, 10, 0], lFore: [70, -62] }],
-      [12.4, { lArm: [54, -4, 0], lFore: [50, 0], spine: [12, 0, 0] }],
-      [13.6, { rArm: [46, 0, 0], rFore: [112, 0], head: [24, -10, 0] }],
-      [17.0, { rHand: [10, 0, 0] }],
-      [18.0, { rHand: [0, 0, 0] }],
-      [20.2, { head: [-28, 0, 0], neck: [-6, 0, 0], spine: [6, 0, 0], rArm: [54, -4, 0], rFore: [62, 0] }],
-      [20.8, { head: [-28, 14, 0] }],
-      [21.3, { head: [-28, -14, 0] }],
-      [21.8, { head: [-26, 0, 0] }],
-      [22.8, { lFoot: [0.14, 0.075, 0.26, 12, 18], rFoot: [-0.14, 0.075, 0.26, -12, 18], lArm: [62, -16, 0], lFore: [92, 0], rArm: [62, -16, 0], rFore: [96, 0], spine: [28, 0, 0], chest: [18, 0, 0], neck: [10, 0, 0], head: [40, 0, 0], breath: [1.5, 0.8] }],
+      [10.2, { lArm: [48, 20, 0], lFore: [92, -62], lHand: [0, 0, 0], head: [6, 10, 0] }],
+      [12.4, { lArm: [50, 10, 0], lFore: [70, -62] }],
+      [13.9, { lArm: [54, -4, 0], lFore: [50, 0], spine: [12, 0, 0] }],
+      [15.0, { rArm: [46, 0, 0], rFore: [112, 0], head: [24, -10, 0] }],
+      [18.6, { rHand: [10, 0, 0] }],
+      [19.6, { rHand: [0, 0, 0] }],
+      [22.1, { head: [-28, 0, 0], neck: [-6, 0, 0], spine: [6, 0, 0], rArm: [54, -4, 0], rFore: [62, 0] }],
+      [22.7, { head: [-28, 14, 0] }],
+      [23.2, { head: [-28, -14, 0] }],
+      [23.7, { head: [-26, 0, 0] }],
+      [24.7, { lFoot: [0.14, 0.075, 0.26, 12, 18], rFoot: [-0.14, 0.075, 0.26, -12, 18], lArm: [62, -16, 0], lFore: [92, 0], rArm: [62, -16, 0], rFore: [96, 0], spine: [28, 0, 0], chest: [18, 0, 0], neck: [10, 0, 0], head: [40, 0, 0], breath: [1.5, 0.8] }],
     ],
   },
 
@@ -489,8 +542,8 @@ export const VIGNETTES = {
     ],
   },
 
-  // 13 The Catalogue: swiping through the index; three names touched on the screen; turning away; sliding
-  //    down to sit, head in her hands
+  // 13 The Catalogue: swiping through the index; two names touched on the screen, then swiping for the team's
+  //    and finding none; a hand to her mouth; turning away; sliding down to sit, head in her hands
   '13': {
     props: [], dist: 3.4, view: 62, set: { terminal: [0, 0, -0.62, 0] },
     keys: [
@@ -510,14 +563,23 @@ export const VIGNETTES = {
       [17.7, { rIK: [0.02, 1.2, 0.42, 1] }],
       [18.4, { rIK: [-0.08, 1.2, 0.47, 1] }],
       [18.8, { rIK: [-0.08, 1.16, 0.42, 1] }],
-      [19.4, { rIK: [0.1, 1.16, 0.47, 1] }],
-      [19.9, { rIK: [0.1, 1.14, 0.4, 1] }],
-      [21.0, { rIK: [null, null, null, 0], at: [0, 0, 0, 100], shiver: 0 }],
-      [22.6, p(HUG, { at: [0.45, 0, 0.1, 100], head: [14, 0, 0] })],
-      [24.4, { at: [0.45, 0, 0.1, 160], head: [-4, 0, 0] }],
-      [26.2, { at: [0.15, 0, -0.18, 10], lClav: [0, 0], rClav: [0, 0] }],
-      [28.6, p(SIT, { at: [0.15, 0, -0.18, 0], lArm: [54, -4, 0], lFore: [50, 0], rArm: [54, -4, 0], rFore: [60, 0], head: [10, 0, 0] })],
-      [30.4, { lArm: [52, -16, 0], lFore: [146, 0], rArm: [52, -16, 0], rFore: [146, 0], spine: [24, 0, 0], head: [34, 0, 0], breath: [1.6, 0.9] }],
+      // "Not Priya's. Not Tomas, or Maja.": swiping for the team's names, faster, and they aren't there
+      [19.4, { rIK: [0.1, 1.2, 0.44, 1] }],
+      [19.9, { rIK: [-0.1, 1.2, 0.44, 1], head: [16, 0, 0] }],
+      [20.4, { rIK: [0.12, 1.2, 0.44, 1] }],
+      [20.9, { rIK: [-0.1, 1.2, 0.44, 1] }],
+      [21.4, { rIK: [0.12, 1.2, 0.44, 1] }],
+      [21.9, { rIK: [-0.1, 1.2, 0.44, 1] }],
+      [22.5, { rIK: [0.02, 1.2, 0.44, 1], head: [18, 0, -6] }],
+      [23.1, {}],
+      // "It didn't keep them." (whispered): her hand slides off the screen to her mouth
+      [23.9, { rIK: [null, null, null, 0], rArm: [42, -24, 0], rFore: [146, 0], head: [24, 0, 0] }],
+      [25.4, { at: [0, 0, 0, 100], shiver: 0 }],
+      [27.0, p(HUG, { at: [0.45, 0, 0.1, 100], head: [14, 0, 0] })],
+      [28.8, { at: [0.45, 0, 0.1, 160], head: [-4, 0, 0] }],
+      [30.6, { at: [0.15, 0, -0.18, 10], lClav: [0, 0], rClav: [0, 0] }],
+      [33.0, p(SIT, { at: [0.15, 0, -0.18, 0], lArm: [54, -4, 0], lFore: [50, 0], rArm: [54, -4, 0], rFore: [60, 0], head: [10, 0, 0] })],
+      [34.9, { lArm: [52, -16, 0], lFore: [146, 0], rArm: [52, -16, 0], rFore: [146, 0], spine: [24, 0, 0], head: [34, 0, 0], breath: [1.6, 0.9] }],
     ],
   },
 
@@ -586,43 +648,3 @@ export const VIGNETTES = {
     ],
   },
 };
-
-// DAY 1 in the Atrium offices (for the log moving into them: retimed to its final text when that lands).
-// Spinning in a swivel chair, pinning a photo to the board, raising a coffee mug to the reactor, feet up.
-const CHAIR_SIT = { hips: [0, 0.56, -0.02], hipsR: [-6, 0, 0], spine: [4, 0, 0], lFoot: [0.13, 0.075, 0.36, 8, 4], rFoot: [-0.13, 0.075, 0.36, -8, 4], knees: [10, 10], gait: 0 };
-const FEET_UP = { lFoot: [0.12, 0.3, 0.5, 8, 10], rFoot: [-0.12, 0.32, 0.5, -8, 10] };
-export const OFFICE = {
-  props: [], dist: 3.6, view: 22, set: { chair: [0, 0, 0, 0], board: [-1.35, 0, -0.55, 35] }, ride: ['chair'],
-  keys: [
-    [0, p(CHAIR_SIT, FEET_UP, { lArm: [80, 88, 0], rArm: [80, 88, 0], lFore: [20, 0], rFore: [20, 0], head: [-10, 0, 0], at: [0, 0, 0, 0] })],
-    [2.4, { at: [0, 0, 0, 360], head: [-14, 0, 8] }],
-    [4.2, { at: [0, 0, 0, 540], chest: [10, 0, 0] }],
-    [4.9, p(CHAIR_SIT, { at: [0, 0, 0, 720], lArm: [40, 10, 0], rArm: [40, 10, 0], lFore: [100, 0], rFore: [100, 0], head: [-4, 0, 0], chest: [0, 0, 0] })],
-    [5.3, { lArm: [42, 4, 0], rArm: [42, 4, 0] }],
-    [5.6, { lArm: [40, 14, 0], rArm: [40, 14, 0] }],
-    [5.9, { lArm: [42, 4, 0], rArm: [42, 4, 0] }],
-    [6.9, p(STAND, ARMS, { at: [0, 0, 0.25, 720], ride: 0, props: ['photo'] })],
-    [7.4, { lArm: [36, 20, 0], lFore: [96, 0], head: [16, 0, 0] }],
-    [9.4, { at: [-0.95, 0, -0.05, 720 - 135], head: [-4, 0, 0] }],
-    [10.4, { lIK: [0.05, 1.42, 0.45, 1], head: [-8, 0, 0] }],
-    [11.2, { rIK: [0.02, 1.5, 0.45, 1] }],
-    [11.7, { rIK: [0.02, 1.5, 0.47, 1] }],
-    [12.3, { props: [], lIK: [null, null, null, 0], rIK: [null, null, null, 0], at: [-0.7, 0, 0.2, 720 - 135] }],
-    [13.4, p(HIPS_HANDS, { head: [-6, 0, 10] })],
-    [15.0, { at: [-0.7, 0, 0.2, 720 - 30], ...NOIK, rArm: [80, 50, 0], rFore: [10, 0], head: [0, -30, 0] }],
-    [16.2, { rArm: [70, 10, 0], rFore: [90, -60], lArm: [50, 30, 0], lFore: [90, -60], head: [0, 0, 8] }],
-    [17.4, { rArm: [7, 80, 0], rFore: [20, 0], lArm: [7, 80, 0], lFore: [12, 0] }],
-    [18.4, { props: ['mug'], rArm: [30, 20, 0], rFore: [100, 0] }],
-    [20.0, p(LOOK_UP, { rArm: [132, 18, 0], rFore: [20, 0], lArm: [30, 60, 0], lFore: [40, 0] })],
-    [22.4, {}],
-    [23.6, { ...REC_MOUTH, head: [0, 0, 0], neck: [0, 0, 0], chest: [0, 0, 0] }],
-    [24.6, { head: [-12, 0, 0] }],
-    [25.6, { rArm: [30, 20, 0], rFore: [100, 0], head: [0, 0, 0] }],
-    [28.0, { at: [0, 0, 0, 720 + 10] }],
-    [29.2, p(CHAIR_SIT, { ride: 1, at: [0, 0, 0, 720], rArm: [30, 20, 0], rFore: [100, 0] })],
-    [30.4, p(FEET_UP, { props: [], hipsR: [-16, 0, 0], lArm: [150, 60, 0], rArm: [150, 60, 0], lFore: [150, 0], rFore: [150, 0], head: [-10, 0, 0] })],
-    [33.0, { at: [0, 0, 0, 760] }],
-    [35.0, { at: [0, 0, 0, 720] }],
-  ],
-};
-VIGNETTES.office = OFFICE;
