@@ -498,12 +498,12 @@ export function makeDressing(B, { zone }) {
       const tent = new THREE.Mesh(mergeGeometries(tg), mat);
       tg.forEach((x) => x.dispose());
       grp.add(tent);
-      const s = 3 + rng() * 4;
+      const s = 1.6 + rng() * 2.4;
       grp.scale.setScalar(s);
       grp.userData.noCull = true;
       grp.traverse((o) => (o.raycast = () => {}));
       W.scene.add(grp);
-      const jelly = { grp, bell, tent, mat, base: V(48 + rng() * 52, -62 + rng() * 18, -80 - rng() * 100), r: 6 + rng() * 10, w: 0.02 + rng() * 0.03, ph: rng() * 10, s };
+      const jelly = { grp, bell, tent, mat, base: V(56 + rng() * 22, -54 + rng() * 24, -190 - rng() * 22), r: 3 + rng() * 5, w: 0.02 + rng() * 0.03, ph: rng() * 10, s };
       grp.position.copy(jelly.base); // (never leave them at the origin: that's the Foundry's spawn room)
       jellies.push(jelly);
     }
@@ -613,9 +613,6 @@ export function dressAzure(B, { zone }) {
   sign('AZURE STATION', [29.4, 5.7, -113.5], '+z', 0.36);
   sign('DECK 01  RIM', [45.9, 4.55, -117.18], '+z', 0.2);
   sign('DIVE LINE', [57.4, 4.6, -109.1], '+z', 0.22);
-  puddle(49, 4, -115.5, 0.8);
-  puddle(53.5, 4, -106.2, 0.55);
-  puddle(51, 4, -111, 0.65);
 
   // ---------------------------------------------------------------- the Aquarium
   sign('AIRLOCK  A1', [49, -56.6, -88.4], '-z', 0.22);

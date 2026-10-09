@@ -200,7 +200,7 @@ export function buildRig(B, { zone, hab, ocean, wake, trench }) {
   }
 
   // ================================================================== THE ROGUE WAVE
-  const H = 40; // m above the sea at its crest
+  const H = 52; // m above the sea at its crest
   const WAVE_YAW = -0.36; // it comes out of the north-north-east, between the helipad and the Nexus (the view you're turned to face)
   const waveMat = new THREE.ShaderMaterial({
     uniforms: { uT: { value: 0 }, uH: { value: H }, uHor: { value: game.sky?.material.uniforms.uHor.value || V(0.6, 0.75, 0.85) }, uFade: { value: 1 } },
@@ -221,11 +221,16 @@ export function buildRig(B, { zone, hab, ocean, wake, trench }) {
       void main(){
         // a dark green-black wall of water, glassy turquoise where the light shines through the thin crest,
         // a churning white lip, foam streaks dragged down its face
-        vec3 deep = vec3(0.004, 0.035, 0.05), glass = vec3(0.06, 0.48, 0.46);
-        vec3 c = mix(deep, glass, smoothstep(0.5, 0.95, vUp) * (vFace > 0.0 ? 1.0 : 0.5));
-        float streak = vn(vec2(vW.x * 0.09, vW.y * 0.04 - uT * 1.4)) * vn(vec2(vW.x * 0.35, vW.y * 0.15 + uT * 1.1));
-        float lip = smoothstep(0.86, 1.0, vUp) * (0.7 + 0.3 * vn(vec2(vW.x * 0.2, uT * 2.0))) + smoothstep(0.45, 0.85, streak) * 0.55 * smoothstep(0.1, 0.7, vUp);
-        lip += smoothstep(0.2, 0.0, vUp) * 0.8; // the boiling foot of it
+        vec3 deep = vec3(0.003, 0.022, 0.032), mid = vec3(0.01, 0.1, 0.12), glass = vec3(0.05, 0.42, 0.4);
+        vec3 c = mix(deep, mid, smoothstep(0.1, 0.7, vUp));
+        c = mix(c, glass, smoothstep(0.74, 0.96, vUp) * (vFace > 0.0 ? 1.0 : 0.4));
+        // foam: long streaks dragged down the face as it steepens, and a churning white crest
+        float streak = vn(vec2(vW.x * 0.06 + vW.z * 0.06, vW.y * 0.03 - uT * 1.6)) * vn(vec2(vW.x * 0.3, vW.y * 0.12 + uT * 1.3));
+        float marbling = smoothstep(0.35, 0.7, vn(vec2(vW.x * 0.15, vW.y * 0.08 - uT * 0.9)));
+        float lip = smoothstep(0.84, 0.98, vUp) * (0.75 + 0.25 * vn(vec2(vW.x * 0.25, uT * 2.4)));
+        lip += smoothstep(0.42, 0.8, streak) * 0.75 * smoothstep(0.15, 0.6, vUp);
+        lip += marbling * 0.22 * smoothstep(0.3, 0.8, vUp);
+        lip += smoothstep(0.22, 0.0, vUp) * 0.9; // the boiling foot of it
         c = mix(c, vec3(0.92, 0.97, 1.0), clamp(lip, 0.0, 1.0));
         float dist = distance(cameraPosition, vW);
         c = mix(c, uHor, smoothstep(120.0, 420.0, dist) * 0.5);
@@ -300,7 +305,7 @@ export function buildRig(B, { zone, hab, ocean, wake, trench }) {
         const k = Math.min(1, (t - T_LOCK) / 1.4);
         const d = Math.atan2(Math.sin(WAVE_YAW - p.yaw), Math.cos(WAVE_YAW - p.yaw)); // (turned to face it)
         yaw = p.yaw = p.yaw + d * Math.min(1, dt * 2.2);
-        pitch = p.pitch = p.pitch + (0.16 * smoothK(Math.min(1, (t - T_LOCK) / 3)) - p.pitch) * Math.min(1, dt * 2);
+        pitch = p.pitch = p.pitch + ((0.08 + 0.42 * smoothK(Math.min(1, (t - T_LOCK - 1.2) / 2.6))) - p.pitch) * Math.min(1, dt * 2.5); // (looking up and up as it towers)
         roll = Math.sin(t * 7) * 0.03 * k;
       } else if (t < T_SPLASH) {
         // flung off the deck, tumbling

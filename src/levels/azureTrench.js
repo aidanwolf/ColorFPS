@@ -73,7 +73,7 @@ export function buildTrench(B, { keepOut = [], fishZones = [] } = {}) {
     const X1 = 30, X2 = 113, Z1 = -560, Z2 = 300;
     const g = new THREE.PlaneGeometry(X2 - X1, Z2 - Z1, Math.round((X2 - X1) / 2.5), Math.round((Z2 - Z1) / 3)).rotateX(-Math.PI / 2).translate((X1 + X2) / 2, 0, (Z1 + Z2) / 2);
     const pos = g.attributes.position, col = new Float32Array(pos.count * 3);
-    const sand = new THREE.Color(0xc9b48a), dark = new THREE.Color(0x4a5a58), weed = new THREE.Color(0x5e7a4a);
+    const sand = new THREE.Color(0xb3a47e), dark = new THREE.Color(0x3e5250), weed = new THREE.Color(0x56704a);
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i), y = floorAt(x, z);
       pos.setY(i, y);

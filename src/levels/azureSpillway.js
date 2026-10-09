@@ -42,8 +42,8 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut, hab, airs }) 
   // (x 112.2), at z -146; an air bell hangs halfway. (The turbine field's currents will run here.)
   const SY = -56, SZ = -146;
   hab.airBell(96, -50, SZ, { yaw: -Math.PI / 2 });
-  hab.trail([[81, SY + 1.4, SZ], [94, SY + 2.4, SZ]], { step: 2.2 });
-  hab.trail([[98, SY + 2.4, SZ], [111.5, SY + 1.4, SZ]], { step: 2.2, along: 14 });
+  hab.trail([[81, SY + 1.4, SZ], [93.6, SY + 0.6, SZ]], { step: 2.2 });
+  hab.trail([[98.4, SY + 0.6, SZ], [104, SY + 1, SZ - 0.5]], { step: 2.2, along: 14 });
   hab.membrane([112.15, SY, SZ - 1.5], [112.25, SY + 3.2, SZ + 1.5]);
   hint([76, SY, SZ - 1.5], [80, SY + 3, SZ + 1.5], 'The sea door. Swim <b>east</b> across the trench to the hull — the <b>air bell</b> halfway has air.', 5);
   keepOut.push([[80, SY - 2, SZ - 3.5], [121, SY + 7, SZ + 3.5]]);

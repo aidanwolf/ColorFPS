@@ -257,8 +257,8 @@ export function makeHabitat(B, { zone, airs }) {
     // the ledge (a grate along one side, at the waterline) and its checkpoint
     box(x - r, surf - 0.3, z - r, x + r, surf, z - r + 1.1, 'grate');
     air([x - r, top - skirt, z - r], [x + r, top, z + r]);
-    const w = B.water([x - r, top - skirt, z - r], [x + r, surf, z + r], { surface: true });
-    w.top = surf;
+    const w = B.water([x - r, top - skirt, z - r], [x + r, surf, z + r], { surface: true, current: [0, 1.4, 0] });
+    w.top = surf; // (a gentle upwelling holds you at the surface in there while you get your breath)
     if (checkpoint) new Checkpoint(W, game, { pos: [x, surf, z - r + 0.55], yaw, size: [3, 2.2, 1.1] });
     put('warm', new THREE.SphereGeometry(0.22, 8, 6).translate(x, top - 0.3, z));
     // a cable up toward the surface it hangs from

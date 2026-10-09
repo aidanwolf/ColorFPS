@@ -40,11 +40,12 @@ import { buildOcean, oceanVolumes, addCaustics, SEA_Y, SUN_DIR } from './azureOc
 import { makeHabitat, Airlock } from './azureHabitat.js';
 import { buildTrench, FLOOR_Y } from './azureTrench.js';
 import { buildRig, WAKE_AIR, WAVE_FLAG } from './azureRig.js';
+import { buildTurbine } from './azureTurbine.js';
 import { WaterTank, PulleyGate, Junction, LivePool, Forcefield, Gantry, LeapHint, CrustPlug } from '../entities/waterPuzzle.js';
 import { Dynamo } from '../entities/dynamo.js';
 import { audio } from '../audio.js';
 
-const _pour = new THREE.Vector3(), _pourC = new THREE.Color(0xbfe6ff);
+const _pour = new THREE.Vector3(), _pourC = new THREE.Color(0xbfe6ff), _pourC2 = new THREE.Vector3();
 audio.manifest?.then(() => audio.prefetch(['music_azure', 'amb_ocean_storm', 'amb_ocean_calm', 'amb_abyss', 'waves_crash']));
 
 // tiny seeded RNG so the reef growths and cliffs come out the same every load
@@ -1011,6 +1012,9 @@ export function buildAzure(B) {
   WAKE.pos[1] = Math.max(trench.floorAt(WAKE.pos[0], WAKE.pos[2]) + 0.1, FLOOR_Y - 0.38);
   level.devStarts.azure1.pos.y = WAKE.pos[1];
   buildRig(B, { zone, hab, ocean, wake: WAKE, trench });
+  // ---- the turbine field on the crossing, and the machines of the deep (azureTurbine.js)
+  const currents = [];
+  level.azure.turbine = buildTurbine(B, { zone, hab, currents, trench });
   // ---- the storm: rain over the open sea, stopping under every roof (azureRain.js)
   level.azure.rain = buildRain(B, { bounds: [20, -236, 204, -36], ocean });
   hab.finalize();
@@ -1018,17 +1022,23 @@ export function buildAzure(B) {
   // ---- the Leviathan glides past the glass (each pass plays once, never during a fight)
   const pup = trench.puppet;
   const busy = () => [domeFight, lab].some((e) => e.state === 'intro' || e.state === 'wave' || e.state === 'gap');
-  const pass = (min, max, points, opts, onStart) => {
-    let done = false;
-    W.trigger(min, max, () => {
-      if (done || pup.active || busy()) return;
-      done = true;
-      pup.play(points, opts);
-      onStart?.();
-    }, { once: false });
-  };
+  const passes = [];
+  const pass = (min, max, points, opts, onStart) => passes.push({ min, max, points, opts, onStart, done: false });
+  W.add({
+    update(dt, player) {
+      if (pup.active || busy()) return;
+      const p = player.pos;
+      for (const ps of passes) {
+        if (ps.done || p.x < ps.min[0] || p.x > ps.max[0] || p.y < ps.min[1] || p.y > ps.max[1] || p.z < ps.min[2] || p.z > ps.max[2]) continue;
+        ps.done = true;
+        pup.play(ps.points, ps.opts);
+        ps.onStart?.();
+        break;
+      }
+    },
+  });
   // 1: far off in the blue, crossing the trench as you walk the first glass corridor
-  pass([47.5, AY, -96], [50.5, AY + 3, -90], [[112, -46, -58], [80, -40, -64], [52, -44, -70], [34, -50, -60]], { speed: 9 }, () => {
+  pass([47.5, AY, -96], [50.5, AY + 3, -90], [[112, -50, -66], [84, -46, -70], [62, -48, -74], [40, -52, -70], [20, -56, -60]], { speed: 10 }, () => {
     audio.sample('leviathan_groan', { gain: 0.5, vary: 0, rate: 0.6, delay: 1.5 });
   });
   // 2: close: it fills the glass of the tube to the dome, the panes creak, the fish scatter
@@ -1039,6 +1049,73 @@ export function buildAzure(B) {
     let t = 0;
     const shake = { update(dt) { t += dt; if (t > 1.4 && t < 3.4) game.player.shake = Math.max(game.player.shake, 0.18); if (t > 4) W.remove(shake); } };
     W.add(shake);
+  });
+
+  // 3: it rams the Archive's glass porch as you come out of the Flooded Depths: a pane cracks, the sea
+  // hisses in round the crack, and it holds
+  const crack = (() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d');
+    g.strokeStyle = 'rgba(255,255,255,0.9)';
+    g.lineWidth = 2;
+    let seed = 7;
+    const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let k = 0; k < 14; k++) { // radial cracks, jagged
+      const a = (k / 14) * Math.PI * 2 + r() * 0.3;
+      g.beginPath();
+      g.moveTo(128, 128);
+      let x = 128, y = 128;
+      for (let s = 0; s < 6; s++) {
+        x += Math.cos(a + (r() - 0.5) * 0.6) * (12 + r() * 12);
+        y += Math.sin(a + (r() - 0.5) * 0.6) * (12 + r() * 12);
+        g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+    for (const rad of [18, 38, 62]) { // rings between them
+      g.beginPath();
+      for (let k = 0; k <= 24; k++) {
+        const a = (k / 24) * Math.PI * 2, rr = rad * (0.85 + r() * 0.3);
+        k ? g.lineTo(128 + Math.cos(a) * rr, 128 + Math.sin(a) * rr) : g.moveTo(128 + Math.cos(a) * rr, 128 + Math.sin(a) * rr);
+      }
+      g.lineWidth = 1.2;
+      g.stroke();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6).rotateY(Math.PI), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    m.position.set(103.2, -22.5, -142.08);
+    m.raycast = () => {};
+    m.renderOrder = 4;
+    W.scene.add(m);
+    return m;
+  })();
+  let rammed = 0, leak = 0;
+  pass([100, -25.5, -149], [108, -21, -144], [[108, -64, -128], [106, -42, -133], [104, -26, -138.4], [96, -24, -138.6], [89, -30, -134], [86, -46, -129], [86, -64, -128]], { speed: 9 }, () => {
+    audio.sample('leviathan_roar', { gain: 0.55, vary: 0, rate: 0.6, delay: 0.4 });
+    rammed = 1;
+  });
+  W.add({
+    update(dt, player) {
+      if (rammed === 1 && pup.active && pup.pos.distanceTo(_pour.set(104, -26, -138.4)) < 3.5) {
+        rammed = 2;
+        leak = 9;
+        crack.material.opacity = 1;
+        player.shake = Math.max(player.shake, 0.9);
+        audio.sample('glass_hit', { gain: 1, vary: 0, rate: 0.55 });
+        audio.sample(audio.sfxOr('glass_creak', 'glass_hit'), { gain: 0.7, vary: 0, rate: 0.45, delay: 0.5 });
+        audio.sample('hydraulic_hiss', { gain: 0.6, vary: 0, delay: 0.3 });
+        game.hud.message('It <b>rammed the glass</b>. The pane is cracked — but it holds.', 4);
+      }
+      if (leak > 0) {
+        leak -= dt;
+        if (Math.random() < dt * 25) W.fx.burst(_pour.set(103.2 + (Math.random() - 0.5) * 0.8, -22.5 + (Math.random() - 0.5) * 0.6, -142.2), 0xd8f6ff, { count: 2, speed: 3 + leak * 0.3, life: 0.6, size: 0.08, gravity: 9, spread: 0.25, dir: _pourC2.set(0, 0.1, -1) });
+      }
+    },
+  });
+  // 4: it watches from the dark beyond the turbine as you set out across the trench
+  pass([80.6, -60, -149], [86, -50, -143], [[58, -46, -222], [80, -40, -212], [100, -42, -206], [122, -50, -214], [140, -54, -240]], { speed: 5 }, () => {
+    audio.sample('leviathan_groan', { gain: 0.6, vary: 0, rate: 0.5, delay: 2 });
   });
 
   // ---- the mood under the sea: open water, the habitats, the rig up top (area triggers cover the doors)
@@ -1079,5 +1156,6 @@ export function buildAzure(B) {
     { min: [36, FLOOR_Y - 8, -46], max: [112, SEA_Y, -40], current: [0, 0, -10] },
     { min: [36, FLOOR_Y - 8, -222], max: [112, SEA_Y, -216], current: [0, 0, 3.5] },
     { min: [36, FLOOR_Y - 8, -231], max: [112, SEA_Y, -222], current: [0, 0, 10] },
+    ...currents, // (the turbine's pull and exhaust: animated by azureTurbine.js)
   ]);
 }
