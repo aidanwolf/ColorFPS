@@ -24,6 +24,11 @@ const HARD_FALL = 17; // m/s landing speed: a heavy, shaking landing (~6 m drop)
 const LETHAL_FALL = 29.5; // m/s: fatal (~18 m drop)
 const VOID_DROP = 30;
 const SWIM_SPEED = 4.4;
+// Lava (and every other molten/acid pool): touching it starts a burn rather than killing outright. A shield
+// takes the first touch; bare, you get LAVA_GRACE seconds (slowed, popped up off the surface) to get out.
+const LAVA_GRACE = 1.2;
+const LAVA_POP = 10; // the hop up off the surface on first contact (m/s up: about a metre, over a pool's lip)
+const LAVA_SLOW = 0.55;
 export const AIR_MAX = 14; // seconds of breath
 const _down = new THREE.Vector3(0, -1, 0);
 const _swimF = new THREE.Vector3(), _swimT = new THREE.Vector3(); // m below the last ground: you've fallen off the world
@@ -50,6 +55,8 @@ export class Player {
     this.maxHealth = 100;
     this.health = 100;
     this.invuln = 0;
+    this.burn = 0; // seconds spent burning in lava (dies at LAVA_GRACE)
+    this.inLava = false;
     this.armor = 0; // one-hit shields from armor pickups (entities/armor.js)
     this.dead = false;
     this.safePos = new THREE.Vector3();
@@ -79,6 +86,8 @@ export class Player {
     this.ground = null;
     this.carry.set(0, 0, 0);
     this.air = AIR_MAX;
+    this.burn = 0;
+    this.inLava = false;
     if (this.armor) this.setArmor(0); // a respawn (or any reset) starts unarmored
   }
 
@@ -224,7 +233,7 @@ export class Player {
     // Shift sprints (forward-ish only); a fully pushed touch stick sprints too
     const stickFull = input.stick && Math.hypot(input.stick.f, input.stick.r) > 0.97;
     this.sprinting = !this.crouching && f > 0 && (input.down('ShiftLeft') || input.down('ShiftRight') || stickFull);
-    const speed = this.crouching && this.grounded ? CROUCH_SPEED : this.sprinting ? SPRINT_SPEED : RUN_SPEED;
+    const speed = (this.crouching && this.grounded ? CROUCH_SPEED : this.sprinting ? SPRINT_SPEED : RUN_SPEED) * (this.inLava ? LAVA_SLOW : 1);
     const tx = mx * speed, tz = mz * speed;
     // (after a jump pad, steering is weaker so holding a key can't cancel the pad's throw)
     const accel = this.grounded ? GROUND_ACCEL : AIR_ACCEL * (this.launched ? 0.3 : 1);
@@ -272,7 +281,7 @@ export class Player {
       if (fallSpeed > LETHAL_FALL && !this.game.rulesPaused) {
         // fall damage: a long drop (about 18 m) is fatal
         audio.sample('impact_death', { gain: 1, vary: 0.05 }) || audio.land(2);
-        this.damage(1, 'impact');
+        this.damage(1, 'landing'); // (no shield saves you from the ground)
         if (this.dead) return;
       } else if (fallSpeed > HARD_FALL) {
         world.fx.landDust(this.pos, 2);
@@ -300,14 +309,11 @@ export class Player {
 
     // ---- hazards ----
     const b = this.bounds();
+    let lava = false;
     for (const s of world.solids) {
       if (!s.enabled || !s.hazard) continue;
       if (b.min.x < s.max.x + 0.04 && b.max.x > s.min.x - 0.04 && b.min.y < s.max.y + 0.06 && b.max.y > s.min.y - 0.04 && b.min.z < s.max.z + 0.04 && b.max.z > s.min.z - 0.04) {
-        if (s.hazard === 'acid' && this.invuln <= 0) {
-          audio.acid();
-          this.damage(1, 'acid');
-          return;
-        }
+        if (s.hazard === 'acid') lava = true;
         if (s.hazard === 'spike' && this.invuln <= 0) {
           audio.spike();
           this.damage(1, 'spike');
@@ -315,6 +321,9 @@ export class Player {
         }
       }
     }
+    if (this.lavaTouched) lava = true; // (pools that aren't hazard solids report in with touchLava)
+    this.lavaTouched = false;
+    if (this.burnIn(lava, dt)) return;
     // off the edge of the world: falling this far below where you last stood never ends well
     // Falling off the world: if there's nothing below to hit you're faded back to the checkpoint (no
     // death); a long fall onto something still kills you when you land (see the landing above).
@@ -506,6 +515,49 @@ export class Player {
   giveArmor() {
     this.setArmor(1);
     this.game.hud.armorGain?.();
+  }
+
+  touchLava() {
+    this.lavaTouched = true;
+  }
+
+  // In the lava. First touch: a sizzle, a hop up off the surface and the screen flares; a shield shatters
+  // and buys its own moment of grace. Bare, the burn runs (you're slowed) and LAVA_GRACE seconds of it
+  // kill you; step out in time and it cools off. True when this frame killed you.
+  burnIn(lava, dt) {
+    const was = this.inLava;
+    this.inLava = lava;
+    if (!lava) {
+      // still smouldering in the air over it (it only kills in the lava); cools slowly once you're on solid ground
+      if (this.burn > 0 && !this.grounded) this.burn = Math.min(LAVA_GRACE - 0.15, this.burn + dt * 0.5);
+      else this.burn = Math.max(0, this.burn - dt * 0.4);
+      return false;
+    }
+    if (!was && this.burn === 0 && this.invuln <= 0) {
+      // (a fresh burn only: bouncing back in carries the burn on, it doesn't throw you out again)
+      audio.acid();
+      this.vel.y = Math.max(this.vel.y, LAVA_POP);
+      this.grounded = false;
+      this.shake = Math.max(this.shake || 0, 0.35);
+      this.game.world.fx.burst(this.pos.clone().setY(this.pos.y + 0.2), 0xff6a1a, { count: 30, speed: 6, life: 0.6, size: 0.2, gravity: 6 });
+    }
+    if (this.invuln > 0 || this.game.godMode || this.game.rulesPaused) return false;
+    if (this.armor > 0) {
+      this.damage(1, 'acid'); // the shield takes it (and its grace with it)
+      return false;
+    }
+    if (this.burn === 0) {
+      this.game.hud.hurt(30);
+      if (!this.warnedLava) this.game.hud.message('<b style="color:#ff6a1a">BURNING</b> — get out!', 1.2);
+      this.warnedLava = true;
+    }
+    this.burn += dt;
+    if (Math.random() < dt * 6) audio.sample('lava_sizzle', { gain: 0.5, vary: 0.2 });
+    if (Math.random() < dt * 40) this.game.world.fx.ember(this.pos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.8, 0.2, (Math.random() - 0.5) * 0.8)), 0, 2 + Math.random() * 3, 0, 0xff6a1a, 0.6, 0.12);
+    this.game.hud.burning?.(this.burn / LAVA_GRACE);
+    if (this.burn < LAVA_GRACE) return false;
+    this.damage(1, 'acid');
+    return this.dead;
   }
 
   setArmor(n) {

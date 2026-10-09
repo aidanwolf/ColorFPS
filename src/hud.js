@@ -213,6 +213,11 @@ export class Hud {
     this.hurtLevel = Math.min(1, this.hurtLevel + amount / 35);
   }
 
+  // burning in lava: the edges glow hotter as the grace runs out (k 0 → 1)
+  burning(k) {
+    this.hurtLevel = Math.max(this.hurtLevel, 0.45 + 0.55 * Math.min(1, k));
+  }
+
   flash(color) {
     this.vignette.style.background = color;
     this.hurtLevel = 1;

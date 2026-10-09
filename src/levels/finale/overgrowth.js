@@ -240,7 +240,7 @@ export function buildOvergrowth({ B, W, game, level, H, boss }) {
     update(dt, player) {
       // the sludge takes anyone who falls into a channel
       const p = player.pos;
-      if (p.y < SLUDGE_Y + 0.05) for (const s of sludge) if (p.x > s.x1 && p.x < s.x2 && p.z > s.z1 && p.z < s.z2) player.damage(1, 'acid');
+      if (p.y < SLUDGE_Y + 0.05) for (const s of sludge) if (p.x > s.x1 && p.x < s.x2 && p.z > s.z1 && p.z < s.z2) player.touchLava(); // (the burn: player.js)
       // (the bridges stand on the channels: their tops are at the court's level, so nobody on one is under SLUDGE_Y)
       // fireflies and drifting pollen
       if (Math.random() < dt * 10) {

@@ -269,7 +269,7 @@ export function buildForge({ B, W, game, level, H, boss }) {
       const y = updateSurge(dt, player);
       // the lava takes anyone whose feet go under (inside the caldera)
       const p = player.pos;
-      if (p.y < y - 0.04 && lava.contains(p)) player.damage(1, 'acid');
+      if (p.y < y - 0.04 && lava.contains(p)) player.touchLava(); // (the burn: player.js)
       // embers off the lake, thicker while it churns
       fxT -= dt;
       if (fxT <= 0) {

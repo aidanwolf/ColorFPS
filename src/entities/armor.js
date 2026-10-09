@@ -11,7 +11,8 @@ import { audio } from '../audio.js';
 
 export const ARMOR_COLOR = 0x7ff6ff;
 // causes the shield doesn't stop
-export const ARMOR_IGNORES = new Set(['acid', 'spike', 'impact', 'fall', 'drown', 'lava', 'sand', 'quicksand', 'toxic', 'brine', 'crush', 'void']);
+// (lava and the other molten/acid pools, and a boss's stomps and charges, do break a shield)
+export const ARMOR_IGNORES = new Set(['spike', 'landing', 'fall', 'drown', 'sand', 'quicksand', 'crush', 'void']);
 
 // A hexagon grid laid over a sphere (by its own direction, so it sits still on the surface as it turns).
 // outside: lit at the rim (fresnel), seen from without. inside: seen from the centre, it fades out toward
