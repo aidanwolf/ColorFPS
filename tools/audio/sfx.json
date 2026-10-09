@@ -1496,5 +1496,15 @@
   "dur": 20,
   "influence": 0.4,
   "loop": true
+ },
+ "rogue_wave": {
+  "text": "A colossal rogue ocean wave approaching: a deep rising roar building to a thunderous crash over a steel offshore deck, torrents of water, metal groaning, cinematic and terrifying",
+  "dur": 6,
+  "influence": 0.55
+ },
+ "underwater_plunge": {
+  "text": "Violent splash and plunge into deep ocean water, then muffled churning bubbles and turbulent underwater roar fading",
+  "dur": 3.5,
+  "influence": 0.6
  }
 }
