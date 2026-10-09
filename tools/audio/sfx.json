@@ -1414,5 +1414,173 @@
   "text": "Ancient stone energy pillar awakening: a rising electric hum and crackle of yellow power surging through stone, glassy resonance, ending in a deep thrum",
   "dur": 3,
   "influence": 0.55
+ },
+ "boulder_roll": {
+  "text": "A gigantic stone boulder rolling and rumbling down a stone temple corridor, heavy grinding thunder, rhythmic thumps, debris crunching, deep and menacing, continuous",
+  "dur": 6,
+  "influence": 0.5,
+  "loop": true
+ },
+ "dart_trap": {
+  "text": "Ancient temple dart trap: a stone pressure plate click, then a volley of darts whistling out of the wall and thudding into stone",
+  "dur": 1.5,
+  "influence": 0.6
+ },
+ "stone_slam": {
+  "text": "A massive stone door slamming shut in an ancient temple, heavy grinding then a huge booming impact with dust and rubble",
+  "dur": 2.0,
+  "influence": 0.6
+ },
+ "rope_bridge_creak": {
+  "text": "Old wooden plank rope bridge creaking and swaying, ropes straining, planks knocking, wind in a gorge",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "amb_swamp": {
+  "text": "Eerie foggy jungle swamp ambience at dusk: frogs croaking, insects buzzing, distant strange bird calls, water dripping and bubbling, low wind in hanging vines, unsettling and humid, seamless loop",
+  "dur": 20,
+  "influence": 0.4,
+  "loop": true
+ },
+ "trapdoor_fall": {
+  "text": "A hidden stone trapdoor giving way: a sharp crack, stone tile collapsing, rushing fall of rubble and sand into darkness, ending in a heavy crash",
+  "dur": 2.5,
+  "influence": 0.6
+ },
+ "vine_creak": {
+  "text": "A thick jungle vine creaking and stretching under weight, fibrous rope tension, leaves rustling",
+  "dur": 1.5,
+  "influence": 0.6
+ },
+ "vine_whoosh": {
+  "text": "Fast whoosh of swinging through the air on a jungle vine, wind rushing past, leaves fluttering",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "branch_groan": {
+  "text": "An enormous ancient tree branch groaning and creaking deep and slow, wood fibres straining, mystical resonance",
+  "dur": 3,
+  "influence": 0.5
+ },
+ "leaves_rustle": {
+  "text": "Dense canopy leaves rustling in the wind high in a giant tree, gentle and airy",
+  "dur": 4,
+  "influence": 0.4,
+  "loop": true
+ },
+ "amb_canopy": {
+  "text": "High jungle canopy ambience atop a giant mythic tree: wind through enormous leaves, creaking branches, distant exotic birds and insects, faint mystical chimes, airy and vast, seamless loop",
+  "dur": 20,
+  "influence": 0.4,
+  "loop": true
+ },
+ "boulder_crash": {
+  "text": "A giant boulder smashing through a stone wall and crashing to a stop, explosive rubble, a deep impact boom",
+  "dur": 2.5,
+  "influence": 0.6
+ },
+ "amb_ocean_storm": {
+  "text": "Tropical ocean storm ambience on an offshore station: heavy warm rain drumming on metal decks, roaring surf and big waves crashing against steel pylons, gusting wind, distant rolling thunder, seamless loop",
+  "dur": 22,
+  "influence": 0.4,
+  "loop": true
+ },
+ "waves_crash": {
+  "text": "A huge ocean wave crashing against a steel sea wall and pylons, explosive spray and foam hissing back, powerful",
+  "dur": 3,
+  "influence": 0.6
+ },
+ "amb_ocean_calm": {
+  "text": "Bright tropical open ocean after a storm: gentle rolling swells lapping against metal, light warm breeze, distant seabirds, dripping water, peaceful and vast, seamless loop",
+  "dur": 20,
+  "influence": 0.4,
+  "loop": true
+ },
+ "rogue_wave": {
+  "text": "A colossal rogue ocean wave approaching: a deep rising roar building to a thunderous crash over a steel offshore deck, torrents of water, metal groaning, cinematic and terrifying",
+  "dur": 6,
+  "influence": 0.55
+ },
+ "underwater_plunge": {
+  "text": "Violent splash and plunge into deep ocean water, then muffled churning bubbles and turbulent underwater roar fading",
+  "dur": 3.5,
+  "influence": 0.6
+ },
+ "slick_rush": {
+  "text": "Continuous high-speed rush of sliding fast across a wet surface: hissing water spray from under the feet, rushing wind past the ears, a slick watery whoosh, seamless loop",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "slick_boost": {
+  "text": "A sudden surging whoosh of speed: a burst of water spray and a rising wind rush as you hit top speed on a slick, punchy and exhilarating",
+  "dur": 1.2,
+  "influence": 0.6
+ },
+ "glob_charge": {
+  "text": "Rising, gloopy wet energy hum: thick slime bubbling and stretching as a sci-fi charge whine sweeps up in pitch, ending on a tense wobbling sustain.",
+  "dur": 1.0,
+  "influence": 0.6
+ },
+ "glob_ready": {
+  "text": "Short bright wet plip with a glassy ping: a slime cell fully charged.",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "glob_charged": {
+  "text": "Heavy deep pneumatic slime cannon shot: a thick wet THOOMP, springy recoil, gooey splutter.",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "flak_burst": {
+  "text": "Sharp mid-air slime flak airburst: crisp crack-pop, then a wet splattering shower and a fizzing crackle. Punchy, little low end.",
+  "dur": 0.7,
+  "influence": 0.6
+ },
+ "goo_column": {
+  "text": "Geyser of thick green slime erupting from the ground: wet whoosh-glorp rising in pitch, then splattering back down.",
+  "dur": 0.8,
+  "influence": 0.6
+ },
+ "goo_stick": {
+  "text": "Thick sticky slime slapping onto metal and gluing it fast: heavy wet splat with a stretchy tacky squelch.",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "goo_unstick": {
+  "text": "Sticky slime peeling off a surface: tacky stretching rip ending in a wet pop.",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "goo_bridge": {
+  "text": "Slime spreading fast across a gap into a taut rubbery membrane: wet stretching squelch ending in a springy elastic twang.",
+  "dur": 0.8,
+  "influence": 0.6
+ },
+ "goo_burst": {
+  "text": "Hardened slime membrane cracking and bursting: dry crackle, wet rubbery pop, goo dripping away.",
+  "dur": 0.6,
+  "influence": 0.6
+ },
+ "pad_absorb": {
+  "text": "Organic pod greedily sucking in goo: quick wet slurp-gulp.",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "pad_beat": {
+  "text": "Single deep organic heartbeat thump from a swelling plant pod, wet and resonant, with a faint tonal pulse.",
+  "dur": 0.5,
+  "influence": 0.6
+ },
+ "pad_bloom": {
+  "text": "Big organic pod inflating explosively: fast rubbery balloon WHUMP, wet pop, leafy rustle.",
+  "dur": 0.7,
+  "influence": 0.6
+ },
+ "pad_launch": {
+  "text": "Springy bio launch: powerful elastic boing-thwump with an upward whoosh.",
+  "dur": 0.6,
+  "influence": 0.6
  }
 }

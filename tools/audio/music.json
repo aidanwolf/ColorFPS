@@ -90,5 +90,21 @@
  "music_temple": {
   "prompt": "Sacred ancient desert temple music for a sci-fi adventure game: deep male monastic chanting in an unknown ritual language, droning throat-singing low notes, distant female choir answering, slow ritual frame drums, hand bells and metallic chimes, Middle-Eastern modal melody on a reedy wind instrument, warm golden reverb of a vast stone hall, reverent, mysterious and slightly ominous, building tension, instrumental apart from wordless chant, seamless loop",
   "ms": 120000
+ },
+ "music_swamp": {
+  "prompt": "Dark foggy jungle swamp exploration music for a sci-fi adventure game: tense and eerie, deep tribal hand drums far away, slow pulsing low strings, breathy wooden flutes, insect-like rattles and clicks, ominous drones, wet reverberant atmosphere, sparse and suspenseful, instrumental, seamless loop",
+  "ms": 120000
+ },
+ "music_ruin": {
+  "prompt": "Ancient underground Mayan-style stone ruin with mysterious bio-technology: haunting and wondrous, glassy shimmering synth pads, low didgeridoo-like drones, slow ritual percussion on stone, bubbling textures, distant choir, mysterious and awe-struck, instrumental, seamless loop",
+  "ms": 120000
+ },
+ "music_tree": {
+  "prompt": "Epic mythic adventure music climbing a colossal ancient god tree: soaring and wondrous, tribal drums and marimba, airy flutes, lush strings building heroically, choir swells, sense of height and wonder, energetic but magical, instrumental, seamless loop",
+  "ms": 120000
+ },
+ "music_azure": {
+  "prompt": "Epic stormy tropical ocean exploration music for a sci-fi adventure game: vast and dramatic, rolling timpani like thunder, surging strings like waves, airy choir, bright steel-pan and marimba glints breaking through like sun between storm clouds, sense of an endless sea and adventure, instrumental, seamless loop",
+  "ms": 120000
  }
 }

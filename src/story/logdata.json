@@ -4,42 +4,42 @@
   "title": "Day One",
   "where": "Atrium · the day-1 station, by the party table",
   "file": "memo_01",
-  "text": "Recorder on! Field note one, day one. Doctor Wren Ashby, and we're in. We are actually in. Priya, put the camera down. Tomas has found a socket for the kettle. Priorities. Look at it. A heart, hanging from the ceiling, beating. Four rivers of light in, four times as much out. A generative power source. That's not supposed to exist. Maja's put Big Fridge on the board. We are not calling it Big Fridge. Somebody cut the cake! Bea, I'll be home by seven. Promise.",
-  "spoken": "[excited] Recorder on! Field note one, day one. Doctor Wren Ashby, and we're in. [whispers] We are actually in. [laughs] Priya, put the camera down. Tomas has found a socket for the kettle. Priorities. Look at it. A heart, hanging from the ceiling, beating. Four rivers of light in, four times as much out. A generative power source. [whispers] That's not supposed to exist. [excited] Maja's put Big Fridge on the board. We are not calling it Big Fridge. Somebody cut the cake! Bea, I'll be home by seven. Promise.",
+  "text": "Recorder on! Field note one, day one. Doctor Wren Ashby, and we're in. We are actually in. Priya, put the camera down. Tomas has found a socket for the kettle. Priorities. Look at it. A heart, hanging from the ceiling, beating. Four rivers of light in, four times as much out. A generative power source. That's not supposed to exist. Maja's put Big Fridge on the board. We are not calling it Big Fridge. Somebody cut the cake! Bea, I'll be home for your birthday. Promise.",
+  "spoken": "[excited] Recorder on! Field note one, day one. Doctor Wren Ashby, and we're in. [whispers] We are actually in. [laughs] Priya, put the camera down. Tomas has found a socket for the kettle. Priorities. Look at it. A heart, hanging from the ceiling, beating. Four rivers of light in, four times as much out. A generative power source. [whispers] That's not supposed to exist. [excited] Maja's put Big Fridge on the board. We are not calling it Big Fridge. Somebody cut the cake! Bea, I'll be home for your birthday. Promise.",
   "profile": "expressive",
-  "dur": 41.17,
+  "dur": 41.33,
   "lines": [
    {
     "t": 0.4,
     "text": "Recorder on! Field note one, day one. Doctor Wren Ashby, and we're in."
    },
    {
-    "t": 8.07,
+    "t": 7.59,
     "text": "We are actually in."
    },
    {
-    "t": 10.6,
+    "t": 10.2,
     "text": "Priya, put the camera down. Tomas has found a socket for the kettle. Priorities."
    },
    {
-    "t": 15.55,
+    "t": 15.54,
     "text": "Look at it. A heart, hanging from the ceiling, beating."
    },
    {
-    "t": 20.96,
+    "t": 20.78,
     "text": "Four rivers of light in, four times as much out. A generative power source."
    },
    {
-    "t": 28.91,
+    "t": 28.53,
     "text": "That's not supposed to exist."
    },
    {
-    "t": 31.67,
+    "t": 31.19,
     "text": "Maja's put Big Fridge on the board. We are not calling it Big Fridge."
    },
    {
-    "t": 36.62,
-    "text": "Somebody cut the cake! Bea, I'll be home by seven. Promise."
+    "t": 36.19,
+    "text": "Somebody cut the cake! Bea, I'll be home for your birthday. Promise."
    }
   ]
  },
