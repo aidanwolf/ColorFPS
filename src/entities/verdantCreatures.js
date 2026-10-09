@@ -167,7 +167,7 @@ const csfx = (name, p, k = 1, rate = 1, delay = 0, floor = null) => esfx(name, p
 const SHADER_TIME = { value: 0 };
 const KINDS = {
   trap: { rough: 0.42, amp: 0.022, rate: 1.4, freq: 2.2, rimK: 0.28, veinK: 0.3, veinF: 5 },
-  maw: { rough: 0.2, amp: 0.035, rate: 2.6, freq: 3.0, rimK: 0.15, veinK: 0.9, veinF: 11, side: THREE.BackSide, emissive: 0x220306 },
+  maw: { rough: 0.2, amp: 0.035, rate: 2.6, freq: 3.0, rimK: 0.15, veinK: 1.1, veinF: 8, side: THREE.BackSide, emissive: 0x220306 },
   stalk: { rough: 0.6, amp: 0.02, rate: 1.1, freq: 1.5, rimK: 0.22, veinK: 0.25, veinF: 3 },
   leaf: { rough: 0.75, amp: 0.03, rate: 0.9, freq: 1.2, rimK: 0.1, veinK: 0.08, veinF: 4, side: THREE.DoubleSide, flat: true },
   chitin: { rough: 0.26, metal: 0.3, amp: 0.012, rate: 7, freq: 6, rimK: 0.3, veinK: 0.15, veinF: 9 },
@@ -203,8 +203,11 @@ export function organic(kind, color = GREEN) {
       vObj = position;`);
     sh.fragmentShader = 'uniform float uTime;\nuniform vec3 uRim;\nvarying vec3 vObj;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       float rimF = 1.0 - abs(dot(normalize(vViewPosition), normal));
-      float vein = 1.0 - abs(sin(vObj.x * ${f3(K.veinF)} + sin(vObj.y * ${f3(K.veinF * 0.7)}) * 1.7 + sin(vObj.z * ${f3(K.veinF * 1.1)} + vObj.x * 2.0) * 1.3));
-      vein = pow(vein, 10.0) * (0.6 + 0.4 * sin(uTime * 2.3 + vObj.y * 4.0 + vObj.z * 3.0));
+      // two crossing, warped vein networks (thin, branching-looking), pulsing slowly
+      vec3 q = vObj * ${f3(K.veinF)};
+      float va = 1.0 - abs(sin(q.x + sin(q.y * 0.7 + sin(q.z * 1.3) * 1.1) * 1.9 + sin(q.z * 0.9) * 1.2));
+      float vb = 1.0 - abs(sin(q.z * 1.17 + sin(q.x * 0.8 + sin(q.y * 1.6) * 0.9) * 2.1 - q.y * 0.5));
+      float vein = pow(max(va, vb * 0.85), 18.0) * (0.55 + 0.45 * sin(uTime * 2.3 + vObj.y * 4.0 + vObj.z * 3.0));
       totalEmissiveRadiance += uRim * (rimF * rimF * ${f3(K.rimK)} + vein * ${f3(K.veinK)});`);
   };
   m.customProgramCacheKey = () => 'verdant-organic-' + kind;
@@ -450,9 +453,17 @@ class GooField {
   }
 
   // a patch at pos on a surface facing `normal` (merges with one already there)
-  add(pos, normal, { radius = 1.2, life = 14, visual = true, permanent = false } = {}) {
+  add(pos, normal, { radius = 1.2, life = 14, visual = true, permanent = false, mirror = false } = {}) {
     const p = vec(pos), n = vec(normal, [0, 1, 0]).normalize();
     if (permanent) life = Infinity;
+    // with the gun's goo system in the world (goo.js), the goo is its patch (its look, its life); ours
+    // mirrors it for the creatures
+    const sys = this.world.goo;
+    if (sys && !mirror) {
+      const src = sys.addPatch(p, n, radius, life);
+      this.mirror(sys);
+      return (src && this.mirrored.get(src)) || null;
+    }
     for (const q of this.patches) {
       if (q.pos.distanceTo(p) < Math.max(q.radius, radius) * 0.75 && q.normal.dot(n) > 0.7) {
         q.life = Math.max(q.life, life);
@@ -486,11 +497,33 @@ class GooField {
       const h = shortRay(this.world, point, d, 1.0);
       if (h && (!best || h.t < best.t)) best = h;
     }
-    if (best && !best.solid?.hazard && !best.solid?.creature) this.add(best.point, best.normal, { radius: 1.2 });
+    // (goo.js leaves its own patch: ours mirrors it on the next update)
+    if (!this.world.goo && best && !best.solid?.hazard && !best.solid?.creature) this.add(best.point, best.normal, { radius: 1.2 });
     for (const l of this.listeners) l.onGooSplash?.(point, radius);
   }
 
+  // follow world.goo's patches: one of ours per live one of its, the same spot, size and life
+  mirror(sys) {
+    this.mirrored ??= new Map();
+    for (const src of sys.patches) {
+      if (this.mirrored.has(src)) continue;
+      const P = this.add(src.pos, src.n, { radius: src.r, life: src.life, permanent: src.life === Infinity, visual: false, mirror: true });
+      P.src = src;
+      this.mirrored.set(src, P);
+    }
+    for (const [src, P] of this.mirrored) {
+      if (src.dead || !sys.patches.includes(src)) {
+        P.life = 0;
+        this.mirrored.delete(src);
+        continue;
+      }
+      if (!P.permanent) P.life = src.life;
+      P.radius = src.r;
+    }
+  }
+
   update(dt) {
+    if (this.world.goo) this.mirror(this.world.goo);
     for (let i = this.patches.length - 1; i >= 0; i--) {
       const p = this.patches[i];
       p.t += dt;
@@ -663,6 +696,12 @@ export class Snapjaw extends Creature {
     this.build();
     this.register();
     gooField(world).listeners.add(this);
+    // goo on its head (goo.js) clamps it shut: a stun, the head a platform, gobs of goo clinging to it
+    this.gooHandle = world.goo?.registerStickable(this, {
+      box: (out) => out.setFromCenterAndSize(this.mouthW, _s.set(2.4, 1.4, 2.4).multiplyScalar(this.S)),
+      freeze: false, duration: this.stunTime, parent: this.head, pad: 0.4,
+      onStick: () => this.stun(),
+    });
     this.reset();
   }
 
@@ -903,12 +942,13 @@ export class Snapjaw extends Creature {
     if (this.hp > 0 && hit?.object?.userData?.part === 'mouth' && this.open > 0.3) this.stun();
   }
 
+  // (without goo.js: our own goo field's patches and green splashes)
   onGoo(patch) {
-    if (patch.pos.distanceTo(this.mouthW) < 1.6 * this.S) this.stun();
+    if (!this.gooHandle && patch.pos.distanceTo(this.mouthW) < 1.6 * this.S) this.stun();
   }
 
   onGooSplash(p, r) {
-    if (p.distanceTo(this.mouthW) < r * 0.4 + 1.1 * this.S) this.stun();
+    if (!this.gooHandle && p.distanceTo(this.mouthW) < r * 0.4 + 1.1 * this.S) this.stun();
   }
 
   // ---------------------------------------------------------------- variants
@@ -1087,6 +1127,8 @@ export class Snapjaw extends Creature {
     this.timer = 1.1;
     director.release(this);
     this.setPad(false);
+    this.gooHandle?.remove();
+    this.gooHandle = null;
     this.world.removeHittable(this.group);
     edeath('death_snapjaw', this.headW, 1, rnd(0.95, 1.05));
     splat(this.world, this.mouthW, dir, 2.5);
@@ -1107,6 +1149,7 @@ export class Snapjaw extends Creature {
   }
 
   cleanup() {
+    this.gooHandle?.remove();
     if (this.pad) {
       const i = this.world.solids.indexOf(this.pad);
       if (i >= 0) this.world.solids.splice(i, 1);
@@ -1362,6 +1405,15 @@ export class Rotfly extends Creature {
 
   shieldView() {
     return { parent: this.body, center: [0, 0, 0.2], size: 0.75 };
+  }
+
+  // airborne (the green globs' flak fuse airbursts beside it: weapons/globs.js), unless it's stuck in goo
+  get flier() {
+    return this.state !== 'stuck' && !this.dead;
+  }
+
+  get flakPad() {
+    return 0.45 * this.S;
   }
 
   // shots glance off a fly stuck in goo (it's a platform: you can't pop it by accident)
@@ -1641,7 +1693,10 @@ export class Rotfly extends Creature {
     this.vel.copy(P.normal).multiplyScalar(5).add(_v.set(0, 2, 0));
     this.world.fx.burst(this.pos, GOO_HEX, { count: 20, speed: 4, life: 0.6, size: 0.14, gravity: 10 });
     csfx('goo_squelch', this.pos, 1, 1.3);
-    if (!P.permanent) P.life = Math.min(P.life, 1.5); // (the goo is spent)
+    if (!P.permanent) {
+      P.life = Math.min(P.life, 1.5); // (the goo is spent)
+      if (P.src && P.src.life !== Infinity) P.src.life = Math.min(P.src.life, 1.5);
+    }
   }
 
   // ---- look ----
@@ -2086,6 +2141,7 @@ export class Borer extends Creature {
     this.register();
     this.group.userData.noCull = true; // (it reaches far out of its hole: don't let culling clip it)
     gooField(world).listeners.add(this);
+    if (world.goo) this.hookGoo(world.goo);
     this.reset();
   }
 
@@ -2453,13 +2509,54 @@ export class Borer extends Creature {
     csfx('goo_squelch', this.hole.pos, 1, 0.7);
   }
 
-  // goo: on its hole while it's in → plugged; on its body while it's out → glued
+  // goo.js: a goo membrane over each hole (fill it while it's in: plugged till the membrane bursts), and its
+  // body a stickable (gooed while it's out: glued, gobs of goo on it)
+  hookGoo(sys) {
+    this.gaps = this.holes.map((h, i) => {
+      const n = h.n, ax = Math.abs(n.x) > 0.7 ? 'x' : Math.abs(n.z) > 0.7 ? 'z' : 'y', r = 0.95 * this.S;
+      const min = h.pos.clone().subScalar(r), max = h.pos.clone().addScalar(r);
+      if (ax === 'y') {
+        min.y = h.pos.y - 0.32;
+        max.y = h.pos.y + 0.03;
+        if (n.y < 0) {
+          min.y = h.pos.y - 0.03;
+          max.y = h.pos.y + 0.32;
+        }
+      } else {
+        const a = h.pos[ax], b = a + Math.sign(n[ax]) * 0.3;
+        min[ax] = Math.min(a, b);
+        max[ax] = Math.max(a, b);
+      }
+      return sys.addGap({ min, max }, { axis: ax, duration: this.plugTime, onFill: () => this.holeGoo(i, true), onClear: () => this.holeGoo(i, false) });
+    });
+    this.gooHandle = sys.registerStickable(this, {
+      box: (out) => {
+        out.makeEmpty();
+        if (this.state === 'hidden' || this.state === 'rumble' || this.state === 'dying') return out;
+        for (let i = 0; i < this.N; i++) if (this.segOn[i]) out.expandByPoint(_s.copy(this.segPos[i]).addScalar(0.45 * this.S)).expandByPoint(_s.copy(this.segPos[i]).subScalar(0.45 * this.S));
+        return out.expandByPoint(this.headW);
+      },
+      freeze: false, duration: this.stuckTime, pad: 0.3,
+      onStick: () => this.glue(),
+    });
+  }
+
+  holeGoo(i, on) {
+    if (i !== (this.at ?? 0)) return;
+    if (on) {
+      this.plug();
+      if (this.plugT > 0) this.plugT = Infinity; // (until the membrane bursts)
+    } else if (this.plugT === Infinity) this.plugT = 0;
+  }
+
+  // goo (our own goo field, without goo.js): on its hole while it's in → plugged; on its body while it's
+  // out → glued
   onGoo(P) {
-    this.gooAt(P.pos, 0);
+    if (!this.gooHandle) this.gooAt(P.pos, 0);
   }
 
   onGooSplash(p, r) {
-    this.gooAt(p, r * 0.35);
+    if (!this.gooHandle) this.gooAt(p, r * 0.35);
   }
 
   gooAt(p, r) {
@@ -2597,6 +2694,8 @@ export class Borer extends Creature {
   }
 
   cleanup() {
+    this.gooHandle?.remove();
+    for (const g of this.gaps || []) g.remove?.();
     for (const s of this.solids) {
       const i = this.world.solids.indexOf(s);
       if (i >= 0) this.world.solids.splice(i, 1);
