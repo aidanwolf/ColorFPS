@@ -752,6 +752,8 @@ export class GroundEnemy {
     sfx('joint_sparks', 0.9 * falloff(this.dist, 6, 40), { alt: 'energy_crackle' });
     // it goes down however it's armored: shields drop, the last hit lands
     this.shieldUp && this.dropShield?.(false);
+    // (layered color shells burst too: the current goes straight through hard light)
+    while (this.colorShield?.up) this.colorShield.hit(this.colorShield.color, null);
     this.hp = Math.min(this.hp, 1);
     const dir = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
     this.onHit(this.color, { kind: 'shock', point: c, normal: UP.clone(), dir });

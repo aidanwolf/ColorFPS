@@ -157,13 +157,14 @@ const SIGNS = [
   'AZURE STATION', 'DECK 01  RIM', 'PUMP STATION 2', 'TURBINE 4', 'CRYO 3  SLEEPER STORAGE', 'RECORDS', 'BRINE WELL',
   'VAULT', 'CORE SANCTUM', 'DECK 07  UNDERCROFT', 'UNDERCROFT  CISTERN 1', 'DUCT  >', 'SLUICE 2', 'LOCK 1', 'LOCK 2',
   'ENGINE  >', '<  SPILLWAY', 'PRESSURE LOCK', 'EMERGENCY PADS', 'NO SWIMMING', 'DANGER  COLD BRINE', 'KEEP CLEAR', 'B-7', 'CRANE 2',
+  'BRINE WELL  >', 'BREAKER HALL', 'DANGER  LIVE WATER', 'STORM DECK 3', 'DANGER  HIGH VOLTAGE', 'WINCH  DUCT GATE', 'MAINTENANCE SEAL',
 ];
 let atlas = null;
 function signAtlas() {
   if (atlas) return atlas;
-  const W = 1024, rowH = 40, c = document.createElement('canvas');
+  const W = 1024, H = 2048, rowH = 40, c = document.createElement('canvas');
   c.width = W;
-  c.height = 1024;
+  c.height = H;
   const g = c.getContext('2d');
   g.fillStyle = '#fff';
   g.textBaseline = 'middle';
@@ -178,7 +179,7 @@ function signAtlas() {
       x += g.measureText(ch).width + 5;
     }
     g.clearRect(0, y + rowH / 2 - 1, x, 2);
-    rows[t] = { v0: 1 - (y + rowH) / 1024, v1: 1 - y / 1024, u1: x / W, aspect: x / rowH };
+    rows[t] = { v0: 1 - (y + rowH) / H, v1: 1 - y / H, u1: x / W, aspect: x / rowH };
   });
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -634,13 +635,18 @@ export function dressAzure(B, { zone }) {
   drip(103.6, -1.1, -80.6, 1.4);
 
   // ---------------------------------------------------------------- Turbine Deck
-  sign('TURBINE 4', [103.98, -16.55, -118.5], '-x', 0.36);
+  sign('TURBINE 4', [104.48, -17.4, -120.6], '-x', 0.3);
   pipe([[107.5, -17.4, -117.1], [112, -17.4, -117.1]], { r: 0.2, flange: 1.5, band: 3 });
   pipe([[107.5, -19.6, -120.6], [112, -19.6, -120.6]], { r: 0.28, flange: 1.5 });
-  cable([105.75, -16, -121], [104.2, -6, -110.9], 1.6);
+  cable([106.2, -16, -120.6], [104.2, -6, -110.9], 1.6);
   puddle(99, -21, -119.5, 0.9);
   puddle(101.6, -21, -114.4, 0.5);
   drip(100.6, -6.2, -111, 1.1);
+
+  // ---------------------------------------------------------------- the Storm Deck
+  sign('STORM DECK 3', [61.92, -17.6, -122.4], '+x', 0.36);
+  sign('DANGER  HIGH VOLTAGE', [61.92, -18.4, -100.6], '+x', 0.26, 'hazard');
+  for (const [a, b] of [[[61.6, -13.2, -122.4], [82.4, -13.2, -122.4]], [[61.6, -13.2, -100.6], [82.4, -13.2, -100.6]], [[61.6, -13.2, -122.4], [61.6, -13.2, -100.6]]]) cable(a, b, 1.6, 0.045);
 
   // ---------------------------------------------------------------- the Flooded Depths
   causticRoom(124, -126, 146, -104, -25, -19);
@@ -674,9 +680,14 @@ export function dressAzure(B, { zone }) {
   cable([109, -21.5, -158.2], [114.5, -21.5, -163.6], 0.5, 0.03);
   puddle(110.5, -25, -162.2, 0.45);
 
-  // ---------------------------------------------------------------- the Gauntlet and the Well
-  pipe([[66.6, -22.05, -171.25], [87.4, -22.05, -171.25]], { r: 0.1, flange: 2.5, band: 5 });
-  sign('BRINE WELL', [69.5, -22.6, -171.48], '+z', 0.28);
+  // ---------------------------------------------------------------- the Breaker Hall and the Well
+  pipe([[67, -20.2, -176.6], [87, -20.2, -176.6]], { r: 0.16, flange: 2.5, band: 5 });
+  pipe([[67, -19.6, -163.4], [87, -19.6, -163.4]], { r: 0.12, flange: 3 });
+  sign('BRINE WELL  >', [66.55, -21.1, -170], '+x', 0.26);
+  sign('BREAKER HALL', [87.45, -21.2, -173.4], '-x', 0.3);
+  sign('DANGER  LIVE WATER', [80, -22.4, -163.05], '-z', 0.3, 'hazard');
+  sign('DANGER  LIVE WATER', [76, -22.4, -176.95], '+z', 0.3, 'hazard');
+  mist(68.2, -177, 84.2, -163, -24.95, [0.3]);
   sign('DANGER  COLD BRINE', [65.98, -23.2, -173.6], '-x', 0.24, 'hazard');
   mist(50, -182, 66, -158, -46.05);
   pipe([[50.4, -20, -176], [50.4, -46, -176]], { r: 0.3, flange: 4, band: 5 });
@@ -690,8 +701,8 @@ export function dressAzure(B, { zone }) {
 
   // ---------------------------------------------------------------- the Blue Span
   sign('DECK 07  UNDERCROFT', [111.98, -52.2, -146], '-x', 0.32);
-  cable([92, -52.5, -139.6], [100.5, -51.4, -151.1], 1.4);
-  cable([100.5, -51.4, -151.1], [111.9, -50, -149], 1.2);
+  cable([92, -52.5, -139.6], [103.3, -51.4, -151.1], 1.4);
+  cable([103.3, -51.4, -151.1], [111.9, -50, -149], 1.2);
 
   // ---------------------------------------------------------------- the Undercroft: a flooded machine hall
   const HW = -57.3;
@@ -713,6 +724,8 @@ export function dressAzure(B, { zone }) {
   win([156.98, -49.8, -180], '-x', 8, 3.6);
   sign('UNDERCROFT  CISTERN 1', [125.5, -52.1, -160.03], '-z', 0.42);
   sign('DUCT  >', [156.97, -55.4, -164], '-x', 0.32);
+  sign('WINCH  DUCT GATE', [156.97, -54.4, -168.4], '-x', 0.26);
+  sign('MAINTENANCE SEAL', [152.47, -56.25, -186.6], '-x', 0.2);
   pipe([[118, -45, -161.2], [156, -45, -161.2]], { r: 0.34, flange: 4, band: 6 });
   pipe([[118, -45, -192.8], [156, -45, -192.8]], { r: 0.34, flange: 4, band: 6 });
   for (const x of [127, 137, 147]) cable([x, -44.3, -166], [x, -44.3, -188], 2.6, 0.045);
