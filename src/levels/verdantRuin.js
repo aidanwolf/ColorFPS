@@ -480,7 +480,7 @@ export function buildVerdantRuin(B, { K, F, trap }) {
       if (!locks.yellow) return `Shoot the ${Y_('yellow')} lock hanging over the far east reactor.`;
       return 'The door is opening.';
     }
-    if (p.z < -344 && p.z > -352.5) return 'On into the <b>sanctum</b>.';
+    if (p.z < -344 && p.z > -352.5 && p.x > Hh.x1 && p.x < Hh.x2 && p.y < S.ceil) return 'On into the <b>sanctum</b>.'; // (bounded: the god tree's bough shares these z)
     if (p.z <= -352 && p.x > S.x1 && p.x < S.x2 && p.y > S.floor - 1) {
       if (!game.blaster.unlocked[GREEN]) return p.y < top - 0.5 ? `Climb the pyramid's stair to the ${G_('core')} in the cradle's grip.` : `Take the ${G_('VERDANT core')}.`;
       if (guard.state !== 'armed' && guard.state !== 'cleared') return `Fight off the Seed's guard: ${G_('globs')} burst whole clumps of slime.`;

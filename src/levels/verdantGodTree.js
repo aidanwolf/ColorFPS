@@ -1132,7 +1132,7 @@ export function buildGodTree(B, ctx = {}) {
         { type: 'drone', pos: [B1.x - 4, B1.y + 5, B1.z + 2], color: GREEN, shields: [YELLOW] },
         { type: 'drone', pos: [B1.x + 4, B1.y + 5.5, B1.z - 1], color: YELLOW, shields: [GREEN] },
         { type: 'slime', pos: [B1.x, B1.y, B1.z - 3], color: YELLOW, core: GREEN },
-        { type: 'spider', pos: [B1.x - 5, B1.y, B1.z + 4], color: RED, shields: [GREEN] },
+        { type: 'spider', pos: [B1.x - 3, B1.y, B1.z + 4], color: RED, shields: [GREEN] }, // (at x - 5 it was inside the small reactor tank)
       ],
     ],
     checkpoint: { pos: [B1.x, B1.y, B1.z - 6], yaw: EAST },
@@ -1193,10 +1193,10 @@ export function buildGodTree(B, ctx = {}) {
       ],
       [
         { type: 'swarm', pos: [B2.x - 3, B2.y + 7, B2.z - 2], color: [GREEN, YELLOW], count: 7 },
-        { type: 'rotflies', pos: [B2.x + 4, B2.y + 1, B2.z + 3], color: GREEN, count: 4, respawn: 0, hive: false, stuckTime: 4, stuckEnd: 'die' },
+        { type: 'rotflies', pos: [B2.x + 0.5, B2.y + 1.5, B2.z + 4], color: GREEN, count: 4, respawn: 0, hive: false, stuckTime: 4, stuckEnd: 'die' },
         { type: 'spider', pos: [B2.x + 3, B2.y, B2.z - 5], color: YELLOW, shields: [GREEN] },
       ],
-    ],
+    ], // (the rotflies hatch in the open: at B2 + (4, 1, 3) they were inside a cover nest's solid, one stuck there for good)
     checkpoint: { pos: [B2.x - 6, B2.y, B2.z], yaw: WEST },
   });
   cp([B2.x, B2.y, B2.z + 6], NORTH, [4, 3, 3], 'THE HANGING NESTS');
@@ -1699,6 +1699,7 @@ export function buildGodTree(B, ctx = {}) {
 
   // ================================================================ THE HUD OBJECTIVE (verdant.js asks this)
   function objective(p) {
+    if (zip.rider) return 'Hold on: the harvest line runs all the way home.'; // (it read "Climb the god tree." on the way down)
     if (p.z > -300 || p.x < 18) {
       if (p.y > 11 && p.x > 7.5 && p.x < 12.5 && p.z < -148.5) {
         if (game.isWorldDown?.('verdant')) return 'Follow the aqueduct home to the Nexus: blast each gate with its color.';
@@ -1724,7 +1725,7 @@ export function buildGodTree(B, ctx = {}) {
     }
     if (p.y < 45.5 && p.x > 82 && p.z > -378) return 'Swing up the vines: <b>W</b> pumps toward where you look, <b>JUMP</b> lets go.';
     if (p.y < 50 && p.x > 95) return fight2.state === 'cleared' ? 'Back along the bough to the cut face on the trunk.' : 'Clear the nests.';
-    if (p.y < 53 && p.x > 85) return faceNest.broken ? `${G_('Goo the cut face')} in steps; climb the rotflies that stick.` : `Burst the ${G_('nest')} at the foot of the cut face.`;
+    if (p.y < 53 && p.x > 85 && !(p.y > FACE.cap - 0.3 && p.z < -387.5)) return faceNest.broken ? `${G_('Goo the cut face')} in steps; climb the rotflies that stick.` : `Burst the ${G_('nest')} at the foot of the cut face.`;
     if (p.y < 56 && p.z < -388 && p.x > 76) {
       if (Math.hypot(p.x - BLOOM[0], p.z - BLOOM[2]) < 3) return `Shoot the ${G_('bloom pad')}, then stand on it as it opens.`;
       return `${G_('Goo a seed pod')} when it swings into line, then hop across.`;

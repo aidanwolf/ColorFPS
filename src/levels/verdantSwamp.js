@@ -426,7 +426,7 @@ export function buildVerdantSwamp(B, ctx = {}) {
     onClear: () => setTimeout(() => game.hud.message('Quiet again. The stones lead <b>west</b>, out to the little island where the river ends.', 6), 2400),
   });
   onRespawn(() => grove.reset());
-  cp([-36, 2.6, -278.5], WEST, [5, 3, 3]);
+  cp([-40, 2.6, -279], WEST, [8, 3, 2.4]); // (clear of the pump station: at -36, -278.5 a respawn stood you on its roof)
   B.armor([-42, 2.6, -290]);
   B.armor([-62.5, 2.6, -261.5]);
   // stepping stones out to the island
@@ -555,8 +555,8 @@ export function buildVerdantSwamp(B, ctx = {}) {
   devStart('verdant3', [-14, 2.7, -229.5], NORTH, RY, 'The bank under the giants (the spider)');
   devStart('verdant4', [-40, 2.7, -244], WEST, RY, 'The swamp river: the snapjaw and the fallen log');
   devStart('verdant5', [-60, 2.6, -263.5], NORTH, RY, 'The west bank (slimes from the water)');
-  devStart('verdant6', [-36, 2.6, -278.5], WEST, RY, 'The Drowned Grove (ambush)');
-  devStart('verdant7', [-38, 2.7, -293.2], WEST, RY, 'The trapdoor island');
+  devStart('verdant6', [-40, 2.6, -279], WEST, RY, 'The Drowned Grove (ambush)');
+  devStart('verdant7', [-39.8, 2.7, -293.2], WEST, RY, 'The trapdoor island'); // (on the first stepping stone, not the mire beside it)
 
   return { objective, grove, waterAmbush, trap, ruin, kit: K, flora: F, waterMats: WM };
 
