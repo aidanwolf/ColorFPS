@@ -3037,6 +3037,7 @@ export function buildOffices(B) {
   const wh = new Wheelies(W, {
     floor: FLOOR,
     blocks: [{ x1: -7, z1: PZ - 7, x2: 7, z2: PZ + 7 }, { x1: -24.5, z1: -124.05, x2: -20.95, z2: -120.95 }, { x1: 20.95, z1: -124.05, x2: 24.5, z2: -120.95 }],
+    bounds: { x1: -24.5, z1: -148, x2: 24.5, z2: -100 }, // (the Atrium's walls: one pushed out through a door goes home)
   });
   const kitOf = (fn) => {
     const k = new Kit(W);

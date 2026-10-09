@@ -16,10 +16,14 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 export class Wheelies {
   // floor: the floor height they roll on · blocks: [{ x1, z1, x2, z2 }] where they may never go · zone: their area
-  constructor(W, { floor, blocks = [], zone = 'hub' }) {
+  // bounds: { x1, z1, x2, z2 } the room they belong in: one shoved out through a doorway goes home as soon
+  // as you step away from it (else it rode on into the next world at floor height, hidden once the room
+  // stopped drawing but still in your way)
+  constructor(W, { floor, blocks = [], zone = 'hub', bounds = null }) {
     this.W = W;
     this.floor = floor;
     this.blocks = blocks;
+    this.bounds = bounds;
     this.zone = zone;
     this.kinds = new Map();
     this.bodies = [];
@@ -236,11 +240,13 @@ export class Wheelies {
       }
       // home: far from it, out of sight and out of the way for a while → back where it was put
       const dh = Math.hypot(b.x - b.home[0], b.z - b.home[1]);
+      const B = this.bounds, out = B && (b.x < B.x1 || b.x > B.x2 || b.z < B.z1 || b.z > B.z2);
       if (dh > 2.5) {
         _v.set(b.x - cam.position.x, 0, b.z - cam.position.z);
         const dist = _v.length();
         const seen = dist < 40 && _v.dot(_f) > dist * 0.35;
         b.away = seen || dist < 5 ? 0 : b.away + dt;
+        if (out && Math.hypot(player.pos.x - b.x, player.pos.z - b.z) > b.r + 1.5) b.away = 7;
         if (b.away > 6 && this.free(b)) {
           b.x = b.home[0];
           b.z = b.home[1];

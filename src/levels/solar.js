@@ -698,7 +698,7 @@ export function buildSolar(B) {
     waves: [
       [
         { type: 'scarab', pos: [-176, S, -84], color: YELLOW, burrow: false },
-        { type: 'scarab', pos: [-202, S, -86], color: YELLOW, shields: [RED], burrow: false, delay: 0.4 },
+        { type: 'scarab', pos: [-208, S, -82], color: YELLOW, shields: [RED], burrow: false, delay: 0.4 },
         { type: 'scarab', pos: [-176, S, -46], color: YELLOW, burrow: false, delay: 0.8 },
         { type: 'scarab', pos: [-204, S, -46], color: YELLOW, shields: [RED], burrow: false, delay: 1.2 },
         { type: 'drone', pos: [-189, -2, -82], color: YELLOW, delay: 1.0 },
@@ -707,12 +707,12 @@ export function buildSolar(B) {
       { title: 'SHIELDS: BURN THE GOLD, BREAK THE RED', enemies: [
         { type: 'mummy', pos: [-172, S, -66], color: YELLOW, shieldColor: YELLOW },
         { type: 'mummy', pos: [-206, S, -68], color: YELLOW, shieldColor: RED, delay: 1.2 },
-        { type: 'brute', pos: [-189, S, -86], color: YELLOW, delay: 2.0 },
+        { type: 'brute', pos: [-187, S, -79], color: YELLOW, delay: 2.0 }, // (clear of the blocks either side of the flats' stair: x -206…-184, z -94…-84)
         { type: 'scarab', pos: [-189, S, -46], color: YELLOW, burrow: false, delay: 2.6 },
       ] },
       [
         { type: 'warden', pos: [-189, -5.4, -80], shield: RED, core: YELLOW },
-        { type: 'mortar', pos: [-206, S, -88], color: YELLOW, delay: 0.8 },
+        { type: 'mortar', pos: [-209, S, -87], color: YELLOW, delay: 0.8 },
         { type: 'drone', pos: [-172, -2, -84], color: YELLOW, delay: 1.2 },
         { type: 'drone', pos: [-206, -2, -48], color: YELLOW, shields: [RED], delay: 1.6 },
         { type: 'turret', pos: [-165.9, -4.5, -66], color: YELLOW, shields: [RED], mount: [-1, 0, 0], delay: 2.2 },
