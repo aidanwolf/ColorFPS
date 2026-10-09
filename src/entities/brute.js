@@ -25,8 +25,11 @@ const MUZZLE = new THREE.Vector3(0, 1.08, 0); // the slag cannon's mouth, in the
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 export class Brute extends Enemy {
-  constructor(world, { pos, color = 0, hp = 9, range = 40, speed = 2.6, chargeSpeed = 22, windup = 1.15, cooldown = 2.6, stun = 1.8, lob = true, gobs = 3, lobEvery = [3.5, 5], lobWindup = 0.8, aggro = false, onDeath = null }) {
-    super(world, { pos, color, hp, range, aggro, onDeath });
+  constructor(world, { pos, color = 0, shields = null, shieldHp = 5, shieldRegen = 0, hp = 9, range = 40, speed = 2.6, chargeSpeed = 22, windup = 1.15, cooldown = 2.6, stun = 1.8, lob = true, gobs = 4, lobEvery = [2.2, 3.2], lobWindup = 0.55, aggro = false, onDeath = null }) {
+    // it rolls in behind an armor shell (its own color unless the spec gives its shields), so it lives long
+    // enough to get the lava going; a palette `color: [body, ..., outer]` still means body + shields
+    const own = Array.isArray(color) ? null : [color];
+    super(world, { pos, color, shields: shields ?? own, shieldHp, shieldRegen, hp, range, aggro, onDeath });
     this.speed = speed;
     this.chargeSpeed = chargeSpeed;
     this.windupTime = windup;
@@ -37,7 +40,7 @@ export class Brute extends Enemy {
     this.gobs = gobs;
     this.lobEvery = lobEvery;
     this.lobWindup = lobWindup;
-    this.lobT = 1.2 + Math.random() * 1.2;
+    this.lobT = 0.5 + Math.random() * 0.6; // (the first volley comes almost at once)
     this.heat = 0; // the cannon's glow: 0 cold, 1 white hot
     this.recoil = 0;
     this.tint = moltenTint(this.pos);
@@ -180,17 +183,18 @@ export class Brute extends Enemy {
         _d.subVectors(this.eye, this.pos).setY(0).normalize().multiplyScalar(this.speed * dt);
         this.step(_d);
       }
-      if (this.timer <= 0 && this.sees && this.dist > 4 && this.dist < 32) {
+      // the lava first: a volley whenever one's due and you're in range (once the director hands it an attack
+      // token), else the charge
+      if (this.lob && this.lobT <= 0 && this.aggro && this.sees && this.dist > 5 && this.dist < 32) {
+        if (director.request(this, this.lobWindup + this.gobs * 0.14 + 0.5)) this.startLob();
+        else this.lobT = rnd(0.3, 0.6);
+      } else if (this.timer <= 0 && this.sees && this.dist > 4 && this.dist < 32) {
         this.state = 'windup';
         esfx('hydraulic_hiss', this.pos, 1, 0.7); // it plants itself: the hydraulics vent
         barks.say(this, 'charge');
         this.timer = this.windupTime;
         const g = Math.max(0.4, falloff(this.dist, 6, 45));
         sfx('brute_roar', { gain: 0.8 * g }, 'boss_charge', { gain: 0.7 * g, rate: 1.3 });
-      } else if (this.lob && this.lobT <= 0 && this.aggro && this.sees && this.dist > 8 && this.dist < 30 && this.timer > 0.6) {
-        // mid range and not about to charge: a volley (once the director hands it an attack token)
-        if (director.request(this, this.lobWindup + this.gobs * 0.14 + 0.5)) this.startLob();
-        else this.lobT = rnd(0.3, 0.6);
       }
     } else if (this.state === 'lob') {
       this.updateLob(dt, player);
