@@ -22,6 +22,9 @@ import { buildLeviathanRange } from './levels/leviathanRange.js';
 import { buildForgeRange } from './levels/forgeRange.js';
 import { buildEnemyRangeB } from './levels/enemyRangeB.js';
 import { buildEnemyRangeA } from './levels/enemyRangeA.js';
+import { buildDuneRun } from './levels/solarDunes.js'; // TEMP (dune run test wiring): solar.js will call this
+
+const DEV_DUNE_TEST = true; // TEMP (dune run test wiring): remove with the call below once solar.js places the run
 
 export function buildLevel(world, game) {
   const level = {
@@ -42,6 +45,8 @@ export function buildLevel(world, game) {
   buildCellBlock(B); // the opening: you wake in a cell off the Foundry's spawn room
   buildHub(B);
   buildSolar(B);
+  // TEMP (dune run test wiring): solar.js will make this call with its real docks
+  if (DEV_DUNE_TEST) buildDuneRun(B, { start: [-212, 0, -80], startYaw: Math.PI / 2, end: [-212, 0, -200], endYaw: -Math.PI / 2 });
   buildVerdant(B);
   buildAzure(B);
   buildAzureFlooded(B); // the water heart of the Azure world, between its turbine deck and Cryo Lab

@@ -181,6 +181,8 @@ export class Player {
     this.yaw -= input.dx * sens;
     this.pitch -= input.dy * sens * (settings.invertY ? -1 : 1);
     this.pitch = Math.max(-1.55, Math.min(1.55, this.pitch));
+    // ---- riding a vehicle (Solar's hover-sled, entities/hovercraft.js): it carries you and owns the rest of the frame ----
+    if (this.mount) return this.mount.carry(this, dt, input);
 
     // ---- ride moving platforms ----
     // While standing on one, its motion carries you; jump or step off and you keep its horizontal velocity
