@@ -473,7 +473,7 @@ export function buildSolar(B) {
   // Sun Bridges' chasm, the sinking flats and the stairs out of them.
   const HOLES = [
     [-96, -130, -64, -100], // the sinkhole
-    [-134, -94, -90, -42], // the temple chasm
+    [-134, -96, -36, -40], // the sun yard, the temple and the drop past the colonnade
     [-200, -152, -144, -132], // the chasm and its rims
     [-206, -132, -184, -92], // the ledge and the sinking flats
     [-184, -132, -162, -92], // the plateau
@@ -482,7 +482,7 @@ export function buildSolar(B) {
   for (const [x1, z1, x2, z2] of rectMinus(-212, -232, -32, -40, HOLES)) R(x1, -10, z1, x2, S, z2);
   // the void under the world's edge — except over the excavation (it goes down to y -92), which has its
   // own floor far below
-  const EX = [-164, -156, -60, -40];
+  const EX = [-164, -156, -34, -40];
   killZone([-440, -40, -240], [EX[0], -30.5, -38]);
   killZone([EX[0], -40, -240], [EX[2], -30.5, EX[1]]);
   killZone([EX[2], -40, -240], [-31.5, -30.5, -38]);
@@ -892,7 +892,6 @@ export function buildSolar(B) {
   // ================================================================ SCENERY
   // the sun-farm: massive arrays on gantries over the desert (they reflect shots), farms to the horizon on
   // every side, giant solar windmills in the haze, distant mesas
-  new PVArray(W, { x1: -72, x2: -84, z1: -52, z2: -96, y: S, rows: 2, cols: 7, w: 6.4, h: 4.4, post: 7.5, tilt: 0.6 });
   new PVArray(W, { x1: -166, x2: -192, z1: -158, z2: -186, y: S, rows: 3, cols: 5, w: 4.6, h: 3.2, post: 5, tilt: 0.6 });
   new PVArray(W, { x1: -122, x2: -146, z1: -232, z2: -232, y: S, rows: 4, cols: 1, w: 4.6, h: 3.2, post: 5, tilt: 0.6, hittable: false });
   for (const [x, z, w, d] of [[-170, -170, 10, 6], [-96, -190, 12, 8], [-190, -222, 10, 6]]) drift(x, S, z, w, d);
@@ -908,15 +907,16 @@ export function buildSolar(B) {
     }
   }
   const sc = solarScenery(W, game, { visible: (p) => inSolar(p) && !underground(p) });
-  sc.dunes(-66, -100, -88, -44, S, 1.4, 1);
   sc.dunes(-100, -130, -134, -96, S, 1.2, 2);
   sc.dunes(-126, -190, -212, -156, S, 1.8, 3);
   sc.dunes(-36, -232, -126, -172, S, 1.0, 4);
   sc.dunes(-212, -152, -200, -132, S, 1.2, 5);
-  sc.ground(-50, -40, -700, 400, -9.6);
+  // south of the mesa the land falls away to a lowland desert far below (the sun yard looks out over it)
+  sc.ground(-46, -40, -700, 400, -118);
+  sc.dunes(-60, -36, -300, 200, -118, 3.2, 6);
   sc.ground(-112, -236, -700, -560, -9.6);
   sc.ground(-440, -236, -700, -40, -9.6);
-  sc.farm({ x1: -60, z1: -20, x2: -420, z2: 150, y: -9.6, rowGap: 10, colGap: 4.8 });
+  sc.farm({ x1: -90, z1: 40, x2: -420, z2: 220, y: -118, rowGap: 10, colGap: 4.8 });
   sc.farm({ x1: -130, z1: -250, x2: -420, z2: -360, y: -9.6, rowGap: 10, colGap: 4.8 });
   sc.farm({ x1: -460, z1: -60, x2: -560, z2: -230, y: -9.6, rowGap: 10, colGap: 4.8 });
   sc.finish();
@@ -924,8 +924,8 @@ export function buildSolar(B) {
   // hangs a little north of west), huge silhouettes in the haze near the fog's edge
   for (const [x, z, h, yaw, k] of [
     [-290, -520, 120, 1.5, 1.15], [-205, -545, 110, 1.4, 1.05], [-380, -490, 125, 1.6, 1.2], [-118, -540, 100, 1.3, 0.95], // north-west
-    [-370, 250, 120, 1.6, 1.15], [-250, 300, 110, 1.5, 1.05], [-160, 350, 125, 1.4, 1.15], [-440, 160, 105, 1.7, 1.0], // south-west
-  ]) sc.turbine([x, -9.6, z], { height: h, blade: h * 0.45, yaw, speed: 0.06 + Math.random() * 0.04, haze: true }).scale.setScalar(k);
+    [-370, 250, 120, 1.6, 1.15], [-250, 300, 110, 1.5, 1.05], [-160, 350, 125, 1.4, 1.15], [-440, 160, 105, 1.7, 1.0], // south-west (on the lowland)
+  ]) sc.turbine([x, z > 0 ? -118 : -9.6, z], { height: h, blade: h * 0.45, yaw, speed: 0.06 + Math.random() * 0.04, haze: true }).scale.setScalar(k);
   sc.mesa(-480, 120, -560, 200, 40);
   sc.mesa(-600, -60, -650, 40, 55);
   sc.mesa(-600, -260, -660, -150, 48);
