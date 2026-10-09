@@ -29,8 +29,27 @@ import { audio } from '../audio.js';
 import { mergeBoxes } from './solarSky.js';
 import { buildSolarSkyline } from './solarSkyline.js';
 
-const SOUNDS = ['servo_heavy', 'hydraulic_land', 'floor_collapse', 'elevator_start', 'wind_gust'];
+const SOUNDS = ['servo_heavy', 'hydraulic_land', 'floor_collapse', 'elevator_start', 'wind_gust', 'lift_rumble', 'exit_gust', 'stair_grind'];
 audio.manifest?.then(() => audio.prefetch(SOUNDS));
+
+// a loop that picks its sample once the sound manifest is in (a generated sound, else its stand-in), and
+// starts only when something gives it gain
+function lazyLoop(name, fallback) {
+  let h = null;
+  return {
+    setGain(v) {
+      if (!h) {
+        if (!audio.available || v <= 0.001) return;
+        h = audio.createLoop(audio.sfxOr(name, fallback), { gain: 0 });
+      }
+      h.setGain(v);
+    },
+    setRate(r) {
+      h?.setRate(r);
+    },
+  };
+}
+
 
 const _v = new THREE.Vector3();
 
@@ -80,8 +99,8 @@ class StairFlight {
       this.place();
       return;
     }
-    audio.sample('servo_heavy', { gain: 1, rate: 0.5 });
-    audio.sample('floor_collapse', { gain: 0.7, rate: 0.6 });
+    audio.sample(audio.sfxOr('stair_grind', 'servo_heavy'), { gain: 0.9, rate: audio.sfxOr('stair_grind', '') ? 1 : 0.5 });
+    audio.sample('floor_collapse', { gain: 0.45, rate: 0.6 });
   }
 
   update(dt, player) {
@@ -175,8 +194,11 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
   for (const z of [-92.2, -85.8]) M(-44.6, -64, z - 0.15, -44.3, YF + 6, z + 0.15); // its guide posts
   // (while it's away from the top, an invisible lid keeps the shaft from swallowing anyone)
   const lid = W.addSolid(new THREE.Vector3(-44.5, YF, -92), new THREE.Vector3(-38.5, YF + 3, -86), { noShot: true });
+  const rumble = lazyLoop('lift_rumble', 'elevator_start');
   W.add({
     update(dt, player) {
+      const lp = lift.cur, moving = lift.active && lift.wait <= 0;
+      rumble.setGain(moving ? 0.28 * Math.max(0, 1 - (Math.hypot(player.pos.x - lp.x - 2.9, player.pos.y - lp.y, player.pos.z - lp.z - 2.9) - 3) / 24) : 0);
       const p = player.pos, near = p.x > -50 && p.x < -36 && p.z > -95 && p.z < -83 && p.y > -66 && p.y < YF + 6;
       if (near) lift.active = true;
       else if (lift.u <= 0 && lift.wait > 0) lift.active = false; // (back at the bottom: it rests)
@@ -265,7 +287,7 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
     // the eyes adjust in about a second: a white flare that eases back to the yard's light
     flareK = 1;
     game.setAtmosphere('solarFlare', true);
-    audio.sample('wind_gust', { gain: 0.6, rate: 0.9 });
+    audio.sample(audio.sfxOr('exit_gust', 'wind_gust'), { gain: 0.6 });
   }, { once: false });
   zoneTitle([-56, YF, -92], [-48, YF + 6, -80], 'SOLAR · THE MESA', 'THE SUN YARD', '#ffd23a');
   hint([-58, YF, -92], [-48, YF + 6, -80], 'Daylight! A long yard on the mesa\'s flank — and at its end the <b>Sun Temple</b>, the sun over its shoulder. On the dais: the <b style="color:#ffd23a">yellow core</b>.', 7);

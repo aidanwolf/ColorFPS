@@ -74,8 +74,27 @@ const _ray = new THREE.Raycaster();
 _ray.layers.enableAll();
 const TICK = 0.13; // the beam's damage ticks: the blaster's fire interval
 const SUN_HEX = 0xffc650;
-const SOUNDS = ['rotor_turn', 'rotor_lock', 'rotor_jam', 'mirror_hit', 'switch_on', 'target', 'lava_sizzle', 'shatter', 'energy_crackle', 'incinerator_ignite', 'charge_up', 'servo_heavy'];
+const SOUNDS = ['rotor_turn', 'rotor_lock', 'rotor_jam', 'mirror_hit', 'switch_on', 'target', 'lava_sizzle', 'shatter', 'energy_crackle', 'incinerator_ignite', 'charge_up', 'servo_heavy', 'beam_sizzle'];
 audio.manifest?.then(() => audio.prefetch(SOUNDS));
+
+// a loop that picks its sample once the sound manifest is in (a generated sound, else its stand-in), and
+// starts only when something gives it gain
+function lazyLoop(name, fallback) {
+  let h = null;
+  return {
+    setGain(v) {
+      if (!h) {
+        if (!audio.available || v <= 0.001) return;
+        h = audio.createLoop(audio.sfxOr(name, fallback), { gain: 0 });
+      }
+      h.setGain(v);
+    },
+    setRate(r) {
+      h?.setRate(r);
+    },
+  };
+}
+
 
 // ------------------------------------------------------------------ shared looks
 let pvTex = null;
@@ -905,6 +924,7 @@ export class SunBeam {
     if (source === 'lens') this.buildLens();
     else if (source === 'crack') this.buildCrack();
     this.roar = audio.createLoop('sun_hum', { gain: 0 });
+    this.sizzle = deadly ? lazyLoop('beam_sizzle', 'lava_sizzle') : null; // (a deadly beam crackles where you stand near it)
     world.add(this);
   }
 
@@ -987,6 +1007,7 @@ export class SunBeam {
       this.splash.visible = false;
       this.glints.visible = false;
       this.roar.setGain(0);
+      this.sizzle?.setGain(0);
       return;
     }
     // re-trace at ~30 Hz close by (mirrors turn, enemies walk into it), a few times a second from afar
@@ -1045,6 +1066,7 @@ export class SunBeam {
     const g = nearGain(this.world, endP, 30) * 0.4 + nearGain(this.world, this.from, 30) * 0.2;
     this.roar.setGain(g * this.I * (this.deadly ? 1.6 : 1));
     if (this.deadly && this.enabled && this.I > 0.6) this.scorch(dt, player);
+    else this.sizzle?.setGain(0);
   }
 
   // a deadly beam: motes burning along it, and the player's body tested against every leg
@@ -1057,6 +1079,14 @@ export class SunBeam {
       _v.lerpVectors(pts[i], pts[i + 1], Math.random());
       if (_v.distanceToSquared(player.pos) < 30 * 30) this.world.fx.ember(_v, (Math.random() - 0.5) * 1.2, 0.6 + Math.random() * 1.4, (Math.random() - 0.5) * 1.2, Math.random() < 0.5 ? 0xffe0a0 : 0xff9a30, 0.7, 0.05);
     }
+    // the sizzle: by the distance from your head to the nearest leg (audible, never wearing)
+    let dmin = 1e9;
+    for (let i = 0; i < pts.length - 1; i++) {
+      _w.subVectors(pts[i + 1], pts[i]);
+      const t = clamp(_v.subVectors(player.pos, pts[i]).dot(_w) / Math.max(1e-6, _w.lengthSq()), 0, 1);
+      dmin = Math.min(dmin, _v.copy(pts[i]).addScaledVector(_w, t).distanceTo(player.pos));
+    }
+    this.sizzle?.setGain(0.32 * clamp(1 - (dmin - 1.5) / 16, 0, 1) * this.I);
     if (player.dead) return;
     const b = player.bounds();
     const r = this.width * 0.5 + 0.32;
