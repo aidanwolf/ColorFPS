@@ -603,8 +603,9 @@ export function buildAzure(B) {
     onClear: () => !labGate.open && game.hud.message('Now <b>fill both tanks</b> to raise the gate.', 4),
   });
   W.add({
-    update() {
-      if (lab.state === 'armed' && !game.clearedEncounters?.has(lab.id) && tanks.some((t) => t.level > 0.25)) lab.start();
+    // (only once you're inside: the way in slams shut behind you, never in your face from the porch)
+    update(dt, player) {
+      if (lab.state === 'armed' && !game.clearedEncounters?.has(lab.id) && player.pos.z < -154.5 && tanks.some((t) => t.level > 0.25)) lab.start();
     },
   });
   level.azure.lab = lab;

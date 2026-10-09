@@ -236,6 +236,7 @@ export class Dynamo {
     this.ringT = -1;
     this.coreShield?.dispose();
     this.coreShield = null;
+    this.shellPhase = -1;
     if (!first) this.hideHud();
     this.pose(0);
   }
@@ -322,9 +323,13 @@ export class Dynamo {
     fx.flash(c, 0xcfe8ff, { size: 5, life: 0.25, k: 2.4 });
     fx.sparks(c, UP, 0x9fd0ff, { count: 60, speed: 14, spread: 1.8, life: 0.7 });
     for (let i = 0; i < 6; i++) this.world.wet.arc(_a.copy(this.pos).setY(this.floorY + 0.05).add(_b.set(rnd(-2, 2), 0, rnd(-2, 2))), _w.copy(c).add(_b.set(rnd(-1, 1), rnd(-1, 1), rnd(-1, 1))));
-    // the core's shells for this overload (kept if they survived the last one)
+    // the core's shells for this phase (kept through its overloads until they're shot off)
     const want = CORE_SHIELDS[this.phase];
-    if (!this.coreShield && want.length) this.coreShield = new ColorShield(this, { shields: want, hp: 2 }, { parent: this.coreMesh, size: 0.62, spin: 0.6 });
+    if (this.shellPhase !== this.phase) {
+      this.shellPhase = this.phase;
+      this.coreShield?.dispose();
+      this.coreShield = want.length ? new ColorShield(this, { shields: want, hp: 2 }, { parent: this.coreMesh, size: 0.62, spin: 0.6 }) : null;
+    }
     const tag = (c) => `<b style="color:${COLORS[c].css}">${COLORS[c].name}</b>`;
     this.game.hud.bossHint(this.coreShield?.up ? `OVERLOADED! Its core is shelled: ${this.coreShield.colors.slice(this.coreShield.idx).map(tag).join(', then ')}, then blue.` : 'OVERLOADED! Hose its core with blue!', true);
     for (const e of this.adds) if (!e.dead && Math.random() < 0.5) e.onShock?.();
