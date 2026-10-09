@@ -35,7 +35,7 @@ const GOO = new THREE.Color(0x3dff7a);
 const GOO_DARK = new THREE.Color(0x0e5a24);
 const UP = new THREE.Vector3(0, 1, 0);
 const _dir = new THREE.Vector3(), _m = new THREE.Vector3(), _step = new THREE.Vector3(), _p = new THREE.Vector3(), _v = new THREE.Vector3();
-const _a = new THREE.Vector3(), _c = new THREE.Vector3(), _box = new THREE.Box3(), _s = new THREE.Sphere(), _q = new THREE.Quaternion();
+const _a = new THREE.Vector3(), _c = new THREE.Vector3(), _box = new THREE.Box3(), _s = new THREE.Sphere();
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 // a soft round glow, drawn once

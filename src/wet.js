@@ -200,7 +200,7 @@ export class WetSurfaces {
       this.free(worst);
       mesh = worst.mesh;
     }
-    const p = { pos: point.clone(), y: point.y, r, cap: PUDDLE_MAX, wet: 1, since: 0, shock: 0, mesh, capT: 0 };
+    const p = { pos: point.clone(), y: point.y, r, cap: PUDDLE_MAX, wet: 1, since: 0, shock: 0, mesh };
     p.pos.y = point.y;
     mesh.userData.puddle = p;
     mesh.material.uniforms.uSeed.value = Math.random() * 10;

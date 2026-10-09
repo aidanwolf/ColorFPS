@@ -7,7 +7,7 @@
 // steams. Spraying an electrical component registered with world.wet.addShocker shorts it. The stream
 // glances off mirrors (twice at most); under water it's a straight jet trailing bubbles.
 import * as THREE from 'three';
-import { COLORS, BLUE } from '../colors.js';
+import { BLUE } from '../colors.js';
 import { audio } from '../audio.js';
 import { castRay, HitClock, TubePool, touch, solidsIn, SynthLoop, noiseVoice } from './rays.js';
 
@@ -18,14 +18,12 @@ const REACH = 36; // m: as far as its spray still lands
 const SEG_T = 0.05; // s of flight per traced segment
 const MAX_SEGS = 28;
 const MAX_MIRRORS = 2;
-const HEX = COLORS[BLUE].hex;
 const WATER = new THREE.Color(0x9fdcff);
 const FOAM = new THREE.Color(0xe8f8ff);
 const STEAM = new THREE.Color(0xc8d0d8);
-const UP = new THREE.Vector3(0, 1, 0);
 const _dir = new THREE.Vector3(), _m = new THREE.Vector3(), _pos = new THREE.Vector3(), _vel = new THREE.Vector3(), _next = new THREE.Vector3();
 const _seg = new THREE.Vector3(), _p = new THREE.Vector3(), _v = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3();
-const _min = new THREE.Vector3(), _max = new THREE.Vector3(), _off = new THREE.Vector3(), _end = new THREE.Vector3();
+const _min = new THREE.Vector3(), _max = new THREE.Vector3(), _off = new THREE.Vector3();
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 audio.manifest?.then(() => audio.prefetch(['squid_jet', 'shoot_blue', 'lava_sizzle']));

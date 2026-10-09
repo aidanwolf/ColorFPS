@@ -42,7 +42,7 @@ const SAND_TINT = 0xd9b46a;
 // Wet ground (world.wet puddles): the grip left on a full slick (it keeps your momentum: hard to stop or
 // turn), and the speed a sprint across a long slick builds up to (× run speed; sprint is 1.38×) at
 // SLICK_BUILD of run speed a second. The build-up carries through the air until you land on dry ground,
-// and a jump off it at full speed is SLICK_LEAP times as strong: sprint jump ≈ 7.5 m, slick leap ≈ 9.8 m.
+// and a jump off it at full speed is SLICK_LEAP times as strong: sprint jump ≈ 7.6 m, slick leap ≈ 9.3-9.8 m.
 const SLICK_GRIP = 0.12;
 const SLICK_TOP = 1.6;
 const SLICK_BUILD = 0.22;

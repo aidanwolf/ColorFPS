@@ -58,10 +58,6 @@ export class SunBeam {
     this.buzz = null;
   }
 
-  get ready() {
-    return !this.locked;
-  }
-
   update(dt, want) {
     this.now += dt;
     this.ricT -= dt;
