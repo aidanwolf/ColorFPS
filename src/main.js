@@ -5,6 +5,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import './shaderTweaks.js';
 import { COLORS, RED, YELLOW, GREEN, BLUE } from './colors.js';
 import { Input } from './input.js';
 import { audio } from './audio.js';
@@ -29,7 +30,9 @@ import { spawnEnemy, Encounter } from './entities/combat.js';
 import { Checkpoint } from './entities/misc.js';
 import { saveProgress } from './progress.js';
 import { jumpSetup, buildLocationList } from './levelSelect.js';
+import { Warmup } from './warmup.js';
 
+performance.mark?.('boot:modules'); // (every imported module evaluated)
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 // the music, ambience and atmosphere to resume with in each area (see levels/regions.js)
@@ -90,8 +93,12 @@ function verticalFov(fov43) {
   return (2 * Math.atan(Math.tan((fov43 * Math.PI) / 360) * 0.75) * 180) / Math.PI;
 }
 
+// boot timing marks (performance.getEntriesByType('mark'), names 'boot:*'): where a cold start goes
+const mark = (n) => performance.mark?.('boot:' + n);
+
 class Game {
   constructor() {
+    mark('constructor');
     this.settings = loadSettings();
     this.audio = audio; // handy for debugging from the console
     this.barks = barks; // (enemy voice lines: barks.log lists what played)
@@ -112,14 +119,26 @@ class Game {
     renderer.setSize(innerWidth, innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
+    // Shader error checks (compile/link logs fetched for every program) only under the dev server, or with
+    // ?shaderchecks: each check is a round trip to the GPU process that waits for that one program, which
+    // made a cold start's shader compiles ~30% slower (and they pass in a release build anyway)
+    renderer.debug.checkShaderErrors = import.meta.env.DEV || params.has('shaderchecks');
     $('#game').appendChild(renderer.domElement);
 
     const scene = (this.scene = new THREE.Scene());
     scene.background = new THREE.Color(0x0b0918);
     scene.fog = new THREE.Fog(0x140f26, 35, 190);
+    mark('renderer');
+    // The image-based light: a soft studio room, prefiltered once. At 64 px a face (three's default is
+    // 256) it costs a fraction of the time and looks the same here: it's blurred (0.04 rad) and dim
+    // (0.35), and nothing in the game is a mirror.
     const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    const room = new RoomEnvironment();
+    scene.environment = pmrem.fromScene(room, 0.04, 0.1, 100, { size: 64 }).texture;
     scene.environmentIntensity = 0.35;
+    room.dispose();
+    pmrem.dispose();
+    mark('pmrem');
     this.addSky();
     this.hemi = new THREE.HemisphereLight(0xb9c3ff, 0x2a2030, 1.1);
     scene.add(this.hemi);
@@ -138,10 +157,12 @@ class Game {
     this.blaster = new Blaster(this);
     this.cutscene = new UnlockCutscene(this);
     this.level = buildLevel(this.world, this);
+    mark('buildLevel');
     this.world.finalize();
     if (COARSE) this.world.fx.quality = 0.6; // lighter particle effects on phones
     new Batcher(this.world).build([this.sky]); // meshes added straight to the scene: one draw per material (batch.js)
     this.world.setupCulling([this.sky]);
+    mark('batch+culling');
     this.restock = new Restock(this.world);
     director.attach(this);
     barks.attach(this);
@@ -197,22 +218,14 @@ class Game {
     vm.clearDepth = true;
     this.composer.addPass(vm);
     this.composer.addPass(new OutputPass());
+    mark('composer');
 
-    // compile every material now so the first sight of anything (the boss included) doesn't hitch
-    // (compile only walks visible objects, so everything culled or hidden is shown for the pass)
-    // Arena enemies only exist once their portal opens, so one of each kind is made for the pass and
-    // then taken straight back out.
-    const undo = this.stageArenaEnemies();
-    const hidden = [];
-    scene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
-    // against the composer's buffer, not the canvas: the programs differ (output color space / tone
-    // mapping), and compiling for the canvas would leave every real one to compile on first sight
-    renderer.setRenderTarget(this.composer.readBuffer);
-    renderer.compile(scene, this.camera);
-    renderer.compile(this.blaster.vmScene, this.blaster.vmCamera);
-    renderer.setRenderTarget(null);
-    for (const o of hidden) o.visible = false;
-    undo();
+    // Shaders: the first frames compile what they draw; everything else is compiled in the background
+    // behind the title, nearest first (warmup.js, queued at the end of this constructor, stepped in tick).
+    // Arena enemies only exist once their portal opens, so one of each kind is made now and taken
+    // straight back out; the warm-up compiles them from the detached copies.
+    this.staged = this.stageArenaEnemies();
+    mark('staged');
 
     addEventListener('resize', () => this.resize());
     this.resize();
@@ -230,7 +243,8 @@ class Game {
     // ---- Bonus Round (native mode: the round plays in our world with our own player) ----
     this.frameCallbacks = [];
     const player = this.player;
-    ads.load();
+    // (the SDK itself loads once the shader warm-up is done or play starts, see loadAds: its start-up
+    // probes the GPU on a context of its own, which waits for every program still queued for ours)
     ads.attach({
       THREE,
       scene,
@@ -252,6 +266,16 @@ class Game {
     if (params.get('jump') && this.level.devStarts[params.get('jump')]) this.jumpTo(params.get('jump'));
     else if (DEV && params.get('start')) this.devSkip(params.get('start'));
     else this.restore(loadSave());
+
+    // the background shader warm-up, nearest where you'll play first (the view model before anything)
+    const warm = (this.warmup = new Warmup(renderer, () => this.composer.readBuffer));
+    const focus = this.player.pos.clone();
+    warm.add(this.blaster.vmScene, this.blaster.vmCamera, this.blaster.vmScene, null);
+    warm.add(scene, this.camera, scene, focus);
+    for (const o of this.staged) warm.add(o, this.camera, scene, focus);
+    this.staged = null;
+    warm.start();
+    mark('warmup queued');
 
     this.timer = new THREE.Timer();
     this.timer.connect(document);
@@ -307,6 +331,7 @@ class Game {
     this.camera.updateProjectionMatrix();
     this.blaster.vmCamera.aspect = w / h;
     this.blaster.vmCamera.updateProjectionMatrix();
+    this.redraw = true; // (a resized canvas is blank: draw it again even while the title holds still)
   }
 
   // ------------------------------------------------------------------ UI / states
@@ -406,13 +431,22 @@ class Game {
     this.showScreen('settings');
   }
 
+  // the Bonus Round SDK, loaded once (see the constructor)
+  loadAds() {
+    if (this.adsLoaded) return;
+    this.adsLoaded = true;
+    ads.load();
+  }
+
   play() {
+    this.loadAds();
     audio.unlock();
     if (!this.started) audio.gameStart();
     audio.prefetch(['lava_sizzle', 'sand_sink', 'toxic_sink', 'lava_bubble', 'incinerator_ignite']);
     // area music and ambience follow the player (updateMix); only special tracks (boss, ascent) are pushed
     if (this.musicOverride) audio.playMusic(this.musicOverride);
     this.state = 'playing';
+    this.player.updateCamera(); // (off the title's view now, so the next frame's culling is around you)
     this.hud.show(true);
     this.showScreen(null);
     this.capture();
@@ -758,8 +792,9 @@ class Game {
     if (!this.ambOverride) audio.ambientBlend(AREA_MOOD[a].ambient, AREA_MOOD[b].ambient, w);
   }
 
-  // One enemy of every kind (and color) the arenas will summon, for the startup shader pass. Returns
-  // the undo: the world's lists go back to their old lengths and the new scene objects come out.
+  // One enemy of every kind (and color) the arenas will summon, for the shader warm-up: spawned, then
+  // straight back out (the world's lists go back to their old lengths). Returns their scene objects,
+  // detached.
   stageArenaEnemies() {
     const w = this.world;
     const lens = Object.entries(w).filter(([, v]) => Array.isArray(v)).map(([k, v]) => [k, v.length]);
@@ -780,10 +815,10 @@ class Game {
         console.warn('[chroma] prewarm', spec.type, err);
       }
     }
-    return () => {
-      for (const [k, n] of lens) w[k].length = Math.min(w[k].length, n);
-      for (const o of [...w.scene.children]) if (!before.has(o)) w.scene.remove(o);
-    };
+    const added = w.scene.children.filter((o) => !before.has(o));
+    for (const [k, n] of lens) w[k].length = Math.min(w[k].length, n);
+    for (const o of added) w.scene.remove(o);
+    return added;
   }
 
   setCheckpoint(pos, yaw, ref) {
@@ -1183,8 +1218,19 @@ class Game {
 
   tick() {
     this.timer.update();
-    const dt = Math.min(this.timer.getDelta(), 1 / 20);
+    const rawDt = this.timer.getDelta();
+    const dt = Math.min(rawDt, 1 / 20);
     const t = this.timer.getElapsed();
+    if (this.state === 'title') {
+      // a slow look around behind the menu: the level's own view (the cell block), else the spawn room.
+      // (Placed before the lights and culling below follow the camera, so even the very first frame
+      // draws only what's around the title's view, not whatever is around where the camera started.)
+      if (this.level.titleView) this.level.titleView(this.camera, t, dt);
+      else {
+        this.camera.position.set(Math.sin(t * 0.1) * 2, 2.2, -1.5);
+        this.camera.rotation.set(-0.05, Math.sin(t * 0.15) * 0.6, 0, 'YXZ');
+      }
+    }
     this.sky.material.uniforms.uTime.value = t;
     updateLiquids(t);
     this.sky.position.copy(this.camera.position);
@@ -1230,14 +1276,6 @@ class Game {
     } else if (this.state === 'dying') {
       this.updateDying(dt);
       barks.update(dt, this); // (the taunt over your death)
-    } else if (this.state === 'title') {
-      // a slow look around behind the menu: the level's own view (the cell block), else the spawn room
-      if (this.level.titleView) this.level.titleView(this.camera, t, dt);
-      else {
-        this.camera.position.set(Math.sin(t * 0.1) * 2, 2.2, -1.5);
-        this.camera.rotation.set(-0.05, Math.sin(t * 0.15) * 0.6, 0, 'YXZ');
-      }
-      this.world.fx.update(dt);
     } else {
       this.world.fx.update(dt);
     }
@@ -1254,7 +1292,12 @@ class Game {
     this.slickRush.setGain(this.slideFx * 0.85);
     this.slickRush.setRate(0.9 + this.slideFx * 0.45);
     this.speedLines ??= document.getElementById('speedlines');
-    if (this.speedLines) this.speedLines.style.opacity = (this.slideFx > 0.02 ? this.slideFx * 0.9 : 0).toFixed(3);
+    if (this.speedLines) {
+      this.speedLines.style.opacity = (this.slideFx > 0.02 ? this.slideFx * 0.9 : 0).toFixed(3);
+      // (animated only while they show: a running animation, even on an invisible layer, keeps the
+      // compositor redrawing the page every step, which took GPU time from everything else)
+      this.speedLines.classList.toggle('on', this.slideFx > 0.02);
+    }
     if (this.slideFx > 0.5) this.player.shake = Math.max(this.player.shake, (this.slideFx - 0.5) * 0.05);
     const fovTarget = verticalFov(this.settings.fov) + (this.player.sprinting && this.player.speed2d > 8 ? 4 : 0) + fall * 22 + this.slideFx * 18;
     if (Math.abs(this.camera.fov - fovTarget) > 0.01) {
@@ -1263,10 +1306,24 @@ class Game {
     }
     for (const cb of this.frameCallbacks) cb(dt);
     this.hud.update(dt);
+    // While the background shader warm-up runs behind the title, the backdrop holds still after its first
+    // frames (the GPU's time goes to linking; the menu itself keeps animating)
+    const warming = this.warmup && this.state === 'title';
     if (this.state === 'map') this.map.render();
-    else {
+    else if (!warming || (this.titleFrames = (this.titleFrames || 0) + 1) <= 2 || this.redraw) {
       if (this.vmPass) this.vmPass.enabled = this.state !== 'title'; // (no gun floating over the title's backdrop)
       this.composer.render();
+      this.redraw = false;
+    }
+    // the warm-up's next batch, after the frame so this frame's draws don't queue behind it: a few
+    // programs a time on the title; during play about one a frame (a few objects, 2 ms of script), more
+    // only while frames are slow anyway (software GL). None of it blocks (warmup.js).
+    this.frameAvg = (this.frameAvg ?? rawDt) * 0.9 + Math.min(rawDt, 5) * 0.1; // (a steady slowness, not one hitch)
+    const slow = Math.min(6, Math.floor(this.frameAvg * 30));
+    if (this.warmup && !(warming ? this.warmup.step(6) : slow ? this.warmup.step(slow, 8, 16) : this.warmup.step(1, 2, 4))) {
+      this.warmStats = this.warmup.stats;
+      this.warmup = null;
+      this.loadAds();
     }
     // (a couple of title frames in, once its shaders are warm, the Continue card's look at the checkpoint)
     if (this.wantPreview && this.state === 'title' && (this.previewWait = (this.previewWait || 0) + 1) > 3) this.previewShot();

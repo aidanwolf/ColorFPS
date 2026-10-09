@@ -443,7 +443,7 @@ export class LiquidPlane {
       const base = mat;
       mat = base.clone();
       mat.uniforms.uTime = base.uniforms.uTime;
-      mat.fragmentShader = base.fragmentShader.replace('gl_FragColor = vec4(clamp(c, 0.0, 3.0)', `gl_FragColor = vec4(clamp(c * ${glow.toFixed(3)}, 0.0, 3.0)`);
+      mat.uniforms.uGlow.value = glow; // (a uniform: the same program as the full-strength liquid)
     }
     this.mesh = new THREE.Mesh(geo, mat);
     this.mesh.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
