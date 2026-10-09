@@ -56,9 +56,9 @@ export function floraMats() {
     fungusTeal: new THREE.MeshBasicMaterial({ color: new THREE.Color(0x5dffd0).multiplyScalar(0.9) }),
     stalk: new THREE.MeshStandardMaterial({ color: 0x8a8a62, roughness: 0.9, flatShading: true }),
     capDull: new THREE.MeshStandardMaterial({ color: 0x6a5a3a, roughness: 0.8, flatShading: true, emissive: 0x1a1a08 }),
-    reed: new THREE.MeshStandardMaterial({ color: 0x4a5a2a, roughness: 1, flatShading: true, side: THREE.DoubleSide }),
+    reed: new THREE.MeshStandardMaterial({ color: 0x4a5a2a, roughness: 1, flatShading: true }),
     lily: new THREE.MeshStandardMaterial({ color: 0x3a6a2a, roughness: 0.6, flatShading: true }),
-    shaft: new THREE.MeshBasicMaterial({ map: shaftTex, color: 0xe8ffb8, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }),
+    shaft: new THREE.MeshBasicMaterial({ map: shaftTex, color: 0xe8ffb8, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
     mist: new THREE.MeshBasicMaterial({ map: blob, color: 0x8aa080, transparent: true, opacity: 0.035, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
   };
   return FMATS;
@@ -72,7 +72,7 @@ export function makeFlora(K) {
   // ---------------------------------------------------------------- tree props (built once, local coords)
   // a hanging vine: a thin tapered ribbon, kinked so it isn't a ruler
   function vineStrand(x, yTop, z, len, w = 0.09) {
-    const g = new THREE.PlaneGeometry(w, len, 1, 4);
+    const g = new THREE.PlaneGeometry(w, len, 1, 3);
     const p = g.attributes.position;
     const ph = R(0, 6);
     for (let i = 0; i < p.count; i++) {
@@ -81,7 +81,7 @@ export function makeFlora(K) {
       p.setZ(i, Math.cos(v * 4 + ph) * 0.1);
     }
     g.translate(0, -len / 2, 0).rotateY(R(0, PI));
-    K.put(mats.vine, g, x, yTop, z);
+    K.put(mats.vine, K.twoSided(g), x, yTop, z);
   }
   // a shelf fungus on a trunk face: a half-disc sticking out, glowing (they're the swamp's lamps)
   function shelf(x, y, z, a, r, teal = false) {
@@ -90,7 +90,7 @@ export function makeFlora(K) {
     K.put(teal ? FM.fungusTeal : FM.fungus, g, x + Math.cos(a) * 0.05, y, z + Math.sin(a) * 0.05);
   }
   function leafCluster(x, y, z, r) {
-    const g = new THREE.IcosahedronGeometry(r, 1);
+    const g = new THREE.IcosahedronGeometry(r, r > 1.4 ? 1 : 0); // (a bush's little clumps read fine at 20 faces)
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) p.setXYZ(i, p.getX(i) * R(0.85, 1.15), p.getY(i) * R(0.35, 0.55), p.getZ(i) * R(0.85, 1.15));
     g.rotateY(R(0, 6));
@@ -121,7 +121,7 @@ export function makeFlora(K) {
     const nr = 6 + v;
     for (let i = 0; i < nr; i++) {
       const a = (i / nr) * PI * 2 + R(-0.3, 0.3), out = R(2.6, 4.4);
-      K.limb([[Math.cos(a) * r0 * 0.6, R(2.2, 3.8), Math.sin(a) * r0 * 0.6], [Math.cos(a) * (r0 + out * 0.45), R(1.2, 2), Math.sin(a) * (r0 + out * 0.45)], [Math.cos(a) * (r0 + out), -1.2, Math.sin(a) * (r0 + out)]], R(0.38, 0.5), 0.14, mats.bark, 6);
+      K.limb([[Math.cos(a) * r0 * 0.6, R(2.2, 3.8), Math.sin(a) * r0 * 0.6], [Math.cos(a) * (r0 + out * 0.45), R(1.2, 2), Math.sin(a) * (r0 + out * 0.45)], [Math.cos(a) * (r0 + out), -1.2, Math.sin(a) * (r0 + out)]], R(0.38, 0.5), 0.14, mats.bark, 6, true);
     }
     for (let i = 0; i < 4; i++) K.mossCap(R(-0.4, 0.4), R(0.6, h * 0.5), R(-0.4, 0.4), r0 * R(0.9, 1.25), 0.5);
     for (let i = 0; i < 7; i++) {
@@ -133,9 +133,9 @@ export function makeFlora(K) {
       const a = (i / nb) * PI * 2 + R(-0.4, 0.4), y0 = h * R(0.55, 0.82), L = R(5, 8.5);
       const e = [Math.cos(a) * L, y0 + R(1, 3), Math.sin(a) * L];
       const m = [Math.cos(a) * L * 0.5, y0 + R(0.6, 1.6), Math.sin(a) * L * 0.5];
-      K.limb([[0, y0, 0], m, e], R(0.32, 0.45), 0.12, mats.bark, 6);
-      for (let k = 0; k < 3; k++) leafCluster(e[0] + R(-1.5, 1.5), e[1] + R(0, 1.5), e[2] + R(-1.5, 1.5), R(2.4, 3.6));
-      for (let k = 0; k < 9; k++) {
+      K.limb([[0, y0, 0], m, e], R(0.32, 0.45), 0.12, mats.bark, 6, true);
+      for (let k = 0; k < 2; k++) leafCluster(e[0] + R(-1.6, 1.6), e[1] + R(0, 1.5), e[2] + R(-1.6, 1.6), R(2.8, 3.9));
+      for (let k = 0; k < 7; k++) {
         const u = R(0.2, 1);
         const px = m[0] * Math.min(1, u * 2) + (e[0] - m[0]) * Math.max(0, u * 2 - 1), py = (u < 0.5 ? y0 + (m[1] - y0) * u * 2 : m[1] + (e[1] - m[1]) * (u * 2 - 1)) - 0.2, pz = m[2] * Math.min(1, u * 2) + (e[2] - m[2]) * Math.max(0, u * 2 - 1);
         if (rand() < 0.55) vineStrand(px, py, pz, R(3, py - 2.5));
@@ -151,12 +151,12 @@ export function makeFlora(K) {
     K.rod(mats.bark, [0, lift, 0], [R(-0.4, 0.4), h, R(-0.4, 0.4)], r0, r0 * 0.5, 8);
     for (let i = 0; i < 7; i++) {
       const a = (i / 7) * PI * 2 + R(-0.25, 0.25), out = R(1.6, 2.8);
-      K.limb([[0, lift + R(0.2, 1.4), 0], [Math.cos(a) * out * 0.55, lift + R(0.4, 1.0), Math.sin(a) * out * 0.55], [Math.cos(a) * out, -1, Math.sin(a) * out]], 0.16, 0.08, mats.bark, 5);
+      K.limb([[0, lift + R(0.2, 1.4), 0], [Math.cos(a) * out * 0.55, lift + R(0.4, 1.0), Math.sin(a) * out * 0.55], [Math.cos(a) * out, -1, Math.sin(a) * out]], 0.16, 0.08, mats.bark, 5, true);
     }
     for (let i = 0; i < 3; i++) {
       const a = R(0, 6), L = R(2.5, 4);
       const e = [Math.cos(a) * L, h * R(0.75, 0.95) + 1, Math.sin(a) * L];
-      K.limb([[0, h * R(0.6, 0.8), 0], e], 0.18, 0.08, mats.bark, 5);
+      K.limb([[0, h * R(0.6, 0.8), 0], e], 0.18, 0.08, mats.bark, 5, true);
       leafCluster(e[0], e[1] + 0.6, e[2], R(1.8, 2.6));
       for (let k = 0; k < 4; k++) vineStrand(e[0] + R(-1, 1), e[1], e[2] + R(-1, 1), R(2, 5));
     }
@@ -187,7 +187,7 @@ export function makeFlora(K) {
       p.setZ(i, -v * v * len * 0.4);
     }
     g.translate(0, len / 2, 0).rotateX(-lean).rotateY(yaw);
-    K.put(m, g, x, y, z);
+    K.put(m, K.twoSided(g), x, y, z);
   }
   PROPS.fern = [0, 1].map(() => K.capture(() => {
     const n = 9, a0 = R(0, 6);
@@ -200,7 +200,7 @@ export function makeFlora(K) {
       const p = g.attributes.position;
       for (let k = 0; k < p.count; k++) if (p.getY(k) > 0) p.setX(k, p.getX(k) * 0.2 + R(-0.15, 0.15));
       g.translate(0, len / 2, 0).rotateZ(R(-0.25, 0.25)).rotateY(a);
-      K.put(FM.reed, g, Math.cos(a) * d, 0, Math.sin(a) * d);
+      K.put(FM.reed, K.twoSided(g), Math.cos(a) * d, 0, Math.sin(a) * d);
       if (rand() < 0.25) K.put(FM.capDull, new THREE.CylinderGeometry(0.05, 0.05, 0.3, 5), Math.cos(a) * d, len * 0.92, Math.sin(a) * d); // a cattail
     }
   }));
