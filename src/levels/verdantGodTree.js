@@ -42,6 +42,9 @@ import { regionOf } from './regions.js';
 import { buildVerdantArena } from './verdantArena.js';
 import { makeVerdantKit, kitMaterials } from './verdantKit.js';
 
+// every sample the tree's own pieces play (stand-ins where a wanted one isn't generated yet: audio.sfxOr)
+audio.manifest?.then(() => audio.prefetch(['music_tree', 'amb_canopy', 'branch_groan', 'leaves_rustle', 'spore_vent', 'spore_burst', 'piston_thump', 'door_slam', 'zip_run', 'elevator_loop', 'land', 'checkpoint']));
+
 const PI = Math.PI;
 const NORTH = 0, EAST = -PI / 2, SOUTH = PI, WEST = PI / 2; // player yaws
 const RY = [RED, YELLOW], RYG = [RED, YELLOW, GREEN];
@@ -123,14 +126,14 @@ export function buildGodTree(B, ctx = {}) {
   // The approach: the mist lies low and the air opens up so the whole tree stands in it, lit from the east,
   // its crown hazed in gold. On the tree: close, humid, green; the forest presses in.
   level.atmospheres.verdantTreeView = {
-    fog: 0x6d8462, fogNear: 34, fogFar: 330,
+    fog: 0x6d8462, fogNear: 30, fogFar: 240,
     skyTop: [0.05, 0.1, 0.08], skyMid: [0.12, 0.19, 0.12], skyHorizon: [0.24, 0.3, 0.17], aurora: 0.02, stars: 0,
     hemiSky: 0xd8f2b4, hemiGround: 0x1c3420, hemiIntensity: 0.85,
     sunColor: 0xffe2a0, sunIntensity: 1.75, sunDir: [0.62, 0.9, 0.18],
     exposure: 1.02, bloom: 0.6,
   };
   level.atmospheres.verdantTree = {
-    fog: 0x4f6846, fogNear: 12, fogFar: 170,
+    fog: 0x4a5f42, fogNear: 6, fogFar: 125,
     skyTop: [0.03, 0.07, 0.05], skyMid: [0.08, 0.14, 0.08], skyHorizon: [0.15, 0.21, 0.11], aurora: 0.02, stars: 0,
     hemiSky: 0xcfeab0, hemiGround: 0x16301a, hemiIntensity: 0.78,
     sunColor: 0xffdf98, sunIntensity: 1.5, sunDir: [0.62, 0.9, 0.18],
@@ -243,7 +246,7 @@ export function buildGodTree(B, ctx = {}) {
   }, false);
   const mistMat = new THREE.MeshBasicMaterial({ map: blobTex, color: 0xc8e8c0, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide });
   const mistGlowMat = new THREE.MeshBasicMaterial({ map: blobTex, color: 0x9dffc4, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-  const shaftMat = new THREE.MeshBasicMaterial({ map: shaftTex, color: 0xf6ffd0, transparent: true, opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  const shaftMat = new THREE.MeshBasicMaterial({ map: shaftTex, color: 0xf6ffd0, transparent: true, opacity: 0.085, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
   const fungusMat = new THREE.MeshStandardMaterial({ color: 0xc9b98e, roughness: 0.85, flatShading: true, vertexColors: true });
   const capGlowMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x5dffc8).multiplyScalar(1.15) });
   const goldMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffd25a).multiplyScalar(1.4) });
@@ -264,11 +267,26 @@ export function buildGodTree(B, ctx = {}) {
       g.fillRect(rand() * s, rand() * s, 2 + rand() * 4, 1 + rand() * 3);
     }
   });
+  const litterTex = canvasTex(64, 64, (g, s) => {
+    g.clearRect(0, 0, s, s);
+    for (let i = 0; i < 70; i++) {
+      const v = rand();
+      g.fillStyle = v < 0.5 ? `rgba(${90 + rand() * 50},${60 + rand() * 30},${25 + rand() * 15},0.95)` : `rgba(${60 + rand() * 40},${70 + rand() * 40},${30 + rand() * 20},0.95)`;
+      g.save();
+      g.translate(rand() * s, rand() * s);
+      g.rotate(rand() * PI);
+      g.beginPath();
+      g.ellipse(0, 0, 2 + rand() * 4, 1 + rand() * 2, 0, 0, PI * 2);
+      g.fill();
+      g.restore();
+    }
+  }, false);
+  const litterMat = new THREE.MeshStandardMaterial({ map: litterTex, alphaTest: 0.5, roughness: 1, color: 0xb0a080, side: THREE.DoubleSide });
   const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, color: 0xc0aa90, roughness: 1, flatShading: true });
   const ropeMat = new THREE.MeshStandardMaterial({ color: 0x6a5a3a, roughness: 1, flatShading: true });
   // the sap veins: glowing green, a slow pulse climbing them (the tree's blood, being drawn up)
   const veinMat = new THREE.ShaderMaterial({
-    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uTime: { value: 0 }, uLife: { value: 1 }, uColor: { value: new THREE.Color(0x3dff6a).multiplyScalar(0.55) } }]),
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uTime: { value: 0 }, uLife: { value: 1 }, uColor: { value: new THREE.Color(0x3dff6a).multiplyScalar(0.38) } }]),
     vertexShader: `
       attribute float aT;
       varying float vT;
@@ -490,10 +508,17 @@ export function buildGodTree(B, ctx = {}) {
     put(glow ? capGlowMat : fungusMat, u, x, y - 0.02, z);
   }
   // a mushroom (stalk + cap), glowing gills
+  const CAPS = [[0.62, 0.36, 0.22], [0.5, 0.42, 0.26], [0.72, 0.5, 0.3], [0.42, 0.3, 0.22]];
   function mushroom(x, y, z, h, r, glow = true) {
     const st = new THREE.CylinderGeometry(r * 0.16, r * 0.24, h, 7);
+    tint(st, (vx, vy) => [0.85, 0.82, 0.7].map((c) => c * (0.75 + 0.25 * (vy / h + 0.5))));
     put(fungusMat, st, x, y + h / 2, z);
     const cap = new THREE.SphereGeometry(r, 12, 5, 0, PI * 2, 0, PI / 2).scale(1, 0.45, 1);
+    const base = CAPS[Math.floor(rand() * CAPS.length)];
+    tint(cap, (vx, vy, vz) => {
+      const spot = Math.sin(vx * 9 / r) * Math.sin(vz * 8 / r) > 0.72 ? 1 : 0;
+      return spot ? [0.95, 0.9, 0.75] : base.map((c) => c * (0.85 + 0.3 * (vy / (r * 0.45))));
+    });
     put(fungusMat, cap, x, y + h, z);
     put(glow ? capGlowMat : fungusMat, new THREE.CircleGeometry(r * 0.96, 12).rotateX(PI / 2), x, y + h - 0.01, z);
   }
@@ -584,7 +609,7 @@ export function buildGodTree(B, ctx = {}) {
       }
       const c = new THREE.CatmullRomCurve3(pts);
       const len = c.getLength();
-      const tg = new THREE.TubeGeometry(c, Math.ceil(len / 1.5), R(0.09, 0.16), 5, false);
+      const tg = new THREE.TubeGeometry(c, Math.ceil(len / 1.5), R(0.07, 0.12), 5, false);
       const t = new Float32Array(tg.attributes.position.count);
       const segs = Math.ceil(len / 1.5);
       for (let i = 0; i < t.length; i++) t[i] = (Math.floor(i / 6) / segs) * len;
@@ -669,8 +694,8 @@ export function buildGodTree(B, ctx = {}) {
   // rising round it in walls of trunks and leaves. Falling in fades you back to the last checkpoint.
   B.killZone([20, -60, -470], [150, 7, -300]);
   {
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(170, 190).rotateX(-PI / 2), new THREE.MeshStandardMaterial({ color: 0x0c1610, roughness: 0.15, metalness: 0.85 }));
-    water.position.set(80, -2, -385);
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(330, 330).rotateX(-PI / 2), new THREE.MeshStandardMaterial({ color: 0x0c1610, roughness: 0.15, metalness: 0.85 }));
+    water.position.set(80, -2, -420);
     W.scene.add(water);
     // mist sheets: soft discs stacked low, drifting slowly
     const sheets = [];
@@ -817,6 +842,10 @@ export function buildGodTree(B, ctx = {}) {
       p.setXYZ(i, Math.cos(a) * r, Math.sin(a) * r, d > 0.98 ? -0.15 : 0.02);
     }
     disc.rotateX(-PI / 2);
+    {
+      const dp = disc.attributes.position, du = disc.attributes.uv;
+      for (let i = 0; i < dp.count; i++) du.setXY(i, dp.getX(i) * 0.55 + seed, dp.getZ(i) * 0.55);
+    }
     disc.computeVertexNormals();
     put(mossMat, disc, cx, y, cz);
     for (let i = 0; i < n; i++) {
@@ -852,6 +881,34 @@ export function buildGodTree(B, ctx = {}) {
       solid(cx - s1, y - 2.2, cz - s2, cx + s1, y, cz + s2);
       solid(cx - s2, y - 2.2, cz - s1, cx + s2, y, cz + s1);
       solid(cx - rr * 0.8, y - 2.2, cz - rr * 0.8, cx + rr * 0.8, y, cz + rr * 0.8);
+    }
+    // the rim softened: moss lumps and leaves spilling over the edge
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * PI * 2 + R(-0.15, 0.15), d = rr * R(0.92, 1.05);
+      const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+      put(mossMat, new THREE.IcosahedronGeometry(R(0.6, 1.1), 1).scale(1.3, 0.45, 1.3), x, y - 0.15, z);
+      if (rand() < 0.6) leaves(x, y + 0.2, z, 0.8, 2, [1, 2]);
+    }
+    // undergrowth: ferns and tufts (no collision), leaf litter
+    for (let i = 0; i < 14; i++) {
+      const a = R(0, PI * 2), d = rr * Math.sqrt(R(0.35, 0.95));
+      leaves(cx + Math.cos(a) * d, y + 0.35, cz + Math.sin(a) * d, 0.4, 2, [0.7, 1.4]);
+    }
+    for (let i = 0; i < 10; i++) {
+      const a = R(0, PI * 2), d = rr * Math.sqrt(R(0, 0.9));
+      put(litterMat, new THREE.CircleGeometry(R(0.8, 1.6), 7).rotateX(-PI / 2).rotateY(R(0, PI)), cx + Math.cos(a) * d, y + 0.03, cz + Math.sin(a) * d);
+    }
+    // the canopy over it: side boughs out of the trunk carrying a roof of leaves, curtains hanging off it
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * PI * 2 + R(-0.3, 0.3), d = R(rr * 0.5, rr * 1.35);
+      const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+      foliage(x, y + R(10, 15), z, R(5, 8), 1.2);
+      if (i % 2 === 0) curtain(x * 0.6 + cx * 0.4, y + R(9, 12), z * 0.6 + cz * 0.4, R(4, 7), R(2, 3.5));
+    }
+    {
+      const b = bearingOf(cx, cz);
+      const from = P(b + R(-20, 20), trunkR(b, y + 8) - 2, y + 8);
+      limb(curveOf([from, [(from[0] + cx) / 2, y + 14, (from[2] + cz) / 2], [cx + R(-3, 3), y + 13, cz + R(-3, 3)]]), 1.4, 0.6, { seg: 9, knob: 0.1 });
     }
     return { top, cx, cz, y, rr };
   }
@@ -1441,7 +1498,7 @@ export function buildGodTree(B, ctx = {}) {
     for (let i = 0; i < pp.count; i++) {
       const x = pp.getX(i), z = pp.getZ(i), y = pp.getY(i), a = Math.atan2(z, x);
       const k = 1 + 0.08 * Math.sin(a * 5 + 1) + 0.05 * Math.sin(a * 11);
-      pp.setXYZ(i, x * 34 * k, y * 15 * (1 + 0.2 * Math.sin(a * 7 + y * 3)), z * 34 * k);
+      pp.setXYZ(i, x * 26 * k, y * 17 * (1 + 0.2 * Math.sin(a * 7 + y * 3)), z * 26 * k);
     }
     g.computeVertexNormals();
     put(limbMat, tint(g.toNonIndexed(), (x, y, z, nx, ny, nz) => barkShade(x, y + 97, z, nx, ny, nz)), TREE.x, TREE.crown - 2.7, TREE.z);
@@ -1450,15 +1507,16 @@ export function buildGodTree(B, ctx = {}) {
       const pts = [];
       for (let k = 0; k <= 4; k++) {
         const b = b0 + ((b1 - b0) * k) / 4;
-        pts.push(P(b, R(30, 34.5), TREE.crown - R(1.5, 4.5)));
+        pts.push(P(b, R(23, 27), TREE.crown - R(2.5, 6)));
       }
       limb(curveOf(pts), R(1.4, 2.2), R(0.9, 1.4), { seg: 9, knob: 0.15 });
     }
-    for (let i = 0; i < 30; i++) {
-      const b = R(0, 360), r = R(29, 38);
+    // a skirt of leaves round the courtyard's foot: from below the tree's crown reads as a crown, not a dish
+    for (let i = 0; i < 90; i++) {
+      const b = (i / 90) * 360 + R(-2, 2), r = R(21, 40);
       const [x, , z] = P(b, r, 0);
-      if (Math.abs(angDiff(b, 270)) < 9 || Math.abs(angDiff(b, 180)) < 9) continue; // (the fly's landing and the line's head stay clear)
-      foliage(x, TREE.crown - R(-2, 3), z, R(4, 7), 1.1);
+      if ((Math.abs(angDiff(b, 270)) < 16 && r > 26) || (Math.abs(angDiff(b, 180)) < 14 && r > 21)) continue; // (the fly's landing and the line's head stay clear)
+      foliage(x, TREE.crown - R(2, 8) + (r - 21) * 0.18, z, R(4, 8), 1.1);
     }
     for (let i = 0; i < 34; i++) {
       const a = R(0, PI * 2), d = R(8, 33);
@@ -1489,6 +1547,22 @@ export function buildGodTree(B, ctx = {}) {
   for (let i = 0; i < 26; i++) {
     const a = R(0, PI * 2), d = R(26, 48);
     curtain(TREE.x + Math.cos(a) * d, R(108, 128), TREE.z + Math.sin(a) * d, R(8, 22), R(2.5, 4.5));
+  }
+  // aerial roots: long cords hanging out of the crown's bowl and the boughs, some all the way into the mist
+  for (let i = 0; i < 34; i++) {
+    const b = R(0, 360), r = R(16, 33);
+    if (Math.abs(angDiff(b, 270)) < 12 || Math.abs(angDiff(b, 180)) < 12) continue;
+    const top = TREE.crown - 3 - (33 - r) * 0.35, len = R(18, i % 3 ? 45 : 80);
+    const [x, , z] = P(b, r, 0);
+    const pts = [];
+    for (let k = 0; k <= 5; k++) pts.push([x + Math.sin(k * 1.3 + i) * 0.6, top - (len * k) / 5, z + Math.cos(k * 1.1 + i) * 0.6]);
+    limb(curveOf(pts), R(0.16, 0.32), 0.05, { seg: 5, rings: 8, knob: 0.25, cap: false });
+    if (rand() < 0.5) curtain(x, top - R(2, 10), z, R(4, 10), R(1, 2));
+  }
+  // god rays slanting down through the crown into the mist, on the side the bridge looks at
+  for (const [b, r, y, h, w, t] of [[205, 30, 66, 96, 13, 0.24], [228, 22, 62, 100, 10, 0.2], [252, 36, 70, 92, 15, 0.28], [276, 28, 64, 98, 11, 0.22], [196, 44, 58, 84, 9, 0.18], [240, 48, 56, 80, 12, 0.26]]) {
+    const [x, , z] = P(b, r, 0);
+    shaft(x, y, z, h, w, t);
   }
   shaft(TREE.x + 6, 128, TREE.z - 4, 60, 9, 0.12);
   shaft(TREE.x - 14, 120, TREE.z + 10, 64, 7, -0.16);
@@ -1608,8 +1682,17 @@ export function buildGodTree(B, ctx = {}) {
     Object.assign(level.atmospheres.verdantTree, DEAD, { fogFar: 150 });
     const r = regionOf(game.player.pos);
     if (r === 'verdant' && /verdantTree/.test(game.atmo?.name || '')) game.setAtmosphere(game.atmo.name, restored);
-    if (restored) veinMat.uniforms.uLife.value = 0;
-    else W.add({ update: (dt) => (veinMat.uniforms.uLife.value = Math.max(0, veinMat.uniforms.uLife.value - dt / 5)) });
+    const fades = [[leafCardMat.color, 0x8a7448], [mossMat.color, 0x8a7a58], [curtainMat.color, 0x8a7a5a], [capGlowMat.color, 0x2a3430], [litterMat.color, 0xa08860], [shaftMat.color, 0x8fa4b8]]
+      .map(([c, to]) => ({ c, from: c.clone(), to: new THREE.Color(to) }));
+    const apply = (k) => {
+      veinMat.uniforms.uLife.value = 1 - k;
+      for (const f of fades) f.c.copy(f.from).lerp(f.to, k);
+    };
+    if (restored) apply(1);
+    else {
+      let k = 0;
+      W.add({ update: (dt) => k < 1 && apply((k = Math.min(1, k + dt / 5))) });
+    }
   });
 
   // ================================================================ STARTS
@@ -1809,7 +1892,7 @@ class SporeVent {
     this.blocked = false;
     this.t = 0;
     const k = pieces();
-    this.col = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.0, top - pos[1], 12, 1, true), k.spore);
+    this.col = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 0.8, top - pos[1], 12, 1, true), k.spore);
     this.col.position.copy(this.pos).setY((pos[1] + top) / 2);
     world.scene.add(this.col);
     const mouth = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.35, 6, 12).rotateX(PI / 2), k.mouth);
@@ -1821,7 +1904,7 @@ class SporeVent {
     this.t = (this.t + dt) % this.period;
     const blowing = this.t < this.blast && !this.blocked;
     this.col.visible = blowing;
-    this.col.material.opacity = 0.16 + 0.1 * Math.sin(this.t * 30);
+    this.col.material.opacity = 0.09 + 0.05 * Math.sin(this.t * 30);
     if (blowing && Math.random() < dt * 30) this.world.fx.burst(this.pos.clone().setY(this.pos.y + Math.random() * (this.top - this.pos.y)), 0xd8ff9a, { count: 3, speed: 3, life: 0.6, size: 0.2, gravity: -6, mode: 'puff' });
     if (this.t < dt && !this.blocked) audio.at?.(audio.sfxOr('spore_vent', 'spore_burst'), this.pos.clone().setY(this.top - 6), { gain: 0.7, far: 35 });
     if (!blowing || !player || player.mount) return;
