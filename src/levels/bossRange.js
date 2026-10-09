@@ -10,7 +10,7 @@ export function buildBossRange(B) {
   const R = (x1, y1, z1, x2, y2, z2) => W.box(x1, y1, z1, x2, y2, z2, 'rock', 'yellow');
 
   // ---- the full Sun Court
-  const court = buildSphinxArena(B, { center: [420, 0, -320], size: 44, entry: 's', exit: 'n', powerSource: true });
+  const court = buildSphinxArena(B, { center: [420, 0, -320], size: 44, entry: 's', exit: 'n', powerSource: true, sunDir: [0.4, 1, 0.2] }); // (beam up and east: the default west sun would cross the Verdant god tree)
   // cap the corridor stubs (in a real world they lead on) and give the range the Solar mood
   for (const [x, y, z] of [court.entryEnd, court.exitEnd]) R(x - 2, y - 1, z - 0.5, x + 2, y + 3.7, z + 0.5);
   area([398, -2, -342], [442, 12, -290], { ambient: 'amb_solar', atmosphere: 'solar' });
