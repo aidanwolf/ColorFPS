@@ -63,9 +63,10 @@ import { liquidMaterial } from '../liquid.js';
 import { mat } from '../materials.js';
 import { audio } from '../audio.js';
 import { buildSphinxArena } from './sphinxArena.js';
-import { SUN_DIR, inSolar, underground, POWER_ZONE, Sun, SunLance, hazeMat, heatHaze, hazeMeshes, CollectorArray, PowerBeam, DUSK, mergeBoxes } from './solarSky.js';
+import { SUN_DIR, inSolar, underground, POWER_ZONE, Sun, SunLance, hazeMat, heatHaze, hazeMeshes, CollectorArray, PowerBeam, DUSK, mergeBoxes, sandstoneTex } from './solarSky.js';
 import { solarScenery, PVArray } from './solarScenery.js';
 import { buildSolarDepths } from './solarDepths.js';
+import { buildSolarSkyline } from './solarSkyline.js';
 import { buildSolarTemple } from './solarTemple.js';
 
 // The hovercraft dune run is its own module (solarDunes.js). It's optional here: without it a stand-in
@@ -230,6 +231,13 @@ export function buildSolar(B) {
   const zone = 'yellow';
   const glow = GLOW[zone];
   const R = (x1, y1, z1, x2, y2, z2) => W.box(x1, y1, z1, x2, y2, z2, 'rock', zone);
+  {
+    // Solar's rock is sandstone: wavy strata in a tiling map (world-scaled UVs), warmer and a shade lighter
+    const m = mat('rock', zone);
+    m.map = sandstoneTex();
+    m.color.set(0xcdbd9a).multiplyScalar(0.46);
+    m.needsUpdate = true;
+  }
   const M = (x1, y1, z1, x2, y2, z2) => W.box(x1, y1, z1, x2, y2, z2, 'metal', zone);
   const F = (x1, y1, z1, x2, y2, z2) => W.box(x1, y1, z1, x2, y2, z2, 'floor', zone); // dressed stone
   const GR = (x1, y1, z1, x2, y2, z2) => W.box(x1, y1, z1, x2, y2, z2, 'grate', zone);
@@ -246,11 +254,11 @@ export function buildSolar(B) {
   const ck = (pos, yaw, size = [4, 3, 4]) => new Checkpoint(W, game, { pos, yaw, size });
   // the excavation's mood: quiet, dark, dusty (and once you hold yellow, the Solar theme comes back)
   level.atmospheres.solarDeep = {
-    fog: 0x140c06, fogNear: 6, fogFar: 74,
-    skyTop: [0.03, 0.02, 0.015], skyMid: [0.06, 0.04, 0.025], skyHorizon: [0.1, 0.07, 0.04], aurora: 0, stars: 0,
-    hemiSky: 0xc8a078, hemiGround: 0x20140c, hemiIntensity: 0.2,
-    sunColor: 0xffc890, sunIntensity: 0.06, sunDir: [0.2, 1, 0.1],
-    exposure: 1.05, bloom: 0.8,
+    fog: 0x0b0603, fogNear: 4, fogFar: 64,
+    skyTop: [0.02, 0.014, 0.01], skyMid: [0.04, 0.028, 0.018], skyHorizon: [0.07, 0.05, 0.03], aurora: 0, stars: 0,
+    hemiSky: 0xa88660, hemiGround: 0x140c06, hemiIntensity: 0.13,
+    sunColor: 0xffc890, sunIntensity: 0.05, sunDir: [0.2, 1, 0.1],
+    exposure: 0.98, bloom: 0.85,
   };
   const deep = (min, max) =>
     W.trigger(min, max, () => {
@@ -905,6 +913,31 @@ export function buildSolar(B) {
       M(x - 0.2, S, z - 0.2, x + 0.2, S + 2.4, z + 0.2);
       M(x - 0.9, S + 2.4, z - 0.9, x + 0.9, S + 2.6, z + 0.9);
     }
+  }
+  // THE EAST GATE: pylons along the mesa's eastern edge (the Hub's ports pass under them), seated colossi
+  // and mirror obelisks — they hide the Atrium's glass and the Foundry from Solar's spots (solarSkyline.js)
+  {
+    const sk = buildSolarSkyline(B, K);
+    // (56 m over the mesa: the Atrium's roof stands at y 45)
+    sk.pylon(-40, -152, -32, -139, S, 56, 8); // north of the return port
+    sk.pylon(-40, -133, -32, -125, S, 56, 8); // between the ports
+    R(-38, 17, -139.5, -32, S + 54, -132.5); // the lintel over the return port
+    for (const [z1, z2] of [[-124, -114], [-110, -100]]) sk.pylon(-38.5, z1, -32, z2, 8, 40, 6); // the entry's pylons (on its old walls)
+    R(-38, 8.5, -114.5, -32, 46, -109.5); // over the entry passage
+    for (const [z1, z2] of [[-124, -114], [-110, -100]]) G(-38.55, 30, z1, -38.45, 30.3, z2);
+    sk.colossus(-50, S, -146, '-x', 1); // looking out over the balcony's sun
+    sk.colossus(-52, -46, -49, '-x', 1.25); // beside the drop, looking down the lowland
+    R(-61, -118, -57, -43, -46, -41); // (its pedestal from the lowland)
+    sk.colossus(-51.4, -38, -95.6, '-x', 0.36); // flanking the yard's gatehouse
+    sk.colossus(-51.4, -38, -76.4, '-x', 0.36);
+    sk.pylon(-48, -101, -34, -95, S, 48, 8); // the gatehouse's tall north tower (the Atrium stays hidden)
+    // the cliff over the drop: pilasters, a cornice and glyph bands on its face
+    for (const z of [-56.5, -49, -41.5]) R(-49.2, -46, z - 1, -48, 24, z + 1);
+    R(-49.6, 24, -58, -47.5, 26.5, -40);
+    for (const y of [-20, 0, 16]) G(-49.25, y, -58, -49.15, y + 0.25, -40);
+    sk.obelisk(-41.5, 4, -106.5, 18); // on the balcony's south-east corner
+    sk.obelisk(-60, S, -140, 30);
+    sk.finish();
   }
   const sc = solarScenery(W, game, { visible: (p) => inSolar(p) && !underground(p) });
   sc.dunes(-100, -130, -134, -96, S, 1.2, 2);

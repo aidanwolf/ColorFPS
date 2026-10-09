@@ -24,7 +24,7 @@ import * as THREE from 'three';
 import { RED, YELLOW } from '../colors.js';
 import { MovingPlatform, Pickup } from '../entities/misc.js';
 import { LightReceiver } from '../entities/sunlight.js';
-import { mat } from '../materials.js';
+import { mat, boxGeo } from '../materials.js';
 import { audio } from '../audio.js';
 import { mergeBoxes } from './solarSky.js';
 
@@ -220,7 +220,7 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
     R(-49, top, z1 + i - 0.6, -34, top + 1, z2 - i + 0.6);
     G(-49.05, top + 0.3, z1 + i - 0.6, -48.95, top + 0.5, z2 - i + 0.6);
   }
-  R(-48.4, S, -89.5, -36, S + 12, -82.5); // the gate block between the towers
+  R(-48.4, S, -89.5, -36, S + 26, -82.5); // the gate block between the towers
   sunRelief('-x', -48, -86, YF + 9.5, 2.6); // a winged sun over the portal
   for (const s of [-1, 1]) onWallWing(s);
   function onWallWing(s) {
@@ -308,6 +308,27 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
     M(x - 0.4, YF + 13, z - 0.4, x + 0.4, YF + 14.4, z + 0.4);
     G(x - 0.42, YF + 13.4, z - 0.42, x + 0.42, YF + 13.55, z + 0.42);
   }
+  // the processional way from the gatehouse to the stair: flagstones and four sphinxes facing across it
+  W.deco(-98.6, YF, -80.5, -50, YF + 0.04, -71.5, 'floor', zone);
+  G(-98.6, YF + 0.02, -80.62, -50, YF + 0.06, -80.5);
+  G(-98.6, YF + 0.02, -71.5, -50, YF + 0.06, -71.38);
+  const sphinx = (x, z, s) => {
+    // facing s = +1 (toward +z) or -1; built along z
+    const b = (x1, y1, z1, x2, y2, z2) => R(x + x1, YF + y1, z + Math.min(z1 * s, z2 * s), x + x2, YF + y2, z + Math.max(z1 * s, z2 * s));
+    b(-1.5, 0, -3.6, 1.5, 1, 3.6); // plinth
+    b(-1.1, 1, -1, 1.1, 2.9, 3.3); // the body
+    b(-1.15, 1, 1.6, 1.15, 2.2, 3.4); // haunches
+    b(-1.05, 1, -3.3, -0.35, 1.55, -0.6); // paws
+    b(0.35, 1, -3.3, 1.05, 1.55, -0.6);
+    b(-1, 1, -1.5, 1, 4.1, 0.4); // the chest
+    b(-1.05, 4.1, -1.3, 1.05, 5.8, 0.5); // the nemes
+    b(-0.6, 4.3, -1.75, 0.6, 5.5, -1.25); // the face
+    G(-1.12 + x, YF + 3.6, z + Math.min(-1.32 * s, 0.52 * s), 1.12 + x, YF + 3.75, z + Math.max(-1.32 * s, 0.52 * s));
+  };
+  sphinx(-88, -84, 1);
+  sphinx(-88, -68, -1);
+  sphinx(-55.5, -84, 1);
+  sphinx(-55.5, -68, -1);
   // eerily silent until the core is taken and the yard wakes
   const silence = () => {
     game.musicTrack = 'silence';
@@ -429,11 +450,11 @@ export function buildSolarCourt(B, K, { restoring = () => false } = {}) {
   // the cliff city: a massif east of the lowland, its face carved into terraces, doorways and seated
   // colossi crowned with sun discs (it closes the view east: the Foundry stays out of sight)
   {
-    const stone = new THREE.MeshStandardMaterial({ color: 0xb48450, roughness: 0.95, flatShading: true });
+    const stone = mat('rock', zone); // (the world's sandstone)
     const dark = new THREE.MeshBasicMaterial({ color: 0x2a1a10 });
     const sun = new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.75, 0.3).multiplyScalar(1.4) });
     const g = [], gd = [], gs = [];
-    const box = (arr, x1, y1, z1, x2, y2, z2) => arr.push(new THREE.BoxGeometry(x2 - x1, y2 - y1, z2 - z1).translate((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2));
+    const box = (arr, x1, y1, z1, x2, y2, z2) => arr.push(boxGeo(x2 - x1, y2 - y1, z2 - z1).translate((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2));
     // the massif itself, stepping back as it rises
     for (let k = 0; k < 6; k++) box(g, -66 + k * 2.2, -122 + k * 26, -40, -47, -96 + k * 26, 220);
     // terraces and doorways on its west face, colossi every 40 m, pylons between them
