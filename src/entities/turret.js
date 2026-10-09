@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { Orb } from './drone.js';
 import { audio } from '../audio.js';
 import { Enemy, Parts, Beam, Blast, MAT, GEO, glowMat, additive, converge, falloff, hexOf, sfx } from './enemyKit.js';
-import { esfx } from './enemySfx.js';
+import { esfx, edeath } from './enemySfx.js';
 import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
@@ -302,6 +302,7 @@ export class Turret extends Enemy {
     const p = this.head.getWorldPosition(new THREE.Vector3());
     const vel = (dir ? dir.clone().multiplyScalar(5) : new THREE.Vector3()).addScaledVector(this.normal, 7);
     new Blast(this.world, p, this.color, { scale: 0.9, parts: [this.head], chunks: 5, vel });
+    edeath('death_turret', p);
     this.baseMeshes[this.baseMeshes.length - 1].material = MAT.hot;
     this.onDeath?.(this);
   }

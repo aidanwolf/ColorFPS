@@ -9,6 +9,7 @@ import { COLORS, YELLOW, RED } from '../colors.js';
 import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
 import { GroundEnemy, Trooper, RigDef, Bolt, sfx, falloff, rnd, esfx, barks, angleTo, isQuicksand } from './groundKit.js';
+import { reach, edeath } from './enemySfx.js';
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
@@ -364,7 +365,7 @@ export class Scarab extends GroundEnemy {
   }
 
   chitter() {
-    const g = 0.4 * falloff(this.dist, 3, 24);
+    const g = 0.4 * reach(this.dist, 3, 24);
     sfx('scarab_chitter', g, { synth: (gg) => {
       for (let i = 0; i < 6; i++) audio.noise({ dur: 0.025, gain: 0.14 * gg, freq: 3200 + i * 300, q: 4, delay: i * 0.045 });
     } });
@@ -402,7 +403,7 @@ export class Scarab extends GroundEnemy {
       fx.ring(_w.copy(this.pos).setY(this.pos.y + 0.05), UP, DUST, { size: 0.3, end: 2.5, life: 0.4, thick: 0.25, k: 0.6 });
     }
     this.jetDust(1.5);
-    const g = 0.45 * falloff(this.dist, 3, 24);
+    const g = 0.45 * reach(this.dist, 3, 24);
     sfx('scarab_pounce', g, { alt: 'crab_leap', synth: (gg) => audio.noise({ dur: 0.3, gain: 0.2 * gg, freq: 1500, f2: 4500, q: 1 }) });
   }
 
@@ -552,6 +553,7 @@ export class Scarab extends GroundEnemy {
     for (let i = 0; i < 5; i++) sandPuff(fx, c, 1.5, 1.2, 0.5, 1);
     const g = Math.max(0.3, falloff(this.dist, 5, 45));
     sfx('scarab_crunch', 0.7 * g, { alt: 'shatter', altRate: 1.5, altGain: 0.6, synth: () => audio.shatter() });
+    edeath('death_scarab', c);
     this.onDeath?.(this);
     const push = hit?.dir ? hit.dir.clone().multiplyScalar(3) : null;
     this.scatter([...this.legs, this.n.wingL, this.n.wingR, this.n.mandL, this.n.mandR, this.n.body], push, { speed: 5, up: 0.9, life: 1.3 });
@@ -854,6 +856,7 @@ export class Mummy extends Trooper {
     this.footU = [0, 0.5];
     this.barkPersona = 'solar'; // combat/barks.js
     this.painSound = 'robot_pain_light';
+    this.deathSound = 'death_stilt'; // (enemySfx.js DEATH_SFX: a metallic shriek as the stilts buckle)
     this.voicePitch = 0.8;
     const S = sharedMats();
     this.m = {
@@ -994,7 +997,7 @@ export class Mummy extends Trooper {
 
   onAlert() {
     this.setState('engage');
-    sfx('mummy_alert', 0.6 * falloff(this.dist, 5, 35), { synth: (g) => {
+    sfx('mummy_alert', 0.6 * reach(this.dist, 5, 35), { synth: (g) => {
       audio.noise({ dur: 0.7, gain: 0.16 * g, freq: 900, f2: 400, q: 2 });
       audio.tone({ type: 'sawtooth', f: 110, f2: 80, dur: 0.6, gain: 0.05 * g });
     } });
@@ -1107,7 +1110,7 @@ export class Mummy extends Trooper {
         if (Math.random() < 0.5) this.world.fx.ember(_v, -_u.x * 2.6, -_u.y * 2.6, -_u.z * 2.6, COLORS[this.color].hex, 0.3, 0.03);
       }
       if (this.stateT < dt * 1.5) barks.say(this, 'reload'); // "The sands gather."
-      if (this.stateT < dt * 1.5) sfx('mummy_cast', 0.5 * falloff(this.dist, 4, 34), { alt: 'charge_up', altRate: 1.5, altGain: 0.6, synth: (g) => audio.tone({ type: 'triangle', f: 300, f2: 900, dur: 0.6, gain: 0.06 * g }) });
+      if (this.stateT < dt * 1.5) sfx('mummy_cast', 0.5 * reach(this.dist, 4, 34), { alt: 'charge_up', altRate: 1.5, altGain: 0.6, synth: (g) => audio.tone({ type: 'triangle', f: 300, f2: 900, dur: 0.6, gain: 0.06 * g }) });
       if (this.stateT >= CAST_T) {
         this.castVolley(player);
         director.release(this);

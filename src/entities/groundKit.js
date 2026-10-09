@@ -13,7 +13,7 @@ import { COLORS } from '../colors.js';
 import { audio } from '../audio.js';
 import { director } from '../combat/director.js';
 import { barks } from '../combat/barks.js';
-import { esfx } from './enemySfx.js';
+import { esfx, edeath } from './enemySfx.js';
 import { ColorShield, parseShields } from './colorShield.js';
 import { Rage } from './rage.js';
 
@@ -1332,7 +1332,7 @@ export class Trooper extends GroundEnemy {
     this.deathF = L.f;
     this.deathS = L.s;
     this.world.removeHittable(this.hitRoot);
-    esfx(this.painSound ?? 'robot_pain_heavy', this.pos, 1, (this.voicePitch ?? 1) * 0.8);
+    if (!(this.deathSound && edeath(this.deathSound, this.pos))) esfx(this.painSound ?? 'robot_pain_heavy', this.pos, 1, (this.voicePitch ?? 1) * 0.8);
     barks.died(this);
     this.onDie?.();
   }

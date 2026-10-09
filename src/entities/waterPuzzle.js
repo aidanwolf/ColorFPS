@@ -47,6 +47,7 @@ import { audio } from '../audio.js';
 import { SynthLoop, noiseVoice } from '../weapons/rays.js';
 import { mat } from '../materials.js';
 import { ColorShield } from './colorShield.js';
+import { edeath } from './enemySfx.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
@@ -823,6 +824,7 @@ export class ScrapCrawler {
     fx.sparks(p, UP, 0xcfe8ff, { count: 18, speed: 8, life: 0.4 });
     fx.flash(p, fried ? 0xcfe8ff : COLORS[this.color].hex, { size: 1.4, life: 0.15 });
     audio.sample(fried ? 'joint_sparks' : 'crab_explode', { gain: 0.8 * gainAt(this.game, this.pos), rate: fried ? 1.2 : 1.5, vary: 0.1 });
+    edeath('death_crawler', p, 1, fried ? 1.15 : 1);
     this.dispose();
     this.onDeath?.(this);
   }

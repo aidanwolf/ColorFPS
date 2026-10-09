@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { audio } from '../audio.js';
 import { Enemy, Parts, Beam, MAT, moveSafe, floorBelow, falloff, hexOf, sfx, converge, DANGER } from './enemyKit.js';
 import { Spring } from './groundKit.js';
-import { esfx } from './enemySfx.js';
+import { esfx, edeath, GRUNT_FLOOR } from './enemySfx.js';
 import { barks } from '../combat/barks.js';
 import { director } from '../combat/director.js';
 import { lobGob, moltenTint } from './lavaGob.js';
@@ -190,7 +190,7 @@ export class Brute extends Enemy {
         else this.lobT = rnd(0.3, 0.6);
       } else if (this.timer <= 0 && this.sees && this.dist > 4 && this.dist < 32) {
         this.state = 'windup';
-        esfx('hydraulic_hiss', this.pos, 1, 0.7); // it plants itself: the hydraulics vent
+        esfx('hydraulic_hiss', this.pos, 1, 0.7, 0, GRUNT_FLOOR); // it plants itself: the hydraulics vent
         barks.say(this, 'charge');
         this.timer = this.windupTime;
         const g = Math.max(0.4, falloff(this.dist, 6, 45));
@@ -465,6 +465,7 @@ export class Brute extends Enemy {
   die(hit, dir) {
     this.dead = true;
     this.lane.hide();
+    edeath('death_brute', this.pos);
     this.explode({ scale: 2, chunks: 12, vel: dir ? dir.clone().multiplyScalar(3) : null, shake: 0.55 });
   }
 

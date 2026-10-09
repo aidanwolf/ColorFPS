@@ -107,6 +107,13 @@ const DOWN = { x: 0, y: -1, z: 0 };
 const LOOP_SEND = 0.25; // drone hums and motors: a hint of the room, not a wash
 const DRY_LOOPS = new Set(['fall_wind']); // wind in your ears has no room
 const AT_MAX = 14; // positional enemy one-shots ringing at once (see at())
+// Priority one-shots (enemy death screams, at(..., { prio: true })) skip AT_MAX, so a wave dying all at
+// once can't be silenced by its own servo chatter; they have their own, roomier cap.
+const AT_PRIO_MAX = 10;
+// "Break realism": a sound given a level floor (at(..., { floor })) never drops under floor × its level
+// anywhere within AT_REACH m, then fades out over the next AT_REACH_FADE m.
+const AT_REACH = 80;
+const AT_REACH_FADE = 25;
 
 const smooth = (a, b, x) => {
   const u = Math.min(1, Math.max(0, (x - a) / (b - a)));
@@ -308,6 +315,7 @@ class Audio {
     this.lis = { x: 0, y: 0, z: 0, rx: 1, ry: 0, rz: 0 }; // the listener (the camera), for at()
     this.atLast = new Map(); // at()'s rate limit: key -> { t, g }
     this.atVoices = 0;
+    this.atPrio = 0; // priority voices (see AT_PRIO_MAX)
     this.manifest =fetch(AUDIO_URL + 'manifest.json')
       .then((r) => (r.ok ? r.json() : []))
       .catch(() => [])
@@ -478,15 +486,26 @@ class Audio {
     return ((dx * L.rx + dy * L.ry + dz * L.rz) / d) * 0.8 * Math.min(1, d / 2.5);
   }
 
-  // o: { gain, rate, vary, near, far, delay, cut, gap, key }. Returns false if it didn't play.
+  // Distance falloff for at(): 1 inside `near`, 0 at `far`, squared in between (realistic, for servos and
+  // clicks); with a `floor` the curve is linear (gentler) and never drops below `floor` within `reach` m
+  // (default AT_REACH), fading out over AT_REACH_FADE m past it: the enemies' voices carry across an arena.
+  atFalloff(d, o) {
+    const near = o.near ?? 4, far = o.far ?? 40;
+    const lin = d <= near ? 1 : d >= far ? 0 : 1 - (d - near) / (far - near);
+    if (!o.floor) return lin * lin;
+    const reach = o.reach ?? AT_REACH;
+    const keep = d <= reach ? 1 : Math.max(0, 1 - (d - reach) / AT_REACH_FADE);
+    return Math.max(lin, o.floor * keep);
+  }
+
+  // o: { gain, rate, vary, near, far, floor, reach, delay, cut, gap, key, prio }. Returns false if it
+  // didn't play. prio: a priority voice (a death scream) that skips the AT_MAX cap (see AT_PRIO_MAX).
   at(name, p, o) {
     if (!this.ctx) return false;
     const buf = this.buffers.get(name);
     if (!buf) return false;
     const d = this.distTo(p);
-    const near = o.near ?? 4, far = o.far ?? 40;
-    let k = d <= near ? 1 : d >= far ? 0 : 1 - (d - near) / (far - near);
-    k *= k;
+    const k = this.atFalloff(d, o);
     const gain = (o.gain ?? 1) * k * (SAMPLE_TRIM[name] ?? 1);
     if (gain < 0.008) return false;
     const now = this.t;
@@ -494,7 +513,8 @@ class Audio {
     let last = this.atLast.get(key);
     if (!last) this.atLast.set(key, (last = { t: -1e9, g: 0 }));
     if (now - last.t < (o.gap ?? 0.05) && gain <= last.g * 1.6) return false;
-    if (this.atVoices >= AT_MAX) return false;
+    const prio = !!o.prio;
+    if (prio ? this.atPrio >= AT_PRIO_MAX : this.atVoices >= AT_MAX) return false;
     last.t = now;
     last.g = gain;
     const src = this.ctx.createBufferSource();
@@ -512,9 +532,11 @@ class Audio {
       g.gain.setTargetAtTime(0, t0 + o.cut, 0.03);
       src.stop(t0 + o.cut + 0.25);
     }
-    this.atVoices++;
+    if (prio) this.atPrio++;
+    else this.atVoices++;
     src.onended = () => {
-      this.atVoices--;
+      if (prio) this.atPrio--;
+      else this.atVoices--;
       pan.disconnect();
     };
     return true;

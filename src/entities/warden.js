@@ -7,7 +7,7 @@ import { Orb } from './drone.js';
 import { audio } from '../audio.js';
 import { COLORS } from '../colors.js';
 import { Enemy, Parts, MAT, moveSafe, converge, falloff, hexOf, sfx } from './enemyKit.js';
-import { esfx } from './enemySfx.js';
+import { esfx, edeath } from './enemySfx.js';
 import { barks } from '../combat/barks.js';
 
 const _v = new THREE.Vector3();
@@ -272,6 +272,7 @@ export class Warden extends Enemy {
   die(hit, dir) {
     this.dead = true;
     this.color = this.coreColor;
+    edeath('death_warden', this.pos);
     this.explode({ scale: 1.5, chunks: 9, vel: dir ? dir.clone().multiplyScalar(4) : null, shake: 0.4 });
   }
 }
