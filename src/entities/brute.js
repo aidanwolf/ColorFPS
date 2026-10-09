@@ -248,7 +248,7 @@ export class Brute extends Enemy {
       }
       if (this.timer <= 0) {
         this.state = 'stalk';
-        this.timer = this.cooldown * (0.85 + Math.random() * 0.3);
+        this.timer = this.cooldown * (0.85 + Math.random() * 0.3) * this.rage.cool;
         this.lobT = Math.max(this.lobT, rnd(0.8, 1.4)); // (a beat to collect itself before a volley)
         this.wobble = 0;
       }

@@ -247,7 +247,7 @@ export class Mortar extends Enemy {
     this.zone = null;
     this.aim = 0;
     this.recoil = 1;
-    this.timer = this.interval * (0.85 + Math.random() * 0.3);
+    this.timer = this.interval * (0.85 + Math.random() * 0.3) * this.rage.cool;
     const fx = this.world.fx;
     fx.flash(start, hexOf(this.color), { size: 1, life: 0.12 });
     fx.burst(start, 0xb8c0d0, { count: 10, speed: 3, life: 0.8, size: 0.6, gravity: -1, mode: 'puff' });

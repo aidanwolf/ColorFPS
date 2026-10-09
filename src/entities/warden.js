@@ -174,7 +174,7 @@ export class Warden extends Enemy {
         barks.say(this, 'suppress');
       }
       if (this.fireTimer <= 0) {
-        this.fireTimer = this.fireInterval * (0.85 + Math.random() * 0.3);
+        this.fireTimer = this.fireInterval * (0.85 + Math.random() * 0.3) * this.rage.cool;
         this.windup = 0;
         this.fire();
       }
@@ -208,6 +208,7 @@ export class Warden extends Enemy {
       if (hit?.point) this.shieldMat.uniforms.uHit.value.copy(hit.point).sub(this.pos);
       if (color !== this.shieldColor) {
         this.immuneFlash = 1;
+        this.rage.wrong(hit);
         return 'immune';
       }
       this.shieldHp--;
@@ -224,6 +225,7 @@ export class Warden extends Enemy {
     }
     if (color !== this.coreColor) {
       this.immuneFlash = 1;
+      this.rage.wrong(hit);
       return 'immune';
     }
     this.knock.addScaledVector(this.shotDir(hit), 2.5);
