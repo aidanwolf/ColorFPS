@@ -503,3 +503,60 @@ export function mergeBoxes(geos) {
   out.computeBoundingSphere();
   return out;
 }
+
+// ------------------------------------------------------------------ sandstone
+// Solar's rock as a tiling canvas texture (world-scaled box UVs: one tile per 2 m): wavy sedimentary strata,
+// each layer its own shade, darker seams between them, grain and a few hairline cracks. A plain map (no
+// shader patch), so the rock still counts as an occluder.
+let SAND_TEX = null;
+export function sandstoneTex() {
+  if (SAND_TEX) return SAND_TEX;
+  const N = 256, c = document.createElement('canvas');
+  c.width = c.height = N;
+  const g = c.getContext('2d');
+  const img = g.createImageData(N, N), d = img.data;
+  // layers (heights in px, summing to N so the tile wraps), each a shade and a warmth
+  const layers = [];
+  let rnd = 7;
+  const r = () => ((rnd = (rnd * 16807) % 2147483647) / 2147483647);
+  for (let y = 0; y < N; ) {
+    let h = 44 + Math.floor(r() * 60);
+    if (N - y - h < 30) h = N - y;
+    layers.push({ y0: y, h, s: 0.88 + r() * 0.12, w: r() });
+    y += h;
+  }
+  const layerAt = (y) => {
+    y = ((y % N) + N) % N;
+    for (const L of layers) if (y >= L.y0 && y < L.y0 + L.h) return [L, (y - L.y0) / L.h];
+    return [layers[0], 0];
+  };
+  for (let y = 0; y < N; y++)
+    for (let x = 0; x < N; x++) {
+      const wave = Math.sin((x / N) * Math.PI * 2) * 3 + Math.sin((x / N) * Math.PI * 4 + 1.3) * 1.2;
+      const [L, t] = layerAt(y + wave);
+      const seam = t < 0.025 || t > 0.985 ? 0.84 : 1;
+      const grain = 0.95 + r() * 0.08;
+      const k = L.s * seam * grain;
+      const i = (y * N + x) * 4;
+      d[i] = 255 * Math.min(1, k * (1.0 + L.w * 0.06));
+      d[i + 1] = 255 * Math.min(1, k * (0.86 + L.w * 0.04));
+      d[i + 2] = 255 * Math.min(1, k * (0.7 - L.w * 0.05));
+      d[i + 3] = 255;
+    }
+  g.putImageData(img, 0, 0);
+  // hairline cracks
+  g.strokeStyle = 'rgba(60,40,24,0.18)';
+  g.lineWidth = 1;
+  for (let k = 0; k < 3; k++) {
+    let x = r() * N, y = r() * N;
+    g.beginPath();
+    g.moveTo(x, y);
+    for (let s = 0; s < 6; s++) g.lineTo((x += (r() - 0.5) * 14), (y += 6 + r() * 10));
+    g.stroke();
+  }
+  SAND_TEX = new THREE.CanvasTexture(c);
+  SAND_TEX.wrapS = SAND_TEX.wrapT = THREE.RepeatWrapping;
+  SAND_TEX.colorSpace = THREE.SRGBColorSpace;
+  SAND_TEX.anisotropy = 4;
+  return SAND_TEX;
+}

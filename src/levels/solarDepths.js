@@ -768,6 +768,23 @@ export function buildSolarDepths(B, K) {
   // matrix dressing: capacitor banks either side of the ring (they fill as nodes wake), lamps along
   // the galleries (they ignite), cables, glyph panels uncovered on the cut faces
   const capMat = new THREE.MeshBasicMaterial({ color: DORMANT.clone() });
+  const fillMat = new THREE.MeshBasicMaterial({ color: GOLD.clone().multiplyScalar(1.5), transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const fills = [];
+  let fillK = 0, fillTo = 0;
+  W.add({
+    update(dt) {
+      if (Math.abs(fillTo - fillK) < 0.002) return;
+      fillK += Math.sign(fillTo - fillK) * Math.min(Math.abs(fillTo - fillK), dt * 0.25);
+      for (const m of fills) {
+        m.visible = fillK > 0.01;
+        m.scale.y = Math.max(0.001, fillK);
+      }
+    },
+  });
+  const setFill = (k, instant) => {
+    fillTo = Math.max(fillTo, k);
+    if (instant) fillK = fillTo - 0.001;
+  };
   const lampGlow = new THREE.MeshBasicMaterial({ color: DORMANT.clone() });
   {
     const steel = new THREE.MeshStandardMaterial({ color: 0x3a342c, metalness: 0.8, roughness: 0.4 });
@@ -781,6 +798,17 @@ export function buildSolarDepths(B, K) {
     }
     W.scene.add(new THREE.Mesh(mergeBoxes(caps), steel));
     W.scene.add(new THREE.Mesh(mergeBoxes(bands), capMat));
+    // the charge in each bank: a glowing sleeve that climbs the cylinders as the machine wakes
+    for (const x0 of [-136, -110]) {
+      const sl = [];
+      for (let i = 0; i < 4; i++) sl.push(new THREE.CylinderGeometry(0.65, 0.65, 3.5, 12, 1, true).translate(x0 + 0.9 + i * 1.6, 1.75, -129.2));
+      const m = new THREE.Mesh(mergeBoxes(sl), fillMat);
+      m.position.y = -76.35;
+      m.scale.y = 0.001;
+      m.visible = false;
+      W.scene.add(m);
+      fills.push(m);
+    }
     // lamp heads along the galleries (glow meshes, lit as the matrix wakes)
     const heads = [];
     for (const [x, y, z] of [[-106, -61.5, -126], [-106, -61.5, -114], [-106, -61.5, -102.5], [-116, -61.5, -101.5], [-128, -61.5, -101.5], [-104, -76.8, -108], [-104, -76.8, -116], [-134, -76.4, -104], [-134, -76.4, -116], [-126, -76, -127], [-114, -76, -127]]) heads.push(new THREE.BoxGeometry(0.42, 0.18, 0.42).translate(x, y, z));
@@ -1003,6 +1031,7 @@ export function buildSolarDepths(B, K) {
     capMat.color.copy(DORMANT).lerp(GOLD, n / 3).multiplyScalar(1 + n * 0.5);
     lampGlow.color.copy(DORMANT).lerp(new THREE.Color(1, 0.85, 0.6), Math.min(1, n / 2)).multiplyScalar(0.6 + n * 0.7);
     hallLight.intensity = n * 9;
+    setFill(n / 7, restoring);
   };
   let restoring = false;
   const solve = (i) => {
@@ -1107,6 +1136,7 @@ export function buildSolarDepths(B, K) {
       game.save();
     }
     escalate(restoring);
+    setFill((3 + relayDone()) / 7, restoring);
     if (restoring) return;
     audio.sample('reactor_hum', { gain: 0.7, rate: 0.55 + i * 0.08 });
     audio.sample('hydraulic_hiss', { gain: 0.5, rate: 0.7 });
@@ -1175,6 +1205,41 @@ export function buildSolarDepths(B, K) {
     if (instant) return;
     // the discharge: a lance of yellow lightning down the hall, the wall bursts, the pylon mirror is gone
     const fx = W.fx, from = new THREE.Vector3(-120, -67, -127), to = new THREE.Vector3(-120, -60, -100);
+    {
+      // the lance itself: a blinding white-gold column from the ring to the wall that thins and fades
+      const len = from.distanceTo(to);
+      const geo = new THREE.CylinderGeometry(1, 1, len, 18, 1, true);
+      const mk = (c, o) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+      const core = new THREE.Mesh(geo, mk(new THREE.Color(1, 0.95, 0.8).multiplyScalar(3), 1));
+      const halo = new THREE.Mesh(geo, mk(new THREE.Color(1, 0.7, 0.25).multiplyScalar(1.6), 0.6));
+      const g = new THREE.Group();
+      g.add(core, halo);
+      g.position.copy(from).add(to).multiplyScalar(0.5);
+      g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), _v.subVectors(to, from).normalize());
+      W.scene.add(g);
+      let t = 0;
+      const ent = {
+        update(dt) {
+          t += dt;
+          const k = Math.max(0, 1 - t / 1.1);
+          core.scale.set(1.3 * k + 0.1, 1, 1.3 * k + 0.1);
+          halo.scale.set(3.2 * (0.5 + k), 1, 3.2 * (0.5 + k));
+          core.material.opacity = k;
+          halo.material.opacity = 0.6 * k * k;
+          if (t > 1.15) {
+            W.scene.remove(g);
+            W.remove?.(ent);
+            ent.update = () => {};
+          }
+        },
+      };
+      W.add(ent);
+      game.hud.flash?.('rgba(255,236,190,0.85)');
+      fx.ring(to, new THREE.Vector3(0, 0, 1), 0xffe0a0, { size: 2, end: 18, life: 0.9, thick: 0.6, k: 2 });
+      fx.ring(from, new THREE.Vector3(0, 0, 1), 0xffe0a0, { size: 3, end: 14, life: 0.7, thick: 0.5, k: 2 });
+      // dust shaken down from the roof all over the hall
+      for (let k = 0; k < 14; k++) fx.burst(new THREE.Vector3(-136 + Math.random() * 32, -31, -128 + Math.random() * 26), 0x9a7a50, { count: 6, speed: 1, life: 2.6, size: 1.1, gravity: 3, mode: 'puff' });
+    }
     for (let s = 0; s <= 1; s += 0.04) {
       _v.lerpVectors(from, to, s);
       fx.flash(_v, 0xffd040, { size: 2.6, life: 0.35, k: 2.4, hot: 0.8 });
