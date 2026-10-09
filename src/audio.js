@@ -16,7 +16,7 @@ const SFX_FILES = [
   'drone_hum', 'drone_hit', 'drone_crash', 'elevator_start', 'elevator_loop', 'elevator_stop', 'alarm', 'sun_hum',
   'amb_hub', 'amb_solar', 'amb_abyss', 'fall_wind', 'land_hard', 'impact_death',
   'step_tile1', 'step_tile2', 'step_tile3', 'step_grate1', 'step_grate2', 'step_stone1', 'step_stone2',
-  'step_sand1', 'step_sand2', 'step_ice1', 'step_ice2', 'land_tile', 'land_sand',
+  'step_sand1', 'step_sand2', 'land_tile', 'land_sand',
   'armor_pickup', 'armor_on', 'armor_break',
   // one-shots played straight by name that no module prefetched (a listed-but-unfetched file plays its
   // stand-in, or nothing): the arena / finale set pieces and a few enemy cues
@@ -61,16 +61,14 @@ const OUT_TRIM = 0.75; // see buildOutput
 const SAMPLE_TRIM = { hydra_pain: 3 };
 
 // Footstep materials. Every sample is played at `level` relative to its own peak (the generated takes
-// came out anywhere from -30 to 0 dBFS), `layer` adds a quieter second material on top (frost on tile),
+// came out anywhere from -30 to 0 dBFS), `layer` adds a quieter second material on top,
 // `land` is the landing thud, `hz` the synth fallback's pitch.
 const STEPS = {
   tile: { names: ['step_tile1', 'step_tile2', 'step_tile3'], level: 0.3, land: 'land_tile', hz: 2600 },
-  icetile: { names: ['step_tile1', 'step_tile2', 'step_tile3'], level: 0.26, layer: 'ice', land: 'land_tile', hz: 3200 },
   grate: { names: ['step_grate1', 'step_grate2'], level: 0.26, land: 'land', hz: 1800 },
   metal: { names: ['step_metal1', 'step_metal2', 'step_metal3'], level: 0.26, land: 'land', hz: 1400 },
   stone: { names: ['step_stone1', 'step_stone2'], level: 0.26, land: 'land', hz: 900 },
   sand: { names: ['step_sand1', 'step_sand2'], level: 0.24, land: 'land_sand', hz: 3000 },
-  ice: { names: ['step_ice1', 'step_ice2'], level: 0.24, land: 'land_tile', hz: 4000 },
   grass: { names: ['step_grass1', 'step_grass2'], level: 0.22, land: 'land_sand', hz: 500 },
 };
 

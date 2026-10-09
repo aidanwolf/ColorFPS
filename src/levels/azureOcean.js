@@ -106,7 +106,8 @@ const WEATHER_GLSL = `
     vec3 c = mix(base * (0.88 + plate * 0.24), vec3(0.42, 0.2, 0.1), rust * 0.7);
     c *= 1.0 - min(seam, 1.0) * 0.3;
     // the tide line: barnacles, weed and verdigris a metre and a half either side of the sea's level
-    float band = 1.0 - smoothstep(0.6, 2.2, abs(w.y - uSea + 0.3));
+    // (out in the open sea only: the station's flooded rooms past the hull keep their own water lines)
+    float band = (1.0 - smoothstep(0.6, 2.2, abs(w.y - uSea + 0.3))) * smoothstep(118.0, 113.0, w.x);
     float bar = smoothstep(0.45, 0.75, wn(p * 4.0)) * band;
     c = mix(c, vec3(0.18, 0.3, 0.22), band * 0.65);
     c = mix(c, vec3(0.75, 0.72, 0.62), bar * 0.6);
