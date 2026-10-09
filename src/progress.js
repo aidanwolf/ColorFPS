@@ -54,6 +54,14 @@ export function saveProgress(game, save) {
   const here = all[best];
   // its name: its own, else the nearest named place in the same area, else the area
   let name = bd < 3 ? here?.name : null;
+  // else a Select Location start right there (worlds label theirs: 'The Sluice', 'Mirror climb 3: …')
+  if (!name) {
+    let sd = 4;
+    for (const s of Object.values(game.level.devStarts || {})) {
+      const d = s.label ? s.pos.distanceTo(at) : Infinity;
+      if (d < sd) (sd = d), (name = s.label);
+    }
+  }
   if (!name) {
     let pd = 70;
     for (const p of game.level.places || []) {
