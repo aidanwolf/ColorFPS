@@ -311,7 +311,7 @@ export function buildGuide(W, game) {
 
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1);
   const col = new THREE.Color(), base = new THREE.Color(), down = new THREE.Vector3(0, -1, 0), probe = new THREE.Vector3();
-  let marks = [], t = 0, rebuildT = 0, lastGoal = null;
+  let marks = [], t = 0, rebuildT = 0, lastGoal = null, lastX = 0, lastY = 0, lastZ = 0;
   // Floor routes: A* over a grid of the Hub floor, blocked wherever a solid stands in the way at walking
   // height (walls, columns, the research station's desks, partitions and glass: hubOffices.js) or over the
   // Prism lift, then pulled taut into straight runs. Built the first time it's needed (every solid exists).
@@ -322,6 +322,11 @@ export function buildGuide(W, game) {
   const blocked = (i, j) => i < 0 || j < 0 || i >= G.nx || j >= G.nz || grid[j * G.nx + i] === 1;
   const buildGrid = () => {
     grid = new Uint8Array(G.nx * G.nz);
+    // a level can ask for its walking lanes to be preferred: W.laneCost(x, z) >= 1 per cell (hubOffices.js)
+    if (W.laneCost) {
+      G.cost = new Float32Array(grid.length);
+      for (let j = 0; j < G.nz; j++) for (let i = 0; i < G.nx; i++) G.cost[j * G.nx + i] = W.laneCost(...centre(i, j));
+    }
     G.gs = new Float32Array(grid.length);
     G.from = new Int32Array(grid.length);
     G.done = new Uint8Array(grid.length);
@@ -330,7 +335,7 @@ export function buildGuide(W, game) {
       for (let j = Math.max(0, j1); j <= Math.min(G.nz - 1, j2); j++) for (let i = Math.max(0, i1); i <= Math.min(G.nx - 1, i2); i++) grid[j * G.nx + i] = 1;
     };
     for (const s of W.solids) {
-      if (!s.static || s.max.y < FLOOR + 0.5 || s.min.y > FLOOR + 1.6) continue;
+      if (!s.static || s.noCollide || s.max.y < FLOOR + 0.5 || s.min.y > FLOOR + 1.6) continue; // (noCollide: shot proxies you walk through)
       if (s.max.x < G.x0 - 1 || s.min.x > -G.x0 + 1 || s.max.z < G.z0 - 1 || s.min.z > -100 + 1) continue;
       fill(s.min.x - G.pad, s.min.z - G.pad, s.max.x + G.pad, s.max.z + G.pad);
     }
@@ -344,9 +349,14 @@ export function buildGuide(W, game) {
     return null;
   };
   // can you walk straight from cell a to cell b? (every cell the segment touches is open)
+  // (with lane costs, a shortcut mustn't leave the lanes its ends are in)
   const clear = (a, b) => {
     const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * 2) + 1;
-    for (let k = 0; k <= n; k++) if (blocked(Math.round(a[0] + ((b[0] - a[0]) * k) / n), Math.round(a[1] + ((b[1] - a[1]) * k) / n))) return false;
+    const lim = G.cost ? Math.max(G.cost[a[1] * G.nx + a[0]] || 1, G.cost[b[1] * G.nx + b[0]] || 1) : 0;
+    for (let k = 0; k <= n; k++) {
+      const i = Math.round(a[0] + ((b[0] - a[0]) * k) / n), j = Math.round(a[1] + ((b[1] - a[1]) * k) / n);
+      if (blocked(i, j) || (G.cost && G.cost[j * G.nx + i] > lim)) return false;
+    }
     return true;
   };
   const route = (a, b) => {
@@ -354,70 +364,80 @@ export function buildGuide(W, game) {
     const s0 = free(...cellOf(a[0], a[1])), g0 = free(...cellOf(b[0], b[1]));
     if (!s0 || !g0) return [a, b];
     if (clear(s0, g0)) return [a, b];
-    // A* (8-connected, no corner cutting), octile heuristic, a binary heap of [f, cell]
-    const { gs, from, done } = G;
-    gs.fill(Infinity);
-    from.fill(-1);
-    done.fill(0);
+    // A* (8-connected, no corner cutting), octile heuristic, a binary heap of cells keyed by f (typed arrays).
+    // With lane costs (W.laneCost) and both ends in a lane, the search keeps to the lanes; else it may cross
+    // anything walkable, paying a lane cell's cost per step.
     const gi = g0[1] * G.nx + g0[0], si = s0[1] * G.nx + s0[0];
-    const h = (i, j) => {
-      const dx = Math.abs(i - g0[0]), dz = Math.abs(j - g0[1]);
-      return Math.max(dx, dz) + 0.4142 * Math.min(dx, dz);
-    };
-    const heap = [];
-    const push = (f, c) => {
-      heap.push([f, c]);
-      for (let k = heap.length - 1; k > 0; ) {
-        const p = (k - 1) >> 1;
-        if (heap[p][0] <= heap[k][0]) break;
-        [heap[p], heap[k]] = [heap[k], heap[p]];
-        k = p;
-      }
-    };
-    const pop = () => {
-      const top = heap[0], last = heap.pop();
-      if (heap.length) {
-        heap[0] = last;
-        for (let k = 0; ; ) {
+    const search = (laneOnly) => {
+      const { gs, from, done } = G;
+      gs.fill(Infinity);
+      from.fill(-1);
+      done.fill(0);
+      const off = (i, j) => blocked(i, j) || (laneOnly && G.cost[j * G.nx + i] > 1);
+      const h = (i, j) => {
+        const dx = Math.abs(i - g0[0]), dz = Math.abs(j - g0[1]);
+        return Math.max(dx, dz) + 0.4142 * Math.min(dx, dz);
+      };
+      const HF = (G.hf ??= new Float32Array(grid.length * 4)), HC = (G.hc ??= new Int32Array(grid.length * 4));
+      let n = 0;
+      const push = (f, c) => {
+        if (n >= HF.length) return;
+        let k = n++;
+        while (k > 0) {
+          const p = (k - 1) >> 1;
+          if (HF[p] <= f) break;
+          HF[k] = HF[p];
+          HC[k] = HC[p];
+          k = p;
+        }
+        HF[k] = f;
+        HC[k] = c;
+      };
+      const pop = () => {
+        const top = HC[0], lf = HF[--n], lc = HC[n];
+        let k = 0;
+        for (;;) {
           const l = 2 * k + 1, r = l + 1;
-          let m = k;
-          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
-          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
-          if (m === k) break;
-          [heap[m], heap[k]] = [heap[k], heap[m]];
+          let m = -1, mf = lf;
+          if (l < n && HF[l] < mf) (m = l), (mf = HF[l]);
+          if (r < n && HF[r] < mf) m = r;
+          if (m < 0) break;
+          HF[k] = HF[m];
+          HC[k] = HC[m];
           k = m;
         }
-      }
-      return top;
-    };
-    gs[si] = 0;
-    push(h(...s0), si);
-    let found = false;
-    while (heap.length) {
-      const [, c] = pop();
-      if (done[c]) continue;
-      done[c] = 1;
-      if (c === gi) {
-        found = true;
-        break;
-      }
-      const ci = c % G.nx, cj = (c - ci) / G.nx;
-      for (let dj = -1; dj <= 1; dj++)
-        for (let di = -1; di <= 1; di++) {
-          if (!di && !dj) continue;
-          const ni = ci + di, nj = cj + dj;
-          if (blocked(ni, nj) || (di && dj && (blocked(ci + di, cj) || blocked(ci, cj + dj)))) continue;
-          const n = nj * G.nx + ni, g = gs[c] + (di && dj ? 1.4142 : 1);
-          if (g < gs[n]) {
-            gs[n] = g;
-            from[n] = c;
-            push(g + h(ni, nj), n);
+        HF[k] = lf;
+        HC[k] = lc;
+        return top;
+      };
+      gs[si] = 0;
+      push(h(...s0), si);
+      while (n > 0) {
+        const c = pop();
+        if (done[c]) continue;
+        done[c] = 1;
+        if (c === gi) return true;
+        const ci = c % G.nx, cj = (c - ci) / G.nx;
+        for (let dj = -1; dj <= 1; dj++)
+          for (let di = -1; di <= 1; di++) {
+            if (!di && !dj) continue;
+            const ni = ci + di, nj = cj + dj;
+            if (off(ni, nj) || (di && dj && (off(ci + di, cj) || off(ci, cj + dj)))) continue;
+            const k = nj * G.nx + ni, g = gs[c] + (di && dj ? 1.4142 : 1) * (G.cost && !laneOnly ? G.cost[k] : 1);
+            if (g < gs[k]) {
+              gs[k] = g;
+              from[k] = c;
+              push(g + h(ni, nj), k);
+            }
           }
-        }
-    }
+      }
+      return false;
+    };
+    const inLanes = G.cost && G.cost[si] <= 1 && G.cost[gi] <= 1;
+    const found = (inLanes && search(true)) || search(false);
     if (!found) return [a, b];
     const cells = [];
-    for (let c = gi; c !== -1; c = from[c]) cells.push([c % G.nx, Math.floor(c / G.nx)]);
+    for (let c = gi; c !== -1; c = G.from[c]) cells.push([c % G.nx, Math.floor(c / G.nx)]);
     cells.reverse();
     // pull it taut: from each corner, jump to the farthest cell still in a straight line
     const pts = [a];
@@ -488,8 +508,14 @@ export function buildGuide(W, game) {
       rebuildT -= dt;
       if (rebuildT <= 0 || goal !== lastGoal) {
         rebuildT = 0.35;
-        lastGoal = goal;
-        rebuild(player, goal);
+        // (standing still, the path hasn't changed)
+        if (goal !== lastGoal || Math.abs(player.pos.x - lastX) + Math.abs(player.pos.z - lastZ) + Math.abs(player.pos.y - lastY) > 0.25) {
+          lastGoal = goal;
+          lastX = player.pos.x;
+          lastY = player.pos.y;
+          lastZ = player.pos.z;
+          rebuild(player, goal);
+        }
       }
       base.set(door.color === null ? 0xffffff : COLORS[door.color].hex);
       marks.forEach((k, i) => {
