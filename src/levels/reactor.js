@@ -76,10 +76,10 @@ const conduitFrag = `
     float n = vnp(q, 6.0) * 0.62 + vnp(q * 2.0 + 7.0, 12.0) * 0.38;
     float crust = smoothstep(mix(0.12, 0.56, uPower), mix(0.2, 0.7, uPower), n);
     float pulse = pow(0.5 + 0.5 * sin(s * 0.8 - uTime * 3.2), 6.0);
-    vec3 hot = mix(vec3(1.0, 0.17, 0.03), vec3(1.0, 0.58, 0.2), smoothstep(0.18, 0.0, abs(n - 0.42)) * 0.7 + pulse * 0.6);
+    vec3 hot = mix(vec3(1.0, 0.04, 0.07), vec3(1.0, 0.26, 0.3), smoothstep(0.18, 0.0, abs(n - 0.42)) * 0.7 + pulse * 0.6); // crimson, the blaster's red (orange would read as yellow)
     vec3 rock = vec3(0.07, 0.035, 0.03) * (0.55 + 0.45 * vN.y);
     vec3 alive = mix(hot * (1.25 + pulse * 1.2), rock + hot * 0.18, crust);
-    vec3 dead = rock + vec3(0.22, 0.04, 0.01) * (1.0 - crust) * (0.5 + 0.5 * sin(s * 0.3 + uSeed));
+    vec3 dead = rock + vec3(0.22, 0.02, 0.03) * (1.0 - crust) * (0.5 + 0.5 * sin(s * 0.3 + uSeed));
     col = mix(dead, alive, clamp(live, 0.0, 1.0)) * (live > 1.0 ? live : 1.0);
   #elif STYLE == 1
     float a = vUv.y * 6.2832;
@@ -398,10 +398,10 @@ export function buildReactor(B) {
   // east side (low enough to be right in view as you walk in: it's the one that blows first)
   {
     const c = feed('red', RED, 'FOUNDRY', [V(8, 10.2, -100.15), V(8, 10.5, -102.6), V(6.9, 12.4, -108.6), V(4.3, 15.2, -114.4), V(1.6, 17.9, -119), V(0.2, 19.6, -121.3), H(0, -3.55, 1.05)], {
-      style: 0, tint: 0xff4a14, spark: 0xff6a1a,
+      style: 0, tint: 0xff3344, spark: 0xff4a50,
     });
     W.deco(6.7, 8.9, -100.4, 9.3, 11.5, -100, 'metal', 'hub'); // the wall socket
-    c.drip = (p) => W.fx.ember(p, rnd(-0.3, 0.3), rnd(-1.2, 0), rnd(-0.3, 0.3), 0xff6a1a, rnd(1, 1.6), rnd(0.05, 0.08));
+    c.drip = (p) => W.fx.ember(p, rnd(-0.3, 0.3), rnd(-1.2, 0), rnd(-0.3, 0.3), 0xff3a40, rnd(1, 1.6), rnd(0.05, 0.08));
   }
 
   // solar — liquid sunlight, poured out of a captive sun behind a lens on the west wall
@@ -537,8 +537,8 @@ export function buildReactor(B) {
     }
     // what was flowing in it
     if (c.style === 0) {
-      for (let j = 0, n = 8 + k * 14; j < n; j++) W.fx.ember(p, rnd(-3, 3), rnd(-1, 4), rnd(-3, 3), 0xff6a1a, rnd(1.2, 2.2), rnd(0.06, 0.12));
-      for (let j = 0; j < 3 + k * 4; j++) W.fx.puff(p, rnd(-1, 1), rnd(0.3, 1.2), rnd(-1, 1), _c.set(0xff5a2a), 0.22, rnd(1.2, 2), rnd(0.4, 0.7), 2.6);
+      for (let j = 0, n = 8 + k * 14; j < n; j++) W.fx.ember(p, rnd(-3, 3), rnd(-1, 4), rnd(-3, 3), 0xff3a40, rnd(1.2, 2.2), rnd(0.06, 0.12));
+      for (let j = 0; j < 3 + k * 4; j++) W.fx.puff(p, rnd(-1, 1), rnd(0.3, 1.2), rnd(-1, 1), _c.set(0xff3a44), 0.22, rnd(1.2, 2), rnd(0.4, 0.7), 2.6);
     } else W.fx.burst(p, c.spark, { count: 14 + k * 24, speed: 4 + k * 3, life: 1.3, size: 0.18, gravity: c.style === 1 ? 9 : 3, drag: 0.6 });
   }
 
@@ -819,7 +819,7 @@ export function buildReactor(B) {
           const c = list[(Math.random() * list.length) | 0];
           if (c.power > 0.5) {
             const p = c.pts[(Math.random() * c.pts.length) | 0];
-            if (c.name === 'red') W.fx.ember(p, (Math.random() - 0.5) * 1.5, Math.random(), (Math.random() - 0.5) * 1.5, 0xff7a1a, 1.4, 0.09);
+            if (c.name === 'red') W.fx.ember(p, (Math.random() - 0.5) * 1.5, Math.random(), (Math.random() - 0.5) * 1.5, 0xff3a40, 1.4, 0.09);
             else W.fx.burst(p, c.spark, { count: 1, speed: 0.4, life: 2.2, size: 0.13, gravity: c.name === 'azure' ? -0.6 : -0.15, drag: 0.4, spread: 0.6 });
           }
         }
