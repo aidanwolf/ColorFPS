@@ -171,7 +171,7 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
     },
   });
   winchSeal.done = true; // (asleep until the hall is clear)
-  const juncU = new Junction(W, game, { min: [156.05, HT, -178.6], max: [156.95, HT + 1.3, -177.4], face: '-x', cooldown: 6, cable: [156.5, -45.2, -178] });
+  const juncU = new Junction(W, game, { min: [156.35, HT, -177.2], max: [157, HT + 1.3, -176.2], face: '-x', cooldown: 6, cable: [156.7, -45.2, -176.7] });
   const crawlers = [];
   let chaseT = -1, spawned = 0;
   const SHIELDS = [[RED], [YELLOW], [GREEN], [RED, YELLOW]];
@@ -392,9 +392,12 @@ export function buildAzureSpillway(B, { zone, MOOD, DEEP, keepOut }) {
       plat(p.x1, p.z - 3, p.x2, p.z + 3, p.top, zone, 0.8);
       glowEdge(p.x1, p.z - 3, p.x2, p.z + 3, p.top, 'trimWhite', zone);
       pads.push([p.x1 + 2.2, p.top, p.z]);
-      // its pier, down into the abyss, ringed with light
-      deco((p.x1 + p.x2) / 2 - 1.6, -80, p.z - 1.6, (p.x1 + p.x2) / 2 + 1.6, p.top - 0.8, p.z + 1.6, 'rock');
-      for (let y = p.top - 6; y > -70; y -= 14) deco((p.x1 + p.x2) / 2 - 1.7, y, p.z - 1.7, (p.x1 + p.x2) / 2 + 1.7, y + 0.25, p.z + 1.7);
+      // its pier, down into the abyss, ringed with light (stopping at the Core Sanctum's roof and going on
+      // under its floor, where one stands over the sanctum)
+      const cx = (p.x1 + p.x2) / 2, overSanctum = cx > 50 && cx < 82 && p.z < -120 && p.z > -152;
+      const spans = overSanctum ? [[-80, -57.5], [-41.5, p.top - 0.8]] : [[-80, p.top - 0.8]];
+      for (const [y1, y2] of spans) deco(cx - 1.6, y1, p.z - 1.6, cx + 1.6, y2, p.z + 1.6, 'rock');
+      for (let y = p.top - 6; y > -70; y -= 14) if (!overSanctum || y > -41 || y < -57.5) deco(cx - 1.7, y, p.z - 1.7, cx + 1.7, y + 0.25, p.z + 1.7);
     }
   }
   new Checkpoint(W, game, { pos: [72.5, L[1].top, L[1].z], yaw: Math.PI / 2, size: [3, 3, 5] });

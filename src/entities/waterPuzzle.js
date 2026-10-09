@@ -55,7 +55,7 @@ const v3 = (p) => (p.isVector3 ? p.clone() : V(...p));
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = THREE.MathUtils.clamp;
 const BLUE_HEX = COLORS[BLUE].hex;
-const SOUNDS = ['crab_chirp', 'critter_hit', 'fish_alert', 'switch_on', 'hydraulic_hiss', 'gate_open', 'elevator_loop', 'energy_crackle', 'joint_sparks', 'shield_break', 'shield_absorb', 'ricochet', 'crab_skitter', 'crab_explode', 'phase_in', 'phase_out', 'servo_heavy', 'mover_step'];
+const SOUNDS = ['seal_chirp', 'seal_alarm', 'tank_fill', 'breaker_trip', 'crab_chirp', 'critter_hit', 'fish_alert', 'switch_on', 'hydraulic_hiss', 'gate_open', 'elevator_loop', 'energy_crackle', 'joint_sparks', 'shield_break', 'shield_absorb', 'ricochet', 'crab_skitter', 'crab_explode', 'phase_in', 'phase_out', 'servo_heavy', 'mover_step'];
 audio.manifest?.then(() => audio.prefetch(SOUNDS));
 // how loud something at p is for the player (the camera)
 function gainAt(game, p, far = 40) {
@@ -248,9 +248,16 @@ export class WaterTank {
       fx.grav[k] = 9;
     }
     // the gurgle of it filling, rising in pitch with the level
+    // (tank_fill once generated; a band of noise rising with the level until then)
     const g = filling && !this.latched && this.level < 1 ? 0.12 * gainAt(this.game, this.pos, 30) : 0;
-    this.loop.set(g, dt);
-    this.loop.v?.filter?.frequency.setTargetAtTime(380 + this.level * 900, audio.ctx.currentTime, 0.1);
+    if (audio.available?.has('tank_fill')) {
+      if (g > 0.01) this.fillLoop ??= audio.createLoop('tank_fill', { gain: 0 });
+      this.fillLoop?.setGain(g * 4);
+      this.fillLoop?.setRate(0.85 + this.level * 0.4);
+    } else {
+      this.loop.set(g, dt);
+      this.loop.v?.filter?.frequency.setTargetAtTime(380 + this.level * 900, audio.ctx.currentTime, 0.1);
+    }
   }
 
   reset() {
@@ -314,7 +321,9 @@ export class PulleyGate {
   }
 
   get frac() {
-    return Math.min(...this.tanks.map((t) => t.shown));
+    let k = 1;
+    for (const t of this.tanks) k = Math.min(k, t.shown);
+    return k;
   }
 
   place() {
@@ -537,9 +546,11 @@ export class RoboSeal {
   chirp(kind = 'happy') {
     const g = gainAt(this.game, this.pos, 35);
     if (g <= 0.02) return;
-    if (kind === 'happy') audio.sample('crab_chirp', { gain: 0.8 * g, rate: rnd(1.5, 1.8), vary: 0.05 });
-    else if (kind === 'want') audio.sample('crab_chirp', { gain: 0.6 * g, rate: rnd(1.1, 1.25), vary: 0.03 });
-    else audio.sample('fish_alert', { gain: 0.8 * g, rate: 1.4, vary: 0.05 });
+    // (seal_chirp / seal_alarm once generated; pitched crab chirps until then)
+    const chirp = audio.sfxOr('seal_chirp', 'crab_chirp'), own = chirp === 'seal_chirp';
+    if (kind === 'happy') audio.sample(chirp, { gain: 0.8 * g, rate: own ? rnd(1.05, 1.2) : rnd(1.5, 1.8), vary: 0.05 });
+    else if (kind === 'want') audio.sample(chirp, { gain: 0.6 * g, rate: own ? rnd(0.85, 0.95) : rnd(1.1, 1.25), vary: 0.03 });
+    else audio.sample(audio.sfxOr('seal_alarm', 'fish_alert'), { gain: 0.8 * g, rate: own ? 1 : 1.4, vary: 0.05 });
   }
 
   // a chaser caught it: it bolts back to the water to try again (dropping its cell, if it had one)
@@ -599,8 +610,8 @@ export class RoboSeal {
         break;
       }
       case 'slide': {
-        const atEnd = this.s >= R.length - 0.9;
-        const go = this.shockT <= 0 && (this.wetAt(R.pointAt(this.s + 0.9, _b)) || (atEnd && this.wetAt(this.pos)));
+        const atEnd = this.s >= R.length - 0.7;
+        const go = this.shockT <= 0 && (this.wetAt(R.pointAt(this.s + 0.7, _b)) || (atEnd && this.wetAt(this.pos)));
         this.v = go ? Math.min(SEAL_SPEED, this.v + dt * 5) : Math.max(0, this.v - dt * 9);
         this.s = Math.min(R.length, this.s + this.v * dt);
         R.pointAt(this.s, this.pos);
@@ -982,6 +993,7 @@ export class Junction {
     audio.sample('energy_crackle', { gain: 0.9 * gainAt(this.game, this.center, 45), rate: 0.7, vary: 0.05 });
     if (this.oneShot) {
       this.tripped = true;
+      audio.sample(audio.sfxOr('breaker_trip', 'rotor_lock'), { gain: 1.1 * gainAt(this.game, this.center, 45), vary: 0 });
       if (this.lever) this.lever.rotation.x = 1.2;
     } else this.spent = this.cooldown;
     // spent: no longer a shocker until it re-arms

@@ -529,9 +529,9 @@ export function buildAzure(B) {
   W.deco(88.5, -17.45, -166.8, 100.4, -17.15, -166.2, 'metal', zone);
   W.deco(88.5, -17.45, -170.3, 88.9, -17.15, -166.2, 'metal', zone);
   for (const x of [93.5, 100]) W.deco(x - 0.35, -17.3, -166.85, x + 0.35, -17.0, -166.15, 'glow3', zone);
-  const tanks = [93.5, 100].map((x) => new WaterTank(W, game, { pos: [x, -23.9, -166.5], size: [1.5, 1.3, 1.5], capacity: 4.5, leak: 0.022, latch: false, face: '+z' }));
+  const tanks = [93.5, 100].map((x) => new WaterTank(W, game, { pos: [x, -24.1, -166.5], size: [1.8, 1.6, 1.8], capacity: 4.5, leak: 0.022, latch: false, face: '+z' }));
   const labGate = new PulleyGate(W, game, {
-    min: [87.42, -25, -171.55], max: [88.08, -21.75, -168.45], rise: 3.3, tanks, drop: 1.0,
+    min: [87.42, -25, -171.55], max: [88.08, -21.75, -168.45], rise: 3.3, tanks, drop: 0.9,
     anchors: [[93.5, -17.6, -166.5], [100, -17.6, -166.5]], pulley: [88.75, -17.9, -170],
     onOpen: () => game.hud.message('Both tanks full: the counterweights haul the gate up and it <b>latches</b>.', 4),
   });
@@ -560,6 +560,7 @@ export function buildAzure(B) {
     },
   });
   level.azure.labPlug = plug;
+  hint([97.5, -25, -169.5], [102.5, -21, -163.5], 'The feed pipe over this tank is <b>frozen solid</b>. Thaw the plug with the <b style="color:#ffd23a">sun beam</b> and it\'ll fill itself.', 5);
   level.azure.labGate = labGate;
   level.azure.labTanks = tanks;
   // ARMOR: tucked behind the specimen tanks against the east wall, and up on the crate by the south-west
@@ -675,10 +676,12 @@ export function buildAzure(B) {
         game.hud.message('The breaker trips: <b>the forcefield is down</b>.', 4);
       },
     });
+    // ...caged in GREEN hard light: lob a glob over (its splash breaks the cage), then hose the breaker
+    new Barrier(W, { min: [66.5, y + 2.45, -175.4], max: [67.35, y + 3.95, -173.8], color: GREEN, kind: 'wall', zone });
     level.azure.breaker = breaker;
     level.azure.hallPool = pool;
     W.deco(66.52, y + 2.4, -175.4, 66.56, y + 2.5, -173.8, 'hazard', zone);
-    hint([84.5, y, zN], [x2, y + 3, zS], 'The floor is <b>live</b> — one step in it and you\'re fried. Cross on the insulated grates. The way out is a forcefield: its <b>breaker</b> is up on the far wall.', 7);
+    hint([84.5, y, zN], [x2, y + 3, zS], 'The floor is <b>live</b> — one step in it and you\'re fried. Cross on the insulated grates. The way out is a forcefield: its <b>breaker</b> is up on the far wall, caged in <b style="color:#3dff7a">green</b>.', 7);
     // the robots on the far sill wake when you're halfway over
     B.encounter({
       trigger: [[73, y + 0.9, -168], [76, y + 4, -165]],

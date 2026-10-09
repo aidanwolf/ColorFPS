@@ -129,7 +129,7 @@ function azureAfter(p, game) {
     return 'Through the gate <b>west</b>.';
   }
   if (inBox(p, 66, 88, -178, -162, -26, -18)) {
-    if (st.breaker && !st.breaker.tripped) return `The floor is live: cross on the insulated grates, and ${W('hose the breaker')} up on the far wall to drop the forcefield.`;
+    if (st.breaker && !st.breaker.tripped) return `The floor is live: cross on the insulated grates, break the ${tag(GREEN, 'green cage')} on the far wall's breaker and ${W('hose the breaker')} to drop the forcefield.`;
     return 'The forcefield is down: on <b>west</b>, into the Well.';
   }
   if (inBox(p, 50, 66, -182, -158, -47, -17)) return `Work down the ice pillars to the hole, blast its ${tag(RED, 'red')} grate and sink down the flooded pipe: shoot ${tag(YELLOW, 'yellow')}, then ${tag(GREEN, 'green')}.`;
