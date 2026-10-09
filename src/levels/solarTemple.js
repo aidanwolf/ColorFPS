@@ -473,7 +473,8 @@ export function buildSolarTemple(B, K, depths) {
   // ================================================================ THE SHAFT, STAGE 1 (west wall, y -58 → -46)
   // A zigzag of ledges up the west wall (two columns), a crumbling one in the middle; from the top ledge a
   // sun-disc on the south wall summons hard-light steps east to L1 for a few seconds.
-  const A1 = -128, A2 = -125, B1 = -124.5, B2 = -121.5, ZN1 = -53.5, ZN2 = -50.5, ZS1 = -48, ZS2 = -45;
+  // (2.2 m gaps between ledges rising 1.2: a jump taken right at the edge still clears the next lip)
+  const A1 = -128, A2 = -125.5, B1 = -123.3, B2 = -120.8, ZN1 = -52.8, ZN2 = -49.8, ZS1 = -47.6, ZS2 = -44.6;
   const ledge = (x1, z1, x2, z2, top) => {
     F(x1, top - 0.5, z1, x2, top, z2);
     glowEdge(x1, z1, x2, z2, top, glow, zone);
@@ -488,10 +489,7 @@ export function buildSolarTemple(B, K, depths) {
     }
   };
   zig(T0, [2, 6]); // tops -56.8 … -48.4
-  const hl1 = [
-    new PhasePlatform(W, { min: [-120, -48, -52.5], max: [-117, -47.6, -49.5], on: false, zone }),
-    new PhasePlatform(W, { min: [-115.5, -47.2, -51.5], max: [-112.5, -46.8, -48.5], on: false, zone }),
-  ];
+  const hl1 = [new PhasePlatform(W, { min: [-118.6, -47.7, -52], max: [-116.1, -47.3, -49], on: false, zone })];
   const act1 = new LightReceiver(W, { pos: [-118.5, -45.6, TZ2 - 2.12], face: '-z', color: YELLOW, size: 1.2, look: 'disc', mode: 'timed', time: 4.5, fill: 0.35, links: hl1 });
   // the pit's stalkers (they stride over the quicksand) and the wing's scarabs
   B.mummy([-118, -66, -49], { color: YELLOW, shieldColor: RED, range: 26, patrol: 5 });
@@ -507,8 +505,8 @@ export function buildSolarTemple(B, K, depths) {
   // along the tube gets in. A hooded prism on a column over the pit can throw it there — but its hood is
   // open only to the north, where a rotatable prism stands on a taller column in the hood's line.
   const L1 = -46;
-  F(-112, L1 - 0.6, TZ2 - 9, TX2 - 2, L1, TZ2 - 2);
-  glowEdge(-112, TZ2 - 9, TX2 - 2, TZ2 - 2, L1, glow, zone);
+  F(-113.9, L1 - 0.6, TZ2 - 9, TX2 - 2, L1, TZ2 - 2);
+  glowEdge(-113.9, TZ2 - 9, TX2 - 2, TZ2 - 2, L1, glow, zone);
   ck([-104, L1, -46.5], -Math.PI / 2, [6, 3, 4]);
   const fightL1 = B.encounter({
     trigger: [[-111, L1, -50], [-97, L1 + 4, -44]],
@@ -551,15 +549,15 @@ export function buildSolarTemple(B, K, depths) {
   // L1's beam-lock raises a hard-light stair up the east wall; then stone and a crumbling ledge along the
   // north wall, and a sun-disc that summons the last two hard-light steps up to L2. A turret in an alcove.
   const stair2 = [
-    new PhasePlatform(W, { min: [-99, -45.2, -55.5], max: [-96, -44.8, -52.5], on: false, zone }),
+    new PhasePlatform(W, { min: [-99, -45.2, -56], max: [-96, -44.8, -53], on: false, zone }),
     new PhasePlatform(W, { min: [-99, -44, -61], max: [-96, -43.6, -58], on: false, zone }),
   ];
   ledge(-104.5, -61.5, -101.5, -58.5, -42.4);
   B.crumble({ min: [-109, -41.6, -61.5], max: [-106, -41.2, -58.5], delay: 0.7, respawn: 3, zone });
   ledge(-113.5, -61.5, -110.5, -58.5, -40.0);
-  ledge(-117.5, -61.5, -114.5, -58.5, -38.8);
+  ledge(-118.4, -61.5, -115.6, -58.5, -38.8);
   const hl2 = [
-    new PhasePlatform(W, { min: [-117.5, -38, -56.8], max: [-114.5, -37.6, -54.2], on: false, zone }),
+    new PhasePlatform(W, { min: [-116.5, -38, -56.5], max: [-114, -37.6, -53.5], on: false, zone }),
   ];
   const act2 = new LightReceiver(W, { pos: [-113, -36.2, TZ1 + 2.12], face: '+z', color: YELLOW, size: 1.2, look: 'disc', mode: 'timed', time: 4, fill: 0.35, links: hl2 });
   B.turret([-96.1, -38.5, -60], YELLOW, { shields: [RED], mount: [-1, 0, 0] });
@@ -568,8 +566,8 @@ export function buildSolarTemple(B, K, depths) {
   // A prism glides back and forth on a rail across the shaft; its exit points south. Only at the east end
   // of its run does it line up with the receiver's tube in the south wall — hold the beam on it as it comes.
   const L2 = -36.4;
-  F(TX1 + 2, L2 - 0.6, TZ1 + 2, -118, L2, -55);
-  glowEdge(TX1 + 2, TZ1 + 2, -118, -55, L2, glow, zone);
+  F(TX1 + 2, L2 - 0.6, TZ1 + 2, -119, L2, -55);
+  glowEdge(TX1 + 2, TZ1 + 2, -119, -55, L2, glow, zone);
   ck([-123, L2, -58.5], 0, [5, 3, 5]);
   devStart('solar9', [-123, L2, -58.5], Math.PI, [RED, YELLOW], 'The Sun Temple climb (halfway)');
   B.encounter({
@@ -591,7 +589,7 @@ export function buildSolarTemple(B, K, depths) {
     checkpoint: { pos: [-123, L2, -58.5], yaw: Math.PI },
     onClear: () => templeMood(),
   });
-  const T3Y = -34.0, T3X = -106;
+  const T3Y = -32.2, T3X = -106;
   // the receiver's tube: a casing on the south wall (axis along z at x -106)
   R(T3X - 1.5, T3Y - 1.6, TZ2 - 5.5, T3X + 1.5, T3Y - 0.5, TZ2 - 2);
   R(T3X - 1.5, T3Y + 0.5, TZ2 - 5.5, T3X + 1.5, T3Y + 1.6, TZ2 - 2);
@@ -618,12 +616,12 @@ export function buildSolarTemple(B, K, depths) {
     });
   }
   const L3 = -23.2;
-  const hl3a = [new PhasePlatform(W, { min: [-120, -26.0, -52.5], max: [-117, -25.6, -49.5], on: false, zone })];
-  const hl3b = [new PhasePlatform(W, { min: [-115.5, -24.8, -51.5], max: [-112.5, -24.4, -48.5], on: false, zone })];
+  const hl3a = [new PhasePlatform(W, { min: [-118.6, -26.0, -52], max: [-116.1, -25.6, -49], on: false, zone })];
+  const hl3b = [new PhasePlatform(W, { min: [-113.9, -24.8, -51.5], max: [-111.4, -24.4, -48.5], on: false, zone })];
   const act3a = new LightReceiver(W, { pos: [-122, -24.2, TZ2 - 2.12], face: '-z', color: YELLOW, size: 1.1, look: 'disc', mode: 'timed', time: 4, fill: 0.3, links: hl3a });
   const act3b = new LightReceiver(W, { pos: [-114, -22.8, TZ2 - 2.12], face: '-z', color: YELLOW, size: 1.1, look: 'disc', mode: 'timed', time: 3.5, fill: 0.3, links: hl3b });
-  F(-112, L3 - 0.6, TZ2 - 9, TX2 - 2, L3, TZ2 - 2);
-  glowEdge(-112, TZ2 - 9, TX2 - 2, TZ2 - 2, L3, glow, zone);
+  F(-109.2, L3 - 0.6, TZ2 - 9, TX2 - 2, L3, TZ2 - 2);
+  glowEdge(-109.2, TZ2 - 9, TX2 - 2, TZ2 - 2, L3, glow, zone);
   ck([-104, L3, -46.5], -Math.PI / 2, [6, 3, 4]);
   B.scarab([-100, L3, -48], { color: YELLOW, shields: [RED], range: 10, burrow: false });
   new Drone(W, { pos: [-118, -18, -54], color: YELLOW, shields: [RED], range: 20 });
@@ -638,14 +636,14 @@ export function buildSolarTemple(B, K, depths) {
   R(-100, T4Y - 0.5, T4Z - 1.5, TX2 - 2, T4Y + 0.5, T4Z - 0.5);
   R(-100, T4Y - 0.5, T4Z + 0.5, TX2 - 2, T4Y + 0.5, T4Z + 1.5);
   const rt4 = new LightReceiver(W, { pos: [TX2 - 2.05, T4Y, T4Z], face: '-x', color: YELLOW, size: 0.9 });
-  R(-110.5, -66.4, T4Z - 0.5, -109.5, T4Y - 1.1, T4Z + 0.5);
-  const pD = new Prism(W, { pos: [-110, T4Y, T4Z], rotatable: true, yaw: 0, step: Math.PI / 4, count: 8, start: 5, stand: 0.6 });
+  R(-107.5, -66.4, T4Z - 0.5, -106.5, T4Y - 1.1, T4Z + 0.5);
+  const pD = new Prism(W, { pos: [-107, T4Y, T4Z], rotatable: true, yaw: 0, step: Math.PI / 4, count: 8, start: 5, stand: 0.6 });
   // its hood: open south (the feed from L3's prism) and east (toward the tube)
-  R(-111.1, T4Y + 0.7, T4Z - 0.9, -108.9, T4Y + 0.9, T4Z + 0.9);
-  R(-111.1, T4Y - 0.9, T4Z - 0.9, -108.9, T4Y - 0.7, T4Z + 0.9);
-  R(-111.1, T4Y - 0.7, T4Z - 0.9, -108.9, T4Y + 0.7, T4Z - 0.7);
-  R(-111.1, T4Y - 0.7, T4Z - 0.7, -110.9, T4Y + 0.7, T4Z + 0.9);
-  const pC = new Prism(W, { pos: [-110, T4Y, -47.5], rotatable: true, yaw: 0, step: Math.PI / 4, count: 8, start: 2, stand: 1.2 });
+  R(-108.1, T4Y + 0.7, T4Z - 0.9, -105.9, T4Y + 0.9, T4Z + 0.9);
+  R(-108.1, T4Y - 0.9, T4Z - 0.9, -105.9, T4Y - 0.7, T4Z + 0.9);
+  R(-108.1, T4Y - 0.7, T4Z - 0.9, -105.9, T4Y + 0.7, T4Z - 0.7);
+  R(-108.1, T4Y - 0.7, T4Z - 0.7, -107.9, T4Y + 0.7, T4Z + 0.9);
+  const pC = new Prism(W, { pos: [-107, T4Y, -47.5], rotatable: true, yaw: 0, step: Math.PI / 4, count: 8, start: 2, stand: 1.2 });
   K.lights.push(rt4);
   hint([-112, L3, -51], [-96, L3 + 3, -44], 'Another tube in the east wall. The prism on the column could reach it — but its hood only takes light from the <b>south</b>: from <b>this</b> prism.', 7);
   // L3's beam-lock: the hard-light lift up into the apex chamber
