@@ -309,6 +309,19 @@ export class Player {
     this.vel.y -= GRAVITY * dt;
     // updraft columns slow the fall through shielded spike drops
     for (const u of world.updrafts || []) if (u.contains(this.pos) && this.vel.y < -u.cap) this.vel.y = -u.cap;
+    // ladders (world.ladders: { min, max, n } boxes, e.g. levels/verdantKit.js reactor tanks): inside one, Space
+    // or W facing it climbs, S climbs down, and otherwise you hang on where you are
+    for (const l of world.ladders || []) {
+      const q = this.pos;
+      if (q.x < l.min.x || q.x > l.max.x || q.z < l.min.z || q.z > l.max.z || q.y < l.min.y - 0.1 || q.y > l.max.y) continue;
+      const facing = !l.n || fx * -l.n[0] + fz * -l.n[2] > 0.3;
+      const up = input.down('Space') || ((input.down('KeyW') || input.down('ArrowUp')) && facing);
+      const down = input.down('KeyS') || input.down('ArrowDown');
+      this.vel.y = up ? 4.2 : down && !this.grounded ? -3.5 : Math.max(this.vel.y, 0);
+      if (up) this.coyote = 0;
+      this.launched = false;
+      break;
+    }
     if (this.vel.y < -40) this.vel.y = -40;
     }
     this.updateAir(dt);
