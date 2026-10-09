@@ -55,13 +55,21 @@ function softTex(draw) {
 }
 
 // A soft column of light standing on a landing you should head for.
-function beacon(W, x, y, z, hex, h = 7, r = 0.8) {
+// (until: a test that puts it out for good once it's done its job)
+function beacon(W, x, y, z, hex, h = 7, r = 0.8, until = null) {
   const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(0.9), transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.8, r, h, 20, 1, true), m);
   mesh.position.set(x, y + h / 2, z);
   W.scene.add(mesh);
   let t = Math.random() * 6;
-  W.add({ update: (dt) => (t += dt, (m.opacity = 0.13 + Math.sin(t * 2.6) * 0.05)) });
+  W.add({
+    update(dt) {
+      if (!mesh.visible) return;
+      t += dt;
+      m.opacity = 0.13 + Math.sin(t * 2.6) * 0.05;
+      if (until?.()) mesh.visible = false;
+    },
+  });
   return m;
 }
 
@@ -467,11 +475,11 @@ export function buildVerdant(B) {
   mist(13, 2, -183.4, 6, 6);
   glowPatch(14.5, -197.5, 29.5, -172.5, 9, 30);
   vines(14.05, -197.9, 14.1, -172.2, 9, 20, 5);
-  W.box(14.4, 9, -197.6, 18.6, 9.8, -196.8, 'wall', zone); // a toppled lintel at the lookout
-  cp([17, 9, -194.5], NORTH, [6, 3, 4]);
+  W.box(25.4, 9, -197.6, 29.6, 9.8, -196.8, 'wall', zone); // a toppled lintel at the lookout
+  cp([20, 9, -194.5], NORTH, [8, 3, 4]);
   say([14, 9, -198], [24, 12, -192], `Across the water, cradled in roots: a ${G_('chroma core')}. Down the stone to the bank.`, 5);
   // down to the bank: one stone, then the bank
-  stone(15, -202, 18, -199.5, 7.2, 1);
+  stone(22, -202, 25, -199.5, 7.2, 1);
 
   // ================================================================ THE SEED SHRINE and ARENA 1 · THE HIVE WAKES (z -203 → -214)
   // The Ruin Bank: a strip of old paving between the moat and the Hollow's rim, a raised shrine in the
@@ -481,22 +489,22 @@ export function buildVerdant(B) {
   // bowled off it (Brinks). Then up the terrace at the west end (a rocket jump) to the gateway.
   ground(-30, -214, 30, -203, 4.5, -31);
   area([-30, 4.5, -213.5], [30, 9, -203.5], MOOD);
-  for (const [x, z, h] of [[-12.5, -210.5, 3.2], [-4, -205.6, 2], [13.5, -210, 3.6], [22, -206, 1.4]]) column(x, z, 4.5, h, 1.3);
+  for (const [x, z, h] of [[-12.5, -210.5, 3.2], [-4, -205.6, 2], [-1, -210.8, 3.6], [26, -206, 1.4]]) column(x, z, 4.5, h, 1.3);
   W.box(-9.5, 4.5, -212.6, -6.5, 5.6, -211.6, 'wall', zone); // low ruined walls for cover
-  W.box(17.2, 4.5, -208.5, 18.2, 5.4, -205.5, 'wall', zone);
+  W.box(2.5, 4.5, -205.6, 5.5, 5.4, -204.6, 'wall', zone);
   glowPatch(-17.5, -213.5, 29.5, -203.5, 4.5, 26);
   W.trigger([-30, 4, -214], [30, 9, -203], () => !game.blaster.unlocked[GREEN] && game.hud.zoneTitle('A CRADLE OF ROOTS', 'THE SEED SHRINE', '#3dff7a', 2.6));
   // the shrine: a raised dais, four broken columns, the core on its pedestal
-  W.box(0, 4.5, -212.5, 8, 5.7, -204.5, 'wall', zone);
-  W.box(8, 4.5, -210, 9, 5.1, -207, 'wall', zone); // steps east and west
-  W.box(-1, 4.5, -210, 0, 5.1, -207, 'wall', zone);
-  glowEdge(0, -212.5, 8, -204.5, 5.7, GLOW[zone], zone, 0.06);
-  for (const [x, z, h] of [[0.6, -211.9, 3.6], [7.4, -211.9, 2.3], [0.6, -205.1, 1.5], [7.4, -205.1, 4.4]]) column(x, z, 5.7, h, 0.9);
-  const core = pedestal(4, 5.7, -208.5, GREEN, zone);
-  cp([4, 5.7, -205.6], NORTH, [6, 3, 2]);
-  beacon(W, 4, 6.6, -208.5, 0x3dff7a, 10, 0.9);
+  W.box(13, 4.5, -212.5, 21, 5.7, -204.5, 'wall', zone);
+  W.box(21, 4.5, -210, 22, 5.1, -207, 'wall', zone); // steps east and west
+  W.box(12, 4.5, -210, 13, 5.1, -207, 'wall', zone);
+  glowEdge(13, -212.5, 21, -204.5, 5.7, GLOW[zone], zone, 0.06);
+  for (const [x, z, h] of [[13.6, -211.9, 3.6], [20.4, -211.9, 2.3], [13.6, -205.1, 1.5], [20.4, -205.1, 4.4]]) column(x, z, 5.7, h, 0.9);
+  const core = pedestal(17, 5.7, -208.5, GREEN, zone);
+  cp([17, 5.7, -205.6], NORTH, [6, 3, 2]);
+  beacon(W, 17, 6.6, -208.5, 0x3dff7a, 10, 0.9, () => !core.active);
   // the hive's gun perches: root shelves out over the drop behind the bank, walled with parapets
-  for (const [x1, x2, top] of [[-12, -4, 6.8], [14, 22, 7.2]]) {
+  for (const [x1, x2, top] of [[-12, -4, 6.8], [21, 28.5, 7.2]]) {
     bark(x1 + 2, -29, -220, x2 - 2, top - 1, -216);
     bough(x1, -221, x2, -215.2, top, 1.2);
     W.box(x1, top, -215.7, x2, top + 1.4, -215.2, 'wall', zone);
@@ -524,30 +532,32 @@ export function buildVerdant(B) {
   for (const [x1, z1, x2, z2] of [[-17.6, -211.9, -15.4, -211.7], [-17.6, -209.3, -15.4, -209.1], [-17.6, -211.9, -17.4, -209.1], [-15.6, -211.9, -15.4, -209.1]]) W.deco(x1, 4.51, z1, x2, 4.55, z2, GLOW[zone], zone);
   // ARMOR: by the terrace's foot, behind the dais, and on the column at the east end
   B.armor([-19, 4.5, -204.4]);
-  B.armor([4, 5.7, -211.6], { base: false });
-  B.armor([22, 5.9, -206]);
+  B.armor([17, 5.7, -211.6], { base: false });
+  B.armor([26, 5.9, -206]);
   let hiveDue = false; // the core's been taken: the hive answers (again after a death mid-fight)
   const hive = B.encounter({
-    trigger: [[3, 60, -209], [5, 61, -208]], // (started by taking the core, not by walking in: see below)
+    trigger: [[16, 60, -209], [18, 61, -208]], // (started by taking the core, not by walking in: see below)
     seals: [{ min: [-25.5, 7.9, -214], max: [-22.5, 11.3, -213.5], closed: true }],
     title: 'THE HIVE WAKES', sub: 'TEST THE GLOB LAUNCHER', color: '#3dff7a', music: 'music_combat', zone, resume: true,
     checkpoint: { pos: [-15.5, 4.5, -210.5], yaw: WEST },
     waves: [
       { title: 'CLUSTERS AND FLYERS', enemies: [
-        { type: 'slime', pos: [-12, 4.5, -206.6], color: GREEN, core: GREEN },
-        { type: 'slime', pos: [-10.4, 4.5, -208.4], color: GREEN, core: GREEN, delay: 0.2 },
-        { type: 'slime', pos: [-13.8, 4.5, -208.6], color: GREEN, core: GREEN, size: 0.85, delay: 0.4 },
+        { type: 'slime', pos: [5, 4.5, -209.2], color: GREEN, core: GREEN },
+        { type: 'slime', pos: [6.6, 4.5, -210.8], color: GREEN, core: GREEN, delay: 0.2 },
+        { type: 'slime', pos: [3.6, 4.5, -211], color: GREEN, core: GREEN, size: 0.85, delay: 0.4 },
+        { type: 'slime', pos: [-12, 4.5, -207.5], color: GREEN, core: GREEN, delay: 1.8 },
+        { type: 'slime', pos: [-10.6, 4.5, -209], color: GREEN, core: GREEN, size: 0.85, delay: 2 },
         { type: 'drone', pos: [-4, 9, -216.8], color: GREEN, delay: 0.9 },
         { type: 'drone', pos: [17, 9.5, -217], color: GREEN, delay: 1.2 },
-        { type: 'swarm', pos: [11, 8, -207], color: GREEN, count: 5, delay: 2.2 },
+        { type: 'swarm', pos: [4, 8, -208], color: GREEN, count: 5, delay: 2.2 },
       ] },
       { title: 'BEHIND THE PARAPETS', enemies: [
         { type: 'mortar', pos: [-8, 6.8, -218.6], color: GREEN, shields: [YELLOW] },
-        { type: 'mortar', pos: [18, 7.2, -218.6], color: GREEN, delay: 0.5 },
+        { type: 'mortar', pos: [25, 7.2, -218.6], color: GREEN, delay: 0.5 },
         { type: 'spider', pos: [-20, 4.5, -206.5], color: GREEN, shields: [RED], delay: 1 },
-        { type: 'spider', pos: [24, 4.5, -210], color: GREEN, shields: [RED], delay: 1.4 },
-        { type: 'slime', pos: [13.5, 4.5, -206.2], color: YELLOW, core: GREEN, delay: 2.2 },
-        { type: 'slime', pos: [11.8, 4.5, -205.2], color: YELLOW, core: GREEN, size: 0.85, delay: 2.4 },
+        { type: 'spider', pos: [27, 4.5, -209], color: GREEN, shields: [RED], delay: 1.4 },
+        { type: 'slime', pos: [-2, 4.5, -207], color: YELLOW, core: GREEN, delay: 2.2 },
+        { type: 'slime', pos: [-3.6, 4.5, -208.6], color: YELLOW, core: GREEN, size: 0.85, delay: 2.4 },
       ] },
       { title: 'HEAVIES', enemies: [
         { type: 'brute', pos: [-14, 4.5, -206], color: GREEN, shields: [RED] },
@@ -555,8 +565,8 @@ export function buildVerdant(B) {
         { type: 'drone', pos: [-20, 10, -216.5], color: GREEN, shields: [RED], delay: 1.2 },
         { type: 'drone', pos: [20, 10, -216], color: GREEN, shields: [YELLOW], delay: 1.6 },
         { type: 'swarm', pos: [0, 8, -209], color: GREEN, count: 6, delay: 2.6 },
-        { type: 'slime', pos: [20, 4.5, -207], color: GREEN, core: GREEN, delay: 3.2 },
-        { type: 'slime', pos: [21.6, 4.5, -208.8], color: GREEN, core: GREEN, size: 0.85, delay: 3.4 },
+        { type: 'slime', pos: [6, 4.5, -207], color: GREEN, core: GREEN, delay: 3.2 },
+        { type: 'slime', pos: [7.4, 4.5, -208.8], color: GREEN, core: GREEN, size: 0.85, delay: 3.4 },
       ] },
     ],
     onClear: () => setTimeout(() => game.hud.message(`The gateway's open, up on the old terrace at the <b>west</b> end. Too high to jump — <b>look down, then jump and fire a ${G_('glob')} together</b>.`, 8), 2600),
@@ -616,10 +626,14 @@ export function buildVerdant(B) {
     glowEdge(-28.93, z1 - 0.03, -25.2, z2 + 0.03, 7.12, GLOW[zone], zone, 0.05);
     vines(-28.9, z1, -25.3, z2, 6.3, 5, 5);
   });
-  // (1) behind a root wall facing the gateway
+  // (1) behind a root wall facing the gateway, a taller one at its back: a glob just clearing the front wall
+  // bursts on the back one, right over the bulb
   bark(-29, 7.2, -222.6, -25.25, 9.7, -222.1);
   W.deco(-29.02, 9.7, -222.62, -25.23, 9.78, -222.08, GLOW[zone], zone);
   vines(-29, -222.08, -25.3, -222.05, 9.7, 6, 2);
+  bark(-29, 7.2, -225.9, -25.25, 11.2, -225.4);
+  bark(-29.4, 7.2, -225.9, -28.9, 10.4, -222.1);
+  vines(-29, -225.95, -25.3, -225.9, 11.2, 5, 3);
   bulbs.push(new SporeBulb(W, { pos: [-27.2, 7.2, -224.2], size: 1.1, stalk: 0.7, onActivate: () => arms[0].activate() }));
   // (2) down a hollow stump
   bark(-28.9, 7.2, -235.6, -25.3, 8.7, -235.25);
@@ -1252,7 +1266,7 @@ export function buildVerdant(B) {
   })();
   // fireflies: the jungle's ambient life, wandering in little clouds near the paths
   const flies = (() => {
-    const spots = [[25, 5.5, -164, 5], [-10, 5.5, -168, 6], [-22, 6.5, -190, 5], [3, 7, -188, 4], [-8, 6, -209, 6], [4, 8, -208.5, 3.5], [19, 10.5, -192, 4], [-24, 9.5, -229, 4], [-52, -23.5, -281, 6], [-81, -22, -281, 9], [-83, -18, -320, 8], [-55, 16, -329, 4], [0, 28, -286, 10], [0, 22.5, -268, 3], [49, 14, -279, 5], [-83, -23.5, -302, 2], [-104.5, -23.5, -270, 2], [49, 14, -298, 4]];
+    const spots = [[25, 5.5, -164, 5], [-10, 5.5, -168, 6], [-22, 6.5, -190, 5], [3, 7, -188, 4], [-8, 6, -209, 6], [17, 8, -208.5, 3.5], [20, 10.5, -193, 4], [-24, 9.5, -229, 4], [-52, -23.5, -281, 6], [-81, -22, -281, 9], [-83, -18, -320, 8], [-55, 16, -329, 4], [0, 28, -286, 10], [0, 22.5, -268, 3], [49, 14, -279, 5], [-83, -23.5, -302, 2], [-104.5, -23.5, -270, 2], [49, 14, -298, 4]];
     const N = spots.length * 22, base = new Float32Array(N * 3), pos = new Float32Array(N * 3), ph = new Float32Array(N);
     let k = 0;
     for (const [x, y, z, r] of spots)
@@ -1622,7 +1636,7 @@ export function buildVerdant(B) {
   // ---- THE SEED SHRINE: four great roots climb out of the bank round the dais and knot together high over
   // the core, hung with glowing fruit and moss; a shaft of light falls through the canopy onto it
   {
-    const C = [4, -208.5], knotY = 13.6;
+    const C = [17, -208.5], knotY = 13.6;
     // a root as a chain of tapering limbs through the given points
     const limb = (pts, r0, r1) => {
       for (let i = 0; i < pts.length - 1; i++) {
@@ -1633,10 +1647,11 @@ export function buildVerdant(B) {
         put(barkMat, new THREE.IcosahedronGeometry(r * 1.05, 1), bx, by, bz); // the knuckle at each bend
       }
     };
-    for (const [bx, bz, s] of [[-3.5, -214, 1], [11.5, -214.2, 1.1], [12.2, -203.6, 0.9], [-4.2, -203.4, 1]]) {
-      const mx = bx + (C[0] - bx) * 0.35, mz = bz + (C[1] - bz) * 0.35;
-      const hx = bx + (C[0] - bx) * 0.75, hz = bz + (C[1] - bz) * 0.75;
-      limb([[bx, 3.6, bz], [mx, 9.5 * s, mz], [hx, knotY + 0.4, hz], [C[0], knotY, C[1]]], 0.55 * s, 0.3);
+    for (const [bx, bz, s] of [[10.8, -214, 1], [24.5, -214.2, 1.1], [25.2, -203.6, 0.9], [10.5, -203.4, 1]]) {
+      const at = (u, y, out = 0) => [bx + (C[0] - bx) * u - (C[0] - bx) * out, y, bz + (C[1] - bz) * u - (C[1] - bz) * out];
+      // up out of the paving, bowing outward, then arching in over the core
+      limb([[bx, 3.4, bz], at(0.04, 6.5 * s, 0.06), at(0.2, 10.2 * s, 0.04), at(0.5, knotY + 1.1), at(0.8, knotY + 0.8), [C[0], knotY, C[1]]], 0.85 * s, 0.32);
+      limb([at(0.1, 5, 0), at(0.3, 7.8, -0.05), at(0.45, 9.2 * s, 0.02)], 0.28, 0.14); // a side shoot
       for (let i = 0; i < 4; i++) {
         const u = R(0.25, 0.85);
         bud(bx + (C[0] - bx) * u + R(-0.3, 0.3), 3.6 + (knotY - 3.6) * Math.min(1, u * 1.3) + 0.2, bz + (C[1] - bz) * u, R(0.9, 1.4));
@@ -1656,11 +1671,11 @@ export function buildVerdant(B) {
     shaft(C[0], 34, C[1], 29, 3, 0.05);
     shaft(C[0] + 0.6, 30, C[1] - 0.4, 25, 1.6, 0.03);
     put(mossMat, boxGeo(7.6, 0.05, 7.6, 0.5), C[0], 5.72, C[1]);
-    for (let i = 0; i < 10; i++) fern(R(0.6, 7.4), 5.7, R(-212, -205), R(0.4, 0.7), 5);
-    glowPatch(0.4, -212.2, 7.6, -204.8, 5.7, 14, 0.5);
+    for (let i = 0; i < 10; i++) fern(R(13.6, 20.4), 5.7, R(-212, -205), R(0.4, 0.7), 5);
+    glowPatch(13.4, -212.2, 20.6, -204.8, 5.7, 14, 0.5);
     mist(C[0], 5.9, C[1], 12, 12);
     // hive nests clinging to the gun perches' backs: the hive network that answers the theft
-    for (const [x, y, z, s] of [[-10.5, 6.8, -220.3, 1], [-6, 6.8, -220.6, 0.8], [15.5, 7.2, -220.4, 0.9], [20.5, 7.2, -220.5, 1.1]]) {
+    for (const [x, y, z, s] of [[-10.5, 6.8, -220.3, 1], [-6, 6.8, -220.6, 0.8], [23.5, 7.2, -220.4, 0.9], [27, 7.2, -220.5, 1.1]]) {
       for (let i = 0; i < 4; i++) put(boneMat, new THREE.IcosahedronGeometry(R(0.45, 0.8) * s, 1).scale(1, R(0.7, 1.1), 0.8), x + R(-0.6, 0.6), y + R(0.3, 1.1), z + R(-0.2, 0.2));
       for (let i = 0; i < 7; i++) put(goldMat, new THREE.CylinderGeometry(0.09, 0.09, 0.1, 6).rotateX(PI / 2), x + R(-0.8, 0.8), y + R(0.4, 1.5), z + 0.62);
     }
@@ -1788,7 +1803,7 @@ export function buildVerdant(B) {
   // ================================================================ WAYFINDING
   const GREEN_HEX = 0x3dff7a;
   guideStrip([[-10, 4, -160], [-12, 4, -168], [-19.5, 4, -171.6]], 0xd2ffb8);
-  guideStrip([[15.5, 9, -192], [16.5, 9, -197.2]], 0xd2ffb8);
+  guideStrip([[17, 9, -192], [23.5, 9, -197.2]], 0xd2ffb8);
   guideStrip([[-10, 4.5, -210.5], [-17.2, 4.5, -210.5]], 0xd2ffb8);
   guideStrip([[-81, -25, -296], [-83, -25, -298.5]], 0xd2ffb8);
   beacon(W, -20, 4.5, -175.5, GREEN_HEX, 6);
@@ -1804,7 +1819,7 @@ export function buildVerdant(B) {
   devStart('verdant', [-10, 4, -151], NORTH, RY, 'The Verdant gate');
   devStart('verdant1', [-18, 5, -186.5], EAST, RY, 'The sludge moat');
   devStart('verdant2', [3.5, 5.6, -186], EAST, RY, 'Island two: up onto the plateau');
-  devStart('verdant3', [16.5, 4.5, -205], WEST, RY, 'The Seed Shrine (the green core)');
+  devStart('verdant3', [24.5, 4.5, -205.5], WEST, RY, 'The Seed Shrine (the green core)');
   devStart('verdant4', [-15.5, 4.5, -210.5], WEST, RYG, 'The terrace: first rocket jump');
   devStart('verdant5', [-24, 7.9, -212.5], NORTH, RYG, 'The root bridge (spore bulbs)');
   devStart('verdant6', [-25, 6, -250], WEST, RYG, 'The Hollow descent (splash switch)');

@@ -221,7 +221,15 @@ export class SporeBulb {
     this.shell.scale.setScalar(1 + this.bloom * 0.18 + Math.sin(this.t * 5) * 0.025 + this.flash * 0.15);
     for (const p of this.petals) p.rotation.x = -0.25 - this.bloom * 1.25;
     this.root.rotation.y = Math.sin(this.t * 0.7) * 0.08;
-    if (this.plumeH > 0) this.plumeMat.opacity = this.on ? 0.05 * this.dim : 0.13 + 0.06 * pulse;
+    if (this.plumeH > 0) this.plumeMat.opacity = this.on ? 0.05 * this.dim : 0.22 + 0.1 * pulse;
+    // a dormant bulb breathes out a thin stream of spores that rises well clear of whatever hides it
+    if (!this.on && this.plumeH > 0 && Math.random() < dt * 9 && player.pos.distanceToSquared(this.pos) < 2500) {
+      const fx = this.world.fx, p = this.headPos;
+      _v.set(p.x + rnd(-0.15, 0.15) * this.size, p.y + 0.2, p.z + rnd(-0.15, 0.15) * this.size);
+      const j = fx.spawn(0, _v, rnd(-0.15, 0.15), rnd(1.2, 2), rnd(-0.15, 0.15), SPORE, 1.6, rnd(1.6, 2.4), rnd(0.03, 0.05));
+      fx.drag[j] = 0.4;
+      fx.grav[j] = -0.15;
+    }
   }
 }
 
