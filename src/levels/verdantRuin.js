@@ -20,6 +20,7 @@ import { boxGeo } from '../materials.js';
 import { Checkpoint, Pickup } from '../entities/misc.js';
 import { SwampAmbush } from './verdantAmbush.js';
 import { ColorSwitch } from '../entities/mechanics.js';
+import { GooPad } from '../entities/gooPad.js';
 import { buildVerdantEscape } from './verdantEscape.js';
 
 const PI = Math.PI;
@@ -322,6 +323,15 @@ export function buildVerdantRuin(B, { K, F, trap }) {
   say([-52, S.floor, -360], [-48, S.floor + 4, -353], `There: held in the cradle's grip over the pyramid, a ${G_('chroma core')}. Up the stair.`, 6);
   cp([-50, S.floor, -357], NORTH, [4, 3, 3]);
   B.armor([-71, S.floor, -403]);
+  // SECRET — the Builders' Archive: a ledge high on the north wall, reached by a bloom pad in the floor below it
+  // (goo it, stand on it, and it throws you up)
+  slab(mats.granite, -62, top - 7.6, S.z1, -56, top - 6.6, S.z1 + 3.4);
+  K.put(mats.glyph, boxGeo(6, 0.5, 0.2, 0.6), -59, top - 7.3, S.z1 + 3.45);
+  for (let i = 0; i < 6; i++) K.put(mats.jade, boxGeo(0.4, 0.6, 0.12, 0.5), -61.4 + i * 0.95, top - 5.2, S.z1 + 0.08);
+  B.trophy(-59, top - 5.6, S.z1 + 1.4);
+  B.secretRoom([-62, top - 6.6, S.z1], [-56, top - 3.6, S.z1 + 3.4], "The Builders' Archive");
+  new GooPad(W, { pos: [-59, S.floor, S.z1 + 8.5], power: 24, push: [0, 0, -3.4] });
+  for (let i = 0; i < 4; i++) K.put(mats.sap, boxGeo(0.12, 0.04, 0.6, 0.5), -59, S.floor + 0.02, S.z1 + 6 - i * 0.9); // a faint trail to the pad
   B.armor([-29, S.floor, -357]);
 
   // ---------------------------------------------------------------- taking the core: the Seed's guard wakes
@@ -364,7 +374,7 @@ export function buildVerdantRuin(B, { K, F, trap }) {
     onStart: () => {
       cradle.shudder(1.4);
       quake(2.2);
-      setTimeout(() => game.hud.message(`${G_('GLOB LAUNCHER')}: globs arc and <b>burst</b>. One burst blows the goo off a whole clump — then finish the cores.`, 6), 2400);
+      setTimeout(() => game.hud.message(`${G_('GLOB LAUNCHER')}: globs arc and <b>burst</b>. One burst blows the goo off a whole clump — then finish the cores. Goo on the floor gums them up.`, 6), 2400);
     },
     onClear: () => {
       escape.arm();

@@ -380,15 +380,17 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
       swing.add(rope);
     }
     W.scene.add(pivot);
-    const st = { t: phase * period, broken: false };
+    const st = { t: phase * period, broken: false, paused: false };
     pendulums.push({ s, st, pivot });
-    resets.push(() => ((st.broken = false), (pivot.visible = true), (st.t = phase * period)));
+    // goo freezes it mid-swing (a burst on the log: it hangs there for a few seconds while you slip past)
+    const stick = W.goo?.registerStickable({ group: swing }, { box: (out) => out.setFromObject(log), freeze: false, duration: 4, parent: swing, onStick: () => (st.paused = true), onUnstick: () => (st.paused = false) });
+    resets.push(() => ((st.broken = false), (pivot.visible = true), (st.t = phase * period), (st.paused = false), stick?.unstick?.()));
     const lp = new THREE.Vector3();
     let lastSide = 0;
     W.add({
       update(dt, player) {
         if (st.broken || !run.active) return;
-        st.t += dt;
+        if (!st.paused) st.t += dt;
         const th = amp * Math.sin((st.t / period) * PI * 2);
         if (alongX) swing.rotation.z = th * Math.sign(g.dir.x);
         else swing.rotation.x = -th * Math.sign(g.dir.z);
@@ -506,6 +508,8 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
     slab(mats.granite, -6 - W5 / 2, y, Math.min(a.z, b.z) - 0.5, -6 + W5 / 2, a.y, Math.min(a.z, b.z));
     slab(mats.granite, -6 - W5 / 2, y, Math.max(a.z, b.z), -6 + W5 / 2, b.y, Math.max(a.z, b.z) + 0.5);
     B.spikes([-6 - W5 / 2, y, Math.min(a.z, b.z)], [-6 + W5 / 2, y + 0.7, Math.max(a.z, b.z)], { color: null });
+    // (a green burst over it lays a goo membrane you can run across instead of jumping)
+    W.goo?.addGap({ min: [-6 - W5 / 2, y, Math.min(a.z, b.z)], max: [-6 + W5 / 2, Math.min(a.y, b.y), Math.max(a.z, b.z)] }, { axis: 'y', duration: 8 });
     for (const sd of [-1, 1]) K.put(mats.sap, boxGeo(0.06, 0.05, Math.abs(b.z - a.z), 0.5), -6 + sd * (W5 / 2 - 0.05), a.y + 0.03, (a.z + b.z) / 2);
   }
   // the crumbling floor (seg 3) and the last leap (seg 7): slabs that fall away under you, a pit beneath
@@ -614,7 +618,7 @@ export function buildVerdantEscape(B, { K, F, cradle, quake, sanctum: S, slab, s
     game.setMusic(audio.musicOr('music_escape', 'music_ascent'));
     run.loop ??= audio.createLoop('boulder_roll', { gain: 0 });
     game.hud.zoneTitle('', 'RUN!', '#ffcf5a', 1.6);
-    setTimeout(() => run.active && game.hud.message(`Blast what's in your way with ${G_('globs')}. <b>Don't stop.</b>`, 4), 1500);
+    setTimeout(() => run.active && game.hud.message(`Blast what's in your way with ${G_('globs')} (hold to charge: a charged glob flies straight). Goo freezes the traps. <b>Don't stop.</b>`, 5), 1500);
   }, { once: false });
   onRespawn(() => {
     if (run.done) return;

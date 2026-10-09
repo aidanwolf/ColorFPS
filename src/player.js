@@ -47,6 +47,7 @@ const SAND_TINT = 0xd9b46a;
 const MIRE_TINT = 0x3a4a26; // Verdant's swamp mire: the same pull, a little slower, in black-green muck
 const MIRE_RATE = 0.8;
 const WADE_SLOW = 0.6; // knee-deep swamp water (world.wades boxes): you slog through it
+const MIRE_LEAP = 1.18; // hauled free of the mire, a jump heaves you up onto the bank (~2.1 m)
 // Wet ground (world.wet puddles): the grip left on a full slick (it keeps your momentum: hard to stop or
 // turn), and the speed a sprint across a long slick builds up to (× run speed; sprint is 1.38×) at
 // SLICK_BUILD of run speed a second. The build-up carries through the air until you land on dry ground,
@@ -313,7 +314,7 @@ export class Player {
     // (stuck in quicksand, jump is a haul upward instead: sinkIn)
     this.buffer = input.hit('Space') && !(this.inSand && this.sinkDepth > SINK_FREE) ? BUFFER : this.buffer - dt;
     if (this.buffer > 0 && this.coyote > 0) {
-      this.vel.y = JUMP_V * (this.slideBoost ? 1 + (SLICK_LEAP - 1) * Math.min(1, this.slideBoost / SLIDE_MAX) : 1);
+      this.vel.y = JUMP_V * (this.slideBoost ? 1 + (SLICK_LEAP - 1) * Math.min(1, this.slideBoost / SLIDE_MAX) : 1) * (this.inMire ? MIRE_LEAP : 1);
       this.buffer = 0;
       this.coyote = 0;
       this.grounded = false;
@@ -334,6 +335,9 @@ export class Player {
       const up = input.down('Space') || ((input.down('KeyW') || input.down('ArrowUp')) && facing);
       const down = input.down('KeyS') || input.down('ArrowDown');
       this.vel.y = up ? 4.2 : down && !this.grounded ? -3.5 : Math.max(this.vel.y, 0);
+      const damp = Math.max(0, 1 - dt * 6); // (you hold on: no drifting off the rungs)
+      this.vel.x *= damp;
+      this.vel.z *= damp;
       if (up) this.coyote = 0;
       this.launched = false;
       break;
