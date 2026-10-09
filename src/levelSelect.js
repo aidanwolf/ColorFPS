@@ -36,7 +36,7 @@ const LABELS = {
 const BOSSES = [
   { start: ['red7'], label: 'The Forge Titan', area: 'red' },
   { start: ['solar23'], label: 'The Sphinx', area: 'solar' },
-  { start: ['verdant12'], label: 'The Thornmaw', area: 'verdant' },
+  { start: ['verdantBoss'], label: 'The Thornmaw', area: 'verdant' },
   { start: ['cistern'], label: 'The Leviathan', area: 'azure' },
   { start: ['boss'], label: 'The Prism Warden', area: 'prism' },
 ];
@@ -52,7 +52,7 @@ const AREAS = [
   ['dev', 'Test ranges'],
 ];
 // starts that sit after a world's guardian (its power source already shut down)
-const AFTER = { red8: ['red'], solar24: ['solar'], verdant13: ['verdant'], ascent: ['azure'] };
+const AFTER = { red8: ['red'], solar24: ['solar'], verdantHome: ['verdant'], ascent: ['azure'] };
 
 const areaOf = (s) => {
   if (s.pos.x > 390 && s.pos.x < FINALE_X) return 'dev';

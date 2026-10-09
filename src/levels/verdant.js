@@ -13,9 +13,8 @@
 //   (x 10, y 12), through the gates and the one-way door.
 // Shutting the Heart down (game.onPowerDown('verdant'), also on load) kills the forest: see aftermath().
 import * as THREE from 'three';
-import { RED, YELLOW, GREEN, BLUE } from '../colors.js';
+import { BLUE } from '../colors.js';
 import { Barrier } from '../entities/barrier.js';
-import { SlidingDoor } from '../entities/puzzle.js';
 import { mat } from '../materials.js';
 import { regionOf } from './regions.js';
 import { buildVerdantSwamp } from './verdantSwamp.js';
@@ -27,7 +26,7 @@ const PI = Math.PI;
 const NORTH = 0;
 
 export function buildVerdant(B) {
-  const { W, game, level, GLOW, room, corridor, trophy, secretRoom, zoneTitle, area, blocker } = B;
+  const { W, game, level, GLOW, room, corridor, trophy, secretRoom, zoneTitle, area } = B;
   const zone = 'green';
   const MOOD = { music: 'music_green', ambient: 'amb_jungle', atmosphere: 'verdant' };
 
@@ -84,56 +83,6 @@ export function buildVerdant(B) {
   // ---------------------------------------------------------------- THE FIRST HALF and THE SECOND HALF
   const swamp = buildVerdantSwamp(B, { MOOD });
   const tree = buildGodTree(B, { landing: [30, 18, -330] });
-
-  // ---------------------------------------------------------------- THE AQUEDUCT (moves to verdantGodTree.js)
-  // From the aqueduct head (x 10, z -239: the way home lands there) south over the swamp to the Hub's north
-  // balcony port (x 10, y 12): blast each gate with its color; the gatehouse door opens one way, as you come home.
-  // (The tree agent owns this strip, x 8.5..11.5 above y 11 along z -237..-148.5; when its file is merged this
-  // section is deleted from here.)
-  {
-    W.box(8.5, 11, -240.5, 11.5, 12, -237.5, 'floor', zone); // the head (the stub's bridge meets it from the east)
-    W.box(8, 12, -241, 8.5, 13, -237.5, 'wall', zone);
-    blocker([8, 12, -241], [11.5, 40, -240.5]);
-    blocker([8, 12, -240.5], [8.5, 40, -158.5]);
-    blocker([11.5, 12, -237.5], [12, 40, -158.5]);
-    W.box(8.5, 11, -237.5, 11.5, 12, -158.5, 'floor', zone);
-    W.deco(8.45, 11.7, -237.5, 8.5, 11.8, -158.5, GLOW[zone], zone);
-    W.deco(11.5, 11.7, -237.5, 11.55, 11.8, -158.5, GLOW[zone], zone);
-    let seed = 7;
-    const rnd = (a, b) => ((seed = (seed * 9301 + 49297) % 233280), a + (b - a) * (seed / 233280));
-    for (let z = -160; z > -236; z -= rnd(3, 5)) {
-      const l = Math.min(rnd(1.5, 3.5), z + 237);
-      W.box(8.2, 12, z - l, 8.5, 12 + rnd(0.6, 0.95), z, 'wall', zone);
-      W.box(11.5, 12, z - l * rnd(0.6, 1), 11.8, 12 + rnd(0.6, 0.95), z, 'wall', zone);
-    }
-    for (const zc of [-166, -187, -206.5, -222]) {
-      W.box(9, -1.5, zc - 1, 11, 11, zc + 1, 'wall', zone);
-      W.box(8.4, 10.3, zc - 1.4, 11.6, 11, zc + 1.4, 'metal', zone);
-      W.deco(8.98, 9.6, zc - 1.02, 11.02, 9.68, zc + 1.02, GLOW[zone], zone);
-    }
-    const gateArch = (z, color) => {
-      W.box(7.6, 11, z - 0.45, 8.4, 16.2, z + 0.45, 'wall', zone);
-      W.box(11.6, 11, z - 0.45, 12.4, 16.2, z + 0.45, 'wall', zone);
-      W.box(7.4, 15.2, z - 0.55, 12.6, 16.2, z + 0.55, 'metal', zone);
-      W.box(7.3, 16.2, z - 0.65, 12.7, 16.45, z + 0.65, 'grass', zone);
-      new Barrier(W, { min: [8.4, 12, z - 0.2], max: [11.6, 15.2, z + 0.2], color, kind: 'wall', zone });
-    };
-    gateArch(-226, GREEN);
-    gateArch(-196, YELLOW);
-    gateArch(-176, RED);
-    area([8.5, 12, -240.5], [11.5, 15, -236], MOOD);
-    // the gatehouse into the Hub's north balcony port: one-way, it opens as you come home
-    W.box(8, 3.5, -158.5, 12, 11, -148.5, 'rock', zone); // the plinth under it
-    corridor({ zStart: -148.5, zEnd: -158.5, y: 12, zone, cx: 10 });
-    W.box(7.5, 15.7, -158.9, 12.5, 16, -148.5, 'grass', zone);
-    const homeDoor = new SlidingDoor(W, { min: [8.5, 12, -155.2], max: [11.5, 15.2, -154.8], color: GREEN, zone });
-    W.trigger([8.5, 12, -175], [11.5, 15, -156], () => homeDoor.open());
-    W.trigger([8.5, 12, -154.8], [11.5, 15, -148.5], () => {
-      if (homeDoor.openT >= 0) return;
-      game.hud.message('Sealed from this side: this is <b>Verdant\'s way out</b>. Its entrance is the <b style="color:#ffd23a">yellow gate</b> on the Nexus floor below.', 6);
-    }, { once: false });
-    level.verdantAqueduct = { homeDoor };
-  }
 
   // ---------------------------------------------------------------- AFTERMATH: the engine is dead
   // The glow drains out of everything (algae, sap, fungi, the water's sheen), the leaves and moss go brown, the
