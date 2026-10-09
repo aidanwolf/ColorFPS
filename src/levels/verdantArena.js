@@ -515,7 +515,7 @@ export function buildVerdantArena(B, { center, size = 44, entry = 's', exit = 'n
   const entryGate = gate(entry), exitGate = gate(exit);
   const yawFacing = { s: 0, n: Math.PI, e: Math.PI / 2, w: -Math.PI / 2 }; // looking into the courtyard
   const cpPos = worldOf(entry, 0, H + WT + 3.5);
-  new Checkpoint(W, game, { pos: cpPos, yaw: yawFacing[entry], size: [3, 3, 2] });
+  new Checkpoint(W, game, { pos: cpPos, yaw: yawFacing[entry], size: [3, 3, 2], name: 'THE VERDANT HEART' });
 
   // ---------------------------------------------------------------- merge the dressing
   for (const [m, geos] of lists) {

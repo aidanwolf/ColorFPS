@@ -125,9 +125,21 @@
           </g>
         </svg>
       </h1>
-      <p class="tag">A color-blasting FPS puzzle platformer</p>
+      <p class="tag">Four worlds feed the machine. Starve it.</p>
       <div class="buttons">
-        <button data-action="play" class="primary">Play</button>
+        <button data-action="play" class="primary" id="play-btn"><span class="play-label">Play</span>
+          <!-- a save: where you left off (src/progress.js), with a look at the spot -->
+          <span class="cc hidden" aria-hidden="true">
+            <span class="cc-shot"><canvas width="256" height="144"></canvas></span>
+            <span class="cc-info">
+              <span class="cc-top"><span class="cc-label">Continue</span><span class="cc-cp"></span></span>
+              <span class="cc-name"></span>
+              <span class="cc-area"></span>
+              <span class="cc-bar"><i></i></span>
+              <span class="cc-meta"></span>
+            </span>
+          </span>
+        </button>
         <button data-action="newgame" class="hidden">New Game</button>
         <button data-action="settings">Settings</button>
       </div>

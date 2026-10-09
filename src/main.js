@@ -26,6 +26,7 @@ import { TouchControls } from './touch.js';
 import { UnlockCutscene } from './cutscene.js';
 import { MapView } from './map.js';
 import { spawnEnemy } from './entities/combat.js';
+import { saveProgress } from './progress.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -186,7 +187,7 @@ class Game {
     });
     this.deathPass.enabled = false;
     this.composer.addPass(this.deathPass);
-    const vm = new RenderPass(this.blaster.vmScene, this.blaster.vmCamera);
+    const vm = (this.vmPass = new RenderPass(this.blaster.vmScene, this.blaster.vmCamera));
     vm.clear = false;
     vm.clearDepth = true;
     this.composer.addPass(vm);
@@ -471,6 +472,12 @@ class Game {
       }
     }
     for (const id of s.cleared || []) this.clearedEncounters.add(id);
+    // a save at an arena's own beacon means that fight was won (saves from before arena clears were kept)
+    const cp = new THREE.Vector3(...s.cp.pos);
+    for (const e of this.world.entities) {
+      const at = e.constructor.name === 'Encounter' && e.checkpoint?.pos;
+      if (at && cp.distanceTo(new THREE.Vector3(...at)) < 1.5) this.clearedEncounters.add(e.id);
+    }
     this.won = !!s.won;
     this.stats.time = s.time || 0;
     this.stats.deaths = s.deaths || 0;
@@ -483,8 +490,56 @@ class Game {
     this.musicTrack = mood.music;
     this.ambient = mood.ambient;
     this.setAtmosphere(mood.atmosphere, true);
-    $('[data-action="play"]').textContent = 'Continue';
+    this.showContinue(s);
     $('[data-action="newgame"]').classList.remove('hidden');
+  }
+
+  // The title's Continue card: the checkpoint's name and number, the area, how far through the game you
+  // are, and a look at the spot (rendered from the checkpoint on the next title frame: see previewShot).
+  showContinue(s) {
+    const pr = saveProgress(this, s);
+    const btn = $('#play-btn');
+    btn.classList.add('continue');
+    btn.querySelector('.play-label').textContent = 'Continue';
+    if (!pr) return;
+    const t = Math.floor(s.time || 0);
+    btn.style.setProperty('--cc', pr.color);
+    btn.querySelector('.cc').classList.remove('hidden');
+    btn.querySelector('.cc-name').textContent = pr.name;
+    btn.querySelector('.cc-area').textContent = pr.area;
+    btn.querySelector('.cc-cp').textContent = `Checkpoint ${pr.index} / ${pr.total}`;
+    btn.querySelector('.cc-bar i').style.width = pr.pct + '%';
+    btn.querySelector('.cc-meta').textContent = `${pr.pct}% complete · ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}${s.deaths ? ` · ${s.deaths} death${s.deaths > 1 ? 's' : ''}` : ''}`;
+    this.wantPreview = true;
+  }
+
+  // One frame drawn from the saved checkpoint (where Continue puts you), into the card's thumbnail.
+  previewShot() {
+    this.wantPreview = false;
+    const cam = this.camera, cp = this.checkpoint;
+    const pos = cam.position.clone(), rot = cam.rotation.clone(), fov = cam.fov;
+    // a step back and up from where you'll stand, looking the way you'll face (not into the wall behind)
+    const fwd = new THREE.Vector3(-Math.sin(cp.yaw), 0, -Math.cos(cp.yaw));
+    const eye = cp.pos.clone().setY(cp.pos.y + 1.7);
+    const back = new THREE.Vector3(-fwd.x, 0.45, -fwd.z).normalize();
+    const hit = this.world.raycast(eye, back, 4.5, { meshes: false });
+    cam.position.copy(eye).addScaledVector(back, Math.max(0, (hit ? hit.t : 4.5) - 0.6));
+    cam.rotation.set(-0.16, cp.yaw, 0, 'YXZ');
+    cam.updateMatrixWorld();
+    this.world.updateCulling(cam.position, cam.far);
+    this.world.updateLights(cam.position, 0);
+    this.composer.render();
+    const c = $('#play-btn .cc-shot canvas'), src = this.renderer.domElement;
+    const g = c.getContext('2d'), k = Math.max(c.width / src.width, c.height / src.height);
+    const w = src.width * k, h = src.height * k;
+    g.drawImage(src, (c.width - w) / 2, (c.height - h) / 2, w, h);
+    $('#play-btn .cc-shot').classList.add('ready');
+    cam.position.copy(pos);
+    cam.rotation.copy(rot);
+    cam.fov = fov;
+    cam.updateMatrixWorld();
+    this.world.updateCulling(cam.position, cam.far);
+    this.composer.render(); // (the title's own view again, so the shot never shows on screen)
   }
 
   enableTouch() {
@@ -1108,7 +1163,12 @@ class Game {
     for (const cb of this.frameCallbacks) cb(dt);
     this.hud.update(dt);
     if (this.state === 'map') this.map.render();
-    else this.composer.render();
+    else {
+      if (this.vmPass) this.vmPass.enabled = this.state !== 'title'; // (no gun floating over the title's backdrop)
+      this.composer.render();
+    }
+    // (a couple of title frames in, once its shaders are warm, the Continue card's look at the checkpoint)
+    if (this.wantPreview && this.state === 'title' && (this.previewWait = (this.previewWait || 0) + 1) > 3) this.previewShot();
     this.input.endFrame();
   }
 }

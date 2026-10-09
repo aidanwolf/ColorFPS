@@ -606,7 +606,7 @@ export function placeSphinx(B, opts) {
   }
   if (cpPos) {
     const along = SIDES[entry][1] !== 0;
-    new Checkpoint(W, game, { pos: cpPos, yaw: cpYaw, size: shell ? (along ? [3, 3, 2] : [2, 3, 3]) : [4, 3, 4] });
+    new Checkpoint(W, game, { pos: cpPos, yaw: cpYaw, size: shell ? (along ? [3, 3, 2] : [2, 3, 3]) : [4, 3, 4], name: 'THE SPHINX\'S COURT' });
   }
 
   // ---------------------------------------------------------------- jump pads on the fight floor

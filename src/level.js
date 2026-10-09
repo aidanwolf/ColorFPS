@@ -33,7 +33,9 @@ export function buildLevel(world, game) {
     respawnHooks: [], // run on every checkpoint respawn
     atmospheres: {}, // name -> preset for game.setAtmosphere (see main.js ATMOSPHERE_DEFAULT)
     secrets: [], // { label, trigger } for every secret room (restored from a save)
+    places: [], // { pos, name } named spots (zone titles, arenas): what the Continue card calls a checkpoint
   };
+  game.level = level; // (reachable while building, e.g. for level.places)
   const B = makeBuilders(world, game, level);
   buildRed(B);
   buildRedAnnex(B);

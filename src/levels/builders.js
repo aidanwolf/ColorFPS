@@ -199,7 +199,10 @@ export function makeBuilders(W, game, level) {
 
   const hint = (min, max, html, time = 5) => W.trigger(min, max, () => game.hud.message(html, time));
   // Title card the first time you enter a sector; also switches the music if a track is given.
-  const zoneTitle = (min, max, sub, main, color, music) => W.trigger(min, max, () => game.enterZone(sub, main, color, music));
+  const zoneTitle = (min, max, sub, main, color, music) => {
+    level.places.push({ pos: new THREE.Vector3((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2), name: main });
+    return W.trigger(min, max, () => game.enterZone(sub, main, color, music));
+  };
   // A mood volume: every time you walk in, music / ambience / atmosphere crossfade to these (any may be
   // omitted). Put one just inside each doorway so backtracking restores the right mood.
   const area = (min, max, { music, ambient, atmosphere } = {}) =>

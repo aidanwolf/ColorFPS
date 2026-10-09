@@ -341,6 +341,8 @@ export class Encounter {
     this.timer = 0;
     this.trigger = world.trigger(trigger[0], trigger[1], () => this.start());
     this.id = `enc:${trigger[0].map((v) => Math.round(v)).join(',')}`; // stable across loads (for the save)
+    const at = checkpoint?.pos || trigger[0].map((v, i) => (v + trigger[1][i]) / 2);
+    if (title && title !== 'AMBUSH') game.level?.places?.push({ pos: new THREE.Vector3(...at), name: title });
     world.add(this);
   }
 

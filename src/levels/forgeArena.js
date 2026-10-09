@@ -286,7 +286,7 @@ export function buildForgeArena(B, opts = {}) {
   let bridgeK = 0, bridgeWant = 0;
 
   const cp = checkpoint === false ? null : checkpoint || (shell && entryLen > 0 ? { pos: pt(0, y, half + T + Math.min(entryLen - 1.5, 5)), yaw: rot } : null);
-  if (cp) new Checkpoint(W, game, { pos: cp.pos, yaw: cp.yaw ?? rot, size: [3, 3, 3] });
+  if (cp) new Checkpoint(W, game, { pos: cp.pos, yaw: cp.yaw ?? rot, size: [3, 3, 3], name: 'THE FORGE' });
 
   // ---------------------------------------------------------------- set dressing
   const falls = [];

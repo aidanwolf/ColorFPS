@@ -233,9 +233,10 @@ export class JumpPad {
 
 export class Checkpoint {
   // A light beacon you run through. It turns bright cyan when it becomes your respawn point.
-  constructor(world, game, { pos, yaw = 0, size = [3, 3, 2] }) {
+  constructor(world, game, { pos, yaw = 0, size = [3, 3, 2], name = null }) {
     this.world = world;
     this.pos = new THREE.Vector3(...pos);
+    this.name = name; // (shown on the Continue card; else the nearest named place)
     this.t = Math.random() * 10;
     this.group = new THREE.Group();
     this.group.position.copy(this.pos);
