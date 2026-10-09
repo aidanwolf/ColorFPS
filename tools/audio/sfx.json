@@ -1793,5 +1793,78 @@
   "text": "A massive submarine passing slowly overhead underwater, deep engine drone with doppler, propeller wash.",
   "dur": 8,
   "influence": 0.55
+ },
+ "beam_sizzle": {
+  "text": "Intense focused sunbeam burning: crackling electric sizzle and searing hiss of superheated air, seamless loop",
+  "dur": 3,
+  "influence": 0.5,
+  "loop": true
+ },
+ "lens_drum": {
+  "text": "Huge ancient stone lens drum slowly turning on its mount, grinding rotation and deep mechanical rumble, seamless loop",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "ring_quarter": {
+  "text": "A heavy stone ring segment locking into place with a deep clunk, followed by a rising resonant energy tone",
+  "dur": 2.5,
+  "influence": 0.6
+ },
+ "heart_charge": {
+  "text": "A giant ancient energy gate charging up: rising crackling electric hum building in pitch and intensity, seamless loop",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "gate_thunder": {
+  "text": "A massive energy discharge from an ancient gate: a blinding thunderclap boom with a crackling shockwave and rumbling stone",
+  "dur": 4,
+  "influence": 0.6
+ },
+ "capacitor_hum": {
+  "text": "Ancient glass capacitor banks filling with energy, a warm rising electrical hum with glassy resonance, seamless loop",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "shuttle_grind": {
+  "text": "A heavy stone platform sliding along an iron rail, grinding and rumbling, seamless loop",
+  "dur": 3,
+  "influence": 0.5,
+  "loop": true
+ },
+ "sand_fall": {
+  "text": "Steady stream of sand pouring from a high ceiling onto stone, soft hissing rush, seamless loop",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "quicksand_churn": {
+  "text": "Churning quicksand bubbling and swirling, thick gloopy sand movement, seamless loop",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "lift_rumble": {
+  "text": "A heavy stone elevator platform rising slowly through a shaft, deep rumble and creaking chains, seamless loop",
+  "dur": 4,
+  "influence": 0.5,
+  "loop": true
+ },
+ "exit_gust": {
+  "text": "Stepping out of a dark tunnel into blazing desert: a warm wind gust whoosh with a bright airy swell",
+  "dur": 2,
+  "influence": 0.55
+ },
+ "stair_grind": {
+  "text": "Massive stone stair blocks grinding out of a cliff face one after another, heavy stone scraping and thuds, dust",
+  "dur": 3,
+  "influence": 0.55
+ },
+ "plank_crack": {
+  "text": "Old wooden plank cracking and splintering underfoot, sharp wood snap",
+  "dur": 1,
+  "influence": 0.6
  }
 }
