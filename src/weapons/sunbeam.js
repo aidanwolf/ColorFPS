@@ -72,7 +72,7 @@ export class SunBeam {
       this.heat = Math.min(1, this.heat + dt / OVERHEAT);
       this.on = Math.min(1, this.on + dt / 0.08);
       this.fireFrame(dt);
-      if (this.heat >= 1) this.overheat();
+      if (this.heat >= 1 - 1e-6) this.overheat();
     } else {
       this.on = 0;
       if (this.locked) {
@@ -128,7 +128,6 @@ export class SunBeam {
     const fx = this.game.world.fx;
     fx.flash(_m, 0xffa040, { size: 0.5, life: 0.15, k: 1.8 });
     fx.sparks(_m, this.game.camera.getWorldDirection(_dir), 0xffb050, { count: 8, speed: 3.5, spread: 1.2, life: 0.35, gravity: 8, size: 0.01 });
-    this.game.hud.message?.('<b style="color:#ff8a2a">OVERHEATED</b>', 1.1);
   }
 
   // steam boiling off the emitter while it's locked out

@@ -229,7 +229,12 @@ export class Hud {
       const fill = document.createElementNS(NS, 'path');
       fill.setAttribute('d', arc(22));
       fill.setAttribute('class', 'heat-fill');
-      svg.append(track, fill);
+      const label = document.createElementNS(NS, 'text');
+      label.setAttribute('class', 'heat-label');
+      label.setAttribute('x', '0');
+      label.setAttribute('y', '36');
+      label.textContent = 'OVERHEAT';
+      svg.append(track, fill, label);
       document.querySelector('#crosshair').appendChild(svg);
       this.heatEl = svg;
       this.heatFill = fill;

@@ -38,6 +38,23 @@ const _dir = new THREE.Vector3(), _m = new THREE.Vector3(), _step = new THREE.Ve
 const _a = new THREE.Vector3(), _c = new THREE.Vector3(), _box = new THREE.Box3(), _s = new THREE.Sphere(), _q = new THREE.Quaternion();
 const rnd = (a, b) => a + Math.random() * (b - a);
 
+// a soft round glow, drawn once
+let glowTex = null;
+function softTexture() {
+  if (glowTex) return glowTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const x = c.getContext('2d');
+  const grad = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,0.9)');
+  grad.addColorStop(0.35, 'rgba(255,255,255,0.35)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = grad;
+  x.fillRect(0, 0, 64, 64);
+  glowTex = new THREE.CanvasTexture(c);
+  return glowTex;
+}
+
 audio.manifest?.then(() => audio.prefetch(['mortar_launch', 'slime_squelch', 'glob_pop', 'slime_splat', 'crab_explode', 'shoot_green']));
 
 export class GlobLauncher {
@@ -47,23 +64,33 @@ export class GlobLauncher {
     this.cooldown = 0;
     this.now = 0;
     this.globs = [];
-    // pooled globs: a translucent gooey shell round a glowing heart, made up front and kept hidden
-    const shell = new THREE.MeshStandardMaterial({ color: 0x2aff60, emissive: 0x0f9a38, emissiveIntensity: 1.4, roughness: 0.12, metalness: 0, transparent: true, opacity: 0.82 });
+    // pooled globs: a glossy translucent shell round a glowing heart, a couple of drips trailing it and a
+    // soft glow, made up front and kept hidden
+    const shell = new THREE.MeshStandardMaterial({ color: 0x18c040, emissive: 0x0a7a2a, emissiveIntensity: 0.9, roughness: 0.06, metalness: 0.15, envMapIntensity: 1.6, transparent: true, opacity: 0.8 });
     const heart = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x9dffb0).multiplyScalar(2.2) });
-    const halo = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x3dff7a).multiplyScalar(0.6), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.5 });
-    const shellGeo = new THREE.IcosahedronGeometry(RADIUS, 2);
+    const halo = new THREE.SpriteMaterial({ map: softTexture(), color: new THREE.Color(0x3dff7a).multiplyScalar(0.9), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+    const shellGeo = new THREE.IcosahedronGeometry(RADIUS, 3);
     const heartGeo = new THREE.IcosahedronGeometry(RADIUS * 0.55, 1);
-    const haloGeo = new THREE.IcosahedronGeometry(RADIUS * 1.9, 1);
     for (let i = 0; i < POOL; i++) {
       const g = new THREE.Group();
       const body = new THREE.Group();
-      body.add(new THREE.Mesh(heartGeo, heart), new THREE.Mesh(shellGeo, shell), new THREE.Mesh(haloGeo, halo));
-      g.add(body);
+      body.add(new THREE.Mesh(heartGeo, heart), new THREE.Mesh(shellGeo, shell));
+      // drips trailing behind (the group's +y is its direction of flight)
+      const drips = [0.62, 0.4].map((k, j) => {
+        const d = new THREE.Mesh(shellGeo, shell);
+        d.scale.setScalar(k);
+        d.position.y = -RADIUS * (1.1 + j * 0.85);
+        body.add(d);
+        return d;
+      });
+      const glow = new THREE.Sprite(halo);
+      glow.scale.setScalar(0.75);
+      g.add(body, glow);
       g.visible = false;
       g.userData.noCull = true;
       g.userData.noBatch = true;
       this.game.scene.add(g);
-      this.globs.push({ mesh: g, body, alive: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), off: new THREE.Vector3(), life: 0, bounces: 0, wob: 0, t: 0 });
+      this.globs.push({ mesh: g, body, drips, alive: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), off: new THREE.Vector3(), life: 0, bounces: 0, wob: 0, t: 0 });
     }
     this.light = this.game.world.addLight(0x46ff80, 0, 10, 1.5);
     this.lightT = 0;
@@ -151,6 +178,8 @@ export class GlobLauncher {
     const j = Math.sin(g.t * 26) * (0.08 + g.wob * 0.25);
     g.body.scale.set(1 - j * 0.5, 1 + Math.min(0.35, sp * 0.012) + j, 1 - j * 0.5);
     g.body.rotation.y += dt * 9;
+    // the drips stream out further the faster it goes, and wobble on their own
+    for (let i = 0; i < 2; i++) g.drips[i].position.y = -RADIUS * (0.8 + i * 0.6) * (0.85 + Math.min(0.4, sp * 0.015)) + Math.sin(g.t * 19 + i * 2) * 0.012;
     // a trail: glowing motes and drips of goo
     if (Math.random() < dt * 60) {
       const k = fx.spawn(0, g.mesh.position, rnd(-0.3, 0.3), rnd(-0.3, 0.3), rnd(-0.3, 0.3), GOO, 1.1, rnd(0.2, 0.35), rnd(0.03, 0.05));
@@ -364,8 +393,8 @@ function rayTo(world, from, to, far) {
 // flung out on arcs, a spray of fine droplets, a slow cloud, and a glowing splat left on the surface.
 function explosionFx(fx, p, n, hex, radius, glass) {
   const k = radius / 2.6;
-  fx.flash(p, hex, { size: 2.2 * k, life: 0.14, k: 2.2, hot: 0.65 });
-  fx.flash(p, 0xffffff, { size: 1.0 * k, life: 0.06, k: 2, hot: 1 });
+  fx.flash(p, hex, { size: 2.2 * k, life: 0.16, k: 2, hot: 0.3 });
+  fx.flash(p, 0xd8ffe0, { size: 0.7 * k, life: 0.06, k: 1.6, hot: 0.8 });
   if (n) {
     fx.ring(_a.copy(p).addScaledVector(n, -0.08), n, hex, { size: 0.3, end: radius * 1.25, life: 0.38, thick: 0.18, k: 1.8 });
     fx.flash(_a, hex, { size: radius * 0.55, life: 2.2, n, k: 0.55, hot: 0.1 });
@@ -374,12 +403,12 @@ function explosionFx(fx, p, n, hex, radius, glass) {
   const up = n || UP;
   for (let i = 0, c = fx.budget(26); i < c; i++) {
     _v.randomDirection().addScaledVector(up, 0.9).normalize().multiplyScalar(rnd(3, 9) * k);
-    const j = fx.spawn(0, p, _v.x, _v.y, _v.z, GOO, rnd(1.1, 1.6), rnd(0.5, 1.0), rnd(0.04, 0.08) * k);
+    const j = fx.spawn(0, p, _v.x, _v.y, _v.z, GOO, rnd(1.1, 1.6), rnd(0.5, 1.0), rnd(0.05, 0.12) * k);
     fx.grav[j] = 14;
     fx.drag[j] = 0.8;
     fx.endColor(j, GOO_DARK, 1.2);
   }
-  fx.sparks(p, up, 0xc8ffd8, { count: 22, speed: 14 * k, spread: 1.6, life: 0.4, gravity: 10, hot: 0.7 });
+  fx.sparks(p, up, 0x7dffa0, { count: 22, speed: 14 * k, spread: 1.6, life: 0.4, gravity: 10, hot: 0.35 });
   for (let i = 0, c = fx.budget(7); i < c; i++) {
     _v.randomDirection().addScaledVector(up, 0.5).multiplyScalar(rnd(0.5, 1.6));
     const j = fx.puff(p, _v.x, _v.y, _v.z, GOO_DARK, 0.5, rnd(0.6, 1.1), rnd(0.35, 0.6) * k, 2.6);

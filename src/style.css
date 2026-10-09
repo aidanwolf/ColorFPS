@@ -61,6 +61,8 @@ html, body {
 #heat.hot .heat-fill { animation: heat-flash 0.22s steps(2) infinite; }
 #heat.locked .heat-fill { stroke: #ff3a1a !important; animation: heat-flash 0.4s steps(2) infinite; }
 #heat.locked .heat-track { stroke: rgba(255, 80, 40, 0.35); }
+#heat .heat-label { fill: #ff5a2a; font-size: 8px; font-weight: 800; letter-spacing: 1.5px; text-anchor: middle; opacity: 0; }
+#heat.locked .heat-label { opacity: 1; animation: heat-flash 0.4s steps(2) infinite; }
 @keyframes heat-flash { 50% { opacity: 0.25; } }
 #hitmarker {
   position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px;

@@ -781,6 +781,7 @@ class Game {
     this.unlocking = c;
     this.state = 'cutscene';
     this.input.mouseDown = false;
+    this.blaster.release();
     this.cutscene.start(c, corePos);
   }
 
