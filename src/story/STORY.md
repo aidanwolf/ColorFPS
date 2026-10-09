@@ -17,7 +17,7 @@ Every world is an **engine**, built to extract one kind of energy and themed by 
 |---|---|---|
 | Crimson Foundry | red | **geothermal**: a tap driven into a planet's core; the heat is piped north |
 | Sunscorch Mesa (Solar) | yellow | **a captive sun**: a real star dragged in on a track; mirrors and panels drink it; the world is burned down and rerun (4,000+ summers layered in the glass). Under the pit, an ancient-feeling buried network (glassy conduits, huge half-buried mirrors, capacitor banks brim-full of stored sunlight) runs to a giant stone ring that hums when the sun moves: turn the mirrors right and light runs node by node into the ring until it discharges |
-| Emerald Hollow (Verdant) | green | **biomass**: a valley-sized forest grown in a day, cut and fed in; no animals, nothing that wouldn't burn well |
+| Emerald Hollow (Verdant) | green | **biomass**: a valley-sized forest grown in a day, cut and fed in; no animals, nothing that wouldn't burn well. The harvest is plumbed into everything (green pipelines, sap taps in the trunks, pumps drinking the swamp) and runs down to a granite temple under the swamp full of glowing algae reactors: biofuel. Its builders carved their glyphs as schematics; they were engineers, not worshippers |
 | The Drowned Reach (Azure) | blue | **water**: the tides and storms of an endless tropical ocean, the weight of a trench full of sea, drunk by a harvest rig and the drowned station under it |
 
 **The Prism Atrium** is the junction where the four rivers of power meet and are routed. **The Prism Core**
@@ -85,7 +85,7 @@ Her arc, in the order the player finds the logs:
 |---|---|---|
 | Atrium | giddy, wonder | day one at the station with the team: the kettle, the cake, a heart beating overhead that gives out four times what goes in ("we are not calling it Big Fridge"), home for Bea's birthday; four rivers of power meet here; she taps a trickle (oops) and dreams of powering a city |
 | Solar | curious → uneasy → nervous | with the team on the link from the station: glassy conduits under 4,000 summers of glass, leading down into a pit; a stone ring that hums when the sun moves (Priya: a capacitor; Wren: a gate); failed tries to bounce sunlight into it with her compact mirror, while the huge buried mirrors "have to face the right way"; capacitor banks full of more stored sunlight than she can bear to work out; the link keeps dropping; "what if the machine wanted someone to find this?"; the countdown before she talks to the star through the ring |
-| Verdant | lonely → frightened | a biomass farm, no birds; the link silent since the countdown, and she keeps talking to Priya anyway (a wren and no other birds); roots through fresh bodies, a bus pass from her own city (but only the team came through, and they never left the station); something follows her "ever since the star" |
+| Verdant | lonely → frightened | a biomass farm, no birds; the link silent since the countdown, and she keeps talking to Priya anyway (a wren and no other birds); she falls into the temple under the swamp: algae reactors, the whole forest a fuel crop, glyphs that are diagrams ("they were engineers, like us... so where did they go?"); roots through fresh bodies by the sanctum's pools, a bus pass from her own city (but only the team came through, and they never left the station); something follows her "ever since the star" |
 | Azure | homesick → devastated | soaked to the bone in a station at the bottom of a stormy tropical ocean: the last engine; holed up in the warm crew quarters: ten minutes, home by seven, Bea's birthday; in the flooded Bell she reads the Lumen's record of the anomaly (her nine seconds, classified threat); in the Archive the catalogue: everyone from home, taken the day after; Mum, Bea, and not Priya, not Tomas, not Maja: it didn't keep the team |
 | Prism Core | resolve → hope | the four rivers end at the heart: if they go dark, the loop lets go; "I broke it, so I fix it"; the guardian hunts her; she goes for the white door, recorder left on for the company |
 
@@ -106,8 +106,8 @@ Scripts, titles and caption chunks: `tools/audio/logs.json`, with inline acting 
 `[whispers]`...) that the TTS performs and the captions strip. Voiced with `tools/audio/tts.mjs`
 (`--captions` writes estimated timing without audio). Audio files: `public/audio/memo_XX.mp3`.
 Placement: one table in `src/levels/logs.js` (Atrium and Prism Core spots final; the color-world spots are
-provisional until those worlds are rebuilt). Seventeen logs: Atrium 3, Solar 5 (04, 04b, 05, 05b, 06, along
-the pit's network), Verdant 3, Azure 4 (one in the Flooded Depths), Prism Core 2. Found logs are kept under
+provisional until those worlds are rebuilt). Eighteen logs: Atrium 3, Solar 5 (04, 04b, 05, 05b, 06, along
+the pit's network), Verdant 4 (07, 07b, 08, 09), Azure 4 (one in the Flooded Depths), Prism Core 2. Found logs are kept under
 `chroma-logs-v2`.
 
 Picking one up wakes a hologram of Wren (`src/story/ghost.js`): she materializes a few metres away and acts
@@ -124,9 +124,10 @@ haunted, warbling, reverberant chain (`src/story/voice.js`).
 | 05 | Mirrors | Solar · the mirror gallery |
 | 05b | Full | Solar · the capacitor banks |
 | 06 | Here We Go | Solar · before the ring |
-| 07 | No Birds | Verdant · the Root Court |
-| 08 | Roots | Verdant · the rim of the Great Hollow |
-| 09 | Something Follows | Verdant · the root island |
+| 07 | No Birds | Verdant · the Moss Landing, just inside the gate |
+| 07b | Engineers | Verdant · the algae reactors under the swamp |
+| 08 | Roots | Verdant · the inner sanctum, by the algae pools |
+| 09 | Something Follows | Verdant · the top of the sanctum's pyramid |
 | 10 | The Last Engine | Azure · the Aquarium's observation gallery |
 | 11 | Ten Minutes | Azure · the crew deck |
 | 12 | Anomaly | Azure · the Bell, in the Flooded Depths |

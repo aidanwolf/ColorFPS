@@ -290,7 +290,7 @@
  {
   "id": "07",
   "title": "No Birds",
-  "where": "Verdant · the Root Court",
+  "where": "Verdant · the Moss Landing",
   "file": "memo_07",
   "text": "Oh, it's lovely. Moss, and rain, and that gold light through the leaves. Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls. But there's no birdsong. No bees. Nothing here that wouldn't burn well. The whole valley is just... fuel, growing. The link's been silent since the countdown. I keep talking to Priya anyway. A wren, and no other birds. That's me, then.",
   "spoken": "[softly] Oh, it's lovely. Moss, and rain, and that gold light through the leaves. Mum would lose her mind over this. She talks to her tomatoes. Calls them her girls. But there's no birdsong. No bees. Nothing here that wouldn't burn well. The whole valley is just... fuel, growing. The link's been silent since the countdown. I keep talking to Priya anyway. [small laugh] A wren, and no other birds. That's me, then.",
@@ -324,9 +324,44 @@
   ]
  },
  {
+  "id": "07b",
+  "title": "Engineers",
+  "where": "Verdant · the algae reactors",
+  "file": "memo_07b",
+  "text": "I fell through the floor. I'm fine. Bit damp. Note to self: don't stand on the altar. Priya, you would love this. There's a temple under the swamp, and it's full of tanks. Glass tanks taller than the Atrium doors, full of algae. Glowing. Bubbling. The pipes go up through the roots, all over the valley. The trees, the swamp, everything's plumbed in. They were growing fuel. Biofuel. The whole forest is a crop. And the carvings aren't gods. They're diagrams. Flow rates. Valves. Someone drew a schematic in granite. Whoever built this weren't primitive. They were engineers. Like us. So where did they go?",
+  "dur": 47.13,
+  "est": true,
+  "lines": [
+   {
+    "t": 0,
+    "text": "I fell through the floor. I'm fine. Bit damp. Note to self: don't stand on the altar."
+   },
+   {
+    "t": 6.73,
+    "text": "Priya, you would love this. There's a temple under the swamp, and it's full of tanks. Glass tanks taller than the Atrium doors, full of algae. Glowing. Bubbling."
+   },
+   {
+    "t": 19.09,
+    "text": "The pipes go up through the roots, all over the valley. The trees, the swamp, everything's plumbed in. They were growing fuel. Biofuel. The whole forest is a crop."
+   },
+   {
+    "t": 31.59,
+    "text": "And the carvings aren't gods. They're diagrams. Flow rates. Valves. Someone drew a schematic in granite."
+   },
+   {
+    "t": 39.73,
+    "text": "Whoever built this weren't primitive. They were engineers. Like us."
+   },
+   {
+    "t": 45.13,
+    "text": "So where did they go?"
+   }
+  ]
+ },
+ {
   "id": "08",
   "title": "Roots",
-  "where": "Verdant · the rim of the Great Hollow",
+  "where": "Verdant · the inner sanctum",
   "file": "memo_08",
   "text": "The roots down by the water are growing through... people. Not old ones. There's a jacket. A trainer, with the laces still done up. And a bus pass. From home. From my city. That's not possible. Only the team came through, and they never left the station. Why is it here?",
   "spoken": "[trembling] The roots down by the water are growing through... people. Not old ones. There's a jacket. A trainer, with the laces still done up. And a bus pass. From home. From my city. That's not possible. Only the team came through, and they never left the station. [crying quietly] Why is it here?",
@@ -358,32 +393,31 @@
  {
   "id": "09",
   "title": "Something Follows",
-  "where": "Verdant · the root island",
+  "where": "Verdant · the top of the sanctum's pyramid",
   "file": "memo_09",
-  "text": "Recording quietly. Something has been following me since the lake. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. Right. Count to three, then run for the cold door, east. One. Two...",
-  "spoken": "[whispers] Recording quietly. Something has been following me since the lake. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. [nervous] Right. Count to three, then run for the cold door, east. One. Two...",
-  "profile": "expressive",
-  "dur": 28.84,
+  "text": "Recording quietly. Something has been following me since the swamp. It stops when I stop. When I turn around, it's only light, bending, like heat over a road. I think the machine knows my name now. Ever since the star. Right. Count to three, then run for the high door, east. One. Two...",
+  "dur": 23.56,
+  "est": true,
   "lines": [
    {
-    "t": 0.58,
+    "t": 0,
     "text": "Recording quietly."
    },
    {
-    "t": 2.44,
-    "text": "Something has been following me since the lake. It stops when I stop."
+    "t": 1.81,
+    "text": "Something has been following me since the swamp. It stops when I stop."
    },
    {
-    "t": 7.73,
+    "t": 7.53,
     "text": "When I turn around, it's only light, bending, like heat over a road."
    },
    {
-    "t": 14.72,
+    "t": 13.1,
     "text": "I think the machine knows my name now. Ever since the star."
    },
    {
-    "t": 21.05,
-    "text": "Right. Count to three, then run for the cold door, east. One. Two..."
+    "t": 17.99,
+    "text": "Right. Count to three, then run for the high door, east. One. Two..."
    }
   ]
  },
