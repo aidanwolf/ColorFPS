@@ -17,9 +17,10 @@ const LOGS = [
   { id: '05b', world: 'solar', pos: [-129.5, -78.8, -127.8], yaw: -Math.PI / 2 }, // Full: under the ring, beside the west capacitor bank, where the hard-light bridge lands
   { id: '06', world: 'solar', pos: [-105, -64, -125], yaw: Math.PI / 2 }, // Here We Go: the upper gallery off the annex lift, just before the stargate puzzle
   // VERDANT (final, the rebuilt world): lonely, then frightened
-  { id: '07', world: 'verdant', pos: [25.5, 4, -163.5], yaw: Math.PI / 2 }, // the Rain Court, east end of the south terrace: moss, gold light, drizzle
-  { id: '08', world: 'verdant', pos: [27, 4.5, -212.2], yaw: Math.PI / 2 }, // the Ruin Bank's east rim over the sludge lake, roots grown through two skeletons
-  { id: '09', world: 'verdant', pos: [-2.4, 21, -268.4], yaw: 0 }, // the hidden nest under the crown deck's south edge (drop through the rail gap; a pad brings you back)
+  { id: '07', world: 'verdant', pos: [-10, 4, -162.5], yaw: Math.PI }, // the Moss Landing, just inside the Verdant gate on the walking line: moss, drizzle, a shaft of gold light; the open paving ahead is the ghost's stage
+  { id: '07b', world: 'verdant', pos: [-50, -8, -322.5], yaw: Math.PI }, // the algae reactors under the swamp: the aisle between the two rows of tanks, just in from the glyph stair
+  { id: '08', world: 'verdant', pos: [-41.5, 6, -359], yaw: -Math.PI / 2 }, // the inner sanctum, beside the algae pool right of the pyramid's stair, roots grown through two bodies
+  { id: '09', world: 'verdant', pos: [-47.2, 23.6, -377.2], yaw: -Math.PI / 2 }, // the top of the sanctum's pyramid, by the sealed high door east ("run for the cold door, east": the boulder escape starts here)
   // AZURE (final, the rebuilt world): homesick, then the truth
   { id: '10', world: 'azure', pos: [55.5, 4, -117.5], yaw: 2.36 }, // the Rim Deck by the antenna mast, first view of the cold sea
   { id: '11', world: 'azure', pos: [107.2, -4.5, -82.3], yaw: 1.08 }, // inside the warm pump hut, by the boiler

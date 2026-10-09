@@ -15,7 +15,7 @@ const ARMOR_SOUNDS = ['armor_pickup', 'armor_on', 'armor_break', 'shield_break',
 audio.manifest?.then(() => audio.prefetch(ARMOR_SOUNDS));
 // causes the shield doesn't stop
 // (lava and the other molten/acid pools, and a boss's stomps and charges, do break a shield)
-export const ARMOR_IGNORES = new Set(['spike', 'landing', 'fall', 'drown', 'sand', 'quicksand', 'crush', 'void']);
+export const ARMOR_IGNORES = new Set(['spike', 'landing', 'fall', 'drown', 'sand', 'quicksand', 'mire', 'crush', 'void']);
 
 // A hexagon grid laid over a sphere (by its own direction, so it sits still on the surface as it turns).
 // outside: lit at the rim (fresnel), seen from without. inside: seen from the centre, it fades out toward

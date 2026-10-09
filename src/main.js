@@ -55,6 +55,7 @@ const SINK = {
   sand: { depth: 2.0, time: 1.8, tint: 0x6a4a28, ember: null, sound: 'sand_sink', banner: 'SWALLOWED' },
   toxic: { depth: 2.0, time: 1.5, tint: 0x2aff4a, ember: 0x7dff8a, sound: 'toxic_sink', banner: 'DISSOLVED' },
   brine: { depth: 2.0, time: 1.6, tint: 0x2a7aff, ember: null, sound: 'toxic_sink', banner: 'FROZEN' },
+  mire: { depth: 2.0, time: 1.9, tint: 0x24361c, ember: null, sound: 'sand_sink', banner: 'DRAGGED UNDER' },
 };
 const AREA_TRACKS = new Set(Object.values(AREA_MOOD).map((m) => m.music));
 const AREA_AMBIENTS = new Set(Object.values(AREA_MOOD).map((m) => m.ambient));
@@ -879,7 +880,7 @@ class Game {
     // where a revive puts you: on the spot if you were shot, but never back inside the acid, spikes or
     // pit that killed you: then it's the last solid ground you stood on, or the checkpoint
     this.revivePos = this.deathPos.clone();
-    if (['spike', 'acid', 'quicksand', 'fall', 'burn', 'sunburn', 'impact', 'landing'].includes(p.deathCause)) {
+    if (['spike', 'acid', 'quicksand', 'mire', 'fall', 'burn', 'sunburn', 'impact', 'landing'].includes(p.deathCause)) {
       const safe = p.safePos.clone();
       const ok = safe.distanceToSquared(this.deathPos) < 40 * 40 && [0.3, 1.2].every((h) => !this.world.pointInSolid(safe.clone().setY(safe.y + h), 0.3));
       this.revivePos = ok ? safe : this.checkpoint.pos.clone();
@@ -908,7 +909,7 @@ class Game {
     p.shake = 1;
     // falling into a liquid: you sink into it instead of crumpling (see updateDying)
     const where = regionOf(this.deathPos);
-    const liquid = p.deathCause === 'quicksand' ? 'sand' : p.deathCause === 'acid' ? { verdant: 'toxic', fin_verdant: 'toxic', azure: 'brine', solar: 'sand' }[where] || 'lava' : null;
+    const liquid = p.deathCause === 'quicksand' ? 'sand' : p.deathCause === 'mire' ? 'mire' : p.deathCause === 'acid' ? { verdant: 'toxic', fin_verdant: 'toxic', azure: 'brine', solar: 'sand' }[where] || 'lava' : null;
     this.sink = liquid && { ...SINK[liquid], surface: this.deathPos.y };
     if (this.sink) audio.sample(this.sink.sound, { gain: 1, vary: 0.05 });
     const banner = this.sink?.banner || { spike: 'IMPALED', acid: 'DISSOLVED', fall: 'LOST', burn: 'INCINERATED', sunburn: 'SUNSTRUCK', impact: 'CRATERED', landing: 'CRATERED', drown: 'DROWNED', slime: 'ENGULFED', spider: 'SKEWERED', fish: 'SHREDDED', squid: 'CRUSHED', 'acid spit': 'DISSOLVED', 'ink torpedo': 'TORPEDOED', blast: 'BLOWN APART', scarab: 'STUNG', crab: 'BLOWN APART', spores: 'POISONED', 'lava gob': 'SLAGGED', shock: 'ELECTROCUTED' }[p.deathCause] || 'SHOT DOWN';
