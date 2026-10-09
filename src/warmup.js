@@ -11,7 +11,6 @@
 // output color space and tone mapping differ, so canvas programs would leave the real ones to compile on
 // first sight).
 const DRAWABLE = (o) => o.isMesh || o.isPoints || o.isLine || o.isSprite;
-const BATCH = 4; // objects per renderer.compile call (each call walks the scene's lights once)
 
 // what else (besides the material) makes three build a different program for an object
 function variant(o) {
@@ -81,9 +80,10 @@ export class Warmup {
     return this.i >= this.jobs.length && !this.pending;
   }
 
-  // Send the next batch (up to `budget` new programs) once the last one has linked. Returns false when
-  // everything is compiled.
-  step(budget) {
+  // Send the next batch (up to `budget` new programs, `ms` of script time, `per` objects a
+  // renderer.compile call: each call walks the scene's lights, ~0.5 ms) once the last one has linked.
+  // Returns false when everything is compiled.
+  step(budget, ms = 8, per = 32) {
     if (this.pending) {
       if (!this.settled()) return true;
       this.pending = null;
@@ -101,10 +101,10 @@ export class Warmup {
     r.setRenderTarget(this.target());
     const batch = [];
     const proxy = { traverse: (fn) => batch.forEach(fn), traverseVisible() {} };
-    while (this.i < this.jobs.length && list.length - before < budget && performance.now() - t0 < 8) {
+    while (this.i < this.jobs.length && list.length - before < budget && performance.now() - t0 < ms) {
       const first = this.jobs[this.i];
       batch.length = 0;
-      while (this.i < this.jobs.length && batch.length < BATCH && this.jobs[this.i].scene === first.scene) batch.push(this.jobs[this.i++].o);
+      while (this.i < this.jobs.length && batch.length < per && this.jobs[this.i].scene === first.scene) batch.push(this.jobs[this.i++].o);
       r.compile(proxy, first.camera, first.scene);
     }
     r.setRenderTarget(prev);

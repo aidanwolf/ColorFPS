@@ -1218,7 +1218,8 @@ class Game {
 
   tick() {
     this.timer.update();
-    const dt = Math.min(this.timer.getDelta(), 1 / 20);
+    const rawDt = this.timer.getDelta();
+    const dt = Math.min(rawDt, 1 / 20);
     const t = this.timer.getElapsed();
     if (this.state === 'title') {
       // a slow look around behind the menu: the level's own view (the cell block), else the spawn room.
@@ -1315,8 +1316,11 @@ class Game {
       this.redraw = false;
     }
     // the warm-up's next batch, after the frame so this frame's draws don't queue behind it: a few
-    // programs a time on the title, one during play (none of it blocks; see warmup.js)
-    if (this.warmup && !this.warmup.step(warming ? 6 : 1)) {
+    // programs a time on the title; during play about one a frame (a few objects, 2 ms of script), more
+    // only while frames are slow anyway (software GL). None of it blocks (warmup.js).
+    this.frameAvg = (this.frameAvg ?? rawDt) * 0.9 + Math.min(rawDt, 5) * 0.1; // (a steady slowness, not one hitch)
+    const slow = Math.min(6, Math.floor(this.frameAvg * 30));
+    if (this.warmup && !(warming ? this.warmup.step(6) : slow ? this.warmup.step(slow, 8, 16) : this.warmup.step(1, 2, 4))) {
       this.warmStats = this.warmup.stats;
       this.warmup = null;
       this.loadAds();
