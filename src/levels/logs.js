@@ -6,8 +6,8 @@
 // Every spot is final: the color worlds' were picked by their rebuilds to match each script.
 const LOGS = [
   // THE PRISM ATRIUM (final): wonder, on the first visit
-  { id: '01', world: 'hub', pos: [-4.3, 4.4, -105.6], yaw: Math.PI / 4 }, // the dais's lower step, south-west corner: in view as you walk in from the red door
-  { id: '02', world: 'hub', pos: [-2.6, 2.8, -126.6], yaw: 0 }, // the sunken plaza's compass, right under the reactor heart, where all four feeds can be seen
+  { id: '01', world: 'hub', pos: [-4.3, 4, -105.6], yaw: Math.PI / 4 }, // just in from the red door, south-west of the walk in: the dais, the Prism and the reactor straight ahead
+  { id: '02', world: 'hub', pos: [-3.7, 2.8, -127.7], yaw: Math.PI / 4 }, // down in the dais, its north-west corner between the green and yellow locks, right under the reactor heart, where all four feeds can be seen
   { id: '03', world: 'hub', pos: [23.2, 12, -128], yaw: -Math.PI / 2 }, // the east gallery, just off the lift, by Azure's glass conduit
   // SOLAR (final, the rebuilt world): her nine seconds; she dims the captive star
   { id: '04', world: 'solar', pos: [-59.5, 4, -121.5], yaw: Math.PI / 2 }, // the lookout balcony off the overlook's north-west corner, facing the captive sun

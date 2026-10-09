@@ -2,7 +2,7 @@
 // middle of the Atrium (about equally far from all four world doors), above the sunken compass plaza.
 //   heart: core centre (0, 25.5, -124), 18 m from tip to hanger — a pulsing white-violet core caged by armored
 //   ribs, three gimbal rings, a crown and hanger plate on the oculus cross, cabled out to the skylight rings,
-//   and a beam down into the plaza's compass (the Prism Core lies below). Four glass feeds, one per world, run
+//   and a beam down through the Prism onto the Prism lift in the dais below. Four glass feeds, one per world, run
 //   from beside each world's door into the heart's base, that world's energy flowing inside:
 //     red (Foundry)  — magma, out of the south wall beside the red door
 //     solar          — liquid sunlight, out of a captive-sun lens on the west wall
@@ -394,8 +394,8 @@ export function buildReactor(B) {
     return c;
   }
 
-  // red — the Foundry: magma, out of the south wall just east of the red door, climbing over the dais's
-  // east side (low enough to be right in view as you walk in: it's the one that blows first)
+  // red — the Foundry: magma, out of the south wall just east of the red door, climbing over the Atrium
+  // floor's east side (low enough to be right in view as you walk in: it's the one that blows first)
   {
     const c = feed('red', RED, 'FOUNDRY', [V(8, 10.2, -100.15), V(8, 10.5, -102.6), V(6.9, 12.4, -108.6), V(4.3, 15.2, -114.4), V(1.6, 17.9, -119), V(0.2, 19.6, -121.3), H(0, -3.55, 1.05)], {
       style: 0, tint: 0xff3344, spark: 0xff4a50,
