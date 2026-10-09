@@ -28,6 +28,7 @@ import { MapView } from './map.js';
 import { spawnEnemy, Encounter } from './entities/combat.js';
 import { Checkpoint } from './entities/misc.js';
 import { saveProgress } from './progress.js';
+import { jumpSetup, buildLocationList } from './levelSelect.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -246,7 +247,9 @@ class Game {
     });
     ads.safe(true);
 
-    if (DEV && params.get('start')) this.devSkip(params.get('start'));
+    // ?jump=<start> (the title's Select Location): a practice run from there, the save left alone
+    if (params.get('jump') && this.level.devStarts[params.get('jump')]) this.jumpTo(params.get('jump'));
+    else if (DEV && params.get('start')) this.devSkip(params.get('start'));
     else this.restore(loadSave());
 
     this.timer = new THREE.Timer();
@@ -341,7 +344,14 @@ class Game {
         this.leaving = true;
         e.target.closest('button')?.setAttribute('disabled', '');
         Promise.race([this.naturalBreak(), new Promise((r) => setTimeout(r, 45000))]).then(() => location.reload());
+      } else if (a === 'quit' && this.practice) {
+        // leaving a practice run: back to the plain title (and your real save)
+        const u = new URL(location.href);
+        u.searchParams.delete('jump');
+        location.href = u.toString();
       } else if (a === 'quit') location.reload();
+      else if (a === 'locations') this.openLocations();
+      else if (a === 'locations-back') this.showScreen('title');
       else if (a === 'revive') this.reviveTapped = true;
       else if (a === 'continue') this.resume();
       else if (a === 'newgame') this.confirmNewGame();
@@ -408,7 +418,8 @@ class Game {
     ads.safe(false);
     if (!this.started) {
       this.started = true;
-      if (this.resumed) this.hud.message('Welcome back. Resuming from your last checkpoint.', 3);
+      if (this.practice) this.hud.message(`<b>PRACTICE</b> · ${this.practice} · nothing here is saved`, 3.5);
+      else if (this.resumed) this.hud.message('Welcome back. Resuming from your last checkpoint.', 3);
       else {
         this.enterZone('SECTOR 1', 'CRIMSON FOUNDRY', '#ff3344');
         const intro = this.level.introMessage; // (empty when the level opens with its own scene: the cell block)
@@ -445,7 +456,7 @@ class Game {
 
   // ------------------------------------------------------------------ saving
   save() {
-    if (DEV && params.get('start')) return; // dev jumps don't overwrite your real progress
+    if ((DEV && params.get('start')) || this.practice) return; // dev jumps and practice runs don't overwrite your real progress
     const cp = this.checkpoint;
     writeSave({
       cp: { pos: cp.pos.toArray(), yaw: cp.yaw },
@@ -1079,6 +1090,43 @@ class Game {
 
   // ------------------------------------------------------------------ dev helpers (?dev)
   // ?dev&start=<name>: spawn at a start registered by a world module (devStart in levels/builders.js)
+  // Select Location: start at a world's start as if you'd just arrived there (its colors, the worlds before
+  // it shut down, their Atrium feeds already blown), as a practice run that never saves.
+  jumpTo(name) {
+    const j = jumpSetup(this.level, name);
+    this.practice = j.label;
+    j.start.colors.forEach((c) => this.blaster.give(c));
+    if (j.start.colors.length) this.blaster.setColor(j.start.colors[j.start.colors.length - 1], true);
+    for (const w of j.feedsBlown) this.events.add('feed_' + w);
+    for (const w of j.down) {
+      this.powerDown[w] = true;
+      for (const fn of this.powerDownListeners) fn(w, { restored: true });
+    }
+    const pos = j.start.pos.clone();
+    this.checkpoint = { pos, yaw: j.start.yaw, ref: null };
+    this.player.spawn(pos, j.start.yaw);
+    const mood = AREA_MOOD[regionOf(pos)];
+    if (mood) {
+      this.musicTrack = mood.music;
+      this.ambient = mood.ambient;
+      this.setAtmosphere(mood.atmosphere, true);
+    }
+    this.resumed = true;
+    $('#play-btn .play-label').textContent = 'Start';
+    $('#jump-note').innerHTML = `Practice run: <b>${j.label}</b> · your save is untouched`;
+    $('#jump-note').classList.remove('hidden');
+  }
+
+  openLocations() {
+    buildLocationList(this.level, $('#loc-list'), (name) => {
+      const u = new URL(location.href);
+      u.searchParams.delete('start');
+      u.searchParams.set('jump', name);
+      location.href = u.toString();
+    });
+    this.showScreen('locations');
+  }
+
   devSkip(where) {
     const s = this.level.devStarts[where];
     if (!s) return console.warn('[chroma] unknown start', where, Object.keys(this.level.devStarts));

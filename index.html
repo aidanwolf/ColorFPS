@@ -126,6 +126,7 @@
         </svg>
       </h1>
       <p class="tag">Four worlds feed the machine. Starve it.</p>
+      <p class="small hidden" id="jump-note"></p>
       <div class="buttons">
         <button data-action="play" class="primary" id="play-btn"><span class="play-label">Play</span>
           <!-- a save: where you left off (src/progress.js), with a look at the spot -->
@@ -141,6 +142,7 @@
           </span>
         </button>
         <button data-action="newgame" class="hidden">New Game</button>
+        <button data-action="locations">Select Location</button>
         <button data-action="settings">Settings</button>
       </div>
       <div class="controls desk-only">
@@ -176,6 +178,14 @@
       </div>
       <p class="small" id="pause-stats"></p>
       <p class="small hidden" id="pause-hint">The browser needs one more click: press <b>Resume</b> again to grab the mouse.</p>
+    </div>
+
+    <!-- Select Location (src/levelSelect.js): jump to any section or boss as a practice run -->
+    <div id="screen-locations" class="screen hidden">
+      <h2>Select Location</h2>
+      <p class="small">Starts a practice run there with the colors you'd have. Your save is untouched.</p>
+      <div id="loc-list"></div>
+      <div class="buttons"><button data-action="locations-back">Back</button></div>
     </div>
 
     <!-- New Game over a save asks first (main.js confirmNewGame) -->

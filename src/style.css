@@ -233,6 +233,14 @@ button:hover { background: rgba(255, 255, 255, 0.14); border-color: #fff; }
 button.primary { border-color: var(--yellow); }
 button.reward { border-color: var(--green); color: var(--green); }
 button.danger { border-color: var(--red); color: var(--red); }
+/* Select Location (src/levelSelect.js) */
+#loc-list { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 14px 18px; width: min(1180px, 94vw); max-height: 64vh; overflow-y: auto; overflow-x: hidden; padding: 4px 8px; pointer-events: auto; text-align: left; box-sizing: border-box; }
+.loc-group { flex: 0 1 250px; }
+.loc-group { display: flex; flex-direction: column; gap: 4px; }
+.loc-title { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--lc); border-bottom: 1px solid color-mix(in srgb, var(--lc) 45%, transparent); padding-bottom: 4px; margin-bottom: 2px; }
+button.loc { min-width: 0; width: 100%; padding: 6px 10px; font-size: 12px; letter-spacing: 1px; text-transform: none; text-align: left; border-color: rgba(255, 255, 255, 0.12); }
+button.loc:hover { border-color: var(--lc); background: color-mix(in srgb, var(--lc) 16%, transparent); }
+#jump-note { margin: -14px 0 14px; color: var(--yellow); }
 button.danger:hover { background: rgba(255, 51, 68, 0.16); }
 button:disabled { opacity: 0.4; cursor: default; }
 /* the Continue card (main.js showContinue): a look at the checkpoint, its name, how far through you are */

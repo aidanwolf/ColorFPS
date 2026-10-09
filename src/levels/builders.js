@@ -315,7 +315,8 @@ export function makeBuilders(W, game, level) {
     }, { once: false });
   };
   // ?dev&start=<name> drops you here with the given colors (see main.js devSkip).
-  const devStart = (name, pos, yaw = 0, colors = [0]) => (level.devStarts[name] = { pos: new THREE.Vector3(...pos), yaw, colors });
+  // (label: its name in the title's Select Location list, src/levelSelect.js)
+  const devStart = (name, pos, yaw = 0, colors = [0], label = null) => (level.devStarts[name] = { pos: new THREE.Vector3(...pos), yaw, colors, label });
   // Called whenever the player respawns at a checkpoint (reset elevators, encounters, ...).
   const onRespawn = (fn) => level.respawnHooks.push(fn);
   // One of Wren Ashby's audio logs ('01'..'15', see tools/audio/logs.json), floating over the floor point
