@@ -194,7 +194,7 @@ class SolarDirector {
 function standInDuneRun(B, { start, end, onDone }) {
   const { W, game, plat, blocker } = B;
   const [sx, sy, sz] = start, [ex, ey, ez] = end;
-  const x1 = Math.min(sx, ex) - 3, x2 = Math.max(sx, ex) + 5; // (out to the docks' sills)
+  const x1 = Math.min(sx, ex) - 3, x2 = Math.max(sx, ex) + 4; // (out to the world edge, where the docks would be)
   const za = Math.min(sz, ez) - 3, zb = Math.max(sz, ez) + 3, lo = Math.min(sy, ey), hi = Math.max(sy, ey);
   plat(x1, za, x2, zb, lo, 'yellow', 0.6);
   // steps up at the high end
@@ -1157,12 +1157,12 @@ export function buildSolar(B) {
   R(-192, -10, -94, -160, -2, -92);
   R(-166, -10, -92, -160, -2, -40); // east (the panel court is beyond)
   R(-212, -10, -42, -160, -6.6, -40); // south: a parapet over the sun-farm
-  R(-214, -10, -92, -212, -5, -59); // west, the dock opening in it
-  R(-214, -10, -53, -212, -5, -40);
+  R(-214, -10, -92, -212, -5, -61); // west, the dock opening in it (the dock's width)
+  R(-214, -10, -51, -212, -5, -40);
   blocker([-212, -6.6, -42], [-160, SKY, -39.5]);
   blocker([-166, -2, -92], [-160, SKY, -40]);
-  blocker([-214, -5, -92], [-212, SKY, -59]);
-  blocker([-214, -5, -53], [-212, SKY, -40]);
+  blocker([-214, -5, -92], [-212, SKY, -61]);
+  blocker([-214, -5, -51], [-212, SKY, -40]);
   G(-212, -6.65, -42, -160, -6.55, -41.9);
   const lens12 = skyLens([-189, S, -67], 12, [-189, -62.6]);
   const sweep = new RotMirror(W, { pos: [-189, -6.6, -67], yaw: 0, start: 0, tilt: Math.PI / 4, size: [2.4, 1.8], look: 'pv', post: 1.4 });
@@ -1188,7 +1188,7 @@ export function buildSolar(B) {
   for (const [x, z, w, d] of [[-196, -75, 6, 4], [-178, -62, 5, 6], [-200, -60, 7, 3], [-184, -48, 6, 3]]) drift(x, S, z, w, d);
   B.armor([-202, -6.4, -80.5]);
   B.armor([-176, -6.4, -52.5]);
-  const dockGate = { min: [-212.6, S, -59], max: [-212, -5, -53], closed: true };
+  const dockGate = { min: [-212.6, S, -61], max: [-212, -5, -51], closed: true };
   const dock = B.encounter({
     trigger: [[-206, -8.5, -84], [-170, -4, -46]],
     seals: [dockGate],
@@ -1226,10 +1226,10 @@ export function buildSolar(B) {
 
   // ================================================================ S13 THE HOVER DOCK → the dune run → S14 THE SUN QUAY
   // The dune run (solarDunes.js) boards at `start` just outside the dock gate and sets you down at `end` on
-  // the Sun Quay, which a lift climbs to the Sun Court's west door.
-  const DUNE_START = [-218, S, -56], DUNE_END = [-218, -6, -200];
-  F(-213, -10, -59, -212, S, -53); // the dock gate's sill
-  devStart('solar13', [-209, S, -56], Math.PI / 2, [0, YELLOW], 'The hover dock (dune run)');
+  // the Sun Quay, which a lift climbs to the Sun Court's west door. Its docks are 8 × 10 m platforms whose open
+  // east edge lies 4 m east of the dock point: dock points at x -216 butt them against Solar's west edge (x -212).
+  const DUNE_START = [-216, S, -56], DUNE_END = [-216, -6, -200];
+  devStart('solar13', [-208, S, -56], Math.PI / 2, [0, YELLOW], 'The hover dock (dune run)');
   let duneDone = false;
   const quay = { lift: null };
   const buildRun = duneModule?.buildDuneRun || standInDuneRun;
@@ -1275,13 +1275,12 @@ export function buildSolar(B) {
   hint([-206, -6, -203], [-200, -3, -197], 'Two great <b>sun discs</b> block the bridge. Every <b>two</b> <b style="color:#ffd23a">yellow</b> hits turn one a quarter turn: turn each <b>notch down</b> onto the bridge.', 7);
   F(-212, -6, -210.6, -184, -5, -210);
   F(-212, -6, -190, -184, -5, -189.4);
-  R(-214, -30, -197, -212, -3, -152); // the world's west edge, the quay's opening in it
-  R(-214, -30, -232, -212, -3, -203);
-  F(-213, -30, -203, -212, -6, -197);
+  R(-214, -30, -195, -212, -3, -152); // the world's west edge, the quay's opening in it (the dock's width)
+  R(-214, -30, -232, -212, -3, -205);
   blocker([-212, -6, -211], [-184, SKY, -210]);
   blocker([-212, -6, -190], [-184, SKY, -189]);
-  blocker([-214, -3, -197], [-212, SKY, -150]);
-  blocker([-214, -3, -232], [-212, SKY, -203]);
+  blocker([-214, -3, -195], [-212, SKY, -150]);
+  blocker([-214, -3, -232], [-212, SKY, -205]);
   quay.lift = new Elevator(W, { min: [-184, -6.4, -202], max: [-180, -6, -198], path: [[0, 22, 0]], speed: 3, delay: 0.6, zone, kind: 'grate', trigger: { min: [-183.6, -6, -201.6], max: [-180.4, -3, -198.4] } });
   for (const z of [-203.4, -196.6]) {
     M(-184.2, -6, z - 0.6, -183.2, 18, z + 0.6);
