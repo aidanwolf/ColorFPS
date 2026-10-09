@@ -1144,6 +1144,12 @@ class Game {
       for (const fn of this.powerDownListeners) fn(w, { restored: true });
     }
     const pos = j.start.pos.clone();
+    // a start at an arena's own beacon is past that fight (as a save there is: see restore), e.g. the
+    // Aquarium moon pool start, whose hatch only opens once the dome is clear
+    for (const e of this.world.entities) {
+      const at = e instanceof Encounter && e.checkpoint?.pos; // (instanceof: class names are minified in a build)
+      if (at && pos.distanceTo(new THREE.Vector3(...at)) < 1.5) this.clearedEncounters.add(e.id);
+    }
     this.checkpoint = { pos, yaw: j.start.yaw, ref: null };
     this.player.spawn(pos, j.start.yaw);
     const mood = AREA_MOOD[regionOf(pos)];
