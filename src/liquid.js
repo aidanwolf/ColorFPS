@@ -60,17 +60,20 @@ export function liquidMaterial(zone, surface, styleOverride = null) {
           c += vec3(2.2, 1.1, 0.25) * seam * (0.6 + 0.4 * sin(t * 2.0 + p.x));
           c += vec3(0.6, 0.12, 0.02) * (0.5 + 0.5 * sin(t * 1.3 + lfbm(p * 0.5) * 6.0)) * heat;
         #elif STYLE == 1
-          // quicksand: ripples sliding inward toward slowly wandering sink holes, wet dark patches
-          vec2 q = p * 0.11;
-          vec2 cell = floor(q), f = fract(q) - 0.5 + (vec2(lh(cell), lh(cell + 3.1)) - 0.5) * 0.5;
-          float r = length(f);
-          float ring = sin(r * 38.0 + t * 1.6 + lh(cell) * 6.0) * 0.5 + 0.5;
-          float drift = lfbm(p * 0.35 + vec2(t * 0.05, -t * 0.04));
-          float hole = smoothstep(0.18, 0.0, r);
-          c = mix(vec3(0.72, 0.56, 0.34), vec3(0.5, 0.36, 0.2), drift);
-          c *= 0.86 + 0.14 * ring * (1.0 - hole);
-          c = mix(c, vec3(0.22, 0.15, 0.08), hole * 0.85);
-          c *= 0.9 + 0.1 * sin(dot(p, vec2(0.7, 0.4)) * 2.0 + t * 0.6);
+          // quicksand: wavy dune ripples crawling steadily one way across it (lit on one face, shaded on
+          // the other, pale crests), fine streaks along the flow and darker wet patches
+          vec2 dir = vec2(0.8, 0.6);
+          float along = dot(p, dir), across = dot(p, vec2(-dir.y, dir.x));
+          float warp = sin(across * 0.33 + lfbm(p * 0.12) * 4.0) * 0.8 + lfbm(p * 0.35) * 1.1;
+          float ph = (along + warp) * 3.0 - t * 1.2;
+          float face = cos(ph); // which way this bit of ripple faces the sun
+          float crest = smoothstep(0.75, 1.0, sin(ph));
+          float drift = lfbm(p * 0.3 + dir * t * 0.06);
+          c = mix(vec3(0.74, 0.57, 0.34), vec3(0.55, 0.4, 0.23), drift);
+          c *= 0.84 + 0.2 * face;
+          c += vec3(0.16, 0.12, 0.07) * crest;
+          c *= 0.95 + 0.05 * sin(across * 2.1 + lfbm(p * 0.8 + dir * t * 0.2) * 5.0);
+          c = mix(c, vec3(0.3, 0.21, 0.12), smoothstep(0.66, 0.85, lfbm(p * 0.18 - dir * t * 0.02)) * 0.6);
         #elif STYLE == 2
           // toxic sludge: oily green with glowing bubbling patches
           float s = lfbm(p * 0.3 + vec2(t * 0.04, t * 0.03));

@@ -393,7 +393,7 @@ export function buildSunscorch({ B, W, game, level, H, boss }) {
       sun.update(dt, game.camera);
       // quicksand: step in and it has you
       const p = player.pos;
-      if (p.y < 0.1) for (const s of sinks) if (p.x > s.x1 && p.x < s.x2 && p.z > s.z1 && p.z < s.z2) player.damage(1, 'quicksand');
+      if (p.y < 0.1) for (const s of sinks) if (p.x > s.x1 && p.x < s.x2 && p.z > s.z1 && p.z < s.z2) player.touchLava(); // (quicksand: player.js sinkIn)
       // heat shimmer motes
       if (Math.random() < dt * 12) W.fx.burst(_v.set(p.x + (Math.random() - 0.5) * 30, p.y + Math.random() * 6, p.z + (Math.random() - 0.5) * 30), 0xffd890, { count: 1, speed: 0.4, life: 3, size: 0.1, gravity: -0.3, drag: 0.4 });
     },

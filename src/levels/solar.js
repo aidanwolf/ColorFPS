@@ -342,9 +342,8 @@ class SolarDirector {
     if (!player.dead && player.invuln <= 0 && !this.game.godMode) {
       for (const s of this.slag) {
         if (b.min.x < s.max.x + 0.04 && b.max.x > s.min.x - 0.04 && b.min.y < s.max.y + 0.06 && b.max.y > s.min.y && b.min.z < s.max.z + 0.04 && b.max.z > s.min.z - 0.04) {
-          audio.acid();
-          player.damage(1, 'quicksand');
-          return;
+          player.touchLava(); // (quicksand drags you down rather than kills on touch: player.js sinkIn)
+          break;
         }
       }
     }

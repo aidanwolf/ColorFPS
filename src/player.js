@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { audio } from './audio.js';
 import { barks } from './combat/barks.js';
 import { ARMOR_IGNORES, ARMOR_COLOR, ShieldFx } from './entities/armor.js';
+import { regionOf } from './levels/regions.js';
 
 const HALF_W = 0.35;
 const STAND_H = 1.75;
@@ -29,6 +30,15 @@ const SWIM_SPEED = 4.4;
 const LAVA_GRACE = 1.2;
 const LAVA_POP = 10; // the hop up off the surface on first contact (m/s up: about a metre, over a pool's lip)
 const LAVA_SLOW = 0.55;
+// Quicksand (sinkIn): metres sunk a second (it speeds up as you go deeper), metres one jump tap hauls
+// you back up, and the depths where it takes the shield and where it takes you. Above SINK_FREE jump
+// is a real jump again.
+const SINK_RATE = 0.3;
+const SINK_PULL = 0.15;
+const SINK_FREE = 0.18;
+const SINK_SHIELD = 0.85;
+const SINK_DEATH = 1.4;
+const SAND_TINT = 0xd9b46a;
 export const AIR_MAX = 14; // seconds of breath
 const _down = new THREE.Vector3(0, -1, 0);
 const _swimF = new THREE.Vector3(), _swimT = new THREE.Vector3(); // m below the last ground: you've fallen off the world
@@ -88,6 +98,8 @@ export class Player {
     this.air = AIR_MAX;
     this.burn = 0;
     this.inLava = false;
+    this.inSand = false;
+    this.sinkDepth = 0;
     if (this.armor) this.setArmor(0); // a respawn (or any reset) starts unarmored
   }
 
@@ -199,7 +211,7 @@ export class Player {
       }
     }
     this.height = this.crouching ? CROUCH_H : STAND_H;
-    const targetEye = this.height - EYE_DROP;
+    const targetEye = this.height - EYE_DROP - (this.sinkDepth || 0); // (sunk into quicksand: the view goes down with you)
     this.eye += (targetEye - this.eye) * Math.min(1, dt * 14);
 
     // ---- swimming ----
@@ -233,7 +245,7 @@ export class Player {
     // Shift sprints (forward-ish only); a fully pushed touch stick sprints too
     const stickFull = input.stick && Math.hypot(input.stick.f, input.stick.r) > 0.97;
     this.sprinting = !this.crouching && f > 0 && (input.down('ShiftLeft') || input.down('ShiftRight') || stickFull);
-    const speed = (this.crouching && this.grounded ? CROUCH_SPEED : this.sprinting ? SPRINT_SPEED : RUN_SPEED) * (this.inLava ? LAVA_SLOW : 1);
+    const speed = (this.crouching && this.grounded ? CROUCH_SPEED : this.sprinting ? SPRINT_SPEED : RUN_SPEED) * (this.inLava ? LAVA_SLOW : 1) * (this.sinkDepth ? Math.max(0.12, 0.5 - this.sinkDepth * 0.45) : 1);
     const tx = mx * speed, tz = mz * speed;
     // (after a jump pad, steering is weaker so holding a key can't cancel the pad's throw)
     const accel = this.grounded ? GROUND_ACCEL : AIR_ACCEL * (this.launched ? 0.3 : 1);
@@ -248,7 +260,8 @@ export class Player {
 
     // ---- jumping ----
     this.coyote = this.grounded ? COYOTE : this.coyote - dt;
-    this.buffer = input.hit('Space') ? BUFFER : this.buffer - dt;
+    // (stuck in quicksand, jump is a haul upward instead: sinkIn)
+    this.buffer = input.hit('Space') && !(this.inSand && this.sinkDepth > SINK_FREE) ? BUFFER : this.buffer - dt;
     if (this.buffer > 0 && this.coyote > 0) {
       this.vel.y = JUMP_V;
       this.buffer = 0;
@@ -277,7 +290,14 @@ export class Player {
     if (this.grounded) this.fallTop = this.pos.y;
     else this.fallTop = Math.max(this.fallTop ?? this.pos.y, this.pos.y);
     this.fallSpeed = this.grounded ? 0 : Math.max(0, -this.vel.y);
-    if (this.grounded && !wasGrounded) {
+    // quicksand swallows a fall whole: no fall damage, you plunge in deep (the harder, the deeper)
+    const softLanding = this.grounded && !wasGrounded && (this.ground?.hazard === 'acid' || this.ground?.kind === 'acid') && /solar/.test(regionOf(this.pos));
+    if (softLanding && fallSpeed > 6) {
+      this.sinkDepth = Math.max(this.sinkDepth || 0, Math.min(0.62, 0.2 + fallSpeed * 0.014));
+      this.shake = Math.max(this.shake || 0, Math.min(0.6, fallSpeed * 0.02));
+      world.fx.burst(this.pos.clone().setY(this.pos.y + 0.2), SAND_TINT, { count: 50, speed: 5, life: 0.9, size: 0.35, gravity: 5, mode: 'puff' });
+      audio.sample('sand_sink', { gain: 1, rate: 0.8, vary: 0.05 }) || audio.land(2);
+    } else if (this.grounded && !wasGrounded) {
       if (fallSpeed > LETHAL_FALL && !this.game.rulesPaused) {
         // fall damage: a long drop (about 18 m) is fatal
         audio.sample('impact_death', { gain: 1, vary: 0.05 }) || audio.land(2);
@@ -525,6 +545,10 @@ export class Player {
   // and buys its own moment of grace. Bare, the burn runs (you're slowed) and LAVA_GRACE seconds of it
   // kill you; step out in time and it cools off. True when this frame killed you.
   burnIn(lava, dt) {
+    // (Solar's pools are quicksand, which drags you down instead: see sinkIn)
+    const sand = lava && /solar/.test(regionOf(this.pos));
+    if (this.sinkIn(sand, dt)) return true;
+    if (sand) lava = false;
     const was = this.inLava;
     this.inLava = lava;
     if (!lava) {
@@ -557,6 +581,44 @@ export class Player {
     this.game.hud.burning?.(this.burn / LAVA_GRACE);
     if (this.burn < LAVA_GRACE) return false;
     this.damage(1, 'acid');
+    return this.dead;
+  }
+
+  // Quicksand: it never kills on touch. You sink, faster the deeper you go, and can barely wade; every
+  // tap of jump hauls you up a little (mash it to work free, then a real jump once you're near the top).
+  // Sink past your chest and it tears the shield off (you bob back up a bit); go under and it has you.
+  sinkIn(sand, dt) {
+    if (!sand) {
+      this.inSand = false;
+      this.sinkDepth = Math.max(0, (this.sinkDepth || 0) - dt * 2.5); // (out: you climb clear)
+      return false;
+    }
+    const fx = this.game.world.fx, at = this.pos.clone().setY(this.pos.y + 0.15);
+    if (!this.inSand) {
+      audio.sample('sand_sink', { gain: 0.8, vary: 0.1 });
+      fx.burst(at, SAND_TINT, { count: 24, speed: 3, life: 0.7, size: 0.25, gravity: 4, mode: 'puff' });
+      if (!this.warnedSand) this.game.hud.message('<b style="color:#e8c070">QUICKSAND</b> — mash <b>JUMP</b> to pull free!', 2.5);
+      this.warnedSand = true;
+    }
+    this.inSand = true;
+    if (this.game.godMode || this.game.rulesPaused) return false;
+    this.sinkDepth = (this.sinkDepth || 0) + dt * SINK_RATE * (1 + this.sinkDepth * 0.7);
+    if (this.sinkDepth > SINK_FREE && this.game.input.hit('Space')) {
+      this.sinkDepth = Math.max(0, this.sinkDepth - SINK_PULL);
+      this.shake = Math.max(this.shake || 0, 0.08);
+      fx.burst(at, SAND_TINT, { count: 8, speed: 2.5, life: 0.5, size: 0.2, gravity: 4, mode: 'puff' });
+      audio.sample('sand_sink', { gain: 0.3, rate: 1.4, vary: 0.2 });
+    }
+    if (Math.random() < dt * 3) audio.sample('sand_sink', { gain: 0.25, rate: 0.8, vary: 0.2 });
+    this.game.hud.burning?.(this.sinkDepth / SINK_DEATH);
+    if (this.sinkDepth > SINK_SHIELD && this.armor > 0) {
+      this.damage(1, 'sandpull'); // the shield goes, and the jolt lifts you a little
+      this.sinkDepth = SINK_SHIELD * 0.5;
+      return false;
+    }
+    if (this.sinkDepth < SINK_DEATH) return false;
+    this.sinkDepth = 0;
+    this.damage(1, 'quicksand');
     return this.dead;
   }
 
