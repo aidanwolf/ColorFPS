@@ -166,6 +166,20 @@ const coreFrag = `
     gl_FragColor = vec4(clamp(col, 0.0, 3.0), 1.0);
   }`;
 
+// The feed-conduit material (also used by the Foundry core's pipes): see conduitFrag for STYLE and uniforms.
+export function conduitMaterial(style, len, extra = {}, tint = 0xffffff) {
+  return new THREE.ShaderMaterial({
+    vertexShader: conduitVert,
+    fragmentShader: conduitFrag,
+    defines: { STYLE: style },
+    uniforms: {
+      uTime: { value: Math.random() * 50 }, uPower: { value: 1 }, uFlick: { value: 1 }, uLen: { value: len }, uSeed: { value: Math.random() * 10 },
+      uTint: { value: new THREE.Color(tint) }, uCutA: { value: -10 }, uCutB: { value: -10 }, uEdge: { value: 0 }, uSurge: { value: -99 }, uSurgeK: { value: 0 },
+    },
+    ...extra,
+  });
+}
+
 // ---------------------------------------------------------------- geometry helpers
 // Scale a TubeGeometry's radius along its length: f(u) multiplies the radius at u (0 start → 1 end).
 function taper(geo, f) {
@@ -244,17 +258,7 @@ export function buildReactor(B) {
   const armor = []; // world-space dark metal: ribs, crown, collars, cables (one mesh)
   const armorMat = new THREE.MeshStandardMaterial({ ...DARK, emissive: 0x150c2a, emissiveIntensity: 1 });
 
-  const conduitMat = (style, len, extra = {}, tint = 0xffffff) =>
-    new THREE.ShaderMaterial({
-      vertexShader: conduitVert,
-      fragmentShader: conduitFrag,
-      defines: { STYLE: style },
-      uniforms: {
-        uTime: { value: Math.random() * 50 }, uPower: { value: 1 }, uFlick: { value: 1 }, uLen: { value: len }, uSeed: { value: Math.random() * 10 },
-        uTint: { value: new THREE.Color(tint) }, uCutA: { value: -10 }, uCutB: { value: -10 }, uEdge: { value: 0 }, uSurge: { value: -99 }, uSurgeK: { value: 0 },
-      },
-      ...extra,
-    });
+  const conduitMat = conduitMaterial;
   const additive = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending };
 
   // ---------------------------------------------------------------- the heart
