@@ -70,6 +70,7 @@ const BEAM0 = 44, BEAM1 = 45.2; // the support beams
 
 const _v = new THREE.Vector3(), _w = new THREE.Vector3();
 const _smoke = new THREE.Color(0.3, 0.27, 0.24);
+const _down = new THREE.Vector3(0, -1, 0);
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
@@ -136,7 +137,9 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
   blk('sand', -6, CEIL, 11.75, 2, 50, 19.75);
   blk('sand', 10, CEIL, 11.75, 17, 50, 19.75);
   // the floor under everything: L0's terrace rock, the pit's bed and its quicksand
-  blk('floor', -17, -12, 1.5, 17, L0, 10);
+  blk('floor', -17, -12, 1.5, 14.6, L0, 10, { occ: true });
+  blk('floor', 14.6, -12, 4.2, 17, L0, 10);
+  blk('sandDark', 14.6, -12, 1.5, 17, L0 - 0.6, 4.2); // (the pilgrims' lift rests in a well in the corner)
   blk('sandDark', -17, -12, 10, 17, -8, 30);
   {
     const [a, b] = F.box(-17, -8, 10, 17, SAND, 30);
@@ -743,9 +746,15 @@ export function buildTempleInterior(B, K, { T = TEMPLE_T } = {}) {
   // (fall down its shaft while it's away and you're faded back to your checkpoint, not killed)
   W.add({
     update(dt, player) {
-      if (game.voidT || game.state !== 'playing' || player.vel.y > -13 || player.mount) return;
+      if (game.voidT || game.state !== 'playing' || player.vel.y > -13 || player.mount || player.dead) return;
       const l = F.local(player.pos, _w);
-      if (l.x > 14.6 && l.x < 17 && l.z > 1.5 && l.z < 4.2 && l.y > 1 && l.y < L3) game.fallOutOfWorld();
+      if (l.x > 14.6 && l.x < 17 && l.z > 1.5 && l.z < 4.2 && l.y > 1 && l.y < L3) return game.fallOutOfWorld();
+      // a long fall anywhere in the hall: into the quicksand it's caught (struggle out, the stair, the lift);
+      // onto stone that would kill you, you're faded back to your checkpoint instead
+      if (player.vel.y < -20 && inTemple(player.pos)) {
+        const h = W.raycast(player.pos, _down, 8, { meshes: false });
+        if (h && h.solid?.kind !== 'acid' && player.vel.y ** 2 + 2 * 24 * h.t > 29 ** 2) game.fallOutOfWorld();
+      }
     },
   });
   W.add({
