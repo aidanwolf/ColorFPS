@@ -75,7 +75,7 @@ const COARSE = matchMedia('(pointer: coarse)').matches;
 // sens is in Quake/Half-Life units (0.022° per mouse count × sens) on top of the OS pointer speed;
 // fov is Quake-style: horizontal degrees on a 4:3 screen (default 90), widened for wider screens.
 function loadSettings() {
-  const d = { sens: 20, fov: 90, volume: 0.7, invertY: false, barkSubs: true };
+  const d = { sens: 20, fov: 90, volume: 0.7, music: 1, voice: 1, invertY: false, barkSubs: true };
   try {
     return { ...d, ...JSON.parse(localStorage.getItem('chroma-settings-v3') || '{}') };
   } catch {
@@ -373,9 +373,13 @@ class Game {
     });
     $('#fov-val').textContent = this.settings.fov;
     bind('#set-vol', 'volume', (el) => +el.value, () => audio.setVolume(this.settings.volume));
+    bind('#set-music', 'music', (el) => +el.value, () => audio.setMusicVolume(this.settings.music));
+    bind('#set-voice', 'voice', (el) => +el.value, () => audio.setVoiceVolume(this.settings.voice));
     bind('#set-invert', 'invertY', (el) => el.checked);
     bind('#set-barksubs', 'barkSubs', (el) => el.checked, () => barks.setSubtitles(this.settings.barkSubs));
     audio.setVolume(this.settings.volume);
+    audio.setMusicVolume(this.settings.music);
+    audio.setVoiceVolume(this.settings.voice);
     // a "Continue" button for after Bonus Rounds (re-locking the pointer needs a click)
     const ad = $('#screen-ad');
     const btns = document.createElement('div');

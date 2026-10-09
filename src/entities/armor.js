@@ -135,10 +135,7 @@ export class ArmorPickup {
     const p = this.pos.clone();
     p.y += 1.15;
     this.world.fx.burst(p, ARMOR_COLOR, { count: 60, speed: 6, life: 0.7, size: 0.25, gravity: 0 });
-    // SHIELDS ON: the music dips for a beat under the pickup chime and the power-up hum
-    audio.slam(0.45, 0.2, 0.9);
-    audio.sample(audio.sfxOr('armor_pickup', 'secret'), { gain: 1.5, rate: 1.1, vary: 0, dry: true });
-    audio.sample(audio.sfxOr('armor_on', 'charge_up'), { gain: 1.6, delay: 0.1, vary: 0 });
+    audio.shieldOn(); // SHIELDS ON: the pickup chime, the field powering up, a whoosh and a music dip
   }
 
   restore(effect = false) {

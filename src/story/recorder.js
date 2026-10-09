@@ -12,7 +12,8 @@ const $ = (s) => document.querySelector(s);
 // captions never show the script's acting cues ("[laughs]"), even if a stale logdata.json still has them
 const clean = (s) => s.replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').replace(/\s+([,.!?])/g, '$1').trim();
 const HOLD_TO_STOP = 0.5; // seconds holding T
-const DUCK = 0.2; // music level while a log plays
+const DUCK = 0.2; // music level while a log plays (about -14 dB)
+const LEVEL = 2.5; // her voice after the field-recorder EQ, into the voice bus (≈ -13 LUFS on the output)
 
 export class Recorder {
   constructor(game) {
@@ -98,7 +99,7 @@ export class Recorder {
       this.el = new Audio();
       this.el.preload = 'auto';
       const ctx = audio.ctx;
-      if (ctx && audio.master) {
+      if (ctx && audio.voiceBus) {
         // a field-recorder voice: thinned lows, rolled-off highs, a little presence, dry (no room reverb)
         const src = ctx.createMediaElementSource(this.el);
         const hp = ctx.createBiquadFilter();
@@ -112,8 +113,8 @@ export class Recorder {
         pk.frequency.value = 2600;
         pk.gain.value = 3;
         const g = ctx.createGain();
-        g.gain.value = 1.5;
-        src.connect(hp).connect(pk).connect(lp).connect(g).connect(audio.master);
+        g.gain.value = LEVEL;
+        src.connect(hp).connect(pk).connect(lp).connect(g).connect(audio.voiceBus);
       } else this.el.volume = this.game.settings.volume;
     }
     const el = this.el;
@@ -134,14 +135,9 @@ export class Recorder {
     this.useClock = true;
   }
 
-  // Music sits under her voice (the same duck the upgrade stinger uses), then comes back.
+  // Music sits under her voice (the voice duck, which stingers and slams don't disturb), then comes back.
   duck(on) {
-    const ctx = audio.ctx, d = audio.musicDuck;
-    if (!ctx || !d) return;
-    const g = d.gain, t = ctx.currentTime;
-    g.cancelScheduledValues(t);
-    g.setValueAtTime(g.value, t);
-    g.setTargetAtTime(on ? DUCK : 1, t, on ? 0.25 : 0.9);
+    audio.duck('memo', on ? DUCK : 1, on ? 0.25 : 0.9);
   }
 
   stop(quiet = false) {

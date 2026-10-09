@@ -17,6 +17,12 @@ const SFX_FILES = [
   'amb_hub', 'amb_solar', 'amb_abyss', 'fall_wind', 'land_hard', 'impact_death',
   'step_tile1', 'step_tile2', 'step_tile3', 'step_grate1', 'step_grate2', 'step_stone1', 'step_stone2',
   'step_sand1', 'step_sand2', 'step_ice1', 'step_ice2', 'land_tile', 'land_sand',
+  'armor_pickup', 'armor_on', 'armor_break',
+  // one-shots played straight by name that no module prefetched (a listed-but-unfetched file plays its
+  // stand-in, or nothing): the arena / finale set pieces and a few enemy cues
+  'shield_absorb', 'core_shutdown', 'solar_shutdown', 'engine_shutdown', 'heart_shatter', 'ice_crack', 'lava_surge',
+  'tide_rise', 'spore_burst', 'warp_shatter', 'warp_whoosh', 'crab_chirp', 'mummy_dodge', 'scarab_pounce',
+  'welder_ignite_burst',
 ];
 const SHOT_NAMES = ['shoot_red', 'shoot_yellow', 'shoot_green', 'shoot_blue'];
 const MUSIC_GAIN = 1.7;
@@ -36,6 +42,23 @@ const AMB_GAIN = 0.35;
 // The generated beds came out at very different loudness (-10 .. -39 LUFS); these even them out.
 const AMB_TRIM = { amb_foundry: 1, amb_hub: 0.33, amb_solar: 2.2, amb_jungle: 2.2, amb_abyss: 2.4, amb_wind: 4, amb_core: 0.4 };
 const AMB_XFADE = 3;
+
+// ---- the mix ----
+// Every bus meets at `master` (the volume setting), then a gentle glue compressor and a brick-wall limiter
+// (with a soft clipper behind it for the odd transient the limiter's attack lets through), so the loud
+// moments (the shield breaking, explosions over gunfire) stay clean while everything else sits louder.
+// Measured on the output at volume 0.7 (BS.1770 loudness, metered in the running game):
+//   music + ambience ≈ -18.5 LUFS · sustained fire ≈ -12 · enemy voices ≈ -12.5..-14.5 at 6-15 m and no
+//   quieter than -15.5 at 25 m, every persona (the music ducks to ≈ -21 under them) · Wren's logs ≈ -13
+//   (music ducks ~14 dB) · shield on ≈ -9.5 momentary · the shield breaking is the loudest moment, right
+//   at the limiter. Nothing peaks over -0.4 dBFS.
+// Voices (enemy barks, Wren's logs) have their own bus and slider.
+const VOICE_BUS = 1;
+const VOICE_OUT = 1.2; // after the voice leveller
+const OUT_TRIM = 0.75; // see buildOutput
+// Per-file loudness trims (linear) for samples that came out far off their neighbours, applied wherever
+// they play (sample() and at()): the Thornmaw's pain hiss is ~8 LU under the other bosses' groans.
+const SAMPLE_TRIM = { hydra_pain: 3 };
 
 // Footstep materials. Every sample is played at `level` relative to its own peak (the generated takes
 // came out anywhere from -30 to 0 dBFS), `layer` adds a quieter second material on top (frost on tile),
@@ -267,6 +290,9 @@ class Audio {
     this.ctx = null;
     this.master = null;
     this.volume = 0.7;
+    this.musicVol = 1; // the Music and Voice sliders, on top of the bus levels
+    this.voiceVol = 1;
+    this.ducks = new Map(); // duck(): key -> music level wanted (voices over the music)
     this.music = null; // the synth sequencer (fallback music)
     this.raw = new Map(); // name -> ArrayBuffer (prefetched before the AudioContext exists)
     this.buffers = new Map(); // name -> AudioBuffer (sound effects and ambient beds)
@@ -402,12 +428,16 @@ class Audio {
   // cut: fade it out after this many seconds (keeps rapid footsteps crisp instead of smearing).
   sample(name, { rate = 1, gain = 1, vary = 0.05, delay = 0, dry = false, cut = 0 } = {}) {
     const buf = this.ctx && this.buffers.get(name);
-    if (!buf) return false;
+    if (!buf) {
+      // a file nobody prefetched: fetch it now so the next play has it (this one falls back / is skipped)
+      if (this.ctx && name && this.available?.has(name)) this.prefetch([name]);
+      return false;
+    }
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
     src.playbackRate.value = rate * (1 + (Math.random() * 2 - 1) * vary);
     const g = this.ctx.createGain();
-    g.gain.value = gain;
+    g.gain.value = gain * (SAMPLE_TRIM[name] ?? 1);
     src.connect(g).connect(dry ? this.dryBus : this.sfxBus);
     src.start(this.t + delay);
     if (cut) {
@@ -457,7 +487,7 @@ class Audio {
     const near = o.near ?? 4, far = o.far ?? 40;
     let k = d <= near ? 1 : d >= far ? 0 : 1 - (d - near) / (far - near);
     k *= k;
-    const gain = (o.gain ?? 1) * k;
+    const gain = (o.gain ?? 1) * k * (SAMPLE_TRIM[name] ?? 1);
     if (gain < 0.008) return false;
     const now = this.t;
     const key = o.key || name;
@@ -546,7 +576,7 @@ class Audio {
         this.prefetch([n]);
         return null;
       }
-      return new Bed(this.ctx, n, buf, this.dryBus, AMB_GAIN * (AMB_TRIM[n] ?? 1), Math.random() * buf.duration);
+      return new Bed(this.ctx, n, buf, this.ambBus, AMB_GAIN * (AMB_TRIM[n] ?? 1), Math.random() * buf.duration);
     };
     this.ambLayer.blend(a, b, w, make);
   }
@@ -563,7 +593,7 @@ class Audio {
       return;
     }
     const level = AMB_GAIN * (AMB_TRIM[name] ?? 1);
-    this.ambLayer.to(name, () => new Bed(this.ctx, name, buf, this.dryBus, level, Math.random() * buf.duration), AMB_XFADE);
+    this.ambLayer.to(name, () => new Bed(this.ctx, name, buf, this.ambBus, level, Math.random() * buf.duration), AMB_XFADE);
   }
 
   // Low-health heartbeat loop.
@@ -616,10 +646,7 @@ class Audio {
       this.ctx = new Ctx();
       this.master = this.ctx.createGain();
       this.master.gain.value = this.volume;
-      const comp = this.ctx.createDynamicsCompressor();
-      comp.threshold.value = -14;
-      comp.ratio.value = 6;
-      this.master.connect(comp).connect(this.ctx.destination);
+      this.buildOutput();
       // sound effects: dry to the master plus a full send into the room reverb; the dry bus (ambience
       // beds, heartbeat, UI) skips the room
       this.buildReverb();
@@ -628,6 +655,23 @@ class Audio {
       this.sfxBus.connect(this.verbIn);
       this.dryBus = this.ctx.createGain();
       this.dryBus.connect(this.master);
+      // ambience beds: their own fader on the dry bus, so voices can push them back a little
+      this.ambBus = this.ctx.createGain();
+      this.ambBus.connect(this.dryBus);
+      // voices (enemy barks, Wren's logs): their own bus and slider, and a leveller that evens out the
+      // five robot chains' very different peaks (3:1 from -18 dBFS, keeping the browser's ~6 dB make-up
+      // gain) so they sit at one level without leaning on the master limiter; barks add their own room send
+      this.voiceBus = this.ctx.createGain();
+      this.voiceBus.gain.value = VOICE_BUS * this.voiceVol;
+      const lev = this.ctx.createDynamicsCompressor();
+      lev.threshold.value = -18;
+      lev.knee.value = 6;
+      lev.ratio.value = 3;
+      lev.attack.value = 0.003;
+      lev.release.value = 0.15;
+      const levOut = this.ctx.createGain();
+      levOut.gain.value = VOICE_OUT;
+      this.voiceBus.connect(lev).connect(levOut).connect(this.master);
       // world loops (drone hums, motors) go through their own fader so they hush while the game is paused,
       // with only a light reverb send so a hovering drone doesn't smear into a drone of its own
       this.loopBus = this.ctx.createGain();
@@ -639,12 +683,15 @@ class Audio {
       this.loopDry = this.ctx.createGain();
       this.loopDry.gain.value = this.loopsMuted ? 0 : 1;
       this.loopDry.connect(this.master);
-      // music: tracks → duck (stingers) → bus (mute) → master; the synth fallback has its own fader
+      // music: tracks → duck (stingers, slams) → voice duck (barks, logs) → bus (mute, slider) → master;
+      // the synth fallback has its own fader
       this.musicBus = this.ctx.createGain();
-      this.musicBus.gain.value = MUSIC_BUS;
+      this.musicBus.gain.value = MUSIC_BUS * this.musicVol;
       this.musicBus.connect(this.master);
+      this.voiceDuck = this.ctx.createGain();
+      this.voiceDuck.connect(this.musicBus);
       this.musicDuck = this.ctx.createGain();
-      this.musicDuck.connect(this.musicBus);
+      this.musicDuck.connect(this.voiceDuck);
       this.synthBus = this.ctx.createGain();
       this.synthBus.connect(this.musicDuck);
       this.noiseBuf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
@@ -660,6 +707,72 @@ class Audio {
   setVolume(v) {
     this.volume = v;
     if (this.master) this.master.gain.value = v;
+  }
+
+  setMusicVolume(v) {
+    this.musicVol = v;
+    if (this.musicBus && !this.musicMuted) this.musicBus.gain.setTargetAtTime(MUSIC_BUS * v, this.t, 0.05);
+  }
+
+  setVoiceVolume(v) {
+    this.voiceVol = v;
+    if (this.voiceBus) this.voiceBus.gain.setTargetAtTime(VOICE_BUS * v, this.t, 0.05);
+  }
+
+  // The output stage: master → glue compressor → trim → limiter → soft clipper → speakers.
+  // The glue only leans on the loud moments (2:1 from about -12 dBFS); the limiter holds the peaks
+  // under -0.5 dBFS (its 6 ms look-ahead catches nearly everything, the clipper the rest). The browser's
+  // compressor adds its own make-up gain (measured offline: +2.2 dB on the glue, +1.1 on the limiter);
+  // the trim takes that back out, so quiet passages leave at the level they always did and only the
+  // peaks are tamed.
+  buildOutput() {
+    const ctx = this.ctx;
+    const glue = ctx.createDynamicsCompressor();
+    glue.threshold.value = -10;
+    glue.knee.value = 6;
+    glue.ratio.value = 2;
+    glue.attack.value = 0.01;
+    glue.release.value = 0.22;
+    const trim = ctx.createGain();
+    trim.gain.value = OUT_TRIM;
+    const lim = ctx.createDynamicsCompressor();
+    lim.threshold.value = -2;
+    lim.knee.value = 0;
+    lim.ratio.value = 20;
+    lim.attack.value = 0.001;
+    lim.release.value = 0.12;
+    // a soft knee from -1.4 dBFS up to a ceiling of -0.2 dBFS (the input is halved so the curve covers ±2)
+    const clip = ctx.createWaveShaper();
+    const N = 4096, curve = new Float32Array(N), knee = 0.85, ceil = 0.98;
+    for (let i = 0; i < N; i++) {
+      const x = ((i / (N - 1)) * 2 - 1) * 2, a = Math.abs(x);
+      curve[i] = Math.sign(x) * (a <= knee ? a : knee + (ceil - knee) * Math.tanh((a - knee) / (ceil - knee)));
+    }
+    clip.curve = curve;
+    clip.oversample = '2x';
+    const pre = ctx.createGain();
+    pre.gain.value = 0.5;
+    this.master.connect(glue).connect(trim).connect(lim).connect(pre).connect(clip).connect(ctx.destination);
+    this.out = { glue, lim, clip };
+  }
+
+  // Voices push the music (and a little of the ambience) down while they talk: key 'bark' / 'memo' / ...,
+  // level the music gain wanted (1 releases it), tc how quickly it moves (default: quick down, easing back).
+  // The deepest active request wins.
+  duck(key, level = 1, tc = 0) {
+    if (level >= 1) this.ducks.delete(key);
+    else this.ducks.set(key, level);
+    if (!this.ctx || !this.voiceDuck) return;
+    const want = Math.min(1, ...this.ducks.values());
+    if (want === this.duckWant) return;
+    const down = want < (this.duckWant ?? 1);
+    this.duckWant = want;
+    const t = this.t;
+    hold(this.voiceDuck.gain, t);
+    const k = tc || (down ? 0.06 : 0.35);
+    this.voiceDuck.gain.setTargetAtTime(want, t, k);
+    hold(this.ambBus.gain, t);
+    this.ambBus.gain.setTargetAtTime(Math.sqrt(want), t, k * 1.2); // half as deep (in dB)
   }
 
   // ---- room reverb: verbIn → [room IR, hall IR, echo delays] → master; updateSpace sets the sends ----
@@ -938,6 +1051,41 @@ class Audio {
     if (this.sample('shield_break', { gain: 1 })) return;
     this.shatter();
     [12, 7, 3, 0].forEach((n, i) => this.tone({ type: 'square', f: 440 * 2 ** (n / 12), dur: 0.25, gain: 0.08, delay: i * 0.05 }));
+  }
+  // SHIELDS ON (an armor pickup): the pickup chime and the field powering up, layered over a rising
+  // filtered whoosh, a three-note chime that climbs into place and a soft sub thump as it locks, with the
+  // music dipping for a beat so it reads. Loud and bright, but well under the shield breaking.
+  shieldOn() {
+    if (!this.ctx) return;
+    this.sample(this.sfxOr('armor_pickup', 'secret'), { gain: 0.6, rate: 1.1, vary: 0 });
+    this.sample(this.sfxOr('armor_on', 'charge_up'), { gain: 0.62, delay: 0.12, vary: 0 });
+    const ctx = this.ctx, t0 = this.t;
+    // the whoosh: noise through a band-pass sweeping up, swelling in then cut short as the field closes
+    const s = ctx.createBufferSource();
+    s.buffer = this.noiseBuf;
+    s.loop = true;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 1.6;
+    bp.frequency.setValueAtTime(350, t0);
+    bp.frequency.exponentialRampToValueAtTime(6500, t0 + 0.42);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.17, t0 + 0.36);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
+    s.connect(bp).connect(g).connect(this.sfxBus);
+    s.start(t0, Math.random() * 0.5);
+    s.stop(t0 + 0.65);
+    // the chime: a rising triad and its octave, each note a sine with a quiet fifth above for sparkle
+    [659.3, 987.8, 1318.5].forEach((f, i) => {
+      const d = 0.2 + i * 0.075;
+      this.tone({ type: 'triangle', f, dur: 0.55 - i * 0.05, gain: 0.095, delay: d, attack: 0.005 });
+      this.tone({ type: 'sine', f: f * 1.5, dur: 0.4, gain: 0.04, delay: d + 0.01, attack: 0.005 });
+    });
+    this.tone({ type: 'sine', f: 2637, dur: 0.9, gain: 0.05, delay: 0.38, attack: 0.02 });
+    // ...and it locks: a short sub thump
+    this.tone({ type: 'sine', f: 130, f2: 55, dur: 0.22, gain: 0.26, delay: 0.36, attack: 0.004 });
+    this.slam(0.45, 0.5, 1.0);
   }
   ricochet() {
     if (this.sample('ricochet', { gain: 0.55, vary: 0.15 })) return;
@@ -1225,7 +1373,8 @@ class Audio {
     s.stop(t0 + 0.06);
   }
   setMusicMuted(m) {
-    if (this.musicBus) this.musicBus.gain.setTargetAtTime(m ? 0 : MUSIC_BUS, this.t, 0.2);
+    this.musicMuted = m;
+    if (this.musicBus) this.musicBus.gain.setTargetAtTime(m ? 0 : MUSIC_BUS * this.musicVol, this.t, 0.2);
   }
   setIntensity(i) {
     if (this.music) this.music.intensity = i;
